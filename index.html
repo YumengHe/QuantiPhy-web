@@ -39,7 +39,7 @@
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.65 -apple-system, "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+    font: 16px/1.75 -apple-system, "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
   }
   .layout { display: flex; min-height: 100vh; }
   .toc {
@@ -54,9 +54,9 @@
   .toc a.sub { padding-left: 22px; font-size: 13px; color: var(--muted); }
   .toc a:hover { background: var(--accent-soft); }
   .toc a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
-  .wrap { flex: 1 1 auto; min-width: 0; max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
-  header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 28px; }
-  h1 { margin: 0 0 6px; font-size: 28px; }
+  .wrap { flex: 1 1 auto; min-width: 0; max-width: 960px; margin: 0 auto; padding: 48px 40px 96px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 36px; }
+  h1 { margin: 0 0 8px; font-size: 30px; }
   .sub { color: var(--muted); margin: 0; }
   @media (max-width: 860px) {
     .layout { display: block; }
@@ -67,22 +67,25 @@
     .toc a { border-left: 0; padding: 4px 10px; }
     .toc a.active { background: var(--accent-soft); }
     .wrap { padding: 24px 16px 60px; }
+    section { padding: 22px 18px; margin-bottom: 22px; }
+    table { display: block; overflow-x: auto; }
   }
-  section { scroll-margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; margin-bottom: 20px; }
-  h2 { margin: 0 0 12px; font-size: 20px; }
-  h3 { margin: 18px 0 8px; font-size: 16px; }
-  p { margin: 8px 0; }
-  ul, ol { padding-left: 22px; margin: 8px 0; }
-  li { margin: 4px 0; }
-  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14.5px; }
-  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  section { scroll-margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 32px 36px; margin-bottom: 32px; }
+  h2 { margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border); font-size: 22px; }
+  h3 { margin: 32px 0 10px; font-size: 17px; }
+  p { margin: 10px 0; }
+  ul, ol { padding-left: 22px; margin: 10px 0; }
+  li { margin: 7px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0 18px; font-size: 14.5px; }
+  th, td { border: 1px solid var(--border); padding: 9px 12px; text-align: left; vertical-align: top; }
   th { background: var(--accent-soft); font-weight: 600; }
   code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: 0.92em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
   pre code { background: none; padding: 0; }
-  .callout { border-left: 4px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 6px; margin: 12px 0; }
+  .callout { border-left: 4px solid var(--warn); background: var(--warn-soft); padding: 14px 18px; border-radius: 8px; margin: 16px 0; }
+  .note { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 14px 18px; border-radius: 8px; margin: 16px 0; }
   .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-right: 6px; }
-  .demo { display: grid; grid-template-columns: 320px 1fr; gap: 18px; padding: 16px 0; border-top: 1px solid var(--border); }
+  .demo { display: grid; grid-template-columns: 320px 1fr; gap: 24px; padding: 24px 0; border-top: 1px solid var(--border); }
   .demo:first-of-type { border-top: 0; }
   .demo video { width: 100%; border-radius: 8px; background: #000; align-self: start; }
   .demo-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; }
@@ -113,10 +116,17 @@
     <li><b>任务：</b>给一段视频和一个已知物理量（prior），让模型推断另一个物理量，比如长度、速度、加速度，输出数值。</li>
     <li><b>两个赛道：</b>Track A（Main）任意模型；Track B（Open-Weight）仅限公开权重的模型和工具。</li>
     <li><b>提交形式：</b>注册队伍（最多 5 人），在测试集上跑模型，预测结果整理成单个 CSV，通过官方 portal 上传，每天最多 3 次计分提交。</li>
-    <li><b>提交入口：</b>登录后在 <a href="https://quantiphy.stanford.edu/competition/auth/account.html">auth/account.html</a> 上传 CSV，选 Track A 或 B，页面列出自己每次提交的分数，可按日期或分数排序。官网目前没有公开的全队伍排行榜页面。提交模板 <code>quantiphy_submission_template.csv</code>（3,289 行，填 <code>parsed_value</code> 列，id 不动，最大 2 MB）已存到 <code>data/</code>。</li>
-    <li><b>排行榜：</b>开发阶段实时更新，上传后立即返回 MRA 分数。测试集真值始终不公开，没有 public/private 划分。最终排名按四个诊断类别 macro-average 的 MRA。前三名需在 14 天内提供可复现包。</li>
+    <li><b>提交入口：</b>登录后在 <a href="https://quantiphy.stanford.edu/competition/auth/account.html">auth/account.html</a> 上传 CSV，选 Track A 或 B，页面列出自己每次提交的分数，可按日期或分数排序。官网目前没有公开的全队伍排行榜页面。提交模板 <code>quantiphy_submission_template.csv</code>（3,289 行，填 <code>parsed_value</code> 列，id 不动，最大 2 MB）已存到 <code>data/</code>。每行对应一道题（一个视频有多道题，不能用 <code>video_id</code> 当行标识），<code>parsed_value</code> 只填纯数字，不带单位。</li>
+    <li><b>排行榜：</b>开发阶段实时更新，上传后立即返回 MRA 分数，但只在自己队伍的页面可见。测试集真值始终不公开，没有 public/private 划分。最终排名按四个诊断类别 macro-average 的 MRA。前三名需在 14 天内提供可复现包。</li>
     <li><b>奖金（每赛道）：</b>第一名 $1,000，第二名 $500，第三名 $250。</li>
   </ul>
+
+  <h3 id="工作流程">开发与提交流程</h3>
+  <ol>
+    <li><b>本地调优：</b>在验证集（159 题，有答案）上跑模型，本地算 MRA，按 S2 / D2 / S3 / D3 找短板。</li>
+    <li><b>测试集预测：</b>在测试集（3,289 题，无答案）上批量推理，清洗输出，填入官方模板。</li>
+    <li><b>上传计分：</b>在 portal 上传 CSV，服务端用隐藏真值计算四类 MRA。</li>
+  </ol>
 </section>
 
 <section id="data">
@@ -152,7 +162,39 @@
     <tr><td>SD</td><td>静态 prior → 动态答案</td><td>560</td></tr>
     <tr><td>DD</td><td>动态 prior → 动态答案</td><td>448</td></tr>
   </table>
-  <p><code>video_source</code> 有 simulation、captured、internet 三类。<code>video_type</code> 有 36 种编码，比如 <code>S2MC</code>、<code>A3MC</code>、<code>V2MS</code>，具体含义待对照论文确认。</p>
+  <p><code>video_type</code> 有 36 种四位编码，比如 <code>S2MC</code>、<code>A3MC</code>、<code>V2MS</code>，各位含义见下方"数据集分析"。</p>
+
+  <h3 id="视频来源">四类视频来源</h3>
+  <table>
+    <tr><th><code>video_source</code></th><th>说明</th></tr>
+    <tr><td>simulation 仿真</td><td>Blender 渲染（Sketchfab / BlenderKit 资产），物理参数完全可控</td></tr>
+    <tr><td>lab 实验室</td><td>实拍的真实运动，场景中常有标尺或校准网格。视频 id 前缀为 <code>captured_</code></td></tr>
+    <tr><td>internet 互联网</td><td>野外真实视频，背景杂乱、光照变化、有遮挡</td></tr>
+    <tr><td>segmentation 分割</td><td>用 SAM 抠出运动前景、背景换成纯色的对照版本</td></tr>
+  </table>
+
+  <h3 id="物理量">物理量与单位</h3>
+  <p>只涉及平移运动学。每个样本 = 1 个视频 + 1 个 prior + 1 个问题。</p>
+  <table>
+    <tr><th>类型</th><th>包括</th><th>单位</th></tr>
+    <tr><td>S 尺寸 / 距离</td><td>长、宽、高、厚度、直径、物体间距、位移</td><td>mm、cm、meters</td></tr>
+    <tr><td>V 速度</td><td>瞬时速度、时段平均速度、水平速度</td><td>m/s、cm/s</td></tr>
+    <tr><td>A 加速度</td><td>瞬时、平均加速度，重力加速度（统一取 9.8 m/s²）</td><td>m/s²、cm/s²</td></tr>
+  </table>
+
+  <h3 id="物体">涉及的物体</h3>
+  <p>物体都由文字明确指定，从铅笔尖到航天器都有。部分例子：</p>
+  <table>
+    <tr><th>类别</th><th>例子</th></tr>
+    <tr><td>交通</td><td>white / black car、bicycle、bus、race car</td></tr>
+    <tr><td>人物</td><td>pedestrian、passer、receiver、woman in yellow、astronaut</td></tr>
+    <tr><td>飞行器 / 动物</td><td>spaceship、drone、big bird、small bird</td></tr>
+    <tr><td>球类 / 器材</td><td>billiard ball（按颜色区分）、bowling pin、ball return opening、rolling sphere</td></tr>
+    <tr><td>物理教具</td><td>pendulum、sliding block、track cart、sphere、cube、cylinder、wood block</td></tr>
+    <tr><td>工具</td><td>saw、pencil tip</td></tr>
+    <tr><td>参照物</td><td>straight-through / roundabout lane、center island planter、road sign、floor tiles、ceiling light、calibrated grid、ruler</td></tr>
+  </table>
+  <p>参照物（车道、地砖、网格等）常作为 prior 的载体，也是指认难点（见"已知失败模式"）。</p>
 </section>
 
 <section id="analysis">
@@ -191,7 +233,8 @@
     <tr><td>第 3 位</td><td>物体数：S 单个、M 多个</td><td>M 2,502 / S 787</td></tr>
     <tr><td>第 4 位</td><td>背景：C 原始、S 简化、X 分割掩码</td><td>C 1,548 / S 930 / X 811</td></tr>
   </table>
-  <p>评测类别 = inference_type 首字母 + 维度，四类数量：D2 1,163、D3 969、S2 579、S3 578。最终分数是四类 MRA 的平均，所以 S2、S3 题虽少，权重与另外两类相同。</p>
+  <div class="note"><b>评测类别按 prior 划分，不按问题划分。</b>类别 = inference_type 首字母（prior 是静态 S 还是动态 D）+ 维度（2 / 3）。例如 prior 是车长、问题求速度，仍归 S2。</div>
+  <p>四类数量：D2 1,163、D3 969、S2 579、S3 578。最终分数是四类 MRA 的平均，所以 S2、S3 题虽少，权重与另外两类相同。</p>
 
   <h3 id="预测什么">要预测什么</h3>
   <table>
