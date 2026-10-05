@@ -391,7 +391,7 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
 python -m pipeline.run --split val            # 验证集，打印分类别 MRA
 python -m pipeline.run --split val --debug    # 另存带框的调试帧到 outputs/debug/
 python -m pipeline.run --split test --out outputs/submission.csv   # 填好官方模板</code></pre>
-  <p><b>完整案例演示：</b><a href="case/simulation_0300.html">simulation_0300</a>，从输入到答案逐阶段展示每个中间结果，并记录了 v1 到 v7 的迭代；<a href="case/simulation_0060.html">simulation_0060</a>，把 v7 模型推广到 13 题、多物体路口场景的第一次测试（0.28 → 0.70）。</p>
+  <p><b>完整案例演示：</b><a href="case/simulation_0300.html">simulation_0300</a>，从输入到答案逐阶段展示每个中间结果，并记录了 v1 到 v7 的迭代；<a href="case/simulation_0060.html">simulation_0060</a>，把 v7 模型推广到 13 题、多物体路口场景的第一次测试（0.28 → 0.71），含可交互的三维重建场景。</p>
 
   <h3 id="为什么">为什么这么做</h3>
   <p><b>为什么合理。</b>QuantiPhy 本质上是一个测量问题：所有题目都是"已知一个物理量，求另一个"，两者通过比例尺或运动学公式严格相关。端到端 VLM 对数值不敏感，官方 GPT-5.1 基线在验证集上只有 MRA 0.486，而且 6.3% 的答案无效。一个显式的"跟踪 + 标定 + 计算"流水线，只要测量误差能控制在 10% 以内，单题 MRA 就能接近 0.9。按场景而不是按视频处理也正确：568 个视频只有 408 个场景，117 个场景的 2 到 3 个变体问的是同一组问题，重建一次即可复用。</p>
