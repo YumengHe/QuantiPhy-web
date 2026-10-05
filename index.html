@@ -153,6 +153,23 @@
 <pre><code>./download_data.sh</code></pre>
   <p>脚本会把测试集（568 个视频）、验证集（24 个视频）和官方提交模板 <code>quantiphy_submission_template.csv</code> 下载到 <code>data/</code> 目录，共约 515 MB。该目录已 gitignore。脚本可重复运行，已下载且大小正确的文件会自动跳过，结束时会校验文件数量和大小。</p>
 
+  <h3 id="读取视频">按 video_id 找视频</h3>
+  <p>表格和视频分开存放，表格每行的 <code>video_id</code> 就是视频文件名（不含 <code>.mp4</code>）。两个仓库的目录不一样：</p>
+  <table>
+    <tr><th>仓库</th><th>视频路径</th><th>在线直链</th></tr>
+    <tr><td>测试集</td><td>仓库根目录 <code>{video_id}.mp4</code></td><td><code>https://huggingface.co/datasets/PaulineLi/QuantiPhy/resolve/main/{video_id}.mp4</code></td></tr>
+    <tr><td>验证集</td><td><code>validation_videos/{video_id}.mp4</code></td><td><code>https://huggingface.co/datasets/PaulineLi/QuantiPhy-validation/resolve/main/validation_videos/{video_id}.mp4</code></td></tr>
+  </table>
+  <p>只想看一两个视频时，不必跑完整下载，用 <code>huggingface_hub</code> 单独拉取：</p>
+<pre><code>from huggingface_hub import hf_hub_download
+
+video_path = hf_hub_download(
+    repo_id="PaulineLi/QuantiPhy",
+    filename="simulation_0163.mp4",        # 验证集写 "validation_videos/simulation_0163.mp4"
+    repo_type="dataset",
+)</code></pre>
+  <p>抽帧（如用 <code>decord</code>）时，时刻换算帧号请用表格里的 <code>fps</code> 列，与 <code>pipeline/data.py</code> 保持一致。</p>
+
   <h3 id="字段">字段</h3>
   <p>测试集 parquet 有 8 列：<code>video_id</code>, <code>video_source</code>, <code>video_type</code>, <code>fps</code>, <code>inference_type</code>, <code>question</code>, <code>prior</code>, <code>depth_info</code>。验证集多一列 <code>answer</code>。</p>
   <p>测试集已额外导出为 <code>data/QuantiPhy/test_dataset.csv</code>，方便直接打开看。</p>
