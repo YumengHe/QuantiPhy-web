@@ -151,6 +151,52 @@
       "notes": "退步。f=1800，速度 2 s 偏大 40%。栅格化的 1−IoU 对最小二乘求解器来说不光滑：数值雅可比在小步长下几乎为零，解卡在初始化附近或滑向尺度退化方向。掩码本身干净（无阴影，占外接框 66%），问题在残差形式而非数据",
       "video": "fit_v5.mp4",
       "video_caption": "网格，掩码 IoU 残差"
+    },
+    {
+      "version": "v6 FoundationPose（f=1170）",
+      "date": "2026-10-05",
+      "desc": "FoundationPose（RGBTrack 无深度版）+ Meshy 网格：首帧按掩码 IoU 搜索深度后注册，之后逐帧 refiner 跟踪",
+      "preds": [
+        2.865,
+        10.61,
+        4.47,
+        2.274,
+        1.071
+      ],
+      "mra": [
+        0.5,
+        0.9,
+        1.0,
+        1.0,
+        0.9
+      ],
+      "mean_mra": 0.86,
+      "notes": "K 焦距 1170；网格尺寸为输入（L 取 v3 的 4.47 m），只测速度；注册 299 s，跟踪 64 ms/帧；Z(1 s)=9.5，Z(2 s)=14.5",
+      "video": "fit_v6.mp4",
+      "video_caption": "FoundationPose 逐帧 6-DoF 位姿，绿框为网格的三维包围盒"
+    },
+    {
+      "version": "v6b FoundationPose（真值焦距 855）",
+      "date": "2026-10-05",
+      "desc": "同 v6，但相机焦距用真值 855 px（oracle 对照）",
+      "preds": [
+        6.121,
+        6.159,
+        4.47,
+        2.274,
+        1.071
+      ],
+      "mra": [
+        0.7,
+        0.6,
+        1.0,
+        1.0,
+        0.9
+      ],
+      "mean_mra": 0.84,
+      "notes": "K 焦距 855；网格尺寸为输入（L 取 v3 的 4.47 m），只测速度；注册 314 s，跟踪 46 ms/帧；Z(1 s)=7.0，Z(2 s)=7.1",
+      "video": "fit_v6b.mp4",
+      "video_caption": "FoundationPose 逐帧 6-DoF 位姿，绿框为网格的三维包围盒"
     }
   ]
 }
