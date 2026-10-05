@@ -103,6 +103,9 @@
   .compare table.qa { margin: 8px 0 0; font-size: 13.5px; }
   .compare table.qa td.ans { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
   @media (max-width: 860px) { .compare { grid-template-columns: 1fr; } }
+  table.rw td.yr { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.rw td.muted { color: var(--muted); }
+  table.rw a { font-weight: 600; }
   footer { color: var(--muted); font-size: 13px; margin-top: 30px; }
 </style>
 </head>
@@ -441,6 +444,64 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
     <li><b>静态尺寸题 0.41 到 0.46。</b>框包含阴影、物体被截断、"长度"与"宽度"在透视下对应的方向不明确。下一步：用掩码的主轴长度代替框，按物体朝向决定长宽。</li>
     <li><b>两个物体间的距离</b>常因第二个物体没被跟踪而兜底。</li>
   </ul>
+</section>
+
+<section id="related">
+  <h2>Related Work</h2>
+  <p>按四类整理，每类内按时间倒序。优先收录 2024 年以后的工作。</p>
+
+  <h3 id="rw-bench">定量物理与空间推理 benchmark</h3>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2605.23898">SPACENUM</a></td><td>双向测试 VLM 能否把空间结构和数字互相映射（Num2Space / Space2Num）。</td><td class="muted">结论是现有 VLM 几乎接近随机猜，印证了“不能让 VLM 直接报数”。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.19526">QuantiPhy（本比赛）</a></td><td>给视频和一个物理量 prior，让 VLM 输出另一个物理量（尺寸、速度、加速度）的真实世界数值。</td><td class="muted">目标任务。论文发现 VLM 主要靠先验知识而不是视频内容作答。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.01989">PAI-Bench</a></td><td>面向 Physical AI 的综合 benchmark，覆盖视频生成与视频理解的感知和预测能力。</td><td class="muted">偏定性，不含数值测量，但说明“物理 AI 评测”是当前热点。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2510.02311">Inferring Dynamic Physical Properties from Video Foundation Models</a></td><td>从视频推断弹性、粘度、动摩擦等需要运动信息的物理属性，比较经典 CV oracle、视频基础模型 readout 和多模态 LLM 提示。</td><td class="muted">经典 CV 流水线作为 oracle 明显优于 VLM，和我们“显式测量 + 物理公式”的路线一致。</td></tr>
+    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2501.16411">PhysBench</a></td><td>1 万条图文视频混合题，评测 VLM 对物体属性、关系、场景和动力学的物理理解。</td><td class="muted">定性为主；证明通用 VLM 的物理理解普遍偏弱。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.14171">Thinking in Space（VSI-Bench）</a></td><td>5,000 多道视频题评测多模态 LLM 的空间智能，包括物体尺寸、距离、计数等数值题。</td><td class="muted">最接近的“数值空间题” benchmark，但只有静态物体，没有运动量。</td></tr>
+    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2409.09788">Q-Spatial Bench / SpatialPrompt</a></td><td>评测 VLM 对尺寸、距离的定量空间推理，并提出用参照物引导推理的零样本提示。</td><td class="muted">用参照物标定尺度正是本比赛 prior 的用法；提示 VLM 显式借助参照物可大幅提分。</td></tr>
+    <tr><td class="yr">2024 · ICML</td><td><a href="https://arxiv.org/abs/2402.06119">ContPhy</a></td><td>从视频学习与推理连续介质（流体、软体、绳索）的物理概念。</td><td class="muted">扩展到软体和流体，QuantiPhy 只涉及刚体运动学。</td></tr>
+    <tr><td class="yr">2023 · NeurIPS</td><td><a href="https://arxiv.org/abs/2306.15668">Physion++</a></td><td>评测模型能否从视频里推断质量、摩擦、弹性、可变形性等隐含物体属性并预测结果。</td><td class="muted">属性推断是定性判断，不要求数值。</td></tr>
+    <tr><td class="yr">2020 · ICLR</td><td><a href="https://arxiv.org/abs/1910.01442">CLEVRER</a></td><td>合成碰撞视频上的描述、解释、预测与反事实问答。</td><td class="muted">物理视频问答的奠基 benchmark，全部为选择题。</td></tr>
+  </table>
+
+  <h3 id="rw-inverse">从视频反推物理参数（inverse physics / inverse rendering）</h3>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.04575">PhysMind</a></td><td>不训练：从视频做物体分割、网格重建和 6D 位姿跟踪，再拟合解析的连续时间动力学来回答物理推理题。</td><td class="muted">与我们的思路最接近：agent VLM 负责语义和选工具（SAM 3 等），几何由专门模型给出，物理由拟合得到。</td></tr>
+    <tr><td class="yr">2026 · NeurIPS</td><td><a href="https://arxiv.org/abs/2605.30320">MonoPhysics</a></td><td>从单目视频联合估计可变形物体的几何、外观和杨氏模量，用 3D Gaussian Splatting 加可微仿真克服单目尺度歧义。</td><td class="muted">单目尺度歧义是 3D 题的核心难点，可以参考其尺度重参数化思路。</td></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2603.16958">PhysQuantAgent</a></td><td>给 VLM 加上检测、尺度估计和截面图等视觉提示，组成估计物体质量的推理流水线，并提出 VisPhysQuant 数据集。</td><td class="muted">“先给 VLM 显式尺度线索再让它答数”的思路可用于我们的 VLM 回退。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.08282">PAVAS</a></td><td>物理感知的视频生音频：用 VLM 估质量，用开放词表分割加 CUT3R 动态三维重建得到度量尺度的速度。</td><td class="muted">展示了“分割 + 前馈 4D 重建 → 度量速度”这条链路是可行的。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2506.06440">Vid2Sim</a></td><td>从多视角视频前馈重建外观、几何和物理参数，再用无网格可微仿真微调，得到可仿真的数字资产。</td><td class="muted">多视角输入，不能直接用于单目；但说明前馈初始化 + 轻量优化的范式。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2503.17973">PhysTwin</a></td><td>从稀疏视角视频重建可变形物体的物理数字孪生，联合优化弹簧质点模型参数、几何和外观。</td><td class="muted">面向软体，但其“重建 → 参数拟合 → 仿真验证”的闭环和我们阶段 4 的校验一致。</td></tr>
+    <tr><td class="yr">2023 · ICLR</td><td><a href="https://arxiv.org/abs/2303.05512">PAC-NeRF</a></td><td>不假设几何拓扑，从多视角视频同时估计物体几何和物理参数（可微 MPM 仿真 + NeRF 渲染）。</td><td class="muted">inverse rendering 与 inverse physics 结合的代表作。</td></tr>
+    <tr><td class="yr">2016 · BMVC</td><td><a href="https://bmva-archive.org.uk/bmvc/2016/papers/paper039/index.html">Physics 101</a></td><td>17,408 段真实视频，无标注地学习物体质量、密度、弹性等物理属性。</td><td class="muted">早期用物理定律当监督信号从视频学属性的工作。</td></tr>
+    <tr><td class="yr">2015 · NeurIPS</td><td><a href="https://proceedings.neurips.cc/paper/2015/hash/d09bf41544a3365a46c9077ebb5e35c3-Abstract.html">Galileo</a></td><td>以 3D 物理引擎为核心的生成模型，从真实视频推断物体质量、摩擦等并预测事件结果。</td><td class="muted">“用物理引擎做反推”的源头。</td></tr>
+  </table>
+
+  <h3 id="rw-3d">度量尺度的深度与 3D / 4D 重建</h3>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2503.11651">VGGT</a></td><td>单个前馈网络从一张到数百张图直接输出相机参数、深度图、点图和三维点轨迹。</td><td class="muted">CVPR 2025 最佳论文；可一次给出相机内参和深度，是 3D 题的候选工具。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2501.12375">Video Depth Anything</a></td><td>在 Depth Anything V2 上加时空头，对任意长视频输出时间一致的深度。</td><td class="muted">逐帧深度抖动会直接变成速度噪声，时间一致性很重要。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.04463">MegaSaM</a></td><td>从随手拍的动态场景单目视频快速稳健地估计相机参数和深度图。</td><td class="muted">处理 internet 视频中的相机运动。</td></tr>
+    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.03825">MonST3R</a></td><td>对动态场景逐时刻直接估计点图，得到视频深度和相机位姿。</td><td class="muted">前馈 4D 重建的代表，PAVAS 用的 CUT3R 是其后续。</td></tr>
+    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.02073">Depth Pro</a></td><td>零样本度量单目深度，不需要相机内参，0.3 秒出 2.25 MP 的锐利深度图。</td><td class="muted">没有 depth_info 时可以提供绝对尺度的初值。</td></tr>
+    <tr><td class="yr">2025 · ICCV</td><td><a href="https://arxiv.org/abs/2407.13764">Shape of Motion</a></td><td>用一组 SE(3) 运动基表示场景运动，从单目视频重建长程三维轨迹。</td><td class="muted">物体三维轨迹的另一种来源。</td></tr>
+    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2403.18913">UniDepth</a></td><td>跨域通用的单目度量深度，直接预测度量三维点并自估相机。</td><td class="muted">同上，度量深度基础模型。</td></tr>
+    <tr><td class="yr">2024 · NeurIPS</td><td><a href="https://arxiv.org/abs/2406.01584">SpatialRGPT</a></td><td>把深度作为插件接入 VLM，并用 3D 场景图生成区域级空间问答数据，评测度量距离与尺寸推理。</td><td class="muted">给 VLM 喂深度能显著提升数值空间推理。</td></tr>
+    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2401.12168">SpatialVLM</a></td><td>用 1,000 万张真实图像自动生成 20 亿条三维空间问答训练 VLM，使其能答距离和尺寸。</td><td class="muted">证明数值空间能力可以通过数据合成训练出来。</td></tr>
+  </table>
+
+  <h3 id="rw-tools">检测、分割与跟踪工具</h3>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.16785">Calibration-Free Vehicle Speed Estimation</a></td><td>不标定相机、不依赖路面特征，用 36 个关键点的车辆模板和逐帧更新的单应矩阵把像素位移换算成米制速度。</td><td class="muted">把物体自身的已知结构当参照物来定尺度，和本比赛“用 prior 物体标定”的思路相同。</td></tr>
+    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2408.00714">SAM 2</a></td><td>图像与视频的可提示分割基础模型，给一帧提示即可在整段视频中传播掩码。</td><td class="muted">我们阶段 1 的跟踪器。</td></tr>
+    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2410.11831">CoTracker3</a></td><td>用伪标签在真实视频上半监督训练的点跟踪器，能跟踪可见与遮挡点。</td><td class="muted">掩码质心抖动时的备选轨迹来源。</td></tr>
+    <tr><td class="yr">2024 · ECCV</td><td><a href="https://arxiv.org/abs/2303.05499">Grounding DINO</a></td><td>开放词表目标检测，用自然语言短语给出物体框。</td><td class="muted">我们阶段 1 的物体指认器；对 "the model of Io" 一类名词仍会失败。</td></tr>
+    <tr><td class="yr">2024 · IEEE Access</td><td><a href="https://ieeexplore.ieee.org/document/10770228/">单目视频车速估计</a></td><td>YOLOv8 检测 + ByteTrack 跟踪 + 深度单应回归网络，从固定监控视频估计车速。</td><td class="muted">传统“检测 + 跟踪 + 标定”测速流程的近期实现，误差约 2 km/h。</td></tr>
+  </table>
 </section>
 
 <footer>最后更新 2026-10-05</footer>
