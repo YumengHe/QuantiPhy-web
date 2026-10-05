@@ -127,6 +127,17 @@
     <li><b>测试集预测：</b>在测试集（3,289 题，无答案）上批量推理，清洗输出，填入官方模板。</li>
     <li><b>上传计分：</b>在 portal 上传 CSV，服务端用隐藏真值计算四类 MRA。</li>
   </ol>
+
+  <h3 id="最终提交物">最终要交什么</h3>
+  <table>
+    <tr><th>时间</th><th>交什么</th><th>谁要交</th></tr>
+    <tr><td>10 月 23 日 23:59 AoE 前</td><td><b>一个 CSV 预测文件</b>：官方模板 3,289 行，填 <code>parsed_value</code>，按题目要求的单位。两个赛道用同一模板，每次上传时选择计入 Track A 或 B。</td><td>所有队伍</td></tr>
+    <tr><td>赛后通知起 14 天内</td><td><b>可复现包</b>：代码或 Docker 容器，供官方复跑验证分数。</td><td>每赛道前三名</td></tr>
+    <tr><td>赛后</td><td><b>代码公开</b>：Track A 仅前三名需公开；Track B 官网写的是所有参赛作品都要公开。</td><td>见左</td></tr>
+    <tr><td>11 月</td><td><b>技术报告 / 简短技术总结</b>：官方邀请头部队伍提交。开发中用过闭源 API 输出的（比如用 Track A 结果辅助 Track B），必须在技术报告里说明。</td><td>受邀队伍</td></tr>
+    <tr><td>12 月 11–12 日</td><td><b>NeurIPS workshop 口头报告</b>：第一名 10 分钟，第二、三名 5 分钟。</td><td>每赛道前三名</td></tr>
+  </table>
+  <div class="callout">官方模板 9 月 14 日更新过，修正了 32 道题的目标单位（id 和行序不变）。提交前确认 <code>data/</code> 里的模板是新版，或至少这 32 个 id 的单位按新版填写。</div>
 </section>
 
 <section id="data">
