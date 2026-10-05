@@ -103,6 +103,8 @@
   figcaption { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
   .kv td:first-child { color: var(--muted); white-space: nowrap; width: 160px; }
   .good { color: #1b7f3b; font-weight: 600; } .mid { color: #b7791f; font-weight: 600; } .bad { color: #c0392b; font-weight: 600; }
+  table.iter td, table.iter th { font-size: 13px; padding: 5px 7px; vertical-align: top; }
+  table.iter small { color: var(--muted); }
   .formula { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--code-bg); padding: 10px 14px; border-radius: 8px; font-size: 14px; overflow-x: auto; }
 </style>
 <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
@@ -253,6 +255,14 @@
     <tr><td>What is the speed of the car at 1s, in m/s?</td><td>speed3d</td><td>4.897</td><td>4.8</td><td>1.02</td><td class='good'>1.0</td></tr><tr><td>What is the speed of the car at 2s, in m/s?</td><td>speed3d</td><td>13.078</td><td>9.8</td><td>1.33</td><td class='mid'>0.6</td></tr><tr><td>What is the length ((from the front to the back) of the car in meters?</td><td>length</td><td>3.367</td><td>4.45</td><td>0.76</td><td class='mid'>0.7</td></tr><tr><td>What is the width (from the left wheel to the right wheel) of the car in meters?</td><td>width</td><td>1.693</td><td>2.23</td><td>0.76</td><td class='mid'>0.7</td></tr><tr><td>What is the height of the car in meters?</td><td>height</td><td>1.693</td><td>1.15</td><td>1.47</td><td class='mid'>0.5</td></tr>
     <tr><td colspan="5"><b>本视频平均</b></td><td class="mid">0.70</td></tr>
   </table>
+  <h3 id="迭代记录">迭代记录</h3>
+  <p>每次改动都在这里追加一行：五道题的预测值、单题 MRA（小字）和平均 MRA。数据来自 <code>iterations.json</code>，由实验脚本自动写入。</p>
+  <table class="iter"><tr><th>版本</th><th>做了什么</th><th>速度 1 s<br><small>真值 4.8</small></th><th>速度 2 s<br><small>真值 9.8</small></th><th>长<br><small>真值 4.45</small></th><th>宽<br><small>真值 2.23</small></th><th>高<br><small>真值 1.15</small></th><th>平均 MRA</th></tr><tr><td><b>v1 流水线</b><br><small>2026-10-05</small></td><td>SAM 2 跟踪 + 分步标定（焦距由加速度 prior 回退路径估计 1190）+ 外接框量尺寸<br><small style='color:var(--muted)'>速度 2 s 偏大 33%，长宽偏小 24%，高偏大 47%</small></td><td class='good'>4.897<br><small>1.0</small></td><td class='mid'>13.078<br><small>0.6</small></td><td class='mid'>3.367<br><small>0.7</small></td><td class='mid'>1.693<br><small>0.7</small></td><td class='bad'>1.693<br><small>0.5</small></td><td class='mid'><b>0.70</b></td></tr><tr><td><b>v2 长方体联合拟合</b><br><small>2026-10-05</small></td><td>长方体 + 匀加速轨迹 + 深度锚点 + |a|=5 + 弱先验 L≈4.5（σ≈33%），外接框残差<br><small style='color:var(--muted)'>f=1064；速度准了，宽高因长方体与车身轮廓不匹配仍差 40%</small></td><td class='good'>4.679<br><small>1.0</small></td><td class='good'>9.599<br><small>1.0</small></td><td class='good'>4.494<br><small>1.0</small></td><td class='bad'>1.289<br><small>0.5</small></td><td class='mid'>1.572<br><small>0.6</small></td><td class='mid'><b>0.82</b></td></tr><tr><td><b>v3 网格联合拟合</b><br><small>2026-10-05</small></td><td>Meshy 网格替代长方体（1500 表面采样点），其余同 v2，外接框残差<br><small style='color:var(--muted)'>f=1175；五个量全部进 10% 以内</small></td><td class='good'>4.437<br><small>0.9</small></td><td class='good'>9.352<br><small>1.0</small></td><td class='good'>4.474<br><small>1.0</small></td><td class='good'>2.27<br><small>1.0</small></td><td class='good'>1.07<br><small>0.9</small></td><td class='good'><b>0.96</b></td></tr><tr><td><b>v4 网格 + 仅平移</b><br><small>2026-10-05</small></td><td>假设车不转动：朝向为一个固定未知角度（1 参数），其余同 v3<br><small style='color:var(--muted)'>f=1725，yaw=-94°，框残差 10.9 px（v3 为 16.1）</small></td><td class='mid'>3.566<br><small>0.7</small></td><td class='mid'>8.563<br><small>0.8</small></td><td class='good'>4.478<br><small>1.0</small></td><td class='good'>2.243<br><small>1.0</small></td><td class='good'>1.069<br><small>0.9</small></td><td class='mid'><b>0.88</b></td></tr></table>
+  <ul>
+    <li><b>v1 → v2：</b>联合拟合把速度解对了，但长方体的形状让宽高仍差 40%。</li>
+    <li><b>v2 → v3：</b>换成 Meshy 网格，宽高误差降到 2% / 7%，五个量全部进 10% 以内，平均 MRA 0.96。</li>
+    <li><b>v3 → v4：</b>测试"车只平移不转动"的假设（朝向为一个固定角度）。框残差反而更低（10.9 vs 16.1 px），但速度变差到 0.74 / 0.87 倍，焦距滑到 1725。原因是这辆车确实在转弯：v3 拟合出的朝向从 0 s 的 16° 转到 3 s 的 130°。更低的残差配上更差的答案，再次说明在尺度歧义下不能只看残差选模型。仅平移假设适合直线行驶的场景，不适合这个案例。</li>
+  </ul>
   <p>官方 GPT-5.1 基线在整个验证集的平均是 0.49。这个案例里动态题做得好，静态题受视角影响，正好体现了当前流水线的长处和短板。</p>
 </section>
 
