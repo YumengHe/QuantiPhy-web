@@ -1,2 +1,3 @@
 .serve.pid
 .serve.log
+.DS_Store

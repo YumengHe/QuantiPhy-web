@@ -71,6 +71,9 @@
   section { scroll-margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 32px 36px; margin-bottom: 32px; }
   h2 { margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border); font-size: 22px; }
   h3 { margin: 32px 0 10px; font-size: 17px; }
+  h4 { margin: 20px 0 6px; font-size: 15px; }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; align-items: start; }
+  .grid3 table { margin: 8px 0; }
   p { margin: 10px 0; }
   ul, ol { padding-left: 22px; margin: 10px 0; }
   li { margin: 7px 0; }
@@ -134,95 +137,89 @@
     <li><b>任务：</b>给一段视频和一个已知物理量（prior），让模型推断另一个物理量，比如长度、速度、加速度，输出数值。</li>
     <li><b>两个赛道：</b>Track A（Main）任意模型；Track B（Open-Weight）仅限公开权重的模型和工具。</li>
     <li><b>提交形式：</b>注册队伍（最多 5 人），在测试集上跑模型，预测结果整理成单个 CSV，通过官方 portal 上传，每天最多 3 次计分提交。</li>
-    <li><b>提交入口：</b>登录后在 <a href="https://quantiphy.stanford.edu/competition/auth/account.html">auth/account.html</a> 上传 CSV，选 Track A 或 B，页面列出自己每次提交的分数，可按日期或分数排序。官网目前没有公开的全队伍排行榜页面。提交模板 <code>quantiphy_submission_template.csv</code>（3,289 行，填 <code>parsed_value</code> 列，id 不动，最大 2 MB）已存到 <code>data/</code>。每行对应一道题（一个视频有多道题，不能用 <code>video_id</code> 当行标识），<code>parsed_value</code> 只填纯数字，不带单位。</li>
-    <li><b>排行榜：</b>开发阶段实时更新，上传后立即返回 MRA 分数，但只在自己队伍的页面可见。测试集真值始终不公开，没有 public/private 划分。最终排名按四个诊断类别 macro-average 的 MRA。前三名需在 14 天内提供可复现包。</li>
+    <li><b>提交入口：</b>登录后在 <a href="https://quantiphy.stanford.edu/competition/auth/account.html">auth/account.html</a> 上传 CSV，选 Track A 或 B，页面列出自己每次提交的分数，可按日期或分数排序。官网目前没有公开的全队伍排行榜页面。</li>
+    <li><b>排行榜：</b>开发阶段实时更新，上传后立即返回 MRA 分数，但只在自己队伍的页面可见。测试集真值始终不公开，没有 public/private 划分。最终排名按四个诊断类别 macro-average 的 MRA。</li>
     <li><b>奖金（每赛道）：</b>第一名 $1,000，第二名 $500，第三名 $250。</li>
   </ul>
-
-  <h3 id="工作流程">开发与提交流程</h3>
-  <ol>
-    <li><b>本地调优：</b>在验证集（159 题，有答案）上跑模型，本地算 MRA，按 S2 / D2 / S3 / D3 找短板。</li>
-    <li><b>测试集预测：</b>在测试集（3,289 题，无答案）上批量推理，清洗输出，填入官方模板。</li>
-    <li><b>上传计分：</b>在 portal 上传 CSV，服务端用隐藏真值计算四类 MRA。</li>
-  </ol>
 
   <h3 id="最终提交物">最终要交什么</h3>
   <table>
     <tr><th>时间</th><th>交什么</th><th>谁要交</th></tr>
-    <tr><td>10 月 23 日 23:59 AoE 前</td><td><b>一个 CSV 预测文件</b>：官方模板 3,289 行，填 <code>parsed_value</code>，按题目要求的单位。两个赛道用同一模板，每次上传时选择计入 Track A 或 B。</td><td>所有队伍</td></tr>
+    <tr><td>10 月 23 日 23:59 AoE 前</td><td><b>一个 CSV 预测文件</b>：官方模板 <code>quantiphy_submission_template.csv</code>（已在 <code>data/</code>），3,289 行，每行一道题（不能用 <code>video_id</code> 当行标识）。id 不动，只填 <code>parsed_value</code>：纯数字、不带单位、按题目要求的单位，文件最大 2 MB。两个赛道用同一模板，每次上传时选择计入 Track A 或 B。</td><td>所有队伍</td></tr>
     <tr><td>赛后通知起 14 天内</td><td><b>可复现包</b>：代码或 Docker 容器，供官方复跑验证分数。</td><td>每赛道前三名</td></tr>
     <tr><td>赛后</td><td><b>代码公开</b>：Track A 仅前三名需公开；Track B 官网写的是所有参赛作品都要公开。</td><td>见左</td></tr>
     <tr><td>11 月</td><td><b>技术报告 / 简短技术总结</b>：官方邀请头部队伍提交。开发中用过闭源 API 输出的（比如用 Track A 结果辅助 Track B），必须在技术报告里说明。</td><td>受邀队伍</td></tr>
     <tr><td>12 月 11–12 日</td><td><b>NeurIPS workshop 口头报告</b>：第一名 10 分钟，第二、三名 5 分钟。</td><td>每赛道前三名</td></tr>
   </table>
-  <div class="callout">官方模板 9 月 14 日更新过，修正了 32 道题的目标单位（id 和行序不变）。提交前确认 <code>data/</code> 里的模板是新版，或至少这 32 个 id 的单位按新版填写。</div>
+  <div class="callout">官方模板 9 月 14 日更新过，修正了 32 道题的目标单位（id 和行序不变）。提交前确认 <code>data/</code> 里的模板是新版，或至少这 32 个 id 的单位按新版填写。parquet 的 question 列与新版模板一致。</div>
 </section>
 
 <section id="data">
   <h2>数据集</h2>
   <table>
-    <tr><th>数据集</th><th>本地路径</th><th>大小</th><th>视频</th><th>QA 数</th><th>有答案</th></tr>
-    <tr><td>测试集 <code>PaulineLi/QuantiPhy</code></td><td><code>data/QuantiPhy/</code></td><td>507 MB</td><td>568 个 mp4</td><td>3,289</td><td>否</td></tr>
-    <tr><td>验证集 <code>PaulineLi/QuantiPhy-validation</code></td><td><code>data/QuantiPhy-validation/</code></td><td>6 MB</td><td>24 个 mp4，在 <code>validation_videos/</code> 下</td><td>159</td><td>是</td></tr>
+    <tr><th>数据集</th><th>本地路径</th><th>大小</th><th>视频</th><th>场景（编号）</th><th>QA 数</th><th>每视频题数</th><th>有答案</th></tr>
+    <tr><td>测试集 <code>PaulineLi/QuantiPhy</code></td><td><code>data/QuantiPhy/</code></td><td>507 MB</td><td>568</td><td>408</td><td>3,289</td><td>1 到 19，中位数 5</td><td>否</td></tr>
+    <tr><td>验证集 <code>PaulineLi/QuantiPhy-validation</code></td><td><code>data/QuantiPhy-validation/</code></td><td>6 MB</td><td>24（在 <code>validation_videos/</code> 下）</td><td>24</td><td>159</td><td>3 到 13，中位数 6</td><td>是</td></tr>
   </table>
 
   <h3 id="下载方式">下载方式</h3>
   <p>clone 仓库后在仓库根目录运行自带脚本即可，只依赖 bash、curl 和 python3：</p>
 <pre><code>./download_data.sh</code></pre>
-  <p>脚本会把测试集（568 个视频）、验证集（24 个视频）和官方提交模板 <code>quantiphy_submission_template.csv</code> 下载到 <code>data/</code> 目录，共约 515 MB。该目录已 gitignore。脚本可重复运行，已下载且大小正确的文件会自动跳过，结束时会校验文件数量和大小。表格每行的 <code>video_id</code> 就是视频文件名（不含 <code>.mp4</code>），测试集视频在 <code>data/QuantiPhy/</code>，验证集视频在 <code>data/QuantiPhy-validation/validation_videos/</code>。</p>
+  <p>脚本会把测试集、验证集和官方提交模板 <code>quantiphy_submission_template.csv</code> 下载到 <code>data/</code> 目录，共约 515 MB。该目录已 gitignore。脚本可重复运行，已下载且大小正确的文件会自动跳过，结束时会校验文件数量和大小。</p>
+  <p>表格每行的 <code>video_id</code> 就是视频文件名（不含 <code>.mp4</code>）。一个 <code>video_id</code> 对应唯一一个视频；一个视频有多道题，所以同一 <code>video_id</code>（如 <code>simulation_0082</code>）会出现在多行，各行的 question 和 inference_type 不同。</p>
 
   <h3 id="字段">字段</h3>
   <p>测试集 parquet 有 8 列：<code>video_id</code>, <code>video_source</code>, <code>video_type</code>, <code>fps</code>, <code>inference_type</code>, <code>question</code>, <code>prior</code>, <code>depth_info</code>。验证集多一列 <code>answer</code>。</p>
-  <p>测试集已额外导出为 <code>data/QuantiPhy/test_dataset.csv</code>，方便直接打开看。</p>
-
-  <h3 id="问题样例">问题样例</h3>
-  <ul>
-    <li><span class="tag">S2MC · SD</span>What is the acceleration of the moving red general chess at time 1s in m/s^2? <br><small>prior: diameter of one chinese chess = 0.097m</small></li>
-    <li><span class="tag">V2MS · DS</span>What is the length of the horse at the back in meters? <br><small>prior: speed of the horse at the back = 0.874m/s</small></li>
-    <li><span class="tag">S3MC · SS</span>What is the width of the table in cm? <br><small>prior: diameter of the tennis ball = 6.7cm</small></li>
-  </ul>
-
-  <h3 id="inference-type-分布-测试集">inference_type 分布（测试集）</h3>
-  <p>第一个字母是 prior 的类型，第二个字母是答案的类型。S = 静态量（长度、尺寸），D = 动态量（速度、加速度）。</p>
-  <table>
-    <tr><th>类型</th><th>含义</th><th>数量</th></tr>
-    <tr><td>DS</td><td>动态 prior → 静态答案</td><td>1684</td></tr>
-    <tr><td>SS</td><td>静态 prior → 静态答案</td><td>597</td></tr>
-    <tr><td>SD</td><td>静态 prior → 动态答案</td><td>560</td></tr>
-    <tr><td>DD</td><td>动态 prior → 动态答案</td><td>448</td></tr>
-  </table>
-  <p><code>video_type</code> 有 36 种四位编码，比如 <code>S2MC</code>、<code>A3MC</code>、<code>V2MS</code>，各位含义见下方"数据集分析"。</p>
+  <p>运行 <code>download_data.sh</code> 后，parquet 位于 QuantiPhy 仓库的 <code>data/QuantiPhy/test_dataset.parquet</code>（验证集为 <code>data/QuantiPhy-validation/validation_dataset.parquet</code>）。脚本不会生成 CSV，想直接打开看可在仓库根目录自行导出：</p>
+<pre><code>python3 -c "import pandas as pd; pd.read_parquet('data/QuantiPhy/test_dataset.parquet').to_csv('data/QuantiPhy/test_dataset.csv', index=False)"</code></pre>
 
   <h3 id="视频来源">四类视频来源</h3>
   <table>
-    <tr><th><code>video_source</code></th><th>说明</th></tr>
-    <tr><td>simulation 仿真</td><td>Blender 渲染（Sketchfab / BlenderKit 资产），物理参数完全可控</td></tr>
-    <tr><td>lab 实验室</td><td>实拍的真实运动，场景中常有标尺或校准网格。视频 id 前缀为 <code>captured_</code></td></tr>
-    <tr><td>internet 互联网</td><td>野外真实视频，背景杂乱、光照变化、有遮挡</td></tr>
-    <tr><td>segmentation 分割</td><td>用 SAM 抠出运动前景、背景换成纯色的对照版本</td></tr>
+    <tr><th><code>video_source</code></th><th>说明</th><th>视频数（测试集）</th><th>问题数</th></tr>
+    <tr><td>simulation 仿真</td><td>Blender 渲染（Sketchfab / BlenderKit 资产），物理参数完全可控</td><td>294</td><td>1,633</td></tr>
+    <tr><td>lab 实验室</td><td>实拍的真实运动，场景中常有标尺或校准网格。视频 id 前缀为 <code>captured_</code></td><td>115</td><td>806</td></tr>
+    <tr><td>segmentation 分割</td><td>用 SAM 抠出运动前景、背景换成纯色的对照版本</td><td>85</td><td>430</td></tr>
+    <tr><td>internet 互联网</td><td>野外真实视频，背景杂乱、光照变化、有遮挡</td><td>74</td><td>420</td></tr>
   </table>
+  <p>帧率以 24 fps 为主（420 个视频），其余有 22、25、26、30、33、50、60、120，共 9 种。1,000 道题指定了具体时刻（如 "at 1.5s"），抽帧时要用表格的 <code>fps</code> 列把时刻换算成帧号（与 <code>pipeline/data.py</code> 一致）。</p>
 
   <h3 id="物理量">物理量与单位</h3>
-  <p>只涉及平移运动学。每个样本 = 1 个视频 + 1 个 prior + 1 个问题。</p>
-  <table>
-    <tr><th>类型</th><th>包括</th><th>单位</th></tr>
-    <tr><td>S 尺寸 / 距离</td><td>长、宽、高、厚度、直径、物体间距、位移</td><td>mm、cm、meters</td></tr>
-    <tr><td>V 速度</td><td>瞬时速度、时段平均速度、水平速度</td><td>m/s、cm/s</td></tr>
-    <tr><td>A 加速度</td><td>瞬时、平均加速度，重力加速度（统一取 9.8 m/s²）</td><td>m/s²、cm/s²</td></tr>
-  </table>
+  <p>只涉及平移运动学：尺寸 / 距离（长、宽、高、厚度、直径、间距、位移）、速度（瞬时、时段平均、水平）、加速度（瞬时、平均、重力，统一取 9.8 m/s²）。每个样本 = 1 个视频 + 1 个 prior + 1 个问题。测试集分布：</p>
+  <div class="grid3">
+    <table><tr><th>被问的物理量</th><th>题数</th></tr><tr><td>速度</td><td>903</td></tr><tr><td>长度</td><td>573</td></tr><tr><td>高度</td><td>554</td></tr><tr><td>距离 / 位移</td><td>430</td></tr><tr><td>宽度</td><td>397</td></tr><tr><td>直径 / 半径</td><td>255</td></tr><tr><td>加速度</td><td>150</td></tr><tr><td>厚度</td><td>5</td></tr><tr><td>其他（size、spacing、breadth 等）</td><td>22</td></tr><tr><td><b>合计</b></td><td><b>3,289</b></td></tr></table>
+    <table><tr><th>答案单位</th><th>题数</th></tr><tr><td>meters</td><td>1,642</td></tr><tr><td>m/s</td><td>680</td></tr><tr><td>cm</td><td>593</td></tr><tr><td>cm/s</td><td>218</td></tr><tr><td>m/s²</td><td>135</td></tr><tr><td>cm/s²</td><td>15</td></tr><tr><td>mm</td><td>6</td></tr><tr><td><b>合计</b></td><td><b>3,289</b></td></tr></table>
+    <table><tr><th>prior 关键词</th><th>题数</th></tr><tr><td>speed</td><td>817</td></tr><tr><td>acceleration</td><td>774</td></tr><tr><td>diameter</td><td>476</td></tr><tr><td>gravity</td><td>303</td></tr><tr><td>length</td><td>298</td></tr><tr><td>velocity</td><td>224</td></tr><tr><td>height</td><td>220</td></tr><tr><td>width</td><td>146</td></tr><tr><td>radius</td><td>5</td></tr><tr><td>其他（size、ruler calibre 等）</td><td>26</td></tr><tr><td><b>合计</b></td><td><b>3,289</b></td></tr></table>
+  </div>
+  <p><small>按关键词归类，每题只计一次：问题按 加速度 → 速度 → 距离 → 尺寸 的优先级匹配（含 velocoty 等拼写错误）；单位取问题中 “in &lt;单位&gt;” 的位置，不论在句中还是句尾；prior 按 gravity → acceleration → velocity → speed → 尺寸词 的优先级匹配。</small></p>
+  <p>有 47 道题的单位写在句中（如 "What is the height, in meters, of ..."）而非句尾，解析单位时不能只看结尾。验证集答案范围从 0.00175 到 1086，中位数 3.6。MRA 是相对误差，量级本身不影响评分，但答案为 0 或非数值会被判无效。</p>
 
   <h3 id="物体">涉及的物体</h3>
-  <p>物体都由文字明确指定，从铅笔尖到航天器都有。部分例子：</p>
+  <p>物体都由文字明确指定，从铅笔尖到航天器都有：</p>
   <table>
-    <tr><th>类别</th><th>例子</th></tr>
-    <tr><td>交通</td><td>white / black car、bicycle、bus、race car</td></tr>
-    <tr><td>人物</td><td>pedestrian、passer、receiver、woman in yellow、astronaut</td></tr>
-    <tr><td>飞行器 / 动物</td><td>spaceship、drone、big bird、small bird</td></tr>
-    <tr><td>球类 / 器材</td><td>billiard ball（按颜色区分）、bowling pin、ball return opening、rolling sphere</td></tr>
-    <tr><td>物理教具</td><td>pendulum、sliding block、track cart、sphere、cube、cylinder、wood block</td></tr>
-    <tr><td>工具</td><td>saw、pencil tip</td></tr>
-    <tr><td>参照物</td><td>straight-through / roundabout lane、center island planter、road sign、floor tiles、ceiling light、calibrated grid、ruler</td></tr>
+    <tr><th>大类</th><th>细分类别</th><th>具体物理实体（Entities）</th><th>在数据集中的主要角色</th><th>常见测算物理量 / 作用</th></tr>
+    <tr><td rowspan="2"><b>交通与道路基础设施</b></td><td><b>机动/非机动车辆</b></td><td><code>white car</code>（白车）、<code>black car</code>（黑车）、<code>bus</code>（公交）、<code>race car</code>（赛车）、<code>bicycle</code>（自行车）</td><td>目标物体 / 参照物</td><td>移动速度、运动距离、车辆长度</td></tr>
+    <tr><td><b>道路设施</b></td><td><code>straight-through lane</code>（直行车道）、<code>roundabout lane</code>（环岛）、<code>center island planter</code>（花坛）</td><td>环境参照物</td><td>道路宽度、环岛半径、轨迹基准</td></tr>
+    <tr><td rowspan="3"><b>人物与特定角色</b></td><td><b>独立行人/路人</b></td><td><code>pedestrian</code>（行人）、<code>woman in yellow</code>（黄衣女子）</td><td>目标物体 / 参照物</td><td>身高、行走速度、空间深度</td></tr>
+    <tr><td><b>多角色互动</b></td><td><code>passer</code>（传球者/左侧人）、<code>receiver</code>（接球者/右侧人）</td><td>目标物体</td><td>人员间距、相对速度</td></tr>
+    <tr><td><b>特殊场景角色</b></td><td><code>astronaut</code>（宇航员）</td><td>目标物体</td><td>3D空间速度、加速度</td></tr>
+    <tr><td rowspan="2"><b>动物与空中实体</b></td><td><b>鸟类/自然生物</b></td><td><code>big bird</code>（大鸟）、<code>small bird</code>（小鸟）、<code>eagle</code>（老鹰）</td><td>目标物体</td><td>翼展/体长、飞行速度、相对距离</td></tr>
+    <tr><td><b>飞行器</b></td><td><code>spaceship</code>（飞船）、<code>drone</code>（无人机）</td><td>目标物体</td><td>3D运动轨迹、加速度</td></tr>
+    <tr><td rowspan="2"><b>体育器材与球类</b></td><td><b>台球运动</b></td><td><code>billiard ball</code>（台球，按颜色区分：红、黄、蓝、黑、紫、橙、白）</td><td>目标物体</td><td>碰撞后速度、球体间距</td></tr>
+    <tr><td><b>保龄球运动</b></td><td><code>bowling pin</code>（保龄球瓶）、<code>rolling sphere</code>（滚动球体）、<code>ball return opening</code>（回球口）</td><td>目标物体 / 参照物</td><td>保龄球瓶高度、球体直径、滚动速度</td></tr>
+    <tr><td rowspan="2"><b>物理教具与几何体</b></td><td><b>力学实验教具</b></td><td><code>pendulum</code>（单摆）、<code>sliding block</code>（滑块）、<code>track cart</code>（轨道小车）、<code>wood block</code>（木块）</td><td>目标物体</td><td>摆动周期、滑行加速度、速度</td></tr>
+    <tr><td><b>标准几何体</b></td><td><code>sphere</code>（球体）、<code>cube</code>（立方体）、<code>cylinder</code>（圆柱体）</td><td>目标物体</td><td>边长、直径、体积、运动速度</td></tr>
+    <tr><td rowspan="1"><b>工具与微观结构</b></td><td><b>工具与微观目标</b></td><td><code>saw</code>（锯子）、<code>pencil tip</code>（铅笔尖）</td><td>目标物体</td><td>锯切频率、微观移动速度</td></tr>
+    <tr><td rowspan="3"><b>环境与标定参照物</b></td><td><b>物理标定物</b></td><td><code>ruler</code> / <code>calibrated grid</code>（刻度尺 / 标定网格）</td><td>尺度参照物</td><td>像素-物理尺寸换算基准（Scale Factor）</td></tr>
+    <tr><td><b>室内环境参照</b></td><td><code>floor tiles</code>（地板砖）、<code>ceiling light</code>（吸顶灯）</td><td>环境参照物</td><td>地砖边长、室内坐标系基准</td></tr>
+    <tr><td><b>户外环境参照</b></td><td><code>road sign</code>（路牌）、<code>neon sign</code>（霓虹灯牌）、<code>street light</code>（路灯）</td><td>环境参照物</td><td>Z轴深度参考、相机移动校验</td></tr>
   </table>
+  <h4>角色界定规则</h4>
+  <ul>
+    <li><b>目标物体（Target Entity）：</b><code>question</code> 显式要求计算其物理量（如 <code>length of eagle</code>、<code>velocity of white car</code>）的主体。</li>
+    <li><b>参照物（Reference Object）：</b>在 <code>prior</code> 或 <code>depth_info</code> 中给出已知尺寸/距离（如 <code>ruler = 1cm</code>、<code>distance_neonsign = 34.5m</code>），用于推算目标物体绝对数值的基准。</li>
+  </ul>
+  <h4>复合场景处理</h4>
+  <p>同一个物体（如 <code>white car</code>）在场景 A 中作为<b>测算目标</b>（求其速度），在场景 B 中可作为<b>参照物</b>（已知其速度，求旁边行人的身高）。</p>
   <p>参照物（车道、地砖、网格等）常作为 prior 的载体，也是指认难点（见"已知失败模式"）。</p>
 </section>
 
@@ -234,27 +231,45 @@
   <ol>
     <li><b>验证集是测试集的子集。</b>验证集 24 个视频全部出现在测试集中，159 道题里 124 道的题目文本与测试集完全一致，其余 35 道仅措辞略有差异。这 159 道题的答案我们实际上已经有了，约占测试集的 4.8%。</li>
     <li><b>所有 3D 题都附带 depth_info。</b>1,547 道 3D 题每道都有一段文字，按时间点给出各物体到相机的距离，最多 9 行；2D 题全部为空。这是官方提供的输入，应当喂给模型。</li>
-    <li><b>很多视频是同一场景的不同版本。</b>568 个视频对应 409 个场景，其中 117 个场景有 2 到 3 个变体，问的是同一组问题（514 组重复问题）。变体靠 id 后缀区分：无后缀为原始背景，<code>s</code> 为简化背景，<code>x</code> 或 <code>_segmented</code> 为分割掩码版。同一题在不同变体上的预测理论上应一致，可用作一致性检查。</li>
+    <li><b>同一编号 = 同一组场景设置的不同变体。</b>
+      <ul>
+        <li>video_id 去掉后缀后的编号（如 <code>captured_0034</code>）代表一组场景设置，同编号下的每个视频是它的一个变体（换背景、分割掩码版等）。</li>
+        <li>568 个视频对应 408 个编号；其中 117 个编号有 2 到 6 个变体，问的是同一组问题（514 组重复问题）。</li>
+        <li>后缀含义：
+          <ul>
+            <li>无后缀：原始背景（403）</li>
+            <li><code>s</code>：简化背景（32，<code>captured_</code>）</li>
+            <li><code>x</code>（30，<code>captured_</code>）或 <code>_segmented</code>（85，主要是 <code>simulation_</code>）：分割掩码版</li>
+            <li><code>a</code> / <code>b</code>：同一次实验的两个机位，只有 <code>captured_0034</code>、<code>0035</code>、<code>0054</code>，各自再有 <code>s</code> / <code>x</code>，共 6 个变体（见下方“变体示例”）</li>
+          </ul>
+        </li>
+        <li>同一题在不同变体上的预测理论上应一致，可用作一致性检查。</li>
+      </ul>
+    </li>
   </ol>
 
-  <h3 id="规模与来源">规模与来源</h3>
+  <h3 id="变体示例">变体示例：captured_0054</h3>
+  <p>编号 <code>captured_0054</code> 是同一次实验（滚动的橙色球和足球）的 6 个视频：两个机位（<code>a</code> / <code>b</code>），每个机位各有原始、简化背景（<code>s</code>）、分割掩码（<code>x</code>）三种背景。6 个视频共用同一个 prior（velocity of the orange ball at 0.5s = 2.21 m/s）和同一份 depth_info，<code>video_type</code> 第 4 位依次为 C / S / X。点击文件名可在 HuggingFace 打开。</p>
+  <figure>
+    <img src="demo/captured_0054_variants.jpg" alt="captured_0054 六个变体在 0.5 秒处的画面：上排 a、as、ax，下排 b、bs、bx" style="width:100%;border-radius:8px">
+    <figcaption><small>0.5 s 处截帧。上排：a、as、ax；下排：b、bs、bx。</small></figcaption>
+  </figure>
   <table>
-    <tr><th></th><th>测试集</th><th>验证集</th></tr>
-    <tr><td>问题数</td><td>3,289</td><td>159</td></tr>
-    <tr><td>视频数</td><td>568</td><td>24</td></tr>
-    <tr><td>场景数</td><td>409</td><td>24</td></tr>
-    <tr><td>每视频题数</td><td>1 到 19，中位数 5</td><td>3 到 13，中位数 6</td></tr>
+    <tr><th>video_id</th><th>video_type</th><th>题数</th><th>内容</th></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0054a.mp4"><code>captured_0054a</code></a></td><td><code>V3MC</code></td><td>12</td><td>原始实拍，机位 A：广角，从侧面看两人传球</td></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0054as.mp4"><code>captured_0054as</code></a></td><td><code>V3MS</code></td><td>12</td><td>a 版抠出人和球，背景换成简化背景（去掉实验室）</td></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0054ax.mp4"><code>captured_0054ax</code></a></td><td><code>V3MX</code></td><td>11</td><td>a 版分割掩码：人和球保留，背景为纯绿色</td></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0054b.mp4"><code>captured_0054b</code></a></td><td><code>V3MC</code></td><td>12</td><td>同一次实验，机位 B：从坐地者身后看球滚远；球保留原色，其余画面经 SAM 2 Demo 特效处理（偏绿、反色）</td></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0054bs.mp4"><code>captured_0054bs</code></a></td><td><code>V3MS</code></td><td>12</td><td>b 版抠出两个球，背景换成简化背景</td></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0054bx.mp4"><code>captured_0054bx</code></a></td><td><code>V3MX</code></td><td>12</td><td>b 版分割掩码：只保留两个球，背景为纯黑</td></tr>
   </table>
-  <table>
-    <tr><th>video_source（测试集）</th><th>视频数</th><th>问题数</th></tr>
-    <tr><td>simulation 仿真渲染</td><td>294</td><td>1,633</td></tr>
-    <tr><td>lab 实验室拍摄</td><td>115</td><td>806</td></tr>
-    <tr><td>segmentation 分割掩码</td><td>85</td><td>430</td></tr>
-    <tr><td>internet 互联网视频</td><td>74</td><td>420</td></tr>
-  </table>
-  <p>帧率以 24 fps 为主（420 个视频），其余有 22、25、26、30、33、50、60、120，共 9 种。1,000 道题指定了具体时刻（如 "at 1.5s"），抽帧时必须按每个视频自己的 fps 精确对齐。</p>
+  <p>HuggingFace 上的文件列表与数据表（每个 video_id 对应多行题目）：</p>
+  <img src="captured_0054_videos.png" alt="HuggingFace 文件列表中 captured_0054 的 6 个视频" style="width:100%;border:1px solid var(--border);border-radius:8px;margin:6px 0">
+  <img src="captured_0054_table.png" alt="HuggingFace 数据表中 captured_0054 的部分行" style="width:100%;border:1px solid var(--border);border-radius:8px;margin:6px 0">
 
-  <h3 id="video-type-编码">video_type 四位编码</h3>
+  <h3 id="题目类型">题目类型与评测类别</h3>
+  <p><code>inference_type</code> 两个字母分别表示 prior 与答案的类型：S = 静态量（长度、尺寸），D = 动态量（速度、加速度）。测试集：DS 1,684、SS 597、SD 560、DD 448。</p>
+  <p><code>video_type</code> 是 36 种四位编码（如 <code>S2MC</code>、<code>A3MC</code>、<code>V2MS</code>）：</p>
   <table>
     <tr><th>位</th><th>含义</th><th>测试集分布（题数）</th></tr>
     <tr><td>第 1 位</td><td>prior 的类型：S 尺寸、V 速度、A 加速度</td><td>S 1,167 / V 1,061 / A 1,061</td></tr>
@@ -262,8 +277,7 @@
     <tr><td>第 3 位</td><td>物体数：S 单个、M 多个</td><td>M 2,502 / S 787</td></tr>
     <tr><td>第 4 位</td><td>背景：C 原始、S 简化、X 分割掩码</td><td>C 1,548 / S 930 / X 811</td></tr>
   </table>
-  <div class="note"><b>评测类别按 prior 划分，不按问题划分。</b>类别 = inference_type 首字母（prior 是静态 S 还是动态 D）+ 维度（2 / 3）。例如 prior 是车长、问题求速度，仍归 S2。</div>
-  <p>四类数量：D2 1,163、D3 969、S2 579、S3 578。最终分数是四类 MRA 的平均，所以 S2、S3 题虽少，权重与另外两类相同。</p>
+  <div class="note"><b>评测类别按 prior 划分，不按问题划分。</b>类别 = inference_type 首字母 + 维度（2 / 3）。例如 prior 是车长、问题求速度，仍归 S2。四类数量：D2 1,163、D3 969、S2 579、S3 578。最终分数是四类 MRA 的平均，所以 S2、S3 题虽少，权重与另外两类相同。</div>
 
   <h3 id="dim-2d-3d">2D 视频和 3D 视频的区别</h3>
   <p>下面两个验证集视频都是仿真渲染，prior 都是“人的身高”，可以直接对比。左边是 2D，右边是 3D。</p>
@@ -307,23 +321,10 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
   </table>
   <div class="note"><b>判断一个视频是 2D 还是 3D 最简单的办法：</b>看 <code>depth_info</code> 是否为空。测试集中两者是一一对应的。</div>
 
-  <h3 id="预测什么">要预测什么</h3>
-  <table>
-    <tr><th>被问的物理量（关键词）</th><th>题数</th><th>答案单位</th><th>题数</th><th>prior 类型（关键词）</th><th>题数</th></tr>
-    <tr><td>速度</td><td>891</td><td>meters</td><td>1,615</td><td>speed</td><td>817</td></tr>
-    <tr><td>长度</td><td>578</td><td>m/s</td><td>680</td><td>acceleration</td><td>774</td></tr>
-    <tr><td>高度</td><td>555</td><td>cm</td><td>575</td><td>diameter</td><td>476</td></tr>
-    <tr><td>距离 / 位移</td><td>432</td><td>cm/s</td><td>216</td><td>gravity</td><td>303</td></tr>
-    <tr><td>宽度</td><td>399</td><td>m/s²</td><td>135</td><td>length</td><td>298</td></tr>
-    <tr><td>直径 / 半径</td><td>251</td><td>cm/s²</td><td>15</td><td>velocity</td><td>224</td></tr>
-    <tr><td>加速度</td><td>150</td><td>mm</td><td>6</td><td>height</td><td>220</td></tr>
-  </table>
-  <p>有 47 道题的单位写在句中（如 "What is the height, in meters, of ..."）而非句尾，解析单位时不能只看结尾。验证集答案范围从 0.00175 到 1086，中位数 3.6。MRA 是相对误差，量级本身不影响评分，但答案为 0 或非数值会被判无效。</p>
 
   <h3 id="其他注意事项">其他注意事项</h3>
   <ul>
     <li>题目里有拼写错误（velocoty、velolicty、diasplacement），prompt 不要假设关键词拼写正确。</li>
-    <li>提交模板的 question 列与 parquet 完全一致，说明 parquet 已是修正过单位的版本。</li>
     <li>验证集 <code>video_source</code> 拼成了 <code>segmentaion</code>，测试集是 <code>segmentation</code>，合并数据时要统一。</li>
     <li>HuggingFace 上验证集文件 <code>captured_0041x.mp4</code> 的文件名开头多了一个空格，<code>download_data.sh</code> 已自动处理。</li>
     <li>评测时 <code>parsed_value</code> 会被取绝对值，所以符号不影响得分。</li>
@@ -332,7 +333,7 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
 
 <section id="demo">
   <h2>数据样例</h2>
-  <p>以下 5 个样例来自验证集，所以带有答案。每个视频配一个已知物理量（prior）和若干问题。类型两个字母分别表示 prior 与答案是静态量（S，长度、尺寸）还是动态量（D，速度、加速度）。</p>
+  <p>以下 5 个样例来自验证集，所以带有答案。每个视频配一个已知物理量（prior）和若干问题，类型标签含义见“题目类型与评测类别”。</p>
   <div class="demo">
     <video controls muted loop playsinline preload="metadata" src="demo/internet_0027.mp4"></video>
     <div class="demo-body">
@@ -391,7 +392,7 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
   <p><b>完整案例演示：</b><a href="case/simulation_0300.html">simulation_0300</a>，从输入到答案逐阶段展示每个中间结果（检测候选、SAM 2 掩码视频、深度序列、三维轨迹、速度曲线、逐题得分）。</p>
 
   <h3 id="为什么">为什么这么做</h3>
-  <p><b>为什么合理。</b>QuantiPhy 本质上是一个测量问题：所有题目都是"已知一个物理量，求另一个"，两者通过比例尺或运动学公式严格相关。端到端 VLM 对数值不敏感，官方 GPT-5.1 基线在验证集上只有 MRA 0.486，而且 6.3% 的答案无效。一个显式的"跟踪 + 标定 + 计算"流水线，只要测量误差能控制在 10% 以内，单题 MRA 就能接近 0.9。按场景而不是按视频处理也正确：568 个视频只有 409 个场景，117 个场景的 2 到 3 个变体问的是同一组问题，重建一次即可复用。</p>
+  <p><b>为什么合理。</b>QuantiPhy 本质上是一个测量问题：所有题目都是"已知一个物理量，求另一个"，两者通过比例尺或运动学公式严格相关。端到端 VLM 对数值不敏感，官方 GPT-5.1 基线在验证集上只有 MRA 0.486，而且 6.3% 的答案无效。一个显式的"跟踪 + 标定 + 计算"流水线，只要测量误差能控制在 10% 以内，单题 MRA 就能接近 0.9。按场景而不是按视频处理也正确：568 个视频只有 408 个场景，117 个场景的 2 到 3 个变体问的是同一组问题，重建一次即可复用。</p>
   <div class="callout"><b>修正一：是"度量重建 + 物理拟合"，不是"重建后再仿真"。</b>视频里已经有真实运动，不需要前向仿真整个场景再读结果。我们要做的是把像素轨迹换算成物理量：静态量靠比例尺，动态量靠对轨迹做平滑和微分。物理模型（匀速、匀加速、抛体）的角色是<em>拟合约束</em>，用来去噪和反推尺度，而不是生成式模拟。真正需要"仿真式"反推的只有 prior 为重力加速度的 303 道题：对抛体轨迹拟合抛物线，用 g = 9.8 反推比例尺。</div>
   <div class="callout"><b>修正二：场景级复用可以反过来用。</b>带 <code>x</code> 或 <code>_segmented</code> 后缀的变体本身就是分割掩码视频，等于官方免费给了 148 个视频的精确物体分割。同场景的原始背景版（C）和简化背景版（S）可以直接借用它的掩码和轨迹，不必再跑分割模型。</div>
 
@@ -442,7 +443,7 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
   </ul>
 </section>
 
-<footer>最后更新 2026-10-04</footer>
+<footer>最后更新 2026-10-05</footer>
 </div>
 </div>
 <script>
