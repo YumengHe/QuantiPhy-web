@@ -409,13 +409,6 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
     <tr><td>internet 2D</td><td>420</td><td>高</td><td>背景杂乱、可能有相机运动和透视，平面假设不一定成立。这部分可能要更多依赖 VLM 回退。</td></tr>
   </table>
 
-  <h3 id="三周计划">三周计划（截止 10 月 23 日）</h3>
-  <ol>
-    <li><b>第 1 周：</b>10 月 9 日前注册队伍。跑通官方 GPT 脚本和 <code>evaluator.py</code>，拿到验证集基线分并做第一次测试集提交。在 simulation 2D 子集上搭起阶段 0 到 3 的最小流水线。</li>
-    <li><b>第 2 周：</b>接入 depth_info 做 3D 标定，覆盖 lab 和 simulation 3D。加入阶段 4 的一致性校验和 agent 重试。用 Qwen2.5-VL 替换 GPT 做出 Track B 版本。两个赛道各提交一次看分类别得分。</li>
-    <li><b>第 3 周：</b>攻 internet 视频难例，设计流水线与 VLM 回退的融合策略，确定最终提交。整理可复现包。</li>
-  </ol>
-
   <h3 id="风险">主要风险</h3>
   <ul>
     <li><b>跟踪失败：</b>internet 视频和多物体遮挡场景可能跟丢，需要稳健的回退。</li>
