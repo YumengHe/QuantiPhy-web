@@ -105,6 +105,7 @@
   .good { color: #1b7f3b; font-weight: 600; } .mid { color: #b7791f; font-weight: 600; } .bad { color: #c0392b; font-weight: 600; }
   .formula { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--code-bg); padding: 10px 14px; border-radius: 8px; font-size: 14px; overflow-x: auto; }
 </style>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
 <div class="page">
@@ -185,6 +186,34 @@
     <li><b>静态题：</b>宽和高仍差 40% 左右。原因是车的真实轮廓不是长方体，斜视角下长方体的投影比车大，拟合会把盒子压扁来补偿。需要更贴合的基元或直接用掩码轮廓而不是外接框。</li>
     <li><b>焦距：</b>单目视频加少量数值 prior 在本质上定不出尺度，必须引入额外知识。可选项按可靠性排序：同一相机的焦距先验（实验室视频已验证）、物体典型尺寸的弱先验（本页验证）、地面约束加相机高度。仿真视频每个场景的相机不同（验证集按真值反推为 400 到 1500 px），无法共用焦距先验。</li>
   </ul>
+</section>
+
+<section>
+  <h2 class="stage">阶段 2.6 · 用生成式网格替代基元（实验中） <small>meshgen.py，Meshy image-to-3D</small></h2>
+  <p>阶段 2.5 的结论是长方体和跑车轮廓不匹配。这里换一条路：从 SAM 2 跟踪里挑一帧车最大且完整在画面内的帧（第 21 帧），按框裁下来放大到 1074 × 600，发给 Meshy 的 image-to-3D 接口生成网格。耗时 111 秒，消耗少量 credits。网格没有绝对尺度，尺度仍由 depth_info 和 prior 决定；它提供的是正确的形状和长宽高比例。</p>
+  <div class="demo">
+    <img src="simulation_0300/mesh/input_crop.png" alt="发给 Meshy 的输入裁图" style="width:100%;border-radius:8px;border:1px solid var(--border)">
+    <div class="demo-body">
+      <p><b>输入：</b>单帧裁图，斜后方视角，背景是均匀的浅蓝。</p>
+      <p><b>输出：</b>36,000 顶点、30,049 面的三角网格（GLB + OBJ），带纹理。不是水密网格，但对轮廓投影无影响。</p>
+      <p><b>质量：</b>右侧是 Meshy 返回的缩略图，下方是网格的三视图点云。车头、车顶弧线、四个车轮、尾部扩散器都重建出来了，连输入图里看不到的车头正面也被合理补全。</p>
+    </div>
+  </div>
+  <figure><img src="simulation_0300/mesh/thumbnail.png" alt="Meshy 缩略图" style="max-width:420px;display:block;margin:0 auto"><figcaption>Meshy 渲染的缩略图（侧视）。</figcaption></figure>
+  <figure><img src="simulation_0300/mesh/mesh_views.png" alt="网格三视图"><figcaption>网格顶点的俯视、侧视、正视正交投影。</figcaption></figure>
+  <figure>
+    <model-viewer src="simulation_0300/mesh/car.glb" camera-controls auto-rotate shadow-intensity="1" style="width:100%;height:380px;background:var(--code-bg);border-radius:8px;border:1px solid var(--border)"></model-viewer>
+    <figcaption>可交互的网格查看器，拖动旋转、滚轮缩放。</figcaption>
+  </figure>
+
+  <h3>关键指标：长宽高比例</h3>
+  <table>
+    <tr><th></th><th>L : W : H</th><th>若 L = 4.45 m，则 W</th><th>则 H</th></tr>
+    <tr><td><b>真值</b></td><td>1 : 0.501 : 0.258</td><td>2.23 m</td><td>1.15 m</td></tr>
+    <tr><td>Meshy 网格（有向包围盒）</td><td>1 : 0.549 : 0.236</td><td class="good">2.44 m（+10%）</td><td class="good">1.05 m（−9%）</td></tr>
+    <tr><td>阶段 2.5 长方体拟合</td><td>1 : 0.287 : 0.350</td><td class="bad">1.29 m（−42%）</td><td class="mid">1.57 m（+37%）</td></tr>
+  </table>
+  <p>只要能把一个维度的尺度钉住（depth_info 加 prior，或弱先验），另外两个维度就跟着网格比例走，误差从 40% 量级降到 10% 量级。这验证了换网格的价值。下一步是用这个网格做逐帧位姿估计（RGBTrack 或 FoundationPose 加单目深度），替代长方体投影进入阶段 2.5 的联合拟合。</p>
 </section>
 
 <section>
