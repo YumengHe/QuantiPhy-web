@@ -190,7 +190,7 @@
 
 <section>
   <h2 class="stage">阶段 2.6 · 用生成式网格替代基元（实验中） <small>meshgen.py，Meshy image-to-3D</small></h2>
-  <p>阶段 2.5 的结论是长方体和跑车轮廓不匹配。这里换一条路：从 SAM 2 跟踪里挑一帧车最大且完整在画面内的帧（第 21 帧），按框裁下来放大到 1074 × 600，发给 Meshy 的 image-to-3D 接口生成网格。耗时 111 秒，消耗少量 credits。网格没有绝对尺度，尺度仍由 depth_info 和 prior 决定；它提供的是正确的形状和长宽高比例。</p>
+  <p>阶段 2.5 的结论是长方体和跑车轮廓不匹配。这里换一条路：从 SAM 2 跟踪里挑一帧车最大且完整在画面内的帧（第 21 帧），按框裁下来放大到 1074 × 600，发给 Meshy 的 image-to-3D 接口生成网格。耗时 105 秒（Meshy 计时，含轮询 111 秒），<b>消耗 30 credits</b>（账户余额 9662 → 9632，后台核对一致）。按每个需要网格的物体 30 credits 估算，测试集 409 个场景若每场景 1 到 2 个网格，需要 12k 到 24k credits，当前余额够约 320 个网格，因此网格只留给车辆、动物、人这类基元明显不够用的物体，球、盒子、圆柱继续用解析基元。网格没有绝对尺度，尺度仍由 depth_info 和 prior 决定；它提供的是正确的形状和长宽高比例。</p>
   <div class="demo">
     <img src="simulation_0300/mesh/input_crop.png" alt="发给 Meshy 的输入裁图" style="width:100%;border-radius:8px;border:1px solid var(--border)">
     <div class="demo-body">
@@ -213,7 +213,24 @@
     <tr><td>Meshy 网格（有向包围盒）</td><td>1 : 0.549 : 0.236</td><td class="good">2.44 m（+10%）</td><td class="good">1.05 m（−9%）</td></tr>
     <tr><td>阶段 2.5 长方体拟合</td><td>1 : 0.287 : 0.350</td><td class="bad">1.29 m（−42%）</td><td class="mid">1.57 m（+37%）</td></tr>
   </table>
-  <p>只要能把一个维度的尺度钉住（depth_info 加 prior，或弱先验），另外两个维度就跟着网格比例走，误差从 40% 量级降到 10% 量级。这验证了换网格的价值。下一步是用这个网格做逐帧位姿估计（RGBTrack 或 FoundationPose 加单目深度），替代长方体投影进入阶段 2.5 的联合拟合。</p>
+  <p>只要能把一个维度的尺度钉住（depth_info 加 prior，或弱先验），另外两个维度就跟着网格比例走。下面直接验证。</p>
+
+  <h3>用网格替代长方体做联合拟合</h3>
+  <p>把阶段 2.5 的长方体换成这个网格：从网格表面采 1500 个点，按主轴对齐到物体坐标系（最长轴为车头方向，GLB 的 Y 轴为上），只剩一个尺度参数 L，宽和高按网格比例跟随。其余完全一样：匀加速轨迹、针孔相机、两个深度锚点、|a| = 5 的约束。网格的前后方向无法从形状自动判断，因此两种朝向各拟合一次，取代价更低且焦距不在边界上的那个。</p>
+  <figure><video controls muted loop playsinline src="simulation_0300/fit3d_mesh.mp4"></video><figcaption>橙色点是拟合出的网格表面点按每帧位姿投影到图像上，橙色轮廓是其凸包，蓝色框是 SAM 2 观测。和长方体相比，轮廓贴合车身，不再有超出车顶的空腔。左上角是模型给出的速度和深度。</figcaption></figure>
+  <figure><img src="simulation_0300/fit3d_mesh_strip.jpg" alt="6 个时刻的网格投影"><figcaption>6 个时刻的网格投影。</figcaption></figure>
+  <figure><img src="simulation_0300/fit3d_mesh_topdown.png" alt="俯视图"><figcaption>俯视图，橙色脚印用拟合出的网格尺寸画成矩形示意。</figcaption></figure>
+  <table><tr><th>设置</th><th>f (px)</th><th>框残差 (px)</th><th>速度 1 s</th><th>速度 2 s</th><th>长 L</th><th>宽 W</th><th>高 H</th><th>径向加速度 a_z</th></tr><tr><td><b>真值</b></td><td>≈855</td><td>—</td><td>4.8</td><td>9.8</td><td>4.45</td><td>2.23</td><td>1.15</td><td>—</td></tr><tr><td>mesh, f free, sample 1 (flip=False)</td><td>4759</td><td>14.3</td><td class='bad'>3.09</td><td class='mid'>8.09</td><td class='bad'>1.54</td><td class='bad'>0.78</td><td class='bad'>0.37</td><td>4.91</td></tr><tr><td>mesh, f free, sample 2 (flip=False)</td><td>4523</td><td>14.6</td><td class='bad'>3.08</td><td class='mid'>8.08</td><td class='bad'>1.59</td><td class='bad'>0.81</td><td class='bad'>0.38</td><td>4.9</td></tr><tr><td>mesh, f free, sample 3 (flip=False)</td><td>4598</td><td>14.4</td><td class='bad'>3.08</td><td class='mid'>8.08</td><td class='bad'>1.58</td><td class='bad'>0.79</td><td class='bad'>0.38</td><td>4.9</td></tr><tr><td>mesh, f free + weak prior L≈4.5 m (flip=False)</td><td>1170</td><td>16.4</td><td class='good'>4.45</td><td class='good'>9.36</td><td class='good'>4.47</td><td class='good'>2.27</td><td class='good'>1.07</td><td>3.31</td></tr><tr><td>mesh, f free + wrong prior L≈6 m</td><td>912</td><td>17.5</td><td class='mid'>5.33</td><td class='good'>9.75</td><td class='mid'>5.66</td><td class='mid'>2.86</td><td class='mid'>1.36</td><td>1.7</td></tr><tr><td>mesh, f fixed 855</td><td>855</td><td>18.3</td><td class='mid'>5.5</td><td class='good'>9.98</td><td class='mid'>5.59</td><td class='mid'>2.82</td><td class='mid'>1.34</td><td>1.65</td></tr><tr><td>对照：长方体 + 弱先验（阶段 2.5）</td><td>1064</td><td>11.0</td><td class='good'>4.68</td><td class='good'>9.6</td><td class='good'>4.49</td><td class='bad'>1.29</td><td class='bad'>1.57</td><td>3.17</td></tr></table>
+  <figure><img src="simulation_0300/fit3d_mesh_speed.png" alt="网格拟合的速度曲线"><figcaption>带弱先验的网格拟合速度曲线。</figcaption></figure>
+
+  <h3>结论</h3>
+  <ul>
+    <li><b>形状问题解决了。</b>带同样的弱先验，长方体给出宽 1.29 / 高 1.57（误差 42% / 37%），网格给出宽 2.27 / 高 1.07（误差 2% / 7%）。五个量全部进入 10% 以内，这个案例的 MRA 从 0.70 升到约 0.94。</li>
+    <li><b>尺度歧义没有解决，也不可能靠网格解决。</b>焦距完全自由时，三次不同随机采样都稳定收敛到 f ≈ 4500 到 4800 的退化解（车长 1.5 m、速度偏小 35%），框残差反而更低。网格提供的是比例，不是绝对尺度；绝对尺度仍需弱先验、焦距先验或地面约束之一。</li>
+    <li><b>弱先验的鲁棒性：</b>先验猜错到 6 m 时，五个量一致偏大 20% 到 27%，MRA 仍约 0.75；方向上是"先验错多少，答案错多少"，而非崩溃。</li>
+    <li><b>一个未解释的现象：</b>把焦距固定在真值 855，所有尺寸偏大 25%。可能是 SAM 2 掩码包含了车的阴影或抗锯齿边缘，使框比网格投影大，也可能是真值焦距的估计本身有误差。需要用掩码 IoU 而不是外接框做残差来验证。</li>
+    <li><b>成本：</b>每个网格 30 credits、约 2 分钟；拟合本身每次 10 秒以内。</li>
+  </ul>
 </section>
 
 <section>
