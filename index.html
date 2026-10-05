@@ -177,15 +177,6 @@
     <tr><td>测试集</td><td>仓库根目录 <code>{video_id}.mp4</code></td><td><code>https://huggingface.co/datasets/PaulineLi/QuantiPhy/resolve/main/{video_id}.mp4</code></td></tr>
     <tr><td>验证集</td><td><code>validation_videos/{video_id}.mp4</code></td><td><code>https://huggingface.co/datasets/PaulineLi/QuantiPhy-validation/resolve/main/validation_videos/{video_id}.mp4</code></td></tr>
   </table>
-  <p>只想看一两个视频时，不必跑完整下载，用 <code>huggingface_hub</code> 单独拉取：</p>
-<pre><code>from huggingface_hub import hf_hub_download
-
-video_path = hf_hub_download(
-    repo_id="PaulineLi/QuantiPhy",
-    filename="simulation_0163.mp4",        # 验证集写 "validation_videos/simulation_0163.mp4"
-    repo_type="dataset",
-)</code></pre>
-  <p>抽帧（如用 <code>decord</code>）时，时刻换算帧号请用表格里的 <code>fps</code> 列，与 <code>pipeline/data.py</code> 保持一致。</p>
 
   <h3 id="字段">字段</h3>
   <p>测试集 parquet 有 8 列：<code>video_id</code>, <code>video_source</code>, <code>video_type</code>, <code>fps</code>, <code>inference_type</code>, <code>question</code>, <code>prior</code>, <code>depth_info</code>。验证集多一列 <code>answer</code>。</p>
