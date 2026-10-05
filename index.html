@@ -114,6 +114,18 @@
   <h1>QuantiPhy Documentation</h1>
 </header>
 
+<section id="links">
+  <h2>链接</h2>
+  <ul>
+    <li>比赛页面：<a href="https://quantiphy.stanford.edu/competition/index.html">quantiphy.stanford.edu/competition</a></li>
+    <li>项目主页：<a href="https://quantiphy.stanford.edu/">quantiphy.stanford.edu</a></li>
+    <li>论文：<a href="https://arxiv.org/pdf/2512.19526">arXiv 2512.19526</a></li>
+    <li>官方代码：<a href="https://github.com/Paulineli/QuantiPhy">github.com/Paulineli/QuantiPhy</a></li>
+    <li>测试集：<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy">HF PaulineLi/QuantiPhy</a></li>
+    <li>验证集：<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy-validation">HF PaulineLi/QuantiPhy-validation</a></li>
+  </ul>
+</section>
+
 <section id="info">
   <h2>比赛信息</h2>
   <div class="callout"><b>队伍注册截止：2026 年 10 月 9 日 23:59 AoE</b>（之后不能新建或修改队伍）<br><b>最终提交截止：2026 年 10 月 23 日 23:59 AoE</b></div>
@@ -385,9 +397,6 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
   <p>本地只能在验证集上算分，因为测试集没有答案。</p>
 </section>
 
-
-
-
 <section id="approach">
   <h2>解题思路</h2>
   <p>核心想法：不让 VLM 直接"猜"数值，而是把每个场景重建成可度量的几何与运动，再用 prior 标定尺度，用物理公式把被问的量算出来。VLM 只负责理解问题和指认物体。</p>
@@ -477,18 +486,6 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
     <li><b>"平均速度"的真值定义是净位移除以时间</b>，不是路径长度（验证集弹跳球题目可验证），代码已按此实现。但对圆周运动（木星卫星模型）净位移接近零，真值却是轨道线速度，这类题需要专门识别。</li>
     <li><b>静态尺寸题 0.41 到 0.46。</b>框包含阴影、物体被截断、"长度"与"宽度"在透视下对应的方向不明确。下一步：用掩码的主轴长度代替框，按物体朝向决定长宽。</li>
     <li><b>两个物体间的距离</b>常因第二个物体没被跟踪而兜底。</li>
-  </ul>
-</section>
-
-<section id="links">
-  <h2>链接</h2>
-  <ul>
-    <li>比赛页面：<a href="https://quantiphy.stanford.edu/competition/index.html">quantiphy.stanford.edu/competition</a></li>
-    <li>项目主页：<a href="https://quantiphy.stanford.edu/">quantiphy.stanford.edu</a></li>
-    <li>论文：<a href="https://arxiv.org/pdf/2512.19526">arXiv 2512.19526</a></li>
-    <li>官方代码：<a href="https://github.com/Paulineli/QuantiPhy">github.com/Paulineli/QuantiPhy</a></li>
-    <li>测试集：<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy">HF PaulineLi/QuantiPhy</a></li>
-    <li>验证集：<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy-validation">HF PaulineLi/QuantiPhy-validation</a></li>
   </ul>
 </section>
 
