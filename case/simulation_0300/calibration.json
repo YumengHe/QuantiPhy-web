@@ -1,0 +1,13 @@
+{
+  "mode": "3d",
+  "m_per_px": null,
+  "f_px": 1190.342381166797,
+  "notes": [
+    "size-based depth for car",
+    "prior acceleration of 'the car' = 86.9 px (accel whole track)",
+    "3D acceleration prior: radial component 10.35 >= prior 5.00, lateral unusable"
+  ],
+  "series_objects": [
+    "car"
+  ]
+}

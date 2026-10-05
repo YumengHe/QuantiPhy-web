@@ -1,0 +1,104 @@
+{
+  "video_id": "simulation_0300",
+  "video_type": "A3SX",
+  "video_source": "simulation",
+  "fps": 24.0,
+  "n_frames": 72,
+  "size": [
+    854,
+    480
+  ],
+  "masked": true,
+  "prior_raw": "acceleration of the car = 5 m/s^2",
+  "prior": {
+    "raw": "acceleration of the car = 5 m/s^2",
+    "quantity": "acceleration",
+    "kind": "dynamic",
+    "object": "the car",
+    "value_si": 5.0,
+    "unit": "m/s^2",
+    "time": null,
+    "before": null
+  },
+  "depth_info_raw": "t = 1.0s, distance_car_camera = 17.8278 m\nt = 2.0s, distance_car_camera = 23.1989 m",
+  "depth_info": {
+    "car": {
+      "1.0": 17.8278,
+      "2.0": 23.1989
+    }
+  },
+  "questions": [
+    {
+      "raw": "What is the speed of the car at 1s, in m/s?",
+      "quantity": "speed",
+      "kind": "dynamic",
+      "object": "the car",
+      "unit": "m/s",
+      "unit_factor": 1.0,
+      "times": [
+        1.0
+      ],
+      "average": false,
+      "reference": null,
+      "extra": {},
+      "answer": 4.8
+    },
+    {
+      "raw": "What is the speed of the car at 2s, in m/s?",
+      "quantity": "speed",
+      "kind": "dynamic",
+      "object": "the car",
+      "unit": "m/s",
+      "unit_factor": 1.0,
+      "times": [
+        2.0
+      ],
+      "average": false,
+      "reference": null,
+      "extra": {},
+      "answer": 9.8
+    },
+    {
+      "raw": "What is the length of the car in meters?",
+      "quantity": "length",
+      "kind": "static",
+      "object": "the car",
+      "unit": "m",
+      "unit_factor": 1.0,
+      "times": [],
+      "average": false,
+      "reference": null,
+      "extra": {},
+      "answer": 4.45
+    },
+    {
+      "raw": "What is the width of the car in meters?",
+      "quantity": "width",
+      "kind": "static",
+      "object": "the car",
+      "unit": "m",
+      "unit_factor": 1.0,
+      "times": [],
+      "average": false,
+      "reference": null,
+      "extra": {},
+      "answer": 2.23
+    },
+    {
+      "raw": "What is the height of the car in meters?",
+      "quantity": "height",
+      "kind": "static",
+      "object": "the car",
+      "unit": "m",
+      "unit_factor": 1.0,
+      "times": [],
+      "average": false,
+      "reference": null,
+      "extra": {},
+      "answer": 1.15
+    }
+  ],
+  "object_names": [
+    "the car"
+  ]
+}

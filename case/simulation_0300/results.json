@@ -1,0 +1,96 @@
+[
+  {
+    "question": "What is the speed of the car at 1s, in m/s?",
+    "quantity": "speed",
+    "object": "the car",
+    "times": [
+      1.0
+    ],
+    "unit": "m/s",
+    "pred": 4.896928264268686,
+    "method": "speed3d",
+    "plausible": true,
+    "answer": 4.8,
+    "ratio": 1.0201933883893097,
+    "mra": 1.0,
+    "notes": [
+      "size-based depth for car",
+      "prior acceleration of 'the car' = 86.9 px (accel whole track)",
+      "3D acceleration prior: radial component 10.35 >= prior 5.00, lateral unusable"
+    ]
+  },
+  {
+    "question": "What is the speed of the car at 2s, in m/s?",
+    "quantity": "speed",
+    "object": "the car",
+    "times": [
+      2.0
+    ],
+    "unit": "m/s",
+    "pred": 13.077713500235754,
+    "method": "speed3d",
+    "plausible": true,
+    "answer": 9.8,
+    "ratio": 1.3344605612485463,
+    "mra": 0.6,
+    "notes": [
+      "size-based depth for car",
+      "prior acceleration of 'the car' = 86.9 px (accel whole track)",
+      "3D acceleration prior: radial component 10.35 >= prior 5.00, lateral unusable"
+    ]
+  },
+  {
+    "question": "What is the length ((from the front to the back) of the car in meters?",
+    "quantity": "length",
+    "object": "the car",
+    "times": [],
+    "unit": "m",
+    "pred": 3.3672491756686727,
+    "method": "length",
+    "plausible": true,
+    "answer": 4.45,
+    "ratio": 0.756685208015432,
+    "mra": 0.7,
+    "notes": [
+      "size-based depth for car",
+      "prior acceleration of 'the car' = 86.9 px (accel whole track)",
+      "3D acceleration prior: radial component 10.35 >= prior 5.00, lateral unusable"
+    ]
+  },
+  {
+    "question": "What is the width (from the left wheel to the right wheel) of the car in meters?",
+    "quantity": "width",
+    "object": "the car",
+    "times": [],
+    "unit": "m",
+    "pred": 1.6927252612820893,
+    "method": "width",
+    "plausible": true,
+    "answer": 2.23,
+    "ratio": 0.7590696238933136,
+    "mra": 0.7,
+    "notes": [
+      "size-based depth for car",
+      "prior acceleration of 'the car' = 86.9 px (accel whole track)",
+      "3D acceleration prior: radial component 10.35 >= prior 5.00, lateral unusable"
+    ]
+  },
+  {
+    "question": "What is the height of the car in meters?",
+    "quantity": "height",
+    "object": "the car",
+    "times": [],
+    "unit": "m",
+    "pred": 1.6927252612820893,
+    "method": "height",
+    "plausible": true,
+    "answer": 1.15,
+    "ratio": 1.4719350098105126,
+    "mra": 0.5,
+    "notes": [
+      "size-based depth for car",
+      "prior acceleration of 'the car' = 86.9 px (accel whole track)",
+      "3D acceleration prior: radial component 10.35 >= prior 5.00, lateral unusable"
+    ]
+  }
+]
