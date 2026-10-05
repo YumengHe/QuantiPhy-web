@@ -90,6 +90,15 @@
   .demo table.qa { margin: 0; font-size: 14px; }
   .demo table.qa td.ans { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
   @media (max-width: 700px) { .demo { grid-template-columns: 1fr; } }
+  .compare { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; margin: 16px 0; }
+  .compare .card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .compare video { width: 100%; border-radius: 8px; background: #000; margin-bottom: 10px; }
+  .compare h4 { margin: 0 0 8px; font-size: 16px; }
+  .compare .prior { margin: 4px 0; }
+  .compare pre { margin: 8px 0; font-size: 12.5px; white-space: pre-wrap; word-break: break-all; }
+  .compare table.qa { margin: 8px 0 0; font-size: 13.5px; }
+  .compare table.qa td.ans { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+  @media (max-width: 860px) { .compare { grid-template-columns: 1fr; } }
   footer { color: var(--muted); font-size: 13px; margin-top: 30px; }
 </style>
 </head>
@@ -259,6 +268,48 @@ video_path = hf_hub_download(
   </table>
   <div class="note"><b>评测类别按 prior 划分，不按问题划分。</b>类别 = inference_type 首字母（prior 是静态 S 还是动态 D）+ 维度（2 / 3）。例如 prior 是车长、问题求速度，仍归 S2。</div>
   <p>四类数量：D2 1,163、D3 969、S2 579、S3 578。最终分数是四类 MRA 的平均，所以 S2、S3 题虽少，权重与另外两类相同。</p>
+
+  <h3 id="dim-2d-3d">2D 视频和 3D 视频的区别</h3>
+  <p>下面两个验证集视频都是仿真渲染，prior 都是“人的身高”，可以直接对比。左边是 2D，右边是 3D。</p>
+  <div class="compare">
+    <div class="card">
+      <h4>2D：<code>simulation_0171</code></h4>
+      <video controls muted loop playsinline preload="metadata" src="demo/simulation_0171.mp4"></video>
+      <div class="demo-head"><span class="tag">S2SS</span><span class="tag">24 fps</span><span class="tag">评测类别 S2</span></div>
+      <p class="prior"><b>Prior：</b>height of the astronaut = 2.2 m</p>
+      <p class="prior"><b>depth_info：</b>无</p>
+      <p>相机从侧面平视，宇航员沿着画面左右跳跃，运动基本都在同一个平面里。整段视频中宇航员离相机的距离几乎不变，所以“1 像素等于多少米”在整个画面里是一个固定比例，用身高 2.2 m 标定一次即可。</p>
+      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr>
+        <tr><td><span class='tag'>SD</span></td><td>What is the speed of the astronaut at time 1s in m/s?</td><td class='ans'>4.89</td></tr>
+        <tr><td><span class='tag'>SD</span></td><td>What is the acceleration of the astronaut at time 2s in m/s^2?</td><td class='ans'>0.705</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h4>3D：<code>simulation_0015</code></h4>
+      <video controls muted loop playsinline preload="metadata" src="demo/simulation_0015.mp4"></video>
+      <div class="demo-head"><span class="tag">S3MC</span><span class="tag">33 fps</span><span class="tag">评测类别 S3</span></div>
+      <p class="prior"><b>Prior：</b>height of the person = 1.87 m</p>
+      <p class="prior"><b>depth_info：</b></p>
+<pre><code>t=0s, distance_human_camera = 12.26 m
+t=1s, distance_human_camera = 10.97 m
+distance_the_pedestal_of_the_central_sculpture_and_camera = 9.460 m
+distance_the_centeral_sculpture_camera = 9.460 m
+distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
+      <p>相机有透视，人朝着相机走来，1 秒内离相机从 12.26 m 变到 10.97 m，画面里越走越大。被问的雕塑、展板、长椅、屋顶各自离相机的距离都不一样，不能直接用人的像素身高去量它们，必须结合 depth_info 里的距离做透视换算。</p>
+      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr>
+        <tr><td><span class='tag'>SS</span></td><td>What is the height of the central sculpture itself (excluding the pedestal) in meters?</td><td class='ans'>1.97</td></tr>
+        <tr><td><span class='tag'>SS</span></td><td>What is the clear height from the floor to the underside of the open roof frame in meters?</td><td class='ans'>12.9</td></tr>
+      </table>
+    </div>
+  </div>
+  <table>
+    <tr><th></th><th>2D（video_type 第 2 位 = 2）</th><th>3D（video_type 第 2 位 = 3）</th></tr>
+    <tr><td>相机与运动</td><td>侧视或俯视，物体在与画面平行的平面内运动</td><td>有透视，物体会靠近或远离相机，或者多个物体处在不同深度</td></tr>
+    <tr><td>像素到米的换算</td><td>全画面一个固定比例，用 prior 标定一次</td><td>比例随距离变化，近大远小，需要按每个物体、每个时刻的距离分别换算</td></tr>
+    <tr><td><code>depth_info</code> 字段</td><td>全部为空（测试集 1,742 题）</td><td>全部有值（测试集 1,547 题），给出某些时刻某些物体到相机的距离</td></tr>
+    <tr><td>评测类别</td><td>S2 / D2</td><td>S3 / D3</td></tr>
+  </table>
+  <div class="note"><b>判断一个视频是 2D 还是 3D 最简单的办法：</b>看 <code>depth_info</code> 是否为空。测试集中两者是一一对应的。</div>
 
   <h3 id="预测什么">要预测什么</h3>
   <table>
