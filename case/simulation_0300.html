@@ -160,6 +160,28 @@
 </section>
 
 <section>
+  <h2 class="stage">阶段 2.5 · 三维重建拟合（实验中） <small>fit3d.py，analysis-by-synthesis</small></h2>
+  <p>把阶段 2 和阶段 3 的分步估计换成一个联合模型：一个有朝向的三维长方体（L、W、H）沿匀加速轨迹 p(t) = p₀ + v₀t + ½at² 运动，朝向跟随水平速度方向（起步阶段速度接近零时与整段平均方向混合，避免翻转），经针孔相机（焦距 f）投影。把 8 个角点的投影外接框与 SAM 2 观测到的 72 个框做最小二乘，同时约束两个 depth_info 锚点和 |a| = 5 m/s²。13 个未知数，约 300 个观测，scipy 几秒解完。几何库目前有长方体、球、圆柱、三棱柱四种基元。</p>
+  <figure><img src="simulation_0300/fit3d.png" alt="观测框与投影框对比"><figcaption>SAM 2 观测到的框（实线）与拟合模型投影出的框（虚线）随时间的对比，带弱先验的解。框宽和位置解释得很好；框高在前半段偏差大，因为长方体在斜后方视角下的投影比车的真实轮廓高。</figcaption></figure>
+
+  <h3>发现一：焦距从这段视频里解不出来</h3>
+  <p>把 f 固定在不同值分别拟合，框残差随 f 增大单调下降，但答案却从偏大 25% 一路滑到偏小 30%。也就是说，观测本身更"喜欢"大焦距加小物体的组合，真实焦距（约 855）在数据上并不占优。原因是尺度歧义：所有横向尺寸和 f 一起放大，图像完全不变；深度锚点只固定了 Z，加速度 prior 只固定了 |a|，而 |a| 在径向和横向之间怎么分配是自由的。车几乎沿视线运动时，这个自由度几乎没有观测能约束。f 完全自由时解滑到 2000 以上。</p>
+  <table><tr><th>设置</th><th>f (px)</th><th>框残差 (px)</th><th>速度 1 s</th><th>速度 2 s</th><th>长 L</th><th>宽 W</th><th>高 H</th><th>径向加速度 a_z</th></tr><tr><td><b>真值</b></td><td>≈855</td><td>—</td><td>4.8</td><td>9.8</td><td>4.45</td><td>2.23</td><td>1.15</td><td>—</td></tr><tr><td>f fixed 700</td><td>700</td><td>19.2</td><td class='mid'>6.18</td><td class='mid'>11.18</td><td class='good'>4.78</td><td class='bad'>3.2</td><td class='bad'>2.28</td><td>2.97</td></tr><tr><td>f fixed 855</td><td>855</td><td>15.1</td><td class='mid'>5.36</td><td class='good'>10.35</td><td class='mid'>3.73</td><td class='bad'>3.04</td><td class='bad'>1.96</td><td>3.48</td></tr><tr><td>f fixed 1070</td><td>1070</td><td>11.7</td><td class='good'>4.65</td><td class='good'>9.64</td><td class='bad'>2.62</td><td class='mid'>2.88</td><td class='bad'>1.66</td><td>3.87</td></tr><tr><td>f fixed 1300</td><td>1300</td><td>9.7</td><td class='mid'>4.17</td><td class='good'>9.16</td><td class='bad'>1.97</td><td class='mid'>2.55</td><td class='mid'>1.44</td><td>4.13</td></tr><tr><td>f fixed 1600</td><td>1600</td><td>8.9</td><td class='mid'>3.78</td><td class='mid'>8.77</td><td class='bad'>1.57</td><td class='good'>2.11</td><td class='good'>1.22</td><td>4.4</td></tr><tr><td>f fixed 2000</td><td>2000</td><td>8.4</td><td class='bad'>3.48</td><td class='mid'>8.47</td><td class='bad'>1.19</td><td class='mid'>1.76</td><td class='mid'>1.01</td><td>4.61</td></tr></table>
+
+  <h3>发现二：一个很弱的常识先验就能打破歧义</h3>
+  <p>给"车长大约 4.5 m"一个 σ 约 33% 的弱先验，f 收敛到 1064，两个速度的误差降到 3% 以内。即使先验猜错（车长 6 m），速度仍在 5% 以内，因为速度主要由深度序列和 |a| 决定，先验只负责把尺度歧义钉住。</p>
+  <table><tr><th>设置</th><th>f (px)</th><th>框残差 (px)</th><th>速度 1 s</th><th>速度 2 s</th><th>长 L</th><th>宽 W</th><th>高 H</th><th>径向加速度 a_z</th></tr><tr><td><b>真值</b></td><td>≈855</td><td>—</td><td>4.8</td><td>9.8</td><td>4.45</td><td>2.23</td><td>1.15</td><td>—</td></tr><tr><td>f free</td><td>2016</td><td>8.4</td><td class='bad'>3.47</td><td class='mid'>8.47</td><td class='bad'>1.18</td><td class='mid'>1.75</td><td class='mid'>1.0</td><td>4.61</td></tr><tr><td>f free + weak prior L≈4.5 m</td><td>1064</td><td>11.0</td><td class='good'>4.68</td><td class='good'>9.6</td><td class='good'>4.49</td><td class='bad'>1.29</td><td class='bad'>1.57</td><td>3.17</td></tr><tr><td>f free + wrong prior L≈6 m</td><td>961</td><td>12.5</td><td class='good'>5.0</td><td class='good'>9.85</td><td class='bad'>5.99</td><td class='bad'>0.27</td><td class='bad'>1.65</td><td>2.76</td></tr></table>
+  <figure><img src="simulation_0300/fit3d_speed.png" alt="拟合模型的速度曲线"><figcaption>带弱先验的拟合模型给出的速度曲线，与两个真值点接近，也没有阶段 3 里深度求导的伪影。</figcaption></figure>
+
+  <h3>结论</h3>
+  <ul>
+    <li><b>动态题：</b>联合拟合把速度误差从 2% / 33% 降到 3% / 2%，曲线平滑。这是值得推广到其他场景的部分。</li>
+    <li><b>静态题：</b>宽和高仍差 40% 左右。原因是车的真实轮廓不是长方体，斜视角下长方体的投影比车大，拟合会把盒子压扁来补偿。需要更贴合的基元或直接用掩码轮廓而不是外接框。</li>
+    <li><b>焦距：</b>单目视频加少量数值 prior 在本质上定不出尺度，必须引入额外知识。可选项按可靠性排序：同一相机的焦距先验（实验室视频已验证）、物体典型尺寸的弱先验（本页验证）、地面约束加相机高度。仿真视频每个场景的相机不同（验证集按真值反推为 400 到 1500 px），无法共用焦距先验。</li>
+  </ul>
+</section>
+
+<section>
   <h2 class="stage">阶段 3 · 物理计算 <small>physics.py + solve.py</small></h2>
   <h3>3a · 度量三维轨迹</h3>
   <p>有了 f 和 Z(t)，把像素轨迹换到度量坐标：X = (x − cx) · Z / f，Y = (y − cy) · Z / f，Z 直接用深度序列。对三个分量分别做局部二次拟合求导，速度 = √(Ẋ² + Ẏ² + Ż²)。</p>
