@@ -162,6 +162,12 @@
 <section>
   <h2 class="stage">阶段 2.5 · 三维重建拟合（实验中） <small>fit3d.py，analysis-by-synthesis</small></h2>
   <p>把阶段 2 和阶段 3 的分步估计换成一个联合模型：一个有朝向的三维长方体（L、W、H）沿匀加速轨迹 p(t) = p₀ + v₀t + ½at² 运动，朝向跟随水平速度方向（起步阶段速度接近零时与整段平均方向混合，避免翻转），经针孔相机（焦距 f）投影。把 8 个角点的投影外接框与 SAM 2 观测到的 72 个框做最小二乘，同时约束两个 depth_info 锚点和 |a| = 5 m/s²。13 个未知数，约 300 个观测，scipy 几秒解完。几何库目前有长方体、球、圆柱、三棱柱四种基元。</p>
+  <h3>重建效果：把拟合出的三维盒子投影回视频</h3>
+  <figure><video controls muted loop playsinline src="simulation_0300/fit3d_box.mp4"></video><figcaption>蓝色线框是拟合出的三维长方体（4.49 × 1.29 × 1.57 m）按每帧位姿投影到图像上，橙色框是 SAM 2 的观测。左上角实时显示模型给出的速度和深度。盒子跟着车的朝向转动，长度方向贴合，但高度明显超出车身，这是长方体和跑车轮廓不匹配的直观体现。</figcaption></figure>
+  <figure><img src="simulation_0300/fit3d_box_strip.jpg" alt="6 个时刻的线框叠加"><figcaption>6 个时刻的线框叠加。起步阶段（t = 0）速度接近零，朝向估计不稳，盒子略有偏转；0.5 s 之后朝向与车身一致。</figcaption></figure>
+  <figure><img src="simulation_0300/fit3d_topdown.png" alt="俯视图"><figcaption>俯视图：相机在原点，虚线是视场边界，蓝线是拟合的轨迹，橙色是 7 个时刻的盒子脚印，黑点是 depth_info 的两个锚点。车从 15.6 m 处起步，向左前方加速驶离，3 s 时到 33 m。这张图就是"重建出来的场景"。</figcaption></figure>
+  <p>对照组：把焦距固定在真值 855 px 再拟合，线框视频见 <a href="simulation_0300/fit3d_box_f855.mp4">fit3d_box_f855.mp4</a>。此时盒子被拉宽到 3.0 m（真值 2.2），说明即使焦距对了，长方体模型本身对斜视角的车仍会把宽度估大。</p>
+
   <figure><img src="simulation_0300/fit3d.png" alt="观测框与投影框对比"><figcaption>SAM 2 观测到的框（实线）与拟合模型投影出的框（虚线）随时间的对比，带弱先验的解。框宽和位置解释得很好；框高在前半段偏差大，因为长方体在斜后方视角下的投影比车的真实轮廓高。</figcaption></figure>
 
   <h3>发现一：焦距从这段视频里解不出来</h3>
