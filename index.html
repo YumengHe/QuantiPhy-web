@@ -270,6 +270,89 @@
 
 
 
+<section id="approach">
+  <h2>解题思路</h2>
+  <p>核心想法：不让 VLM 直接"猜"数值，而是把每个场景重建成可度量的几何与运动，再用 prior 标定尺度，用物理公式把被问的量算出来。VLM 只负责理解问题和指认物体。</p>
+
+  <h3 id="判断">判断：方向合理，但要修正两点</h3>
+  <p><b>为什么合理。</b>QuantiPhy 本质上是一个测量问题：所有题目都是"已知一个物理量，求另一个"，两者通过比例尺或运动学公式严格相关。端到端 VLM 对数值不敏感，官方 GPT-5.1 基线在验证集上只有 MRA 0.486，而且 6.3% 的答案无效。一个显式的"跟踪 + 标定 + 计算"流水线，只要测量误差能控制在 10% 以内，单题 MRA 就能接近 0.9。按场景而不是按视频处理也正确：568 个视频只有 409 个场景，117 个场景的 2 到 3 个变体问的是同一组问题，重建一次即可复用。</p>
+  <div class="callout"><b>修正一：是"度量重建 + 物理拟合"，不是"重建后再仿真"。</b>视频里已经有真实运动，不需要前向仿真整个场景再读结果。我们要做的是把像素轨迹换算成物理量：静态量靠比例尺，动态量靠对轨迹做平滑和微分。物理模型（匀速、匀加速、抛体）的角色是<em>拟合约束</em>，用来去噪和反推尺度，而不是生成式模拟。真正需要"仿真式"反推的只有 prior 为重力加速度的 303 道题：对抛体轨迹拟合抛物线，用 g = 9.8 反推比例尺。</div>
+  <div class="callout"><b>修正二：场景级复用可以反过来用。</b>带 <code>x</code> 或 <code>_segmented</code> 后缀的变体本身就是分割掩码视频，等于官方免费给了 148 个视频的精确物体分割。同场景的原始背景版（C）和简化背景版（S）可以直接借用它的掩码和轨迹，不必再跑分割模型。</div>
+  <p><b>一个前提。</b>409 个场景不可能人工逐个重建，流水线必须自动化，人只处理失败案例和做验证。手工标注测试集答案既违背比赛精神，也无法满足前三名要交可复现包的要求。</p>
+
+  <h3 id="流水线">流水线设计</h3>
+  <table>
+    <tr><th>阶段</th><th>做什么</th><th>工具（Track B 全部开源）</th></tr>
+    <tr><td>0 问题解析</td><td>每道题抽出：目标物理量、目标物体、时刻、答案单位、prior 的物体和数值。输出结构化 JSON。</td><td>LLM（Track A 用 GPT / Claude，Track B 用 Qwen2.5-VL 或 Qwen3）</td></tr>
+    <tr><td>1 场景重建（每场景一次）</td><td>抽帧；指认题目涉及的所有物体；分割并逐帧跟踪，得到每个物体每帧的 mask、bbox、中心轨迹。有分割变体的场景直接用掩码。</td><td>Grounding DINO 或 Qwen2.5-VL 做指认，SAM 2 做分割跟踪，CoTracker 做点跟踪</td></tr>
+    <tr><td>2 尺度标定</td><td><b>2D：</b>用 prior 物体的像素尺寸（或像素速度）得到比例尺 m/px。<b>3D：</b>用 prior 物体的像素尺寸和 depth_info 里的相机距离反推焦距 f，之后任意物体 真实尺寸 = 像素尺寸 × 距离 / f；速度的纵向分量直接用 depth_info 在不同时刻的差分。</td><td>针孔相机模型，纯计算</td></tr>
+    <tr><td>3 物理拟合与计算</td><td>静态量：像素尺寸 × 比例尺。速度：轨迹平滑后一阶差分，或拟合匀速 / 匀加速模型后取导数。加速度：二阶，或直接取拟合参数。时刻按该视频 fps 精确定位到帧。</td><td>numpy / scipy</td></tr>
+    <tr><td>4 校验与 agent 优化</td><td>三类一致性检查：同场景不同变体答案应一致；同物体多道题互相约束（例如长宽比、同一轨迹上不同时刻的速度）；物理合理性范围。失败时 agent 诊断原因并重试：换指认提示、换帧、换拟合模型、改用另一变体的掩码。仍失败则回退到 VLM 直接回答。</td><td>LLM agent + 验证集 MRA 作为目标</td></tr>
+  </table>
+
+  <h3 id="优先级">按子集的优先级</h3>
+  <table>
+    <tr><th>子集</th><th>题数</th><th>难度</th><th>原因</th></tr>
+    <tr><td>simulation 2D</td><td>1,039</td><td>低</td><td>渲染干净、相机固定、物体清晰，比例尺标定最可靠。先在这里把流水线跑通。</td></tr>
+    <tr><td>lab 3D</td><td>791</td><td>中</td><td>有 depth_info，背景可控，还有分割变体可借用。</td></tr>
+    <tr><td>simulation 3D / segmentation</td><td>594 / 430</td><td>中</td><td>同上，分割版本几乎零成本。</td></tr>
+    <tr><td>internet 2D</td><td>420</td><td>高</td><td>背景杂乱、可能有相机运动和透视，平面假设不一定成立。这部分可能要更多依赖 VLM 回退。</td></tr>
+  </table>
+
+  <h3 id="三周计划">三周计划（截止 10 月 23 日）</h3>
+  <ol>
+    <li><b>第 1 周：</b>10 月 9 日前注册队伍。跑通官方 GPT 脚本和 <code>evaluator.py</code>，拿到验证集基线分并做第一次测试集提交。在 simulation 2D 子集上搭起阶段 0 到 3 的最小流水线。</li>
+    <li><b>第 2 周：</b>接入 depth_info 做 3D 标定，覆盖 lab 和 simulation 3D。加入阶段 4 的一致性校验和 agent 重试。用 Qwen2.5-VL 替换 GPT 做出 Track B 版本。两个赛道各提交一次看分类别得分。</li>
+    <li><b>第 3 周：</b>攻 internet 视频难例，设计流水线与 VLM 回退的融合策略，确定最终提交。整理可复现包。</li>
+  </ol>
+
+  <h3 id="风险">主要风险</h3>
+  <ul>
+    <li><b>跟踪失败：</b>internet 视频和多物体遮挡场景可能跟丢，需要稳健的回退。</li>
+    <li><b>平面假设：</b>2D 题假设运动在与相机平行的平面内，透视强时比例尺会随位置变化。</li>
+    <li><b>时刻对齐：</b>1,000 道题指定了具体时刻，帧率有 9 种，差一帧在高速物体上就是明显误差。</li>
+    <li><b>人力：</b>流水线各阶段都要自动化，否则 409 个场景做不完。</li>
+    <li><b>Track B 规则：</b>推理时调用的每个模型都必须开源，包括问题解析用的 LLM。</li>
+  </ul>
+</section>
+
+<section id="pipeline">
+  <h2>流水线实现</h2>
+  <p>代码在主仓库的 <code>pipeline/</code> 目录，按"解题思路"中的五个阶段组织。依赖 PyTorch、transformers、OpenCV，模型只用 Grounding DINO（开源，Track B 可用），不需要任何 API key。</p>
+<pre><code>conda activate quantiphy
+python -m pipeline.run --split val            # 验证集，打印分类别 MRA
+python -m pipeline.run --split val --debug    # 另存带框的调试帧到 outputs/debug/
+python -m pipeline.run --split test --out outputs/submission.csv   # 填好官方模板</code></pre>
+  <table>
+    <tr><th>文件</th><th>阶段</th><th>做什么</th></tr>
+    <tr><td><code>data.py</code></td><td>-</td><td>读取数据、场景与变体分组、解析 depth_info、OpenCV 读帧（按数据集 fps 把时刻换算成帧号）</td></tr>
+    <tr><td><code>parse.py</code></td><td>0</td><td>规则解析器：从问题抽出物理量、物体、时刻、单位；从 prior 抽出物体和 SI 数值。覆盖全部 233 种 prior 写法</td></tr>
+    <tr><td><code>perceive.py</code></td><td>1</td><td>Grounding DINO 逐帧检测每个物体名，按"分数减去跳变惩罚"选框保证时序一致；掩码视频用前景像素收紧框。轨迹缓存到 <code>outputs/tracks/</code></td></tr>
+    <tr><td><code>calibrate.py</code></td><td>2</td><td>2D：prior 物体像素量换算 m/px。3D：由 prior 和 depth_info 反推焦距；物体视大小变化时按针孔关系 Z(t) = Z₀·h(t₀)/h(t) 生成逐帧深度，并得到径向速度</td></tr>
+    <tr><td><code>physics.py</code></td><td>3</td><td>像素空间运动学：Savitzky-Golay 平滑，局部二次拟合求速度和加速度，位移、平均速度、抛物线拟合重力</td></tr>
+    <tr><td><code>solve.py</code></td><td>3</td><td>一道题到一个数</td></tr>
+    <tr><td><code>verify.py</code></td><td>4</td><td>合理范围检查、同场景变体取中位数、兜底常数（避免空值和 0 被判无效）</td></tr>
+    <tr><td><code>metrics.py</code></td><td>-</td><td>与官方 <code>evaluator.py</code> 完全一致的 MRA</td></tr>
+  </table>
+
+  <h3 id="首次结果">首次验证集结果（2026-10-04）</h3>
+  <table>
+    <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>无效答案</th></tr>
+    <tr><td>官方 GPT-5.1 基线</td><td>0.486</td><td>0.569</td><td>0.354</td><td>0.456</td><td>0.564</td><td>6.3%</td></tr>
+    <tr><td>流水线 v0</td><td>0.436</td><td>0.413</td><td>0.368</td><td>0.651</td><td>0.311</td><td>0%</td></tr>
+  </table>
+  <p>159 题中 134 题完成了测量，其余走兜底。按视频来源：分割掩码视频 0.82，仿真 0.40，实验室 0.38，互联网 0.37。测量成功的题目里，预测与真值之比的中位数是 0.91，一半的题落在 0.49 到 1.38 倍之间，说明方向正确但尺度误差仍大。</p>
+
+  <h3 id="已知失败模式">已知失败模式与下一步</h3>
+  <ul>
+    <li><b>prior 是加速度时整场失准。</b>加速度是轨迹的二阶导，对检测框抖动极敏感，<code>captured_0013</code> 全部 8 题偏大 2 到 5 倍。下一步：对 prior 物体做整段匀加速拟合而非局部拟合，并用 SAM 2 替代逐帧检测减少抖动。</li>
+    <li><b>检测框锁错物体。</b>多个相似物体（三个球、两个人）时 Grounding DINO 会跳到另一个实例，<code>captured_0027s</code> 红球速度偏小 30 倍。下一步：用首帧检测初始化 SAM 2 视频跟踪。</li>
+    <li><b>depth_info 物体名对不上。</b>如 prior 写 "ball"，depth_info 写 "distance_ball_camera" 却没匹配上，导致用了场景中位深度。下一步：改进名字匹配。</li>
+    <li><b>语义理解不足。</b>"lane width" 把整条路当成车道，"floor tiles" 的边长、"the slope" 的长度等需要更精细的指认。下一步：用 VLM 做物体指认和失败诊断，即"解题思路"里的 agent 层。</li>
+    <li><b>直径类问题最弱（0.19）。</b>小球的检测框常包含阴影或被截断。下一步：用分割掩码而非检测框量尺寸。</li>
+  </ul>
+</section>
+
 <section id="links">
   <h2>链接</h2>
   <ul>
