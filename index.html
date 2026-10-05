@@ -408,15 +408,6 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
     <tr><td>simulation 3D / segmentation</td><td>594 / 430</td><td>中</td><td>同上，分割版本几乎零成本。</td></tr>
     <tr><td>internet 2D</td><td>420</td><td>高</td><td>背景杂乱、可能有相机运动和透视，平面假设不一定成立。这部分可能要更多依赖 VLM 回退。</td></tr>
   </table>
-
-  <h3 id="风险">主要风险</h3>
-  <ul>
-    <li><b>跟踪失败：</b>internet 视频和多物体遮挡场景可能跟丢，需要稳健的回退。</li>
-    <li><b>平面假设：</b>2D 题假设运动在与相机平行的平面内，透视强时比例尺会随位置变化。</li>
-    <li><b>时刻对齐：</b>1,000 道题指定了具体时刻，帧率有 9 种，差一帧在高速物体上就是明显误差。</li>
-    <li><b>人力：</b>流水线各阶段都要自动化，否则 409 个场景做不完。</li>
-    <li><b>Track B 规则：</b>推理时调用的每个模型都必须开源，包括问题解析用的 LLM。</li>
-  </ul>
 </section>
 
 <section id="pipeline">
