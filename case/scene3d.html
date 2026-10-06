@@ -10,28 +10,25 @@
   :root[data-theme="dark"] { --bg:#0f1115; --panel:#171a21; --text:#e6e8ec; --muted:#9aa3ad; --border:#2b3038; --accent:#7a93ff; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 -apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif; }
-  .wrap { display:grid; grid-template-columns: 1fr 300px; height:100vh; }
-  #stage { position:relative; min-width:0; height:100vh; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:6px; }
-  #stage.side { flex-direction:row; }
-  #vwrap { position:relative; flex:none; }
-  #vid { width:100%; height:100%; display:block; border-radius:6px; background:#000; }
+  .page { max-width: 1400px; margin: 0 auto; padding: 20px 20px 60px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 10px; }
+  #stage { display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+  #vwrap { position:relative; flex:1 1 420px; min-width:320px; }
+  #vid { width:100%; display:block; border-radius:6px; background:#000; }
   #overlay { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; display:none; }
-  #view { position:relative; flex:none; }
-  #view canvas { display:block; border-radius:6px; }
-  aside { border-left:1px solid var(--border); background:var(--panel); padding:12px 14px; overflow-y:auto; font-size:13px; }
-  h1 { font-size:16px; margin:0 0 4px; }
-  .sub { color:var(--muted); font-size:12.5px; margin:0 0 10px; }
-  .row { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
-  button { background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:5px 10px; cursor:pointer; font-size:13px; }
+  #view { position:relative; flex:1 1 420px; min-width:320px; }
+  #view canvas { display:block; border-radius:6px; width:100% !important; height:auto !important; }
+  .row { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; align-items:center; }
+  button { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:5px 10px; cursor:pointer; font-size:13px; }
   button.on { border-color:var(--accent); color:var(--accent); }
   input[type=range] { width:100%; }
-  .obj { display:flex; align-items:center; gap:8px; padding:3px 0; border-bottom:1px solid var(--border); font-size:12.5px; line-height:1.35; }
-  .sw { width:12px; height:12px; border-radius:3px; flex:none; }
-  .obj small { color:var(--muted); }
+  table { border-collapse:collapse; width:100%; margin:10px 0; font-size:13.5px; }
+  th, td { border:1px solid var(--border); padding:5px 9px; text-align:left; vertical-align:top; }
+  th { background:var(--panel); }
+  .sw { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:middle; margin-right:6px; }
   #hud { position:absolute; left:10px; top:10px; background:rgba(0,0,0,.45); color:#fff; padding:6px 10px; border-radius:6px; font-size:13px; pointer-events:none; }
   a { color:var(--accent); }
-  /* the parameter panel always stays visible on the right, never folded below the video */
-  @media (max-width: 700px) { .wrap { grid-template-columns: 1fr 240px; } }
 </style>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
@@ -39,7 +36,10 @@
 </script>
 </head>
 <body>
-<div class="wrap">
+<div class="page">
+  <p class="sub"><a id="back" href="#">← 返回案例页</a></p>
+  <h1>重建场景 · 与视频同步</h1>
+  <p class="sub" id="meta"></p>
   <div id="stage">
     <div id="vwrap">
       <video id="vid" muted playsinline preload="auto"></video>
@@ -47,34 +47,30 @@
     </div>
     <div id="view"><div id="hud">加载中…</div></div>
   </div>
-  <aside>
-    <h1>重建场景 · 与视频同步</h1>
-    <p class="sub" id="meta"></p>
-    <div class="row">
-      <button id="play">播放</button>
-      <button id="toKey">关键帧</button>
-      <button id="camView">相机视角</button>
-      <button id="topView">俯视</button>
-      <button id="freeView">自由视角</button>
-    </div>
-    <input type="range" id="time" min="0" max="1" step="1" value="0">
-    <div class="sub" id="tlabel"></div>
-    <div class="row">
-      <button id="tgOverlay">叠加到视频</button>
-      <button id="tgGrid" class="on">地面网格</button>
-      <button id="tgTrail" class="on">轨迹</button>
-      <button id="tgBox" class="on">尺寸盒</button>
-      <button id="tgMesh" class="on">网格模型</button>
-      <button id="tgFrustum" class="on">相机视锥</button>
-    </div>
-    <div class="row">
-      <button id="srcFit" class="on">拟合叠加视频</button>
-      <button id="srcOrig">原始视频</button>
-    </div>
-    <div id="objs"></div>
-    <p class="sub" style="margin-top:12px">上下共用一个时间轴，视频是主时钟。"叠加到视频"把三维场景按拟合出的相机（焦距、俯仰、高度）半透明画在视频上，网格、尺寸盒和模型应与画面中的路面与物体重合；偏差处即拟合误差。</p>
-    <p class="sub"><a id="back" href="#">← 返回案例页</a></p>
-  </aside>
+  <input type="range" id="time" min="0" max="1" step="1" value="0">
+  <div class="sub" id="tlabel"></div>
+  <div class="row">
+    <button id="play">播放</button>
+    <button id="toKey">关键帧</button>
+    <span style="width:12px"></span>
+    <button id="camView">相机视角</button>
+    <button id="topView">俯视</button>
+    <button id="freeView">自由视角</button>
+    <button id="tgOverlay">叠加到视频</button>
+    <span style="width:12px"></span>
+    <button id="srcFit" class="on">拟合叠加视频</button>
+    <button id="srcOrig">原始视频</button>
+  </div>
+  <div class="row">
+    <span class="sub" style="margin:0">显示：</span>
+    <button id="tgGrid" class="on">地面网格</button>
+    <button id="tgTrail" class="on">轨迹</button>
+    <button id="tgBox" class="on">尺寸盒</button>
+    <button id="tgMesh" class="on">网格模型</button>
+    <button id="tgFrustum" class="on">相机视锥</button>
+  </div>
+  <table id="objs"><tr><th>物体</th><th>形状</th><th>拟合尺寸 (m)</th><th>depth_info</th><th>框残差 px</th></tr></table>
+  <p class="sub">左右共用一个时间轴，视频是主时钟。"叠加到视频"把三维场景按拟合出的相机（焦距、俯仰、高度）半透明画在视频上，网格、尺寸盒和模型应与画面中的路面与物体重合；偏差处即拟合误差。坐标系：相机在原点，Y 向上；关键帧是 depth_info 给出距离的时刻。</p>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -183,9 +179,9 @@ S.objects.forEach((o, i) => {
   const trail = new THREE.Line(new THREE.BufferGeometry().setFromPoints(o.poses.map(ps => toW(ps.p))), new THREE.LineBasicMaterial({ color }));
   scene.add(trail);
   objGroups.push({ o, g, boxGroup, meshGroup, trail, label });
-  const row = document.createElement('div'); row.className = 'obj';
+  const row = document.createElement('tr');
   const dimsTxt = Object.entries(d).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(' · ');
-  row.innerHTML = `<span class="sw" style="background:${color}"></span><div><b>${o.name}</b>${o.is_prior ? ' <small>(prior)</small>' : ''}<br><small>${o.shape}${o.mesh ? ' + mesh' : ''} · ${dimsTxt} m${o.anchors.length ? ' · depth_info ×' + o.anchors.length : ''}</small></div>`;
+  row.innerHTML = `<td><span class="sw" style="background:${color}"></span>${o.name}${o.is_prior ? ' <small>(prior)</small>' : ''}</td><td>${o.shape}${o.mesh ? ' + mesh' : ''}</td><td>${dimsTxt}</td><td>${o.anchors.length ? o.anchors.map(a => `t=${a.t}s: ${a.Z.toFixed(1)} m`).join('<br>') : '—'}</td><td>${(o.rms ?? 0).toFixed(1)}</td>`;
   objList.appendChild(row);
 });
 
@@ -253,20 +249,12 @@ document.getElementById('meta').textContent = `${S.video} · ${S.objects.length}
 
 const stage = document.getElementById('stage');
 function resize() {
-  // fit video + 3D into the stage without scrolling: stacked (two panels tall) or side by side (two panels wide)
-  const sw = stage.clientWidth - 12, sh = stage.clientHeight - 12, gap = 6;
-  const panels = overlayMode ? 1 : 2;
-  const stacked = { w: Math.min(sw, ((sh - gap * (panels - 1)) / panels) * W / H) };
-  const side = { w: Math.min((sw - gap * (panels - 1)) / panels, sh * W / H) };
-  const useSide = !overlayMode && side.w > stacked.w;
-  stage.classList.toggle('side', useSide);
-  const w = Math.floor(useSide ? side.w : stacked.w), h = Math.round(w * H / W);
-  vwrap.style.width = w + 'px'; vwrap.style.height = h + 'px';
+  const w = Math.floor(vwrap.clientWidth), h = Math.round(w * H / W);
   if (overlayMode) {
     renderer.setSize(w, h, false); ov.width = renderer.domElement.width; ov.height = renderer.domElement.height;
     ov.style.width = w + 'px'; ov.style.height = h + 'px';
   } else {
-    view.style.width = w + 'px'; view.style.height = h + 'px'; renderer.setSize(w, h);
+    view.style.height = h + 'px'; renderer.setSize(w, h);
   }
   cam.aspect = W / H; cam.updateProjectionMatrix();
 }
