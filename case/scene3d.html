@@ -11,11 +11,15 @@
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 -apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif; }
   .wrap { display:grid; grid-template-columns: 1fr 300px; height:100vh; }
-  #view { position:relative; min-width:0; }
-  #view canvas { display:block; }
+  #stage { position:relative; min-width:0; overflow:auto; display:flex; flex-direction:column; gap:6px; padding:6px; }
+  #vwrap { position:relative; width:100%; }
+  #vid { width:100%; display:block; border-radius:6px; background:#000; }
+  #overlay { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; display:none; }
+  #view { position:relative; width:100%; flex:none; }
+  #view canvas { display:block; border-radius:6px; }
   aside { border-left:1px solid var(--border); background:var(--panel); padding:14px 16px; overflow:auto; }
   h1 { font-size:16px; margin:0 0 4px; }
-  .sub { color:var(--muted); font-size:12.5px; margin:0 0 12px; }
+  .sub { color:var(--muted); font-size:12.5px; margin:0 0 10px; }
   .row { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
   button { background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:5px 10px; cursor:pointer; font-size:13px; }
   button.on { border-color:var(--accent); color:var(--accent); }
@@ -25,7 +29,7 @@
   .obj small { color:var(--muted); }
   #hud { position:absolute; left:10px; top:10px; background:rgba(0,0,0,.45); color:#fff; padding:6px 10px; border-radius:6px; font-size:13px; pointer-events:none; }
   a { color:var(--accent); }
-  @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; grid-template-rows: 60vh 1fr; } aside { border-left:0; border-top:1px solid var(--border); } }
+  @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; height:auto; } aside { border-left:0; border-top:1px solid var(--border); } }
 </style>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
@@ -34,27 +38,39 @@
 </head>
 <body>
 <div class="wrap">
-  <div id="view"><div id="hud">加载中…</div></div>
+  <div id="stage">
+    <div id="vwrap">
+      <video id="vid" muted playsinline preload="auto"></video>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div id="view"><div id="hud">加载中…</div></div>
+  </div>
   <aside>
-    <h1>重建场景</h1>
+    <h1>重建场景 · 与视频同步</h1>
     <p class="sub" id="meta"></p>
     <div class="row">
       <button id="play">播放</button>
-      <button id="toKey">跳到关键帧</button>
+      <button id="toKey">关键帧</button>
       <button id="camView">相机视角</button>
       <button id="topView">俯视</button>
+      <button id="freeView">自由视角</button>
     </div>
     <input type="range" id="time" min="0" max="1" step="1" value="0">
     <div class="sub" id="tlabel"></div>
     <div class="row">
+      <button id="tgOverlay">叠加到视频</button>
       <button id="tgGrid" class="on">地面网格</button>
       <button id="tgTrail" class="on">轨迹</button>
       <button id="tgBox" class="on">尺寸盒</button>
       <button id="tgMesh" class="on">网格模型</button>
       <button id="tgFrustum" class="on">相机视锥</button>
     </div>
+    <div class="row">
+      <button id="srcFit" class="on">拟合叠加视频</button>
+      <button id="srcOrig">原始视频</button>
+    </div>
     <div id="objs"></div>
-    <p class="sub" style="margin-top:12px">坐标系：相机在原点，Y 向上。地面平面、焦距、各物体的尺寸与逐帧位姿全部来自 <code>scene_fit.py</code> 的拟合结果；网格为 Meshy 生成并按拟合尺度缩放。关键帧是 depth_info 给出距离的时刻。</p>
+    <p class="sub" style="margin-top:12px">上下共用一个时间轴，视频是主时钟。"叠加到视频"把三维场景按拟合出的相机（焦距、俯仰、高度）半透明画在视频上，网格、尺寸盒和模型应与画面中的路面与物体重合；偏差处即拟合误差。</p>
     <p class="sub"><a id="back" href="#">← 返回案例页</a></p>
   </aside>
 </div>
@@ -68,65 +84,69 @@ const params = new URLSearchParams(location.search);
 const sceneUrl = params.get('scene') || 'simulation_0060/scene3d.json';
 const base = sceneUrl.substring(0, sceneUrl.lastIndexOf('/') + 1);
 document.getElementById('back').href = base.replace(/\/$/, '') + '.html';
-
-// camera frame (X right, Y down, Z forward) -> three.js world (Y up, -Z forward)
-const toW = (v) => new THREE.Vector3(v[0], -v[1], -v[2]);
+const toW = (v) => new THREE.Vector3(v[0], -v[1], -v[2]);   // camera frame (X right, Y down, Z fwd) -> three.js (Y up, -Z fwd)
 
 const S = await (await fetch(sceneUrl)).json();
+const { f, W, H } = S.camera;
+const nF = S.n_frames, fps = S.fps;
+
+// ---------- video (master clock) ----------
+const vid = document.getElementById('vid');
+const vwrap = document.getElementById('vwrap');
+const sources = { fit: base + 'scene_fit.mp4', orig: base + 'original.mp4' };
+vid.src = sources.fit; vid.loop = true;
+
+// ---------- renderer / scene ----------
 const view = document.getElementById('view');
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 view.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
-scene.background = new THREE.Color(dark ? 0x14171d : 0xeef0f3);
-const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
+const bgColor = new THREE.Color(dark ? 0x14171d : 0xeef0f3);
+scene.background = bgColor;
+const cam = new THREE.PerspectiveCamera(50, W / H, 0.1, 2000);
 const controls = new OrbitControls(cam, renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x667788, 1.1));
 const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(10, 30, 10); scene.add(sun);
 
-// ---- ground plane
-const n = toW(S.plane.normal).normalize();           // points up
-const dist = S.plane.dist;                            // camera-frame: n_cam . p = dist  (dist < 0 => ground below camera)
-// a point on the plane: p = dist * n_cam  -> world
+// ---------- ground ----------
+const n = toW(S.plane.normal).normalize();
+const dist = S.plane.dist;
 const p0 = toW(S.plane.normal.map(c => c * dist));
 const groundGroup = new THREE.Group();
-if (S.plane.u1) {           // grid axes follow the detected road direction (u1) and its in-plane normal (u2)
+if (S.plane.u1) {
   const u1 = toW(S.plane.u1).normalize(), u2 = toW(S.plane.u2).normalize();
   groundGroup.matrixAutoUpdate = false;
   const M = new THREE.Matrix4().makeBasis(u1, n, u2); M.setPosition(p0); groundGroup.matrix.copy(M);
 } else {
-  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
-  groundGroup.quaternion.copy(q); groundGroup.position.copy(p0);
+  groundGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n); groundGroup.position.copy(p0);
 }
 const extent = 120;
 const grid = new THREE.GridHelper(extent, extent / 2, 0x3aa36a, 0x7fbf95);
-grid.material.opacity = 0.55; grid.material.transparent = true;
-groundGroup.add(grid);
+grid.material.opacity = 0.6; grid.material.transparent = true;
 const slab = new THREE.Mesh(new THREE.PlaneGeometry(extent, extent), new THREE.MeshStandardMaterial({ color: dark ? 0x2a2f38 : 0xd6d9de, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
-slab.rotation.x = -Math.PI / 2; slab.position.y = -0.01; slab.receiveShadow = true;
-groundGroup.add(slab);
+slab.rotation.x = -Math.PI / 2; slab.position.y = -0.01;
+groundGroup.add(grid, slab);
 scene.add(groundGroup);
 
-// ---- camera frustum
-const { f, W, H } = S.camera;
+// ---------- frustum ----------
 const fr = new THREE.Group();
 const depth = 40;
 const corners = [[0, 0], [W, 0], [W, H], [0, H]].map(([u, v]) => toW([(u - W / 2) * depth / f, (v - H / 2) * depth / f, depth]));
-const pts = [];
-corners.forEach((c, i) => { pts.push(new THREE.Vector3(0, 0, 0), c); pts.push(c, corners[(i + 1) % 4]); });
-fr.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x888888 })));
+const fpts = [];
+corners.forEach((c, i) => { fpts.push(new THREE.Vector3(0, 0, 0), c, c, corners[(i + 1) % 4]); });
+fr.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(fpts), new THREE.LineBasicMaterial({ color: 0x888888 })));
 fr.add(new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.2, 12), new THREE.MeshStandardMaterial({ color: 0x1baf7a })));
 scene.add(fr);
 
-// ---- objects
+// ---------- objects ----------
 const loader = new GLTFLoader();
 const objGroups = [];
 const objList = document.getElementById('objs');
 function makeLabel(text, color) {
   const c = document.createElement('canvas'); c.width = 512; c.height = 96;
-  const g = c.getContext('2d'); g.font = 'bold 40px sans-serif'; g.fillStyle = color; g.textAlign = 'center';
-  g.fillText(text, 256, 60);
+  const g = c.getContext('2d'); g.font = 'bold 40px sans-serif'; g.fillStyle = color; g.textAlign = 'center'; g.fillText(text, 256, 60);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true }));
   sp.scale.set(6, 1.1, 1); return sp;
 }
@@ -137,8 +157,8 @@ S.objects.forEach((o, i) => {
   let geom;
   if (o.shape === 'cylinder') { geom = new THREE.CylinderGeometry(d.D / 2, d.D / 2, d.H, 24); geom.rotateX(Math.PI / 2); }
   else if (o.shape === 'sphere') { geom = new THREE.SphereGeometry(d.D / 2, 24, 16); }
-  else { geom = new THREE.BoxGeometry(d.L ?? d.D, d.W ?? d.D, d.H ?? d.D); }   // x=L (heading), y=W, z=H (up)
-  const boxMesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color, transparent: true, opacity: o.mesh ? 0.18 : 0.6, wireframe: false }));
+  else { geom = new THREE.BoxGeometry(d.L ?? d.D, d.W ?? d.D, d.H ?? d.D); }
+  const boxMesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color, transparent: true, opacity: o.mesh ? 0.15 : 0.5 }));
   const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geom), new THREE.LineBasicMaterial({ color }));
   const boxGroup = new THREE.Group(); boxGroup.add(boxMesh, edges); g.add(boxGroup);
   const label = makeLabel(o.name, color); label.position.set(0, 0, (d.H ?? d.D ?? 1) / 2 + 1.0); g.add(label);
@@ -146,24 +166,19 @@ S.objects.forEach((o, i) => {
   if (o.mesh) {
     loader.load(base + o.mesh.file, (gltf) => {
       const m = gltf.scene;
-      // object axes <- mesh axes: mesh axis e1 -> object x (heading), e2 -> object y, up -> object z
       const sgn = o.mesh.flip ? -1 : 1;
-      const A = new THREE.Matrix4();
       const col = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
       col[o.mesh.e1].set(sgn, 0, 0); col[o.mesh.e2].set(0, sgn, 0); col[o.mesh.up].set(0, 0, 1);
-      A.makeBasis(col[0], col[1], col[2]);
+      const A = new THREE.Matrix4().makeBasis(col[0], col[1], col[2]);
       const pivot = new THREE.Group();
       m.position.set(-o.mesh.center[0], -o.mesh.center[1], -o.mesh.center[2]);
-      pivot.add(m);
-      pivot.matrixAutoUpdate = false;
+      pivot.add(m); pivot.matrixAutoUpdate = false;
       pivot.matrix.copy(A).multiply(new THREE.Matrix4().makeScale(o.mesh.scale, o.mesh.scale, o.mesh.scale));
       meshGroup.add(pivot);
     });
   }
   scene.add(g);
-  // trail
-  const trailPts = o.poses.map(ps => toW(ps.p));
-  const trail = new THREE.Line(new THREE.BufferGeometry().setFromPoints(trailPts), new THREE.LineBasicMaterial({ color }));
+  const trail = new THREE.Line(new THREE.BufferGeometry().setFromPoints(o.poses.map(ps => toW(ps.p))), new THREE.LineBasicMaterial({ color }));
   scene.add(trail);
   objGroups.push({ o, g, boxGroup, meshGroup, trail, label });
   const row = document.createElement('div'); row.className = 'obj';
@@ -172,34 +187,61 @@ S.objects.forEach((o, i) => {
   objList.appendChild(row);
 });
 
-// ---- time
-const nF = S.n_frames, fps = S.fps;
+// ---------- time (video is the master clock) ----------
 const slider = document.getElementById('time'); slider.max = nF - 1;
 const keyFrame = Math.round((S.keyframes_t[0] ?? 0) * fps);
-let frame = keyFrame, playing = false;
+let frame = keyFrame;
 const hud = document.getElementById('hud'), tlabel = document.getElementById('tlabel');
-function setFrame(k) {
+function applyFrame(k) {
   frame = Math.max(0, Math.min(nF - 1, k)); slider.value = frame;
   const t = frame / fps;
   objGroups.forEach(({ o, g }) => {
     const ps = o.poses[Math.min(frame, o.poses.length - 1)];
-    const e1 = toW(ps.R[0]), e2 = toW(ps.R[1]), e3 = toW(ps.R[2]);
-    const M = new THREE.Matrix4().makeBasis(e1, e2, e3); M.setPosition(toW(ps.p));
+    const M = new THREE.Matrix4().makeBasis(toW(ps.R[0]), toW(ps.R[1]), toW(ps.R[2])); M.setPosition(toW(ps.p));
     g.matrix.copy(M);
   });
   const isKey = S.keyframes_t.some(kt => Math.abs(kt - t) < 0.5 / fps);
   tlabel.textContent = `t = ${t.toFixed(2)} s · 帧 ${frame}/${nF - 1}` + (isKey ? ' · depth_info 关键帧' : '');
   hud.textContent = `${S.video} · t=${t.toFixed(2)}s · f=${f.toFixed(0)}px · 相机高 ${(-dist).toFixed(1)} m，俯仰 ${Math.abs(S.plane.tilt_deg[1]).toFixed(0)}°`;
 }
-slider.oninput = () => setFrame(+slider.value);
-document.getElementById('play').onclick = (e) => { playing = !playing; e.target.textContent = playing ? '暂停' : '播放'; };
-document.getElementById('toKey').onclick = () => setFrame(keyFrame);
-function cameraView() { cam.position.set(0, 0, 0.001); cam.fov = 2 * Math.atan(H / 2 / f) * 180 / Math.PI; cam.updateProjectionMatrix(); controls.target.set(0, 0, -30); controls.update(); }
-function topView() { cam.fov = 50; cam.updateProjectionMatrix(); cam.position.set(0, 70, -25); controls.target.set(0, 0, -25); controls.update(); }
-document.getElementById('camView').onclick = cameraView;
-document.getElementById('topView').onclick = topView;
+function seek(k) { vid.currentTime = Math.min(k / fps + 0.001, Math.max(0, (vid.duration || nF / fps) - 0.01)); applyFrame(k); }
+slider.oninput = () => seek(+slider.value);
+const playBtn = document.getElementById('play');
+playBtn.onclick = () => { if (vid.paused) { vid.play(); playBtn.textContent = '暂停'; } else { vid.pause(); playBtn.textContent = '播放'; } };
+document.getElementById('toKey').onclick = () => { vid.pause(); playBtn.textContent = '播放'; seek(keyFrame); };
+document.getElementById('srcFit').onclick = (e) => { setSrc('fit'); e.target.classList.add('on'); document.getElementById('srcOrig').classList.remove('on'); };
+document.getElementById('srcOrig').onclick = (e) => { setSrc('orig'); e.target.classList.add('on'); document.getElementById('srcFit').classList.remove('on'); };
+function setSrc(k) { const t = vid.currentTime; vid.src = sources[k]; vid.addEventListener('loadedmetadata', () => { vid.currentTime = t; }, { once: true }); }
+
+// ---------- views ----------
+let overlayMode = false;
+const ov = document.getElementById('overlay');
+function cameraView() {
+  cam.position.set(0, 0, 0); cam.up.set(0, 1, 0);
+  cam.fov = 2 * Math.atan(H / 2 / f) * 180 / Math.PI; cam.aspect = W / H; cam.updateProjectionMatrix();
+  cam.lookAt(0, 0, -1); controls.enabled = false;
+}
+function freeView() { controls.enabled = true; cam.fov = 50; cam.updateProjectionMatrix(); cam.position.set(12, 18, 14); controls.target.set(0, 0, -22); controls.update(); }
+function topView() { controls.enabled = true; cam.fov = 50; cam.updateProjectionMatrix(); cam.position.set(0, 70, -25); controls.target.set(0, 0, -25); controls.update(); }
+document.getElementById('camView').onclick = () => { setOverlay(false); cameraView(); };
+document.getElementById('topView').onclick = () => { setOverlay(false); topView(); };
+document.getElementById('freeView').onclick = () => { setOverlay(false); freeView(); };
+function setOverlay(on) {
+  overlayMode = on;
+  document.getElementById('tgOverlay').classList.toggle('on', on);
+  if (on) {
+    cameraView();
+    scene.background = null; slab.visible = false; fr.visible = false;
+    ov.style.display = 'block'; view.style.display = 'none';
+  } else {
+    scene.background = bgColor; slab.visible = document.getElementById('tgGrid').classList.contains('on'); fr.visible = document.getElementById('tgFrustum').classList.contains('on');
+    ov.style.display = 'none'; view.style.display = 'block';
+  }
+  resize();
+}
+document.getElementById('tgOverlay').onclick = () => setOverlay(!overlayMode);
 const tg = (id, fn) => { const b = document.getElementById(id); b.onclick = () => { b.classList.toggle('on'); fn(b.classList.contains('on')); }; };
-tg('tgGrid', v => groundGroup.visible = v);
+tg('tgGrid', v => { groundGroup.visible = v; });
 tg('tgTrail', v => objGroups.forEach(x => x.trail.visible = v));
 tg('tgBox', v => objGroups.forEach(x => x.boxGroup.visible = v));
 tg('tgMesh', v => objGroups.forEach(x => x.meshGroup.visible = v));
@@ -207,15 +249,27 @@ tg('tgFrustum', v => fr.visible = v);
 
 document.getElementById('meta').textContent = `${S.video} · ${S.objects.length} 个物体 · ${nF} 帧 @ ${fps} fps · 关键帧 t = ${S.keyframes_t.join(', ')} s`;
 
-function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); }
-addEventListener('resize', resize); resize();
-// initial view: behind and above the camera, looking at the scene
-cam.position.set(12, 18, 14); controls.target.set(0, 0, -22); controls.update();
-setFrame(keyFrame);
-let last = performance.now();
-renderer.setAnimationLoop((now) => {
-  if (playing && now - last > 1000 / fps) { setFrame(frame + 1 >= nF ? 0 : frame + 1); last = now; }
-  controls.update(); renderer.render(scene, cam);
+function resize() {
+  const w = vwrap.clientWidth, h = Math.round(w * H / W);
+  if (overlayMode) {
+    renderer.setSize(w, h, false); ov.width = renderer.domElement.width; ov.height = renderer.domElement.height;
+    ov.style.width = w + 'px'; ov.style.height = h + 'px';
+  } else {
+    view.style.height = h + 'px'; renderer.setSize(w, h);
+  }
+  cam.aspect = W / H; cam.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+freeView(); resize(); seek(keyFrame);
+
+renderer.setAnimationLoop(() => {
+  const k = Math.round(vid.currentTime * fps);
+  if (k !== frame && !vid.paused) applyFrame(k);
+  if (!overlayMode && controls.enabled) controls.update();
+  renderer.render(scene, cam);
+  if (overlayMode) {   // copy the transparent render onto the canvas that sits over the video
+    const g = ov.getContext('2d'); g.clearRect(0, 0, ov.width, ov.height); g.globalAlpha = 0.75; g.drawImage(renderer.domElement, 0, 0);
+  }
 });
 </script>
 </body>
