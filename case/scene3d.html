@@ -70,7 +70,7 @@
     <button id="tgFrustum" class="on">相机视锥</button>
   </div>
   <table id="objs"><tr><th>物体</th><th>形状</th><th>拟合尺寸 (m)</th><th>depth_info</th><th>框残差 px</th></tr></table>
-  <p class="sub">左右共用一个时间轴，视频是主时钟。"叠加到视频"把三维场景按拟合出的相机（焦距、俯仰、高度）半透明画在视频上，网格、尺寸盒和模型应与画面中的路面与物体重合；偏差处即拟合误差。坐标系：相机在原点，Y 向上；关键帧是 depth_info 给出距离的时刻。</p>
+  <p class="sub">绿色网格每格 0.5 m，每 5 m 一条粗线，原点在相机的地面垂足，轴向沿路的方向；视频叠加里的网格是同一套定义，两边应逐格重合。左右共用一个时间轴，视频是主时钟。"叠加到视频"把三维场景按拟合出的相机（焦距、俯仰、高度）半透明画在视频上，网格、尺寸盒和模型应与画面中的路面与物体重合；偏差处即拟合误差。坐标系：相机在原点，Y 向上；关键帧是 depth_info 给出距离的时刻。</p>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -120,12 +120,21 @@ if (S.plane.u1) {
 } else {
   groundGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n); groundGroup.position.copy(p0);
 }
-const extent = 120;
-const grid = new THREE.GridHelper(extent, extent / 2, 0x3aa36a, 0x7fbf95);
-grid.material.opacity = 0.6; grid.material.transparent = true;
-const slab = new THREE.Mesh(new THREE.PlaneGeometry(extent, extent), new THREE.MeshStandardMaterial({ color: dark ? 0x2a2f38 : 0xd6d9de, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
+// canonical grid, identical to the video overlay: origin at the camera's foot point, 0.5 m cells, darker line every 5 m
+const STEP = 0.5, MAJOR = 5, EXT = 60, MINOR_EXT = 25;   // same constants as pipeline/fit3d_viz.py
+const gpts = [], mpts = [];
+for (let k = -EXT; k <= EXT + 1e-6; k += STEP) {
+  const isMajor = Math.abs(k / MAJOR - Math.round(k / MAJOR)) < 1e-6;
+  const arr = isMajor ? mpts : gpts, e = isMajor ? EXT : MINOR_EXT;
+  if (!isMajor && Math.abs(k) > MINOR_EXT) continue;
+  arr.push(new THREE.Vector3(k, 0, -e), new THREE.Vector3(k, 0, e));    // along u2 at offset k along u1 (local x)
+  arr.push(new THREE.Vector3(-e, 0, k), new THREE.Vector3(e, 0, k));    // along u1 at offset k along u2 (local z)
+}
+const grid = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gpts), new THREE.LineBasicMaterial({ color: 0x7fbf95, transparent: true, opacity: 0.55 }));
+const gridMajor = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(mpts), new THREE.LineBasicMaterial({ color: 0x3aa36a, transparent: true, opacity: 0.9 }));
+const slab = new THREE.Mesh(new THREE.PlaneGeometry(2 * EXT, 2 * EXT), new THREE.MeshStandardMaterial({ color: dark ? 0x2a2f38 : 0xd6d9de, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
 slab.rotation.x = -Math.PI / 2; slab.position.y = -0.01;
-groundGroup.add(grid, slab);
+groundGroup.add(grid, gridMajor, slab);
 scene.add(groundGroup);
 
 // ---------- frustum ----------
