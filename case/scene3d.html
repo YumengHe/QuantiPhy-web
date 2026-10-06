@@ -18,19 +18,20 @@
   #overlay { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; display:none; }
   #view { position:relative; flex:none; }
   #view canvas { display:block; border-radius:6px; }
-  aside { border-left:1px solid var(--border); background:var(--panel); padding:14px 16px; overflow:auto; }
+  aside { border-left:1px solid var(--border); background:var(--panel); padding:12px 14px; overflow-y:auto; font-size:13px; }
   h1 { font-size:16px; margin:0 0 4px; }
   .sub { color:var(--muted); font-size:12.5px; margin:0 0 10px; }
   .row { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
   button { background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:5px 10px; cursor:pointer; font-size:13px; }
   button.on { border-color:var(--accent); color:var(--accent); }
   input[type=range] { width:100%; }
-  .obj { display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .obj { display:flex; align-items:center; gap:8px; padding:3px 0; border-bottom:1px solid var(--border); font-size:12.5px; line-height:1.35; }
   .sw { width:12px; height:12px; border-radius:3px; flex:none; }
   .obj small { color:var(--muted); }
   #hud { position:absolute; left:10px; top:10px; background:rgba(0,0,0,.45); color:#fff; padding:6px 10px; border-radius:6px; font-size:13px; pointer-events:none; }
   a { color:var(--accent); }
-  @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; height:auto; } aside { border-left:0; border-top:1px solid var(--border); } }
+  /* the parameter panel always stays visible on the right, never folded below the video */
+  @media (max-width: 700px) { .wrap { grid-template-columns: 1fr 240px; } }
 </style>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
