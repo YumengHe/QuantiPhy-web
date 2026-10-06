@@ -91,8 +91,14 @@ const dist = S.plane.dist;                            // camera-frame: n_cam . p
 // a point on the plane: p = dist * n_cam  -> world
 const p0 = toW(S.plane.normal.map(c => c * dist));
 const groundGroup = new THREE.Group();
-const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
-groundGroup.quaternion.copy(q); groundGroup.position.copy(p0);
+if (S.plane.u1) {           // grid axes follow the detected road direction (u1) and its in-plane normal (u2)
+  const u1 = toW(S.plane.u1).normalize(), u2 = toW(S.plane.u2).normalize();
+  groundGroup.matrixAutoUpdate = false;
+  const M = new THREE.Matrix4().makeBasis(u1, n, u2); M.setPosition(p0); groundGroup.matrix.copy(M);
+} else {
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+  groundGroup.quaternion.copy(q); groundGroup.position.copy(p0);
+}
 const extent = 120;
 const grid = new THREE.GridHelper(extent, extent / 2, 0x3aa36a, 0x7fbf95);
 grid.material.opacity = 0.55; grid.material.transparent = true;
