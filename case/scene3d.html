@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>重建场景查看器</title>
+<style>
+  :root { --bg:#f7f7f5; --panel:#fff; --text:#1f2328; --muted:#656d76; --border:#d9dde2; --accent:#3b5bdb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0f1115; --panel:#171a21; --text:#e6e8ec; --muted:#9aa3ad; --border:#2b3038; --accent:#7a93ff; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --panel:#171a21; --text:#e6e8ec; --muted:#9aa3ad; --border:#2b3038; --accent:#7a93ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 -apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif; }
+  .page { max-width: 1400px; margin: 0 auto; padding: 20px 20px 60px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 10px; }
+  #stage { display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+  #vwrap { position:relative; flex:1 1 420px; min-width:320px; }
+  #vid { width:100%; display:block; border-radius:6px; background:#000; }
+  #overlay { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; display:none; }
+  #view { position:relative; flex:1 1 420px; min-width:320px; }
+  #view canvas { display:block; border-radius:6px; width:100% !important; height:auto !important; }
+  .row { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; align-items:center; }
+  button { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:5px 10px; cursor:pointer; font-size:13px; }
+  button.on { border-color:var(--accent); color:var(--accent); }
+  input[type=range] { width:100%; }
+  table { border-collapse:collapse; width:100%; margin:10px 0; font-size:13.5px; }
+  th, td { border:1px solid var(--border); padding:5px 9px; text-align:left; vertical-align:top; }
+  th { background:var(--panel); }
+  .sw { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:middle; margin-right:6px; }
+  #hud { position:absolute; left:10px; top:10px; background:rgba(0,0,0,.45); color:#fff; padding:6px 10px; border-radius:6px; font-size:13px; pointer-events:none; }
+  a { color:var(--accent); }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div class="page">
+  <p class="sub"><a id="back" href="#">← 返回案例页</a></p>
+  <h1>重建场景 · 与视频同步</h1>
+  <p class="sub" id="meta"></p>
+  <div id="stage">
+    <div id="vwrap">
+      <video id="vid" muted playsinline preload="auto"></video>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div id="view"><div id="hud">加载中…</div></div>
+  </div>
+  <input type="range" id="time" min="0" max="1" step="1" value="0">
+  <div class="sub" id="tlabel"></div>
+  <div class="row">
+    <button id="play">播放</button>
+    <button id="toKey">关键帧</button>
+    <span style="width:12px"></span>
+    <button id="camView">相机视角</button>
+    <button id="topView">俯视</button>
+    <button id="freeView">自由视角</button>
+    <button id="tgOverlay">叠加到视频</button>
+    <span style="width:12px"></span>
+    <button id="srcFit" class="on">拟合叠加视频</button>
+    <button id="srcOrig">原始视频</button>
+  </div>
+  <div class="row">
+    <span class="sub" style="margin:0">显示：</span>
+    <button id="tgGrid" class="on">地面网格</button>
+    <button id="tgTrail" class="on">轨迹</button>
+    <button id="tgBox" class="on">尺寸盒</button>
+    <button id="tgMesh" class="on">网格模型</button>
+    <button id="tgFrustum" class="on">相机视锥</button>
+  </div>
+  <table id="objs"><tr><th>物体</th><th>形状</th><th>拟合尺寸 (m)</th><th>depth_info</th><th>框残差 px</th></tr></table>
+  <p class="sub">绿色网格每格 0.5 m，每 5 m 一条粗线，原点在相机的地面垂足，轴向沿路的方向；视频叠加里的网格是同一套定义，两边应逐格重合。左右共用一个时间轴，视频是主时钟。"叠加到视频"把三维场景按拟合出的相机（焦距、俯仰、高度）半透明画在视频上，网格、尺寸盒和模型应与画面中的路面与物体重合；偏差处即拟合误差。坐标系：相机在原点，Y 向上；关键帧是 depth_info 给出距离的时刻。</p>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const PAL = ['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#4a3aa7','#e34948','#008300','#7a93ff'];
+const params = new URLSearchParams(location.search);
+const sceneUrl = params.get('scene') || 'simulation_0060/scene3d.json';
+const base = sceneUrl.substring(0, sceneUrl.lastIndexOf('/') + 1);
+document.getElementById('back').href = base.replace(/\/$/, '') + '.html';
+const toW = (v) => new THREE.Vector3(v[0], -v[1], -v[2]);   // camera frame (X right, Y down, Z fwd) -> three.js (Y up, -Z fwd)
+
+const S = await (await fetch(sceneUrl)).json();
+const { f, W, H } = S.camera;
+const nF = S.n_frames, fps = S.fps;
+
+// ---------- video (master clock) ----------
+const vid = document.getElementById('vid');
+const vwrap = document.getElementById('vwrap');
+const sources = { fit: base + 'scene_fit.mp4', orig: base + 'original.mp4' };
+vid.src = sources.fit; vid.loop = true;
+
+// ---------- renderer / scene ----------
+const view = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+view.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
+const bgColor = new THREE.Color(dark ? 0x14171d : 0xeef0f3);
+scene.background = bgColor;
+const cam = new THREE.PerspectiveCamera(50, W / H, 0.1, 2000);
+const controls = new OrbitControls(cam, renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x667788, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(10, 30, 10); scene.add(sun);
+
+// ---------- ground ----------
+const n = toW(S.plane.normal).normalize();
+const dist = S.plane.dist;
+const p0 = toW(S.plane.normal.map(c => c * dist));
+const groundGroup = new THREE.Group();
+if (S.plane.u1) {
+  const u1 = toW(S.plane.u1).normalize(), u2 = toW(S.plane.u2).normalize();
+  groundGroup.matrixAutoUpdate = false;
+  const M = new THREE.Matrix4().makeBasis(u1, n, u2); M.setPosition(p0); groundGroup.matrix.copy(M);
+} else {
+  groundGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n); groundGroup.position.copy(p0);
+}
+// canonical grid, identical to the video overlay: origin at the camera's foot point, 0.5 m cells, darker line every 5 m
+const STEP = 0.5, MAJOR = 5, EXT = 60, MINOR_EXT = 25;   // same constants as pipeline/fit3d_viz.py
+const gpts = [], mpts = [];
+for (let k = -EXT; k <= EXT + 1e-6; k += STEP) {
+  const isMajor = Math.abs(k / MAJOR - Math.round(k / MAJOR)) < 1e-6;
+  const arr = isMajor ? mpts : gpts, e = isMajor ? EXT : MINOR_EXT;
+  if (!isMajor && Math.abs(k) > MINOR_EXT) continue;
+  arr.push(new THREE.Vector3(k, 0, -e), new THREE.Vector3(k, 0, e));    // along u2 at offset k along u1 (local x)
+  arr.push(new THREE.Vector3(-e, 0, k), new THREE.Vector3(e, 0, k));    // along u1 at offset k along u2 (local z)
+}
+const grid = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gpts), new THREE.LineBasicMaterial({ color: 0x7fbf95, transparent: true, opacity: 0.55 }));
+const gridMajor = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(mpts), new THREE.LineBasicMaterial({ color: 0x3aa36a, transparent: true, opacity: 0.9 }));
+const slab = new THREE.Mesh(new THREE.PlaneGeometry(2 * EXT, 2 * EXT), new THREE.MeshStandardMaterial({ color: dark ? 0x2a2f38 : 0xd6d9de, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
+slab.rotation.x = -Math.PI / 2; slab.position.y = -0.01;
+groundGroup.add(grid, gridMajor, slab);
+scene.add(groundGroup);
+
+// ---------- frustum ----------
+const fr = new THREE.Group();
+const depth = 40;
+const corners = [[0, 0], [W, 0], [W, H], [0, H]].map(([u, v]) => toW([(u - W / 2) * depth / f, (v - H / 2) * depth / f, depth]));
+const fpts = [];
+corners.forEach((c, i) => { fpts.push(new THREE.Vector3(0, 0, 0), c, c, corners[(i + 1) % 4]); });
+fr.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(fpts), new THREE.LineBasicMaterial({ color: 0x888888 })));
+fr.add(new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.2, 12), new THREE.MeshStandardMaterial({ color: 0x1baf7a })));
+scene.add(fr);
+
+// ---------- objects ----------
+const loader = new GLTFLoader();
+const objGroups = [];
+const objList = document.getElementById('objs');
+function makeLabel(text, color) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 96;
+  const g = c.getContext('2d'); g.font = 'bold 40px sans-serif'; g.fillStyle = color; g.textAlign = 'center'; g.fillText(text, 256, 60);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true }));
+  sp.scale.set(6, 1.1, 1); return sp;
+}
+S.objects.forEach((o, i) => {
+  const color = PAL[i % PAL.length];
+  const g = new THREE.Group(); g.matrixAutoUpdate = false;
+  const d = o.dims;
+  let geom;
+  if (o.shape === 'cylinder') { geom = new THREE.CylinderGeometry(d.D / 2, d.D / 2, d.H, 24); geom.rotateX(Math.PI / 2); }
+  else if (o.shape === 'sphere') { geom = new THREE.SphereGeometry(d.D / 2, 24, 16); }
+  else { geom = new THREE.BoxGeometry(d.L ?? d.D, d.W ?? d.D, d.H ?? d.D); }
+  const boxMesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color, transparent: true, opacity: o.mesh ? 0.15 : 0.5 }));
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geom), new THREE.LineBasicMaterial({ color }));
+  const boxGroup = new THREE.Group(); boxGroup.add(boxMesh, edges); g.add(boxGroup);
+  const label = makeLabel(o.name, color); label.position.set(0, 0, (d.H ?? d.D ?? 1) / 2 + 1.0); g.add(label);
+  const meshGroup = new THREE.Group(); g.add(meshGroup);
+  if (o.mesh) {
+    loader.load(base + o.mesh.file, (gltf) => {
+      const m = gltf.scene;
+      const sgn = o.mesh.flip ? -1 : 1;
+      const col = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+      col[o.mesh.e1].set(sgn, 0, 0); col[o.mesh.e2].set(0, sgn, 0); col[o.mesh.up].set(0, 0, 1);
+      const A = new THREE.Matrix4().makeBasis(col[0], col[1], col[2]);
+      const pivot = new THREE.Group();
+      m.position.set(-o.mesh.center[0], -o.mesh.center[1], -o.mesh.center[2]);
+      pivot.add(m); pivot.matrixAutoUpdate = false;
+      pivot.matrix.copy(A).multiply(new THREE.Matrix4().makeScale(o.mesh.scale, o.mesh.scale, o.mesh.scale));
+      meshGroup.add(pivot);
+    });
+  }
+  scene.add(g);
+  const trail = new THREE.Line(new THREE.BufferGeometry().setFromPoints(o.poses.map(ps => toW(ps.p))), new THREE.LineBasicMaterial({ color }));
+  scene.add(trail);
+  objGroups.push({ o, g, boxGroup, meshGroup, trail, label });
+  const row = document.createElement('tr');
+  const dimsTxt = Object.entries(d).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(' · ');
+  row.innerHTML = `<td><span class="sw" style="background:${color}"></span>${o.name}${o.is_prior ? ' <small>(prior)</small>' : ''}</td><td>${o.shape}${o.mesh ? ' + mesh' : ''}</td><td>${dimsTxt}</td><td>${o.anchors.length ? o.anchors.map(a => `t=${a.t}s: ${a.Z.toFixed(1)} m`).join('<br>') : '—'}</td><td>${(o.rms ?? 0).toFixed(1)}</td>`;
+  objList.appendChild(row);
+});
+
+// ---------- time (video is the master clock) ----------
+const slider = document.getElementById('time'); slider.max = nF - 1;
+const keyFrame = Math.round((S.keyframes_t[0] ?? 0) * fps);
+let frame = keyFrame;
+const hud = document.getElementById('hud'), tlabel = document.getElementById('tlabel');
+function applyFrame(k) {
+  frame = Math.max(0, Math.min(nF - 1, k)); slider.value = frame;
+  const t = frame / fps;
+  objGroups.forEach(({ o, g }) => {
+    const ps = o.poses[Math.min(frame, o.poses.length - 1)];
+    const M = new THREE.Matrix4().makeBasis(toW(ps.R[0]), toW(ps.R[1]), toW(ps.R[2])); M.setPosition(toW(ps.p));
+    g.matrix.copy(M);
+  });
+  const isKey = S.keyframes_t.some(kt => Math.abs(kt - t) < 0.5 / fps);
+  tlabel.textContent = `t = ${t.toFixed(2)} s · 帧 ${frame}/${nF - 1}` + (isKey ? ' · depth_info 关键帧' : '');
+  hud.textContent = `${S.video} · t=${t.toFixed(2)}s · f=${f.toFixed(0)}px · 相机高 ${(-dist).toFixed(1)} m，俯仰 ${Math.abs(S.plane.tilt_deg[1]).toFixed(0)}°`;
+}
+function seek(k) { vid.currentTime = Math.min(k / fps + 0.001, Math.max(0, (vid.duration || nF / fps) - 0.01)); applyFrame(k); }
+slider.oninput = () => seek(+slider.value);
+const playBtn = document.getElementById('play');
+playBtn.onclick = () => { if (vid.paused) { vid.play(); playBtn.textContent = '暂停'; } else { vid.pause(); playBtn.textContent = '播放'; } };
+document.getElementById('toKey').onclick = () => { vid.pause(); playBtn.textContent = '播放'; seek(keyFrame); };
+document.getElementById('srcFit').onclick = (e) => { setSrc('fit'); e.target.classList.add('on'); document.getElementById('srcOrig').classList.remove('on'); };
+document.getElementById('srcOrig').onclick = (e) => { setSrc('orig'); e.target.classList.add('on'); document.getElementById('srcFit').classList.remove('on'); };
+function setSrc(k) { const t = vid.currentTime; vid.src = sources[k]; vid.addEventListener('loadedmetadata', () => { vid.currentTime = t; }, { once: true }); }
+
+// ---------- views ----------
+let overlayMode = false;
+const ov = document.getElementById('overlay');
+function cameraView() {
+  cam.position.set(0, 0, 0); cam.up.set(0, 1, 0);
+  cam.fov = 2 * Math.atan(H / 2 / f) * 180 / Math.PI; cam.aspect = W / H; cam.updateProjectionMatrix();
+  cam.lookAt(0, 0, -1); controls.enabled = false;
+}
+function freeView() { controls.enabled = true; cam.fov = 50; cam.updateProjectionMatrix(); cam.position.set(12, 18, 14); controls.target.set(0, 0, -22); controls.update(); }
+function topView() { controls.enabled = true; cam.fov = 50; cam.updateProjectionMatrix(); cam.position.set(0, 70, -25); controls.target.set(0, 0, -25); controls.update(); }
+document.getElementById('camView').onclick = () => { setOverlay(false); cameraView(); };
+document.getElementById('topView').onclick = () => { setOverlay(false); topView(); };
+document.getElementById('freeView').onclick = () => { setOverlay(false); freeView(); };
+function setOverlay(on) {
+  overlayMode = on;
+  document.getElementById('tgOverlay').classList.toggle('on', on);
+  if (on) {
+    cameraView();
+    scene.background = null; slab.visible = false; fr.visible = false;
+    ov.style.display = 'block'; view.style.display = 'none';
+  } else {
+    scene.background = bgColor; slab.visible = document.getElementById('tgGrid').classList.contains('on'); fr.visible = document.getElementById('tgFrustum').classList.contains('on');
+    ov.style.display = 'none'; view.style.display = 'block';
+  }
+  resize();
+}
+document.getElementById('tgOverlay').onclick = () => setOverlay(!overlayMode);
+const tg = (id, fn) => { const b = document.getElementById(id); b.onclick = () => { b.classList.toggle('on'); fn(b.classList.contains('on')); }; };
+tg('tgGrid', v => { groundGroup.visible = v; });
+tg('tgTrail', v => objGroups.forEach(x => x.trail.visible = v));
+tg('tgBox', v => objGroups.forEach(x => x.boxGroup.visible = v));
+tg('tgMesh', v => objGroups.forEach(x => x.meshGroup.visible = v));
+tg('tgFrustum', v => fr.visible = v);
+
+document.getElementById('meta').textContent = `${S.video} · ${S.objects.length} 个物体 · ${nF} 帧 @ ${fps} fps · 关键帧 t = ${S.keyframes_t.join(', ')} s`;
+
+const stage = document.getElementById('stage');
+function resize() {
+  const w = Math.floor(vwrap.clientWidth), h = Math.round(w * H / W);
+  if (overlayMode) {
+    renderer.setSize(w, h, false); ov.width = renderer.domElement.width; ov.height = renderer.domElement.height;
+    ov.style.width = w + 'px'; ov.style.height = h + 'px';
+  } else {
+    view.style.height = h + 'px'; renderer.setSize(w, h);
+  }
+  cam.aspect = W / H; cam.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+freeView(); resize(); seek(keyFrame);
+
+renderer.setAnimationLoop(() => {
+  const k = Math.round(vid.currentTime * fps);
+  if (k !== frame && !vid.paused) applyFrame(k);
+  if (!overlayMode && controls.enabled) controls.update();
+  renderer.render(scene, cam);
+  if (overlayMode) {   // copy the transparent render onto the canvas that sits over the video
+    const g = ov.getContext('2d'); g.clearRect(0, 0, ov.width, ov.height); g.globalAlpha = 0.75; g.drawImage(renderer.domElement, 0, 0);
+  }
+});
+</script>
+</body>
+</html>
