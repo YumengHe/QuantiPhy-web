@@ -54,6 +54,20 @@
   .toc a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--text); text-decoration: none; border-left: 2px solid transparent; }
   .toc a:hover { background: var(--accent-soft); }
   .toc a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .toc .toc-row { display: flex; align-items: center; }
+  .toc .toc-row a { flex: 1 1 auto; min-width: 0; }
+  .toc .toc-caret { flex: 0 0 22px; height: 22px; padding: 0; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; border-radius: 4px; transition: transform .15s; }
+  .toc button.toc-caret:hover { background: var(--accent-soft); color: var(--text); }
+  .toc li.open > .toc-row .toc-caret { transform: rotate(90deg); }
+  .toc ul.toc-sub { display: none; margin: 2px 0 6px 12px; border-left: 1px solid var(--border); }
+  .toc li.open > ul.toc-sub { display: block; }
+  .toc ul.toc-sub a { padding: 3px 10px; font-size: 13px; color: var(--muted); }
+  .toc ul.toc-sub a:hover { color: var(--text); }
+  .toc ul.toc-sub a.active { color: var(--accent); font-weight: 600; }
+  details.appx { margin: 12px 0; border: 1px solid var(--border); border-radius: 8px; padding: 0 16px; }
+  details.appx[open] { padding-bottom: 12px; }
+  details.appx > summary { cursor: pointer; list-style-position: outside; margin-left: 16px; }
+  details.appx > summary h3 { display: inline-block; margin: 12px 0; }
   .wrap { flex: 1 1 auto; min-width: 0; max-width: 1360px; margin: 0 auto; padding: 40px 40px 96px; }
   header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 36px; }
   h1 { margin: 0 0 8px; font-size: 30px; }
@@ -64,6 +78,7 @@
     .toc ul { display: flex; flex-wrap: wrap; gap: 4px 6px; }
     .toc a { border-left: 0; padding: 4px 10px; }
     .toc a.active { background: var(--accent-soft); }
+    .toc .toc-caret, .toc ul.toc-sub { display: none !important; }
     .wrap { padding: 24px 16px 60px; }
     section { padding: 22px 18px; margin-bottom: 22px; }
     table { display: block; overflow-x: auto; }
@@ -238,7 +253,7 @@
   <ol>
     <li><b>验证集是测试集的子集。</b>验证集 24 个视频全部出现在测试集中，159 道题里 124 道的题目文本与测试集完全一致，其余 35 道仅措辞略有差异。这 159 道题的答案我们实际上已经有了，约占测试集的 4.8%。</li>
     <li><b>所有 3D 题都附带 depth_info，2D 题全部为空。</b>1,547 道 3D 题每道都有一段文字，按时间点给出各物体到相机的距离，最多 9 行。这是官方提供的输入，应当喂给模型。看 depth_info 是否为空即可判断 2D / 3D（见“2D 和 3D 的区别”）。</li>
-    <li><b>568 个视频只有 408 个编号组，实际重复更多。</b>video_id 去掉后缀就是编号组，117 个编号组有 2 到 6 个变体（换背景、分割掩码、换机位）。另有不少编号不同的 simulation 视频是同一事件（同一物体、同一运动，只换机位或光照），合并后为 373（严格）到约 266（宽松），且常常一个在 2D 类、一个在 3D 类（见“编号组与变体”）。</li>
+    <li><b>568 个视频只有 408 个编号组，实际重复更多。</b>video_id 去掉后缀就是编号组，117 个编号组有 2 到 6 个变体（换背景、分割掩码、换机位）。另有不少编号不同的 simulation 视频是同一事件（同一物体、同一运动，只换机位或光照），合并后为 373（严格）到约 266（宽松），且常常一个在 2D 类、一个在 3D 类（见“编号组与变体”和附录）。</li>
     <li><b>3D 只有 31 个环境，约 1/4 的题问背景。</b>3D 的 132 个编号组按静态几何归并为 31 个环境；1,547 道 3D 题里 416 道（27%）问静止物体的尺寸，其余问运动物体（见“3D 环境核对清单”“3D 题目问前景还是背景”）。</li>
   </ol>
 
@@ -253,57 +268,19 @@
     <tr><td>第 4 位</td><td>背景：C 原始、S 简化、X 分割掩码</td><td>C 1,548 / S 930 / X 811</td></tr>
   </table>
   <div class="note"><b>评测类别按 prior 划分，不按问题划分。</b>类别 = inference_type 首字母 + 维度（2 / 3）：D2 = Dynamic 2D，D3 = Dynamic 3D，S2 = Static 2D，S3 = Static 3D。Dynamic / Static 指 prior 是速度 / 加速度还是尺寸，与问题问什么无关：prior 是车长、问题求速度，仍归 S2（S2、S3 各有 225 道题问速度）。最终分数是四类 MRA 的平均，所以 S2、S3 题虽少，权重与另外两类相同。</div>
-  <p>四类的规模（编号组 = 去掉后缀的编号，如 <code>captured_0054</code>；每个编号组及其所有变体只属于一个类别，所以编号组数相加正好是 408；但编号不同的同一事件可能分属 2D 和 3D 两类，见“不同编号，同一事件”）：</p>
+  <p>四类的规模（编号组 = 去掉后缀的编号，如 <code>captured_0054</code>；每个编号组及其所有变体只属于一个类别，所以编号组数相加正好是 408；但编号不同的同一事件可能分属 2D 和 3D 两类，见附录）：</p>
   <table>
-    <tr><th>类别</th><th>题数</th><th>视频</th><th>编号组</th><th>有变体的编号组</th><th>环境数（估）</th><th>来源：simulation / captured / internet</th><th>问题量纲：尺寸 / 速度 / 加速度</th></tr>
-    <tr><td><b>D2</b>（Dynamic 2D）</td><td>1,163</td><td>221</td><td>185</td><td>35</td><td>约 81</td><td>152 / 1 / 32</td><td>906 / 243 / 14</td></tr>
-    <tr><td><b>D3</b>（Dynamic 3D）</td><td>969</td><td>135</td><td>85</td><td>30</td><td>约 37</td><td>65 / 20 / 0</td><td>752 / 205 / 12</td></tr>
-    <tr><td><b>S2</b>（Static 2D）</td><td>579</td><td>112</td><td>91</td><td>21</td><td>约 67</td><td>49 / 0 / 42</td><td>275 / 225 / 79</td></tr>
-    <tr><td><b>S3</b>（Static 3D）</td><td>578</td><td>100</td><td>47</td><td>31</td><td>约 24</td><td>31 / 16 / 0</td><td>308 / 225 / 45</td></tr>
-    <tr><td><b>合计</b></td><td><b>3,289</b></td><td><b>568</b></td><td><b>408</b></td><td><b>117</b></td><td></td><td><b>297 / 37 / 74</b></td><td><b>2,241 / 898 / 150</b></td></tr>
+    <tr><th>类别</th><th>题数</th><th>视频</th><th>编号组</th><th>有变体的编号组</th><th>来源：simulation / captured / internet</th><th>问题量纲：尺寸 / 速度 / 加速度</th></tr>
+    <tr><td><b>D2</b>（Dynamic 2D）</td><td>1,163</td><td>221</td><td>185</td><td>35</td><td>152 / 1 / 32</td><td>906 / 243 / 14</td></tr>
+    <tr><td><b>D3</b>（Dynamic 3D）</td><td>969</td><td>135</td><td>85</td><td>30</td><td>65 / 20 / 0</td><td>752 / 205 / 12</td></tr>
+    <tr><td><b>S2</b>（Static 2D）</td><td>579</td><td>112</td><td>91</td><td>21</td><td>49 / 0 / 42</td><td>275 / 225 / 79</td></tr>
+    <tr><td><b>S3</b>（Static 3D）</td><td>578</td><td>100</td><td>47</td><td>31</td><td>31 / 16 / 0</td><td>308 / 225 / 45</td></tr>
+    <tr><td><b>合计</b></td><td><b>3,289</b></td><td><b>568</b></td><td><b>408</b></td><td><b>117</b></td><td><b>297 / 37 / 74</b></td><td><b>2,241 / 898 / 150</b></td></tr>
   </table>
   <ul>
     <li><b>S3 对少数编号组很敏感：</b>只有 47 个编号组却有 578 题，平均每个编号组约 12 题、2.1 个视频，大量来自 <code>captured_</code> 实拍的多变体编号组。</li>
     <li><b>来源与维度：</b>internet 的 74 个编号组全部是 2D；实拍 <code>captured_</code> 的 37 个编号组只有 <code>captured_0015</code> 在 2D，其余都是 3D。</li>
-    <li><b>2D 环境分散，3D 环境集中：</b>S2 的 91 个编号组约有 67 种环境，S3 的 47 个编号组只有约 24 种。最大的几个环境：D3 / S3 的路口街景和码头，各 10 个以上编号组；D2 的动物（马、羚羊等）14 个、黑猫 12 个；S3 的实验桌（乒乓球、信用卡）9 个。</li>
   </ul>
-  <p><small>环境数是估计值：把共享 2 道以上相同题目的编号组视为同一环境（同一仿真场景或同一张实验桌，机位和运动可以不同），按类别分别归并，未逐帧核对。只有通用题目（如 “height of the cup”）相同的两个编号组也可能被并在一起。3D 两类已逐帧核对，按静态几何合计 31 个环境（见“3D 环境核对清单”），以那里为准。</small></p>
-  <p><b>按测量对象分：</b>四类各有哪几种场景（按 prior 中的物体归为 9 种，每个编号组只计一次）：</p>
-  <table>
-    <tr><th>场景类型</th><th>D2</th><th>D3</th><th>S2</th><th>S3</th><th>合计</th><th>包括</th><th>示例</th></tr>
-    <tr><td><b>车辆 / 道路</b></td><td>34</td><td>21</td><td>19</td><td>8</td><td>82</td><td>汽车、路口车流、自行车、滑板车、叉车</td><td><code>internet_0001</code> 车道与汽车、<code>simulation_0058</code> 路口、<code>internet_0054</code> 滑板车</td></tr>
-    <tr><td><b>动物</b></td><td>54</td><td>13</td><td>6</td><td>5</td><td>78</td><td>猫、马、羚羊、浣熊、鸟、鲨鱼、鲸、鱼、蝴蝶、大象</td><td><code>simulation_0227</code> 黑猫、<code>simulation_0274</code> 浣熊、<code>simulation_0030</code> 老鹰</td></tr>
-    <tr><td><b>日常物品 / 实验器材</b></td><td>33</td><td>14</td><td>26</td><td>4</td><td>77</td><td>书、杯子、箱子、桌面物品、信用卡、纸巾卷、传送带</td><td><code>captured_0023</code> 书本、<code>simulation_0202</code> 打字机与放大镜、<code>captured_0039</code> 信用卡</td></tr>
-    <tr><td><b>球类 / 体育</b></td><td>17</td><td>15</td><td>21</td><td>14</td><td>67</td><td>乒乓球、网球、篮球、台球、保龄球、球场</td><td><code>captured_0034</code> 网球、<code>internet_0027</code> 台球、<code>simulation_0163</code> 保龄球</td></tr>
-    <tr><td><b>太空 / 飞行器</b></td><td>18</td><td>5</td><td>6</td><td>3</td><td>32</td><td>飞船、火箭、飞机、宇航员、天体模型、无人机、热气球</td><td><code>simulation_0176</code> 飞机、<code>simulation_0263</code> 飞船、<code>simulation_0171</code> 宇航员</td></tr>
-    <tr><td><b>人物</b></td><td>9</td><td>9</td><td>1</td><td>9</td><td>28</td><td>行人、步行的人</td><td><code>simulation_0015</code> 中庭行人、<code>simulation_0142</code> 步行的人</td></tr>
-    <tr><td><b>船只 / 水上</b></td><td>3</td><td>3</td><td>11</td><td>4</td><td>21</td><td>船、独木舟、帆船、游泳者、泳圈</td><td><code>internet_0025</code> 独木舟、<code>simulation_0009</code> 码头的船、<code>internet_0023</code> 游泳者</td></tr>
-    <tr><td><b>奇幻 / 机器人</b></td><td>10</td><td>2</td><td>1</td><td>0</td><td>13</td><td>凤凰、龙、机器人</td><td><code>simulation_0269</code> 凤凰、<code>simulation_0309</code> 龙、<code>simulation_0218</code> 机器人</td></tr>
-    <tr><td><b>微观 / 流体</b></td><td>7</td><td>3</td><td>0</td><td>0</td><td>10</td><td>红细胞、病毒、水滴、气泡</td><td><code>simulation_0110</code> 红细胞、<code>simulation_0107</code> 病毒、<code>simulation_0201</code> 水滴</td></tr>
-    <tr><td><b>合计</b></td><td><b>185</b></td><td><b>85</b></td><td><b>91</b></td><td><b>47</b></td><td><b>408</b></td><td></td><td></td></tr>
-  </table>
-  <p><small>归类规则：按 prior 中的已知物体归类（如 prior 是 “height of the person” 就归人物，即使场景在码头）；prior 是重力加速度、不含物体时，按题目里的物体归类。按关键词自动归类，边界情况（如骑滑板车的人归车辆）以规则为准。D2 以动物为主（54 / 185），S2 以日常物品和球类为主，S3 以球类、人物和车辆为主（31 / 47）；奇幻和微观场景只出现在 Dynamic 类别（及 1 个 S2）中。</small></p>
-  <p><b>按环境分：</b>每个编号组截一帧（优先原视频的中间时刻），按画面背景人工归为 9 种环境：</p>
-  <table>
-    <tr><th>环境</th><th>D2</th><th>D3</th><th>S2</th><th>S3</th><th>合计</th><th>示例</th></tr>
-    <tr><td><b>纯色 / 摄影棚背景</b></td><td>45</td><td>13</td><td>17</td><td>1</td><td>76</td><td><code>simulation_0076</code> 灰底行人、<code>simulation_0269</code> 凤凰、<code>simulation_0198</code> 水滴</td></tr>
-    <tr><td><b>室内房间</b></td><td>29</td><td>10</td><td>12</td><td>7</td><td>58</td><td><code>simulation_0214</code> 客厅、<code>simulation_0187</code> 仓库、<code>simulation_0231</code> 教室、<code>simulation_0149</code> 地下车库</td></tr>
-    <tr><td><b>城市道路 / 街景</b></td><td>21</td><td>18</td><td>10</td><td>6</td><td>55</td><td><code>simulation_0058</code> 路口、<code>simulation_0045</code> 小镇街道、<code>internet_0001</code> 高速俯拍</td></tr>
-    <tr><td><b>水面 / 水下 / 码头</b></td><td>18</td><td>13</td><td>13</td><td>11</td><td>55</td><td><code>simulation_0023</code> 海滩与船、<code>simulation_0154</code> 水下鲨鱼、<code>internet_0025</code> 湖面独木舟、<code>internet_0039</code> 泳池</td></tr>
-    <tr><td><b>桌面 / 近景</b></td><td>24</td><td>4</td><td>16</td><td>0</td><td>44</td><td><code>internet_0043</code> 桌面物品、<code>internet_0034</code> 纸巾卷、<code>simulation_0203</code> 书桌打字机</td></tr>
-    <tr><td><b>户外自然</b></td><td>30</td><td>6</td><td>4</td><td>3</td><td>43</td><td><code>simulation_0236</code> 草地房屋、<code>simulation_0243</code> 森林雪山、<code>simulation_0310</code> 林地叉车</td></tr>
-    <tr><td><b>实验室房间（实拍）</b></td><td>1</td><td>20</td><td>0</td><td>16</td><td>37</td><td><code>captured_0054</code>、<code>captured_0021</code>、<code>captured_0013</code>：同一间灰墙实验室</td></tr>
-    <tr><td><b>体育场地</b></td><td>8</td><td>0</td><td>15</td><td>1</td><td>24</td><td><code>internet_0009</code> 网球场俯拍、<code>simulation_0160</code> 台球桌、<code>simulation_0162</code> 保龄球道、<code>internet_0057</code> 室内篮球馆</td></tr>
-    <tr><td><b>太空 / 天空</b></td><td>9</td><td>1</td><td>4</td><td>2</td><td>16</td><td><code>simulation_0193</code> 木星卫星模型、<code>simulation_0170</code> 月面宇航员、<code>simulation_0088</code> 天空飞鸟</td></tr>
-    <tr><td><b>合计</b></td><td><b>185</b></td><td><b>85</b></td><td><b>91</b></td><td><b>47</b></td><td><b>408</b></td><td></td></tr>
-  </table>
-  <ul>
-    <li><b>全部 37 个实拍编号组（<code>captured_</code>）在同一间实验室</b>：灰色隔板墙、三脚架、同一张桌子，相机也是同一台。S3 的 16 个和 D3 的 20 个实拍编号组共享同一个房间。</li>
-    <li><b>76 个编号组是纯色或摄影棚背景</b>（全部是仿真，D2 占 45 个）：几乎没有背景几何，物体悬在纯色空间中，尺度只能靠 prior 物体本身。</li>
-    <li><b>3D 类别集中在少数环境</b>：D3 的 85 个编号组里，实验室 20、城市道路 18、水面 13、纯色 13，合计 64 个；S3 的 47 个编号组里，实验室 16、水面 11，合计 27 个。</li>
-    <li><b>internet 视频分布最散</b>：74 个编号组分布在 7 种环境，其中桌面 / 近景最多（28 个）。</li>
-  </ul>
-  <p><small>归类按截帧画面人工判断，每个编号组只看一帧，边界情况：俯拍的高速 / 乡间公路归城市道路；泳池、湖、海、水下都归水面；室内但只拍到桌面或墙面局部的归桌面 / 近景；户外球场归体育场地。</small></p>
 
   <h3 id="dim-2d-3d">2D 和 3D 的区别</h3>
   <p>下面两个验证集视频都是仿真渲染，prior 都是“人的身高”，可以直接对比。左边是 2D，右边是 3D。</p>
@@ -349,7 +326,380 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
   <p><small>相机视角 = 编号组 + 机位：只换背景的变体与原视频共用同一视角，<code>a</code> / <code>b</code> 两个机位算两个。</small></p>
 
   <h3 id="场景与变体">编号组与变体</h3>
-  <p><b>编号组</b>是去掉后缀的编号（如 <code>captured_0023</code>），即同一次拍摄或渲染的所有视频版本（本页早先称“场景”）。<b>变体</b>是同一编号组的不同视频版本：内容和运动相同，只是背景处理或机位不同。408 个编号组里有 117 个有变体，变体模式共 7 种：</p>
+  <p><b>编号组</b> = 去掉后缀的编号（如 <code>captured_0023</code>），即同一次拍摄或渲染的所有版本。408 个编号组里 117 个有变体：<code>s</code> 简化背景、<code>x</code> / <code>_segmented</code> 分割掩码、<code>a</code> / <code>b</code> 两个机位。对实现有影响的只有以下几点，明细见附录。</p>
+  <ul>
+    <li><b>只换背景的变体共用同一相机和同一段运动</b>，重建一次即可复用；分割版本身就是前景掩码，可以直接借给同组的原始版和简化版。</li>
+    <li><b>变体之间题目不完全相同</b>：117 组里只有 59 组完全一致，另有 14 组的 prior 写法不同，要按题目文本对齐。</li>
+    <li><b>编号不同也可能是同一事件</b>（同一物体、同一运动，只换机位或光照），合并后 373（严格）到约 266（宽松）组，且常跨 2D / 3D 类别，可互相校验尺寸和轨迹。</li>
+    <li><b>后缀解析忽略大小写</b>（<code>captured_0010</code> 的分割版后缀是大写 <code>X</code>）；<code>simulation_0032</code>、<code>0038</code>、<code>0115</code> 只有分割版。</li>
+  </ul>
+
+
+  <h3 id="其他注意事项">其他注意事项</h3>
+  <ul>
+    <li>题目里有拼写错误（velocoty、velolicty、diasplacement），prompt 不要假设关键词拼写正确。</li>
+    <li>验证集 <code>video_source</code> 拼成了 <code>segmentaion</code>，测试集是 <code>segmentation</code>，合并数据时要统一。</li>
+    <li>HuggingFace 上验证集文件 <code>captured_0041x.mp4</code> 的文件名开头多了一个空格，<code>download_data.sh</code> 已自动处理。</li>
+    <li>评测时 <code>parsed_value</code> 会被取绝对值，所以符号不影响得分。</li>
+    <li><code>depth_info</code> 有 19 行格式不规范（14 个视频）：缺 <code>_camera</code>（如 <code>simulation_0017</code> 的 <code>distance_the_freestanding_art_display_panel = 4.223m</code>）、名字里有空格（<code>0015</code>、<code>0017</code>、<code>0188</code>）、单位写成 <code>s</code>（<code>captured_0029</code>、<code>0030</code>）。主仓库 <code>pipeline/data.py</code> 的 <code>parse_depth_info</code> 会静默丢掉这些行。</li>
+  </ul>
+</section>
+
+<section id="demo">
+  <h2>数据样例</h2>
+  <p>以下 5 个样例来自验证集，所以带有答案。每个视频配一个已知物理量（prior）和若干问题，类型标签和评测类别的含义见“题目类型与评测类别”。</p>
+  <div class="demo">
+    <video controls muted loop playsinline preload="metadata" src="demo/internet_0027.mp4"></video>
+    <div class="demo-body">
+      <div class="demo-head"><code>internet_0027</code> <span class="tag">互联网视频</span><span class="tag">S2MC</span><span class="tag">25 fps</span><span class="tag">评测类别 S2</span></div>
+      <p class="prior"><b>Prior：</b>billiard ball diameter = 57.2 mm</p>
+      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>SS</span></td><td>What is the initial distance between the balck ball and the purple ball in cm?</td><td class='ans'>14.74</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the white ball&#x27;s average velocity in 1.00s to 2.00s in cm/s?</td><td class='ans'>26.82</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the velocity of the orange ball at 1.00s in cm/s?</td><td class='ans'>24.99</td></tr><tr><td><span class='tag'>SS</span></td><td>What is the final distance between the purple ball and the black ball in cm?</td><td class='ans'>18.04</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the acceleration of the yellow ballon the left at 2.00s in cm/s^2?</td><td class='ans'>11</td></tr></table>
+    </div>
+  </div>
+  <div class="demo">
+    <video controls muted loop playsinline preload="metadata" src="demo/internet_0001.mp4"></video>
+    <div class="demo-body">
+      <div class="demo-head"><code>internet_0001</code> <span class="tag">互联网视频</span><span class="tag">S2SC</span><span class="tag">24 fps</span><span class="tag">评测类别 S2</span></div>
+      <p class="prior"><b>Prior：</b>lane width = 3.66 m</p>
+      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>SS</span></td><td>What is the length of the black car in meters?</td><td class='ans'>5.81</td></tr><tr><td><span class='tag'>SS</span></td><td>What is the width of the black car in meters?</td><td class='ans'>2.21</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the average speed of the black car in m/s?</td><td class='ans'>29.3</td></tr></table>
+    </div>
+  </div>
+  <div class="demo">
+    <video controls muted loop playsinline preload="metadata" src="demo/captured_0013.mp4"></video>
+    <div class="demo-body">
+      <div class="demo-head"><code>captured_0013</code> <span class="tag">实验室拍摄</span><span class="tag">A3MC</span><span class="tag">24 fps</span><span class="tag">评测类别 D3</span></div>
+      <p class="prior"><b>Prior：</b>t=1.5, ball acceleration = 3.0 m/s^2</p>
+      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>DS</span></td><td>What is the height of the cup in cm? </td><td class='ans'>14.5</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the pen in cm? </td><td class='ans'>14.5</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the diameter of the cookie in cm? </td><td class='ans'>8</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the width of the note book in cm? </td><td class='ans'>10.8</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the width of the desk in cm? </td><td class='ans'>857.9</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the slope in cm?</td><td class='ans'>30.8</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the diameter of the ball in cm? </td><td class='ans'>6.7</td></tr><tr><td><span class='tag'>DD</span></td><td>What is the velolicty of the ball at 1.5s in cm/s? </td><td class='ans'>102.65</td></tr></table>
+    </div>
+  </div>
+  <div class="demo">
+    <video controls muted loop playsinline preload="metadata" src="demo/simulation_0163.mp4"></video>
+    <div class="demo-body">
+      <div class="demo-head"><code>simulation_0163</code> <span class="tag">仿真渲染</span><span class="tag">S2MC</span><span class="tag">24 fps</span><span class="tag">评测类别 S2</span></div>
+      <p class="prior"><b>Prior：</b>diameter of the ball = 0.21 m</p>
+      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>SD</span></td><td>What is the speed of the ball at time 0.5s in m/s?</td><td class='ans'>3.148</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the acceleration of the ball at time 0.5s in m/s^2?</td><td class='ans'>0.359</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the speed of the ball at time 1s in m/s?</td><td class='ans'>2.974</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the acceleration of the ball at time 1s in m/s^2?</td><td class='ans'>0.339</td></tr><tr><td><span class='tag'>SS</span></td><td>What is the height of the bowling pin in meters?</td><td class='ans'>0.32</td></tr><tr><td><span class='tag'>SS</span></td><td>What is the height of the ball return opening in meters?</td><td class='ans'>10</td></tr></table>
+    </div>
+  </div>
+  <div class="demo">
+    <video controls muted loop playsinline preload="metadata" src="demo/simulation_0098_segmented.mp4"></video>
+    <div class="demo-body">
+      <div class="demo-head"><code>simulation_0098_segmented</code> <span class="tag">仿真 + 分割掩码</span><span class="tag">V2MX</span><span class="tag">24 fps</span><span class="tag">评测类别 D2</span></div>
+      <p class="prior"><b>Prior：</b>speed of the shark = 3 m/s</p>
+      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>DD</span></td><td>What is the average speed of the boat in m/s?</td><td class='ans'>5</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the boat in meters?</td><td class='ans'>10</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the shark in meters?</td><td class='ans'>3.26</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the height of the shark in meters?</td><td class='ans'>1.11</td></tr></table>
+    </div>
+  </div>
+</section>
+
+<section id="metric">
+  <h2>评测指标：MRA</h2>
+  <p>Mean Relative Accuracy。官方实现在 <code>evaluator.py</code>，用 <code>evaluate.sh</code> 启动。大致思路是对每个预测在一组相对误差阈值 θ 上判断是否命中，再对阈值取平均，最后按类别（S2、D2、S3、D3）汇总。</p>
+  <p>本地只能在验证集上算分，因为测试集没有答案。</p>
+</section>
+
+<section id="approach">
+  <h2>解题思路与流水线</h2>
+  <p>核心想法：不让 VLM 直接"猜"数值，而是把每个场景重建成可度量的几何与运动，再用 prior 标定尺度，用物理公式把被问的量算出来。VLM 只负责理解问题和指认物体。代码在主仓库的 <code>pipeline/</code> 目录，依赖 PyTorch、transformers、OpenCV，模型只用 Grounding DINO 和 SAM 2（均开源，Track B 可用），不需要任何 API key。</p>
+<pre><code>conda activate quantiphy
+python -m pipeline.run --split val            # 验证集，打印分类别 MRA
+python -m pipeline.run --split val --debug    # 另存带框的调试帧到 outputs/debug/
+python -m pipeline.run --split test --out outputs/submission.csv   # 填好官方模板</code></pre>
+  <p><b>完整案例演示：</b><a href="case/simulation_0300.html">simulation_0300</a>，从输入到答案逐阶段展示每个中间结果，并记录了 v1 到 v7 的迭代；<a href="case/simulation_0060.html">simulation_0060</a>，把 v7 模型推广到 13 题、多物体路口场景的第一次测试（0.28 → 0.78），含可交互的三维重建场景。</p>
+
+  <h3 id="为什么">为什么这么做</h3>
+  <p><b>为什么合理。</b>QuantiPhy 本质上是一个测量问题：所有题目都是"已知一个物理量，求另一个"，两者通过比例尺或运动学公式严格相关。端到端 VLM 对数值不敏感，官方 GPT-5.1 基线在验证集上只有 MRA 0.486，而且 6.3% 的答案无效。一个显式的"跟踪 + 标定 + 计算"流水线，只要测量误差能控制在 10% 以内，单题 MRA 就能接近 0.9。按编号组而不是按视频处理也正确：568 个视频只有 408 个编号组，117 个编号组各有 2 到 6 个变体。只换背景的变体（<code>s</code>、<code>x</code>、<code>_segmented</code>）与原视频共用同一相机和同一段运动，重建一次即可复用；题目大多相同但不完全一致，需按题目文本对齐。编号不同的同一事件（如黑猫 <code>simulation_0210</code> 到 <code>0217</code>）机位不同，相机要分别估计，但物体尺寸和运动轨迹相同，可以在视频之间互相校验。</p>
+  <div class="callout"><b>修正一：是"度量重建 + 物理拟合"，不是"重建后再仿真"。</b>视频里已经有真实运动，不需要前向仿真整个场景再读结果。我们要做的是把像素轨迹换算成物理量：静态量靠比例尺，动态量靠对轨迹做平滑和微分。物理模型（匀速、匀加速、抛体）的角色是<em>拟合约束</em>，用来去噪和反推尺度，而不是生成式模拟。真正需要"仿真式"反推的只有 prior 为重力加速度的 303 道题：对抛体轨迹拟合抛物线，用 g = 9.8 反推比例尺。</div>
+  <div class="callout"><b>修正二：编号组级复用可以反过来用。</b>带 <code>x</code> 或 <code>_segmented</code> 后缀的变体本身就是分割掩码视频，等于官方免费给了 148 个视频的精确物体分割。同编号组的原始背景版（C）和简化背景版（S）可以直接借用它的掩码和轨迹，不必再跑分割模型。</div>
+
+
+  <h3 id="五个阶段">五个阶段：设计与当前实现</h3>
+  <p>左列是设计目标，右列是代码里目前做到的程度。</p>
+  <table>
+    <tr><th>阶段</th><th>设计</th><th>当前实现</th></tr>
+    <tr><td>0 问题解析</td><td>每道题抽出：目标物理量、目标物体、时刻、答案单位、prior 的物体和数值。输出结构化 JSON。</td><td><code>parse.py</code>：规则解析器，覆盖全部 233 种 prior 写法，不调用 LLM。后续若换 LLM，Track A 可用 GPT / Claude，Track B 用 Qwen2.5-VL 或 Qwen3。</td></tr>
+    <tr><td>1 场景重建（每编号组一次）</td><td>抽帧；指认题目涉及的所有物体；分割并逐帧跟踪，得到每个物体每帧的 mask、bbox、中心轨迹。有分割变体的编号组直接用掩码。</td><td><code>perceive.py</code>：Grounding DINO 在 6 个采样帧上找物体，取分数最高的框作为提示，SAM 2 向前向后传播掩码，轨迹用掩码质心；掩码视频直接用前景像素。轨迹缓存到 <code>outputs/tracks/</code>，单个视频约 10 秒。</td></tr>
+    <tr><td>2 尺度标定</td><td><b>2D：</b>用 prior 物体的像素尺寸（或像素速度）得到比例尺 m/px。<b>3D：</b>用 prior 物体的像素尺寸和 depth_info 里的相机距离反推焦距 f，之后任意物体 真实尺寸 = 像素尺寸 × 距离 / f；速度的纵向分量用 depth_info 在不同时刻的差分。</td><td><code>calibrate.py</code>：按设计实现。物体视大小变化时按针孔关系 Z(t) = Z₀·h(t₀)/h(t) 生成逐帧深度并得到径向速度；用框的宽和高中变化较小的那个作为大小依据。实验室相机焦距若反推落在 450 到 950 px 之外，改用 650 px 先验。</td></tr>
+    <tr><td>3 物理拟合与计算</td><td>静态量：像素尺寸 × 比例尺。速度：轨迹平滑后一阶差分，或拟合匀速 / 匀加速模型后取导数。加速度：二阶，或直接取拟合参数。时刻按该视频 fps 精确定位到帧。prior 为重力加速度的 303 道题对抛体轨迹拟合抛物线反推比例尺。</td><td><code>physics.py</code>：Savitzky-Golay 平滑，局部二次拟合求速度和加速度，位移、平均速度、抛物线拟合重力。横向 = 像素偏移 × 深度，纵向 = 深度序列，再求导得到真实三维速度。<code>solve.py</code>：一道题到一个数。</td></tr>
+    <tr><td>4 校验与 agent 优化</td><td>三类一致性检查：同编号组不同变体答案应一致；同物体多道题互相约束；物理合理性范围。失败时 agent 诊断原因并重试：换指认提示、换帧、换拟合模型、改用另一变体的掩码。仍失败则回退到 VLM 直接回答。</td><td><code>verify.py</code>：目前只有合理范围检查、同编号组变体取中位数、兜底常数（避免空值和 0 被判无效）。agent 重试和 VLM 回退是下一步。</td></tr>
+  </table>
+  <p>辅助文件：<code>data.py</code> 读取数据、编号组与变体分组、解析 depth_info、按数据集 fps 把时刻换算成帧号；<code>metrics.py</code> 实现与官方 <code>evaluator.py</code> 完全一致的 MRA。</p>
+
+  <h3 id="重建需求">哪些编号组需要重建</h3>
+  <p><b>结论：不需要每个编号组都重建。</b>2D 不需要；3D 的 132 个编号组只有 31 个静态环境，且只有 69 个编号组的被问物体缺深度。3D 题中 73% 问运动物体，背景只需建到“地面 + 相机 + 被问到的几个静止物体”。</p>
+  <ul>
+    <li><b>2D（S2、D2）不需要重建。</b>物体在一个平面内运动，用 prior 标定一个比例尺即可。部分 internet 视频可能有相机晃动，需要的是稳像或单应校正，不是三维重建。</li>
+    <li><b>3D 看 <code>depth_info</code> 是否覆盖被问的物体。</b>每道题问的物体都有深度时，针孔模型 + 给定深度即可，不需要重建（63 个编号组）。有物体没给深度时，需要重建或用度量单目深度补上（69 个编号组）。缺深度的大多是静态背景：岩石、车道、路灯、桌子。</li>
+    <li><b>能共用的情况：</b>只换背景的变体共用同一次重建；同一环境的不同编号组（如路口组）共用静态几何，但每个视频仍需单独估计相机位姿（同组视频到同一物体的距离相差可达约 12 m，说明机位不同）。</li>
+  </ul>
+  <table>
+    <tr><th>类别</th><th>编号组数</th><th>被问物体缺深度</th></tr>
+    <tr><td><b>S2</b>（Static 2D）</td><td>91</td><td>0（不需要）</td></tr>
+    <tr><td><b>D2</b>（Dynamic 2D）</td><td>185</td><td>0（不需要）</td></tr>
+    <tr><td><b>S3</b>（Static 3D）</td><td>47</td><td>25</td></tr>
+    <tr><td><b>D3</b>（Dynamic 3D）</td><td>85</td><td>44</td></tr>
+    <tr><td><b>合计</b></td><td><b>408</b></td><td><b>69</b></td></tr>
+  </table>
+  <details><summary>D3（Dynamic 3D）：44 个需要重建的编号组</summary>
+  <table>
+    <tr><th>环境</th><th>编号组</th><th>缺深度的被问物体</th><th>能否共用</th></tr>
+    <tr><td>白色十字路口（E04）</td><td><code>simulation_0058</code>–<code>0063</code>、<code>0065</code>–<code>0067</code>（9 个）</td><td>车道、路缘、路灯、红绿灯</td><td>同一仿真场景、同一段运动，机位不同：静态几何重建一次，各视角做相机配准</td></tr>
+    <tr><td>涂鸦白墙街道（E05）</td><td><code>simulation_0033</code>、<code>0052</code>、<code>0055</code></td><td>车道、路灯</td><td>同一街道、同一辆橙色车，机位不同；与 E04 不是同一环境</td></tr>
+    <tr><td>草地中央带路口（E16）</td><td><code>simulation_0064</code></td><td>车道、红绿灯</td><td>同一事件（白车 4 m/s²），但路口几何与 E04 不同，单独重建</td></tr>
+    <tr><td>湖边木屋码头（E12）</td><td><code>simulation_0009</code></td><td>木楼梯</td><td>与 S3 的 <code>0008</code> 共用</td></tr>
+    <tr><td>海边沙丘（E02 / E03）</td><td><code>simulation_0024</code>（E02）、<code>0037</code>（E03）、<code>0038</code>（只有分割版）</td><td>岩石、船舱地板</td><td>E02 内共用；E03 待确认是否同一地图</td></tr>
+    <tr><td>小镇街道（骑车人、行人）</td><td><code>simulation_0045</code>、<code>0049</code>、<code>0050</code></td><td>电话亭、门柱、台阶</td><td><code>depth_info</code> 完全相同，很可能是同一事件多机位，可联合重建；与 S3 的 <code>0046</code>、<code>0048</code> 共用</td></tr>
+    <tr><td>桌面（打字机、放大镜）</td><td><code>simulation_0202</code>、<code>0205</code>、<code>0206</code>、<code>0209</code></td><td>桌子、打字机</td><td>同一环境</td></tr>
+    <tr><td>室内黑猫</td><td><code>simulation_0211</code>、<code>0212</code></td><td>台灯、花瓶</td><td>同一环境</td></tr>
+    <tr><td>血细胞</td><td><code>simulation_0109</code>、<code>0110</code></td><td>两个细胞的间距</td><td>同一事件</td></tr>
+    <tr><td>实验室：重力抛物</td><td><code>captured_0006</code>、<code>0008</code>、<code>0009</code>、<code>0010</code>、<code>0018</code>、<code>0020</code></td><td>玩具、篮球、绳长</td><td>同一台相机（焦距已知），摆放不同，逐个处理</td></tr>
+    <tr><td>实验室：踢球</td><td><code>captured_0041</code></td><td>人（问球到人的距离，只给了球的深度）</td><td>单独处理</td></tr>
+    <tr><td>实验室：斜坡滚球</td><td><code>captured_0013</code>、<code>0014</code></td><td>小球（只给了静态物体深度）</td><td>见“已知失败模式”</td></tr>
+    <tr><td>实验室：白板</td><td><code>captured_0062</code></td><td>白板本身</td><td>单独处理</td></tr>
+    <tr><td>其他</td><td><code>simulation_0032</code>（只有分割版）、<code>0141</code>（地砖）、<code>0168</code>（警车）、<code>0180</code>（闸门）、<code>0195</code>（木星模型）、<code>0242</code>（房子、窗户）</td><td>见括号</td><td>各自重建</td></tr>
+  </table>
+  </details>
+  <details><summary>S3（Static 3D）：25 个需要重建的编号组</summary>
+  <table>
+    <tr><th>环境</th><th>编号组</th><th>缺深度的被问物体</th><th>能否共用</th></tr>
+    <tr><td>湖边木屋码头（E12）</td><td><code>simulation_0008</code></td><td>木楼梯、码头</td><td>与 D3 的 <code>0009</code> 共用</td></tr>
+    <tr><td>海边白色沙丘（E02）</td><td><code>simulation_0022</code>、<code>0027</code>、<code>0028</code>、<code>0043</code>、<code>0044</code></td><td>岩石、船舱地板、人的步行速度</td><td>与 D3 的 E02 组同一环境</td></tr>
+    <tr><td>实验室乒乓球桌</td><td><code>captured_0021</code>、<code>0022</code>、<code>0029</code>、<code>0031</code>、<code>0032</code>、<code>0036</code></td><td>桌子的长和宽</td><td>很可能同一张桌子、同一台相机，桌子尺寸测一次可复用</td></tr>
+    <tr><td>实验室其他</td><td><code>captured_0027</code>（红球）</td><td>被问的球本身没给深度</td><td>单独处理</td></tr>
+    <tr><td>保龄球（E16）</td><td><code>simulation_0164</code></td><td>保龄球瓶（只给了球的深度）</td><td>单独处理</td></tr>
+    <tr><td>小镇街道</td><td><code>simulation_0046</code>、<code>0048</code></td><td>电话亭、门柱、台阶</td><td>与 D3 的 <code>0045</code> / <code>0049</code> / <code>0050</code> 共用</td></tr>
+    <tr><td>路口</td><td><code>simulation_0074</code></td><td>方形土台</td><td>与 D3 白色十字路口（E04）共用</td></tr>
+    <tr><td>汽车（轮胎为 prior）</td><td><code>simulation_0149</code>、<code>0150</code>；<code>0151</code>、<code>0152</code></td><td>车速、加速度、柱子间距</td><td>各组内共用</td></tr>
+    <tr><td>其他</td><td><code>simulation_0015</code>（中庭长椅、屋顶）、<code>0140</code>（霓虹灯牌）、<code>0143</code>（地砖）、<code>0144</code>（火箭、车）</td><td>见括号</td><td>各自重建</td></tr>
+  </table>
+  </details>
+  <p><b>其中 6 个编号组没有可重建的环境</b>（E00，背景已去除或纯色）：D3 的 <code>simulation_0032</code>、<code>0038</code>（只有分割版）、<code>0109</code>、<code>0110</code>（血细胞）、<code>0195</code>（木星模型），S3 的 <code>captured_0021</code>（背景已去除）。这些缺的深度没法靠重建背景补，只能用度量单目深度或物体的先验尺寸。</p>
+  <p><small>判断规则：被问物体（距离题还包括第二个物体）的名字没有出现在同一视频的 <code>depth_info</code> 里，即为缺深度；编号组内任一题缺深度，就算需要重建。2026-10-08 用 <code>pipeline/parse.py</code> 解析题目物体、逐题复核，修正了 4 个编号组：删 <code>captured_0016</code>（两人都有深度）、<code>captured_0035</code>（两个球都有深度），加 <code>captured_0041</code>、<code>simulation_0164</code>，总数不变。边界情况按“有深度”处理：<code>simulation_0030</code>（问 eagle，<code>depth_info</code> 只写 bird）、<code>0176</code>（stone cliff 对应 big rock，起落架轮子按机头深度）。“重建”不一定是完整的逆渲染：缺的多是静态背景深度，用度量单目深度模型估深度图、再用 <code>depth_info</code> 已知深度对齐尺度，可能就够了。</small></p>
+
+  <h3 id="3D环境核对">3D 环境核对清单</h3>
+  <p>3D 两类共 132 个编号组，每组看一帧（代表视频的中间时刻），按<b>静态几何</b>人工归并：地面、墙、家具、道路、地形相同即同一环境。机位、光照、云、阳光不同，或多了猫、警车等运动物体，都不算新环境；摆设或地点不同才算。</p>
+  <ul>
+    <li><b>结果：</b>31 个环境，另有 17 个编号组没有可重建的环境（E00）。其中 15 个环境各含 2 到 33 个编号组，另外 16 个只出现一次（E16）。</li>
+    <li><b>集中度：</b>最大的 5 个环境（实验室 33、海边白色沙丘 15、白色十字路口 10、涂鸦白墙街道 5、小镇街道 5）覆盖 68 个编号组，超过一半。</li>
+    <li><b>数据标注问题：</b><code>captured_0021</code> 标为原始背景（<code>S3SC</code>），但三个版本的背景都已去除（白、蓝、黑）。</li>
+    <li><b>待确认：</b>E03 是否与 E02 同一地图；E08 草地谷仓与 E12 湖边木屋是否在同一张大地图里。其余归并在截帧中区别明显。</li>
+  </ul>
+  <table>
+    <tr><th>编号</th><th>环境</th><th>编号组</th><th>D3 / S3</th><th>编号组列表（链接到代表视频）</th><th>备注</th></tr>
+    <tr><td>E01</td><td><b>实验室（灰色隔板房间）</b></td><td>33</td><td>18 / 15</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0006.mp4"><code>cap_0006</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0008.mp4"><code>cap_0008</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0009.mp4"><code>cap_0009</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0010.mp4"><code>cap_0010</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0013.mp4"><code>cap_0013</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0014.mp4"><code>cap_0014</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0016.mp4"><code>cap_0016</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0018.mp4"><code>cap_0018</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0020.mp4"><code>cap_0020</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0022.mp4"><code>cap_0022</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0023.mp4"><code>cap_0023</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0024.mp4"><code>cap_0024</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0027.mp4"><code>cap_0027</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0028.mp4"><code>cap_0028</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0029.mp4"><code>cap_0029</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0030.mp4"><code>cap_0030</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0031.mp4"><code>cap_0031</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0032.mp4"><code>cap_0032</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0033.mp4"><code>cap_0033</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0034a.mp4"><code>cap_0034</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0035a.mp4"><code>cap_0035</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0036.mp4"><code>cap_0036</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0037.mp4"><code>cap_0037</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0038.mp4"><code>cap_0038</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0039.mp4"><code>cap_0039</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0040.mp4"><code>cap_0040</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0041.mp4"><code>cap_0041</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0047.mp4"><code>cap_0047</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0052.mp4"><code>cap_0052</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0053.mp4"><code>cap_0053</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0054a.mp4"><code>cap_0054</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0061.mp4"><code>cap_0061</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0062.mp4"><code>cap_0062</code></a></td><td>房间壳体固定；桌子、三脚架、人的位置在变。<code>0035</code>、<code>0053</code>、<code>0062</code> 朝向房间另一侧（门外有人）。<code>0001</code>、<code>0002</code>、<code>0021</code> 背景已去除，归入 E00</td></tr>
+    <tr><td>E02</td><td><b>海边白色沙丘 + 红船</b></td><td>15</td><td>8 / 7</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0022.mp4"><code>0022</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0023.mp4"><code>0023</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0024.mp4"><code>0024</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0025.mp4"><code>0025</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0026.mp4"><code>0026</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0027.mp4"><code>0027</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0028.mp4"><code>0028</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0029.mp4"><code>0029</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0030.mp4"><code>0030</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0031.mp4"><code>0031</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0039.mp4"><code>0039</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0040.mp4"><code>0040</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0042.mp4"><code>0042</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0043.mp4"><code>0043</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0044.mp4"><code>0044</code></a></td><td>同一张地图：红船、老鹰、行人、白色沙丘；有平视、俯视、远景多种机位。<code>0038</code> 只有分割版，归入 E00</td></tr>
+    <tr><td>E03</td><td><b>海面 + 金色沙丘</b></td><td>4</td><td>1 / 3</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0034.mp4"><code>0034</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0035.mp4"><code>0035</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0036.mp4"><code>0036</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0037.mp4"><code>0037</code></a></td><td><b>待确认：</b>也有红船和行人，但远处是金色长沙丘，光照偏暖，可能是 E02 换了朝向，也可能是另一张地图</td></tr>
+    <tr><td>E04</td><td><b>白色十字路口</b></td><td>10</td><td>9 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0058.mp4"><code>0058</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0059.mp4"><code>0059</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0060.mp4"><code>0060</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0061.mp4"><code>0061</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0062.mp4"><code>0062</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0063.mp4"><code>0063</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0065.mp4"><code>0065</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0066.mp4"><code>0066</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0067.mp4"><code>0067</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0074.mp4"><code>0074</code></a></td><td><code>0074</code> 为 S3，其余为 D3。<code>0064</code> 的路口中间是草地、两侧有楼，几何不同，归入 E16</td></tr>
+    <tr><td>E05</td><td><b>涂鸦白墙街道</b></td><td>5</td><td>4 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0021.mp4"><code>0021</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0033.mp4"><code>0033</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0052.mp4"><code>0052</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0055.mp4"><code>0055</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0056.mp4"><code>0056</code></a></td><td>与 E04 不是同一环境；<code>0056</code> 是沿街另一方向的机位</td></tr>
+    <tr><td>E06</td><td><b>Photo Lab 小镇街道</b></td><td>5</td><td>3 / 2</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0045.mp4"><code>0045</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0046.mp4"><code>0046</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0048.mp4"><code>0048</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0049.mp4"><code>0049</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0050.mp4"><code>0050</code></a></td><td><code>depth_info</code> 完全相同的 <code>0045</code> / <code>0049</code> / <code>0050</code> 很可能是同一事件多机位</td></tr>
+    <tr><td>E07</td><td><b>美术馆中庭</b></td><td>4</td><td>2 / 2</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0015.mp4"><code>0015</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0016.mp4"><code>0016</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0017.mp4"><code>0017</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0019.mp4"><code>0019</code></a></td><td><code>0016</code>、<code>0017</code> 为俯视</td></tr>
+    <tr><td>E08</td><td><b>草地谷仓</b></td><td>4</td><td>3 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0010.mp4"><code>0010</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0011.mp4"><code>0011</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0013.mp4"><code>0013</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0014.mp4"><code>0014</code></a></td><td>与 E12 的木屋不是同一建筑；是否在同一张大地图里看不出</td></tr>
+    <tr><td>E09</td><td><b>地下停车场</b></td><td>4</td><td>0 / 4</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0149.mp4"><code>0149</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0150.mp4"><code>0150</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0151.mp4"><code>0151</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0152.mp4"><code>0152</code></a></td><td><code>0151</code> / <code>0152</code> 多一辆蓝色小车</td></tr>
+    <tr><td>E10</td><td><b>书房书桌</b></td><td>4</td><td>4 / 0</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0202.mp4"><code>0202</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0205.mp4"><code>0205</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0206.mp4"><code>0206</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0209.mp4"><code>0209</code></a></td><td><code>0206</code> 多了椅子和台灯，桌子和墙相同</td></tr>
+    <tr><td>E11</td><td><b>仓库传送带</b></td><td>3</td><td>3 / 0</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0182.mp4"><code>0182</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0184.mp4"><code>0184</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0186.mp4"><code>0186</code></a></td><td>三个视频只换了箱子</td></tr>
+    <tr><td>E12</td><td><b>湖边木屋（码头）</b></td><td>2</td><td>1 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0008.mp4"><code>0008</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0009.mp4"><code>0009</code></a></td><td>与海边沙丘（E02 / E03）不是同一环境</td></tr>
+    <tr><td>E13</td><td><b>隧道走廊</b></td><td>2</td><td>1 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0141.mp4"><code>0141</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0143.mp4"><code>0143</code></a></td><td></td></tr>
+    <tr><td>E14</td><td><b>黑猫房间 1</b></td><td>2</td><td>2 / 0</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0211.mp4"><code>0211</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0212.mp4"><code>0212</code></a></td><td>同一房间在 D2 有 <code>0210</code>、<code>0213</code>（正机位）</td></tr>
+    <tr><td>E15</td><td><b>月球</b></td><td>2</td><td>0 / 2</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0170.mp4"><code>0170</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0172.mp4"><code>0172</code></a></td><td>同一事件在 S2 有 <code>0169</code>、<code>0171</code></td></tr>
+    <tr><td>E16</td><td><b>单独环境（各 1 组）</b></td><td>16</td><td>11 / 5</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0064.mp4"><code>0064</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0140.mp4"><code>0140</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0144.mp4"><code>0144</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0159.mp4"><code>0159</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0164.mp4"><code>0164</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0168.mp4"><code>0168</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0176.mp4"><code>0176</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0180.mp4"><code>0180</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0188.mp4"><code>0188</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0201.mp4"><code>0201</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0242.mp4"><code>0242</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0307.mp4"><code>0307</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0308.mp4"><code>0308</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0309.mp4"><code>0309</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0310.mp4"><code>0310</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0311.mp4"><code>0311</code></a></td><td><code>0164</code> 保龄球馆（S2 有 <code>0163</code>）、<code>0168</code> 夜间路口（D2 有 <code>0165</code>–<code>0167</code>）、<code>0176</code> 海岛（D2 有 <code>0173</code>、<code>0175</code>）；其余在 3D 中只出现一次</td></tr>
+    <tr><td>E00</td><td><b>无环境（纯色或背景已去除）</b></td><td>17</td><td>15 / 2</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0001.mp4"><code>cap_0001</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0002.mp4"><code>cap_0002</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0021.mp4"><code>cap_0021</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0032_segmented.mp4"><code>0032</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0038_segmented.mp4"><code>0038</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0109.mp4"><code>0109</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0110.mp4"><code>0110</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0195.mp4"><code>0195</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0299.mp4"><code>0299</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0300.mp4"><code>0300</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0301.mp4"><code>0301</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0302.mp4"><code>0302</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0303.mp4"><code>0303</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0304.mp4"><code>0304</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0305.mp4"><code>0305</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0306.mp4"><code>0306</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0312.mp4"><code>0312</code></a></td><td>不需要重建环境，只有前景物体：纯色或天空背景（<code>0109</code>、<code>0110</code>、<code>0299</code>–<code>0306</code>、<code>0312</code>）、太空（<code>0195</code>）、只有分割版（<code>0032</code>、<code>0038</code>）、实拍去背景（<code>captured_0001</code>、<code>0002</code>、<code>0021</code>）</td></tr>
+  </table>
+  <details><summary>每个环境的截帧（各编号组的代表视频，取视频中间时刻）</summary>
+    <p><b>E01 实验室（灰色隔板房间）</b>（33）</p>
+    <img src="demo/env3d/E01.jpg" alt="E01 实验室（灰色隔板房间） 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E02 海边白色沙丘 + 红船</b>（15）</p>
+    <img src="demo/env3d/E02.jpg" alt="E02 海边白色沙丘 + 红船 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E03 海面 + 金色沙丘</b>（4）</p>
+    <img src="demo/env3d/E03.jpg" alt="E03 海面 + 金色沙丘 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E04 白色十字路口</b>（10）</p>
+    <img src="demo/env3d/E04.jpg" alt="E04 白色十字路口 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E05 涂鸦白墙街道</b>（5）</p>
+    <img src="demo/env3d/E05.jpg" alt="E05 涂鸦白墙街道 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E06 Photo Lab 小镇街道</b>（5）</p>
+    <img src="demo/env3d/E06.jpg" alt="E06 Photo Lab 小镇街道 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E07 美术馆中庭</b>（4）</p>
+    <img src="demo/env3d/E07.jpg" alt="E07 美术馆中庭 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E08 草地谷仓</b>（4）</p>
+    <img src="demo/env3d/E08.jpg" alt="E08 草地谷仓 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E09 地下停车场</b>（4）</p>
+    <img src="demo/env3d/E09.jpg" alt="E09 地下停车场 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E10 书房书桌</b>（4）</p>
+    <img src="demo/env3d/E10.jpg" alt="E10 书房书桌 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E11 仓库传送带</b>（3）</p>
+    <img src="demo/env3d/E11.jpg" alt="E11 仓库传送带 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E12 湖边木屋（码头）</b>（2）</p>
+    <img src="demo/env3d/E12.jpg" alt="E12 湖边木屋（码头） 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E13 隧道走廊</b>（2）</p>
+    <img src="demo/env3d/E13.jpg" alt="E13 隧道走廊 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E14 黑猫房间 1</b>（2）</p>
+    <img src="demo/env3d/E14.jpg" alt="E14 黑猫房间 1 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E15 月球</b>（2）</p>
+    <img src="demo/env3d/E15.jpg" alt="E15 月球 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E16 单独环境（各 1 组）</b>（16）</p>
+    <img src="demo/env3d/E16.jpg" alt="E16 单独环境（各 1 组） 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+    <p><b>E00 无环境（纯色或背景已去除）</b>（17）</p>
+    <img src="demo/env3d/E00.jpg" alt="E00 无环境（纯色或背景已去除） 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
+  </details>
+
+  <h3 id="前景背景">3D 题目问前景还是背景</h3>
+  <p><b>前景</b>是视频里会动的物体（球、人、车、猫），尺寸和速度可以从它的运动加 prior 算出。<b>背景</b>是静止物体（桌子、路灯、车道、花瓶），视频里没有运动可用，只能靠场景的 3D 几何来量。这里的“背景”指静止物体，与“去背景”无关：去背景版里仍可见的桌子、斜坡也算背景。</p>
+  <table>
+    <tr><th>类别</th><th>题数</th><th>问前景</th><th>问背景</th><th>背景占比</th></tr>
+    <tr><td><b>D3</b></td><td>969</td><td>725</td><td>244</td><td>25%</td></tr>
+    <tr><td><b>S3</b></td><td>578</td><td>406</td><td>172</td><td>30%</td></tr>
+    <tr><td><b>合计</b></td><td><b>1,547</b></td><td><b>1,131</b></td><td><b>416</b></td><td><b>27%</b></td></tr>
+  </table>
+  <ul>
+    <li><b>背景题全是尺寸题：</b>高 138、宽 112、长 89、直径 36、两物体间距 30；没有一道问背景的速度。</li>
+    <li><b>分布不均：</b>132 个编号组中 75 个至少有一道背景题。按环境看，美术馆中庭（E07）35/40、草地谷仓（E08）18/25、湖边木屋（E12）15/25 以背景为主；实验室（E01）212/766；仓库传送带（E11）0/15、月球（E15）0/32 完全不问背景。</li>
+    <li><b>对建模的意义：</b>背景不需要逼真重建，只需地面、相机和被问到的那几个静止物体的几何；前景用分割掩码单独拟合，云、光照等外观差异不影响。</li>
+  </ul>
+  <table>
+    <tr><th>例子</th><th>prior</th><th>问前景</th><th>问背景</th></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0211.mp4"><code>simulation_0211</code></a> 黑猫</td><td>猫速 0.94 m/s</td><td>猫的长、高，猫到相机的距离</td><td>长凳、台灯、灯罩、花瓶、落地镜（8 题）</td></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0062.mp4"><code>simulation_0062</code></a> 路口</td><td>白车加速度 4 m/s²</td><td>白车、黄车、行人、自行车的尺寸和速度</td><td>车道宽、红绿灯高、路灯高（3 题）</td></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0023.mp4"><code>captured_0023</code></a> 书滑下斜坡</td><td>书在 1.4 s 的加速度</td><td>书的速度、尺寸、位移</td><td>斜坡长宽、桌子宽（3 题）</td></tr>
+    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0015.mp4"><code>simulation_0015</code></a> 美术馆</td><td>人高 1.87 m</td><td>人的速度（1 题）</td><td>雕塑、底座、展板、长椅、屋顶框架（9 题）</td></tr>
+  </table>
+  <p><small>分类方法：问速度、加速度、位移的算前景；问尺寸的，看该物体在 <code>depth_info</code> 中距离是否随时间变化、是否出现在动态 prior 或速度题里。被判为背景的物体已逐个人工复核，把会动的（钟摆绳、实验室里的人、路口其他车辆、血细胞、木星模型等）改回前景。静止的道具（未被击倒的保龄球瓶、停着的火箭发射车）算背景。误差估计在几十道题以内。</small></p>
+
+  <h3 id="优先级">按子集的优先级</h3>
+  <table>
+    <tr><th>子集</th><th>题数</th><th>难度</th><th>原因</th></tr>
+    <tr><td>simulation 2D</td><td>1,039</td><td>低</td><td>渲染干净、相机固定、物体清晰，比例尺标定最可靠。先在这里把流水线跑通。</td></tr>
+    <tr><td>lab 3D</td><td>791</td><td>中</td><td>有 depth_info，背景可控，还有分割变体可借用。</td></tr>
+    <tr><td>simulation 3D / segmentation</td><td>594 / 430</td><td>中</td><td>同上，分割版本几乎零成本。</td></tr>
+    <tr><td>internet 2D</td><td>420</td><td>高</td><td>背景杂乱、可能有相机运动和透视，平面假设不一定成立。这部分可能要更多依赖 VLM 回退。</td></tr>
+  </table>
+
+  <h3 id="首次结果">首次验证集结果（2026-10-04）</h3>
+  <table>
+    <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>无效答案</th></tr>
+    <tr><td>官方 GPT-5.1 基线</td><td>0.486</td><td>0.569</td><td>0.354</td><td>0.456</td><td>0.564</td><td>6.3%</td></tr>
+    <tr><td>流水线 v0（Grounding DINO 逐帧检测）</td><td>0.436</td><td>0.413</td><td>0.368</td><td>0.651</td><td>0.311</td><td>0%</td></tr>
+    <tr><td><b>流水线 v1（SAM 2 跟踪 + 度量三维）</b></td><td><b>0.514</b></td><td>0.463</td><td>0.341</td><td>0.707</td><td>0.545</td><td>0%</td></tr>
+  </table>
+  <p>v1 按视频来源：分割掩码视频 0.87，实验室 0.62，仿真 0.46，互联网 0.35。v0 到 v1 的提升来自三处：</p>
+  <ul>
+    <li><b>SAM 2 替代逐帧检测。</b>Grounding DINO 只在 6 个采样帧上找物体，取分数最高的帧作为提示框，SAM 2 向前向后传播掩码；轨迹用掩码质心而不是框中心。相似物体之间不再跳框，轨迹抖动大幅减小。单个视频约 10 秒。</li>
+    <li><b>度量三维运动。</b>把像素轨迹换到度量坐标：横向 = 像素偏移 × 深度，纵向 = 深度序列，再求导得到真实三维速度和加速度。深度序列由 depth_info 锚定、按视大小变化外推；用框的宽和高中变化较小的那个作为大小依据，避免把车转弯的宽度变化误当作接近相机。速度和加速度 prior 的焦距按三维公式反解。</li>
+    <li><b>实验室相机焦距先验。</b>三个静态 prior 的实验室编号组反推焦距为 580、604、737 px，说明是同一台相机；动态 prior 的实验室编号组若反推焦距落在 450 到 950 之外，改用 650 px。</li>
+  </ul>
+  <p>加速度 prior 的题从 0.27 提到 0.52，实验室视频从 0.38 提到 0.62。</p>
+
+  <h3 id="已知失败模式">已知失败模式与下一步</h3>
+  <ul>
+    <li><b>语义指认不足（最大剩余瓶颈）。</b>Grounding DINO 无法定位 "the model of Io"、"the pencil tip"、"lane"（整条路被当成车道）、"floor tiles" 等；互联网视频 0.35 基本都是这个原因。下一步：用 VLM（Qwen2.5-VL）在采样帧上指认物体并输出点或框，再交给 SAM 2，即上表阶段 4 预留的 agent 层。</li>
+    <li><b>无深度锚点的三维动态 prior。</b><code>captured_0013</code> 的小球沿斜坡滚向相机，但 depth_info 没有小球的距离，像素加速度混入透视效应，整场 0.40。下一步：用场景中其他有深度的静态物体（斜坡远端、近端）约束小球的深度范围。</li>
+    <li><b>"平均速度"的真值定义是净位移除以时间</b>，不是路径长度（验证集弹跳球题目可验证），代码已按此实现。但对圆周运动（木星卫星模型）净位移接近零，真值却是轨道线速度，这类题需要专门识别。</li>
+    <li><b>静态尺寸题 0.41 到 0.46。</b>框包含阴影、物体被截断、"长度"与"宽度"在透视下对应的方向不明确。下一步：用掩码的主轴长度代替框，按物体朝向决定长宽。</li>
+    <li><b>两个物体间的距离</b>常因第二个物体没被跟踪而兜底。</li>
+  </ul>
+</section>
+
+<section id="related">
+  <h2>Related Work</h2>
+  <p>按四类整理，每类内按时间倒序。优先收录 2024 年以后的工作。</p>
+
+  <h3 id="rw-bench">定量物理与空间推理 benchmark</h3>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2605.23898">SPACENUM</a></td><td>双向测试 VLM 能否把空间结构和数字互相映射（Num2Space / Space2Num）。</td><td class="muted">结论是现有 VLM 几乎接近随机猜，印证了“不能让 VLM 直接报数”。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.19526">QuantiPhy（本比赛）</a></td><td>给视频和一个物理量 prior，让 VLM 输出另一个物理量（尺寸、速度、加速度）的真实世界数值。</td><td class="muted">目标任务。论文发现 VLM 主要靠先验知识而不是视频内容作答。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.01989">PAI-Bench</a></td><td>面向 Physical AI 的综合 benchmark，覆盖视频生成与视频理解的感知和预测能力。</td><td class="muted">偏定性，不含数值测量，但说明“物理 AI 评测”是当前热点。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2510.02311">Inferring Dynamic Physical Properties from Video Foundation Models</a></td><td>从视频推断弹性、粘度、动摩擦等需要运动信息的物理属性，比较经典 CV oracle、视频基础模型 readout 和多模态 LLM 提示。</td><td class="muted">经典 CV 流水线作为 oracle 明显优于 VLM，和我们“显式测量 + 物理公式”的路线一致。</td></tr>
+    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2501.16411">PhysBench</a></td><td>1 万条图文视频混合题，评测 VLM 对物体属性、关系、场景和动力学的物理理解。</td><td class="muted">定性为主；证明通用 VLM 的物理理解普遍偏弱。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.14171">Thinking in Space（VSI-Bench）</a></td><td>5,000 多道视频题评测多模态 LLM 的空间智能，包括物体尺寸、距离、计数等数值题。</td><td class="muted">最接近的“数值空间题” benchmark，但只有静态物体，没有运动量。</td></tr>
+    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2409.09788">Q-Spatial Bench / SpatialPrompt</a></td><td>评测 VLM 对尺寸、距离的定量空间推理，并提出用参照物引导推理的零样本提示。</td><td class="muted">用参照物标定尺度正是本比赛 prior 的用法；提示 VLM 显式借助参照物可大幅提分。</td></tr>
+    <tr><td class="yr">2024 · ICML</td><td><a href="https://arxiv.org/abs/2402.06119">ContPhy</a></td><td>从视频学习与推理连续介质（流体、软体、绳索）的物理概念。</td><td class="muted">扩展到软体和流体，QuantiPhy 只涉及刚体运动学。</td></tr>
+    <tr><td class="yr">2023 · NeurIPS</td><td><a href="https://arxiv.org/abs/2306.15668">Physion++</a></td><td>评测模型能否从视频里推断质量、摩擦、弹性、可变形性等隐含物体属性并预测结果。</td><td class="muted">属性推断是定性判断，不要求数值。</td></tr>
+    <tr><td class="yr">2020 · ICLR</td><td><a href="https://arxiv.org/abs/1910.01442">CLEVRER</a></td><td>合成碰撞视频上的描述、解释、预测与反事实问答。</td><td class="muted">物理视频问答的奠基 benchmark，全部为选择题。</td></tr>
+  </table>
+
+  <h3 id="rw-inverse">从视频反推物理参数（inverse physics / inverse rendering）</h3>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.04575">PhysMind</a></td><td>不训练：从视频做物体分割、网格重建和 6D 位姿跟踪，再拟合解析的连续时间动力学来回答物理推理题。</td><td class="muted">与我们的思路最接近：agent VLM 负责语义和选工具（SAM 3 等），几何由专门模型给出，物理由拟合得到。</td></tr>
+    <tr><td class="yr">2026 · NeurIPS</td><td><a href="https://arxiv.org/abs/2605.30320">MonoPhysics</a></td><td>从单目视频联合估计可变形物体的几何、外观和杨氏模量，用 3D Gaussian Splatting 加可微仿真克服单目尺度歧义。</td><td class="muted">单目尺度歧义是 3D 题的核心难点，可以参考其尺度重参数化思路。</td></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2603.16958">PhysQuantAgent</a></td><td>给 VLM 加上检测、尺度估计和截面图等视觉提示，组成估计物体质量的推理流水线，并提出 VisPhysQuant 数据集。</td><td class="muted">“先给 VLM 显式尺度线索再让它答数”的思路可用于我们的 VLM 回退。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.08282">PAVAS</a></td><td>物理感知的视频生音频：用 VLM 估质量，用开放词表分割加 CUT3R 动态三维重建得到度量尺度的速度。</td><td class="muted">展示了“分割 + 前馈 4D 重建 → 度量速度”这条链路是可行的。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2506.06440">Vid2Sim</a></td><td>从多视角视频前馈重建外观、几何和物理参数，再用无网格可微仿真微调，得到可仿真的数字资产。</td><td class="muted">多视角输入，不能直接用于单目；但说明前馈初始化 + 轻量优化的范式。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2503.17973">PhysTwin</a></td><td>从稀疏视角视频重建可变形物体的物理数字孪生，联合优化弹簧质点模型参数、几何和外观。</td><td class="muted">面向软体，但其“重建 → 参数拟合 → 仿真验证”的闭环和我们阶段 4 的校验一致。</td></tr>
+    <tr><td class="yr">2023 · ICLR</td><td><a href="https://arxiv.org/abs/2303.05512">PAC-NeRF</a></td><td>不假设几何拓扑，从多视角视频同时估计物体几何和物理参数（可微 MPM 仿真 + NeRF 渲染）。</td><td class="muted">inverse rendering 与 inverse physics 结合的代表作。</td></tr>
+    <tr><td class="yr">2016 · BMVC</td><td><a href="https://bmva-archive.org.uk/bmvc/2016/papers/paper039/index.html">Physics 101</a></td><td>17,408 段真实视频，无标注地学习物体质量、密度、弹性等物理属性。</td><td class="muted">早期用物理定律当监督信号从视频学属性的工作。</td></tr>
+    <tr><td class="yr">2015 · NeurIPS</td><td><a href="https://proceedings.neurips.cc/paper/2015/hash/d09bf41544a3365a46c9077ebb5e35c3-Abstract.html">Galileo</a></td><td>以 3D 物理引擎为核心的生成模型，从真实视频推断物体质量、摩擦等并预测事件结果。</td><td class="muted">“用物理引擎做反推”的源头。</td></tr>
+  </table>
+
+  <h3 id="rw-3d">度量尺度的深度与 3D / 4D 重建</h3>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2503.11651">VGGT</a></td><td>单个前馈网络从一张到数百张图直接输出相机参数、深度图、点图和三维点轨迹。</td><td class="muted">CVPR 2025 最佳论文；可一次给出相机内参和深度，是 3D 题的候选工具。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2501.12375">Video Depth Anything</a></td><td>在 Depth Anything V2 上加时空头，对任意长视频输出时间一致的深度。</td><td class="muted">逐帧深度抖动会直接变成速度噪声，时间一致性很重要。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.04463">MegaSaM</a></td><td>从随手拍的动态场景单目视频快速稳健地估计相机参数和深度图。</td><td class="muted">处理 internet 视频中的相机运动。</td></tr>
+    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.03825">MonST3R</a></td><td>对动态场景逐时刻直接估计点图，得到视频深度和相机位姿。</td><td class="muted">前馈 4D 重建的代表，PAVAS 用的 CUT3R 是其后续。</td></tr>
+    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.02073">Depth Pro</a></td><td>零样本度量单目深度，不需要相机内参，0.3 秒出 2.25 MP 的锐利深度图。</td><td class="muted">没有 depth_info 时可以提供绝对尺度的初值。</td></tr>
+    <tr><td class="yr">2025 · ICCV</td><td><a href="https://arxiv.org/abs/2407.13764">Shape of Motion</a></td><td>用一组 SE(3) 运动基表示场景运动，从单目视频重建长程三维轨迹。</td><td class="muted">物体三维轨迹的另一种来源。</td></tr>
+    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2403.18913">UniDepth</a></td><td>跨域通用的单目度量深度，直接预测度量三维点并自估相机。</td><td class="muted">同上，度量深度基础模型。</td></tr>
+    <tr><td class="yr">2024 · NeurIPS</td><td><a href="https://arxiv.org/abs/2406.01584">SpatialRGPT</a></td><td>把深度作为插件接入 VLM，并用 3D 场景图生成区域级空间问答数据，评测度量距离与尺寸推理。</td><td class="muted">给 VLM 喂深度能显著提升数值空间推理。</td></tr>
+    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2401.12168">SpatialVLM</a></td><td>用 1,000 万张真实图像自动生成 20 亿条三维空间问答训练 VLM，使其能答距离和尺寸。</td><td class="muted">证明数值空间能力可以通过数据合成训练出来。</td></tr>
+  </table>
+
+  <h3 id="rw-tools">检测、分割与跟踪工具</h3>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.16785">Calibration-Free Vehicle Speed Estimation</a></td><td>不标定相机、不依赖路面特征，用 36 个关键点的车辆模板和逐帧更新的单应矩阵把像素位移换算成米制速度。</td><td class="muted">把物体自身的已知结构当参照物来定尺度，和本比赛“用 prior 物体标定”的思路相同。</td></tr>
+    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2408.00714">SAM 2</a></td><td>图像与视频的可提示分割基础模型，给一帧提示即可在整段视频中传播掩码。</td><td class="muted">我们阶段 1 的跟踪器。</td></tr>
+    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2410.11831">CoTracker3</a></td><td>用伪标签在真实视频上半监督训练的点跟踪器，能跟踪可见与遮挡点。</td><td class="muted">掩码质心抖动时的备选轨迹来源。</td></tr>
+    <tr><td class="yr">2024 · ECCV</td><td><a href="https://arxiv.org/abs/2303.05499">Grounding DINO</a></td><td>开放词表目标检测，用自然语言短语给出物体框。</td><td class="muted">我们阶段 1 的物体指认器；对 "the model of Io" 一类名词仍会失败。</td></tr>
+    <tr><td class="yr">2024 · IEEE Access</td><td><a href="https://ieeexplore.ieee.org/document/10770228/">单目视频车速估计</a></td><td>YOLOv8 检测 + ByteTrack 跟踪 + 深度单应回归网络，从固定监控视频估计车速。</td><td class="muted">传统“检测 + 跟踪 + 标定”测速流程的近期实现，误差约 2 km/h。</td></tr>
+  </table>
+</section>
+
+<section id="appendix">
+  <h2>附录：数据集明细</h2>
+  <p>与解题流程无直接关系、但查数据时有用的明细表，默认收起，点击标题展开。</p>
+
+  <details class="appx">
+  <summary><h3 id="appx-对象环境">按测量对象和环境分类（全部 408 个编号组）</h3></summary>
+  <p><b>按测量对象分：</b>四类各有哪几种场景（按 prior 中的物体归为 9 种，每个编号组只计一次）：</p>
+  <table>
+    <tr><th>场景类型</th><th>D2</th><th>D3</th><th>S2</th><th>S3</th><th>合计</th><th>包括</th><th>示例</th></tr>
+    <tr><td><b>车辆 / 道路</b></td><td>34</td><td>21</td><td>19</td><td>8</td><td>82</td><td>汽车、路口车流、自行车、滑板车、叉车</td><td><code>internet_0001</code> 车道与汽车、<code>simulation_0058</code> 路口、<code>internet_0054</code> 滑板车</td></tr>
+    <tr><td><b>动物</b></td><td>54</td><td>13</td><td>6</td><td>5</td><td>78</td><td>猫、马、羚羊、浣熊、鸟、鲨鱼、鲸、鱼、蝴蝶、大象</td><td><code>simulation_0227</code> 黑猫、<code>simulation_0274</code> 浣熊、<code>simulation_0030</code> 老鹰</td></tr>
+    <tr><td><b>日常物品 / 实验器材</b></td><td>33</td><td>14</td><td>26</td><td>4</td><td>77</td><td>书、杯子、箱子、桌面物品、信用卡、纸巾卷、传送带</td><td><code>captured_0023</code> 书本、<code>simulation_0202</code> 打字机与放大镜、<code>captured_0039</code> 信用卡</td></tr>
+    <tr><td><b>球类 / 体育</b></td><td>17</td><td>15</td><td>21</td><td>14</td><td>67</td><td>乒乓球、网球、篮球、台球、保龄球、球场</td><td><code>captured_0034</code> 网球、<code>internet_0027</code> 台球、<code>simulation_0163</code> 保龄球</td></tr>
+    <tr><td><b>太空 / 飞行器</b></td><td>18</td><td>5</td><td>6</td><td>3</td><td>32</td><td>飞船、火箭、飞机、宇航员、天体模型、无人机、热气球</td><td><code>simulation_0176</code> 飞机、<code>simulation_0263</code> 飞船、<code>simulation_0171</code> 宇航员</td></tr>
+    <tr><td><b>人物</b></td><td>9</td><td>9</td><td>1</td><td>9</td><td>28</td><td>行人、步行的人</td><td><code>simulation_0015</code> 中庭行人、<code>simulation_0142</code> 步行的人</td></tr>
+    <tr><td><b>船只 / 水上</b></td><td>3</td><td>3</td><td>11</td><td>4</td><td>21</td><td>船、独木舟、帆船、游泳者、泳圈</td><td><code>internet_0025</code> 独木舟、<code>simulation_0009</code> 码头的船、<code>internet_0023</code> 游泳者</td></tr>
+    <tr><td><b>奇幻 / 机器人</b></td><td>10</td><td>2</td><td>1</td><td>0</td><td>13</td><td>凤凰、龙、机器人</td><td><code>simulation_0269</code> 凤凰、<code>simulation_0309</code> 龙、<code>simulation_0218</code> 机器人</td></tr>
+    <tr><td><b>微观 / 流体</b></td><td>7</td><td>3</td><td>0</td><td>0</td><td>10</td><td>红细胞、病毒、水滴、气泡</td><td><code>simulation_0110</code> 红细胞、<code>simulation_0107</code> 病毒、<code>simulation_0201</code> 水滴</td></tr>
+    <tr><td><b>合计</b></td><td><b>185</b></td><td><b>85</b></td><td><b>91</b></td><td><b>47</b></td><td><b>408</b></td><td></td><td></td></tr>
+  </table>
+  <p><small>归类规则：按 prior 中的已知物体归类（如 prior 是 “height of the person” 就归人物，即使场景在码头）；prior 是重力加速度、不含物体时，按题目里的物体归类。按关键词自动归类，边界情况（如骑滑板车的人归车辆）以规则为准。D2 以动物为主（54 / 185），S2 以日常物品和球类为主，S3 以球类、人物和车辆为主（31 / 47）；奇幻和微观场景只出现在 Dynamic 类别（及 1 个 S2）中。</small></p>
+  <p><b>按环境分：</b>每个编号组截一帧（优先原视频的中间时刻），按画面背景人工归为 9 种环境：</p>
+  <table>
+    <tr><th>环境</th><th>D2</th><th>D3</th><th>S2</th><th>S3</th><th>合计</th><th>示例</th></tr>
+    <tr><td><b>纯色 / 摄影棚背景</b></td><td>45</td><td>13</td><td>17</td><td>1</td><td>76</td><td><code>simulation_0076</code> 灰底行人、<code>simulation_0269</code> 凤凰、<code>simulation_0198</code> 水滴</td></tr>
+    <tr><td><b>室内房间</b></td><td>29</td><td>10</td><td>12</td><td>7</td><td>58</td><td><code>simulation_0214</code> 客厅、<code>simulation_0187</code> 仓库、<code>simulation_0231</code> 教室、<code>simulation_0149</code> 地下车库</td></tr>
+    <tr><td><b>城市道路 / 街景</b></td><td>21</td><td>18</td><td>10</td><td>6</td><td>55</td><td><code>simulation_0058</code> 路口、<code>simulation_0045</code> 小镇街道、<code>internet_0001</code> 高速俯拍</td></tr>
+    <tr><td><b>水面 / 水下 / 码头</b></td><td>18</td><td>13</td><td>13</td><td>11</td><td>55</td><td><code>simulation_0023</code> 海滩与船、<code>simulation_0154</code> 水下鲨鱼、<code>internet_0025</code> 湖面独木舟、<code>internet_0039</code> 泳池</td></tr>
+    <tr><td><b>桌面 / 近景</b></td><td>24</td><td>4</td><td>16</td><td>0</td><td>44</td><td><code>internet_0043</code> 桌面物品、<code>internet_0034</code> 纸巾卷、<code>simulation_0203</code> 书桌打字机</td></tr>
+    <tr><td><b>户外自然</b></td><td>30</td><td>6</td><td>4</td><td>3</td><td>43</td><td><code>simulation_0236</code> 草地房屋、<code>simulation_0243</code> 森林雪山、<code>simulation_0310</code> 林地叉车</td></tr>
+    <tr><td><b>实验室房间（实拍）</b></td><td>1</td><td>20</td><td>0</td><td>16</td><td>37</td><td><code>captured_0054</code>、<code>captured_0021</code>、<code>captured_0013</code>：同一间灰墙实验室</td></tr>
+    <tr><td><b>体育场地</b></td><td>8</td><td>0</td><td>15</td><td>1</td><td>24</td><td><code>internet_0009</code> 网球场俯拍、<code>simulation_0160</code> 台球桌、<code>simulation_0162</code> 保龄球道、<code>internet_0057</code> 室内篮球馆</td></tr>
+    <tr><td><b>太空 / 天空</b></td><td>9</td><td>1</td><td>4</td><td>2</td><td>16</td><td><code>simulation_0193</code> 木星卫星模型、<code>simulation_0170</code> 月面宇航员、<code>simulation_0088</code> 天空飞鸟</td></tr>
+    <tr><td><b>合计</b></td><td><b>185</b></td><td><b>85</b></td><td><b>91</b></td><td><b>47</b></td><td><b>408</b></td><td></td></tr>
+  </table>
+  <ul>
+    <li><b>全部 37 个实拍编号组（<code>captured_</code>）在同一间实验室</b>：灰色隔板墙、三脚架、同一张桌子，相机也是同一台。S3 的 16 个和 D3 的 20 个实拍编号组共享同一个房间。</li>
+    <li><b>76 个编号组是纯色或摄影棚背景</b>（全部是仿真，D2 占 45 个）：几乎没有背景几何，物体悬在纯色空间中，尺度只能靠 prior 物体本身。</li>
+    <li><b>3D 类别集中在少数环境</b>：D3 的 85 个编号组里，实验室 20、城市道路 18、水面 13、纯色 13，合计 64 个；S3 的 47 个编号组里，实验室 16、水面 11，合计 27 个。</li>
+    <li><b>internet 视频分布最散</b>：74 个编号组分布在 7 种环境，其中桌面 / 近景最多（28 个）。</li>
+  </ul>
+  <p><small>归类按截帧画面人工判断，每个编号组只看一帧，边界情况：俯拍的高速 / 乡间公路归城市道路；泳池、湖、海、水下都归水面；室内但只拍到桌面或墙面局部的归桌面 / 近景；户外球场归体育场地。</small></p>
+  </details>
+
+  <details class="appx">
+  <summary><h3 id="appx-变体">编号组与变体明细</h3></summary>
+  <p><b>编号组</b>是去掉后缀的编号（如 <code>captured_0023</code>），即同一次拍摄或渲染的所有视频版本）。<b>变体</b>是同一编号组的不同视频版本：内容和运动相同，只是背景处理或机位不同。408 个编号组里有 117 个有变体，变体模式共 7 种：</p>
   <table>
     <tr><th>变体模式</th><th>编号组数</th><th>视频数</th><th>D2 / D3 / S2 / S3</th><th>示例</th><th>说明</th></tr>
     <tr><td>只有原视频</td><td>288</td><td>288</td><td>149 / 53 / 70 / 16</td><td><code>simulation_0176</code></td><td>没有变体</td></tr>
@@ -417,8 +767,10 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
     <tr><td>飞机飞过小岛<br><small>speed of the airplane = 153.582 m/s</small></td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0173.mp4"><code>0173</code></a> D2<br><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0175.mp4"><code>0175</code></a> D2<br><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0176.mp4"><code>0176</code></a> D3</td><td>三者背景和飞机相同。0173 与 0175 角度也相同，只是 0173 多了云；0176 与 0175 相同，但角度斜</td></tr>
   </table>
   <p>严格匹配的其他重复组（prior 与题目完全相同）还有：<code>0076/0077</code>、<code>0082/0083</code>、<code>0085/0086</code>、<code>0096/0097</code>、<code>0099/0100</code>、<code>0102/0103</code>、<code>0128/0129</code>、<code>0151/0152</code>、<code>0154/0155</code>、<code>0179/0180</code>、<code>0221/0222</code>、<code>0251/0252</code>、<code>0255/0256</code>、<code>0264/0267</code>、<code>0265/0266/0268</code>、<code>0269/0271/0272</code>、<code>0275/0277</code>、<code>0285/0287</code>、<code>0286/0303/0305/0307</code>、<code>0288/0290</code>、<code>0292/0293</code>、<code>0294/0295</code>（同一只蝴蝶，一个灰色空背景，一个蘑菇森林）、<code>0302/0309</code>、<code>0304/0306/0308</code>（均为 simulation）。</p>
+  </details>
 
-  <h3 id="每类场景">每类有哪些编号组</h3>
+  <details class="appx">
+  <summary><h3 id="每类场景">每类有哪些编号组</h3></summary>
   <p>每类给出 4 个示例，展开可看该类全部编号组（编号组、所含视频、题数、prior）。</p>
   <h4>D2（Dynamic 2D，185 个编号组）</h4>
   <p>prior 是速度或加速度，平面运动。示例：</p>
@@ -887,341 +1239,77 @@ diameter of the tire of the blue car = 0.369m</td></tr>
   </table>
   </details>
 
-  <h3 id="其他注意事项">其他注意事项</h3>
-  <ul>
-    <li>题目里有拼写错误（velocoty、velolicty、diasplacement），prompt 不要假设关键词拼写正确。</li>
-    <li>验证集 <code>video_source</code> 拼成了 <code>segmentaion</code>，测试集是 <code>segmentation</code>，合并数据时要统一。</li>
-    <li>HuggingFace 上验证集文件 <code>captured_0041x.mp4</code> 的文件名开头多了一个空格，<code>download_data.sh</code> 已自动处理。</li>
-    <li>评测时 <code>parsed_value</code> 会被取绝对值，所以符号不影响得分。</li>
-  </ul>
-</section>
-
-<section id="demo">
-  <h2>数据样例</h2>
-  <p>以下 5 个样例来自验证集，所以带有答案。每个视频配一个已知物理量（prior）和若干问题，类型标签和评测类别的含义见“题目类型与评测类别”。</p>
-  <div class="demo">
-    <video controls muted loop playsinline preload="metadata" src="demo/internet_0027.mp4"></video>
-    <div class="demo-body">
-      <div class="demo-head"><code>internet_0027</code> <span class="tag">互联网视频</span><span class="tag">S2MC</span><span class="tag">25 fps</span><span class="tag">评测类别 S2</span></div>
-      <p class="prior"><b>Prior：</b>billiard ball diameter = 57.2 mm</p>
-      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>SS</span></td><td>What is the initial distance between the balck ball and the purple ball in cm?</td><td class='ans'>14.74</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the white ball&#x27;s average velocity in 1.00s to 2.00s in cm/s?</td><td class='ans'>26.82</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the velocity of the orange ball at 1.00s in cm/s?</td><td class='ans'>24.99</td></tr><tr><td><span class='tag'>SS</span></td><td>What is the final distance between the purple ball and the black ball in cm?</td><td class='ans'>18.04</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the acceleration of the yellow ballon the left at 2.00s in cm/s^2?</td><td class='ans'>11</td></tr></table>
-    </div>
-  </div>
-  <div class="demo">
-    <video controls muted loop playsinline preload="metadata" src="demo/internet_0001.mp4"></video>
-    <div class="demo-body">
-      <div class="demo-head"><code>internet_0001</code> <span class="tag">互联网视频</span><span class="tag">S2SC</span><span class="tag">24 fps</span><span class="tag">评测类别 S2</span></div>
-      <p class="prior"><b>Prior：</b>lane width = 3.66 m</p>
-      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>SS</span></td><td>What is the length of the black car in meters?</td><td class='ans'>5.81</td></tr><tr><td><span class='tag'>SS</span></td><td>What is the width of the black car in meters?</td><td class='ans'>2.21</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the average speed of the black car in m/s?</td><td class='ans'>29.3</td></tr></table>
-    </div>
-  </div>
-  <div class="demo">
-    <video controls muted loop playsinline preload="metadata" src="demo/captured_0013.mp4"></video>
-    <div class="demo-body">
-      <div class="demo-head"><code>captured_0013</code> <span class="tag">实验室拍摄</span><span class="tag">A3MC</span><span class="tag">24 fps</span><span class="tag">评测类别 D3</span></div>
-      <p class="prior"><b>Prior：</b>t=1.5, ball acceleration = 3.0 m/s^2</p>
-      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>DS</span></td><td>What is the height of the cup in cm? </td><td class='ans'>14.5</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the pen in cm? </td><td class='ans'>14.5</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the diameter of the cookie in cm? </td><td class='ans'>8</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the width of the note book in cm? </td><td class='ans'>10.8</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the width of the desk in cm? </td><td class='ans'>857.9</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the slope in cm?</td><td class='ans'>30.8</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the diameter of the ball in cm? </td><td class='ans'>6.7</td></tr><tr><td><span class='tag'>DD</span></td><td>What is the velolicty of the ball at 1.5s in cm/s? </td><td class='ans'>102.65</td></tr></table>
-    </div>
-  </div>
-  <div class="demo">
-    <video controls muted loop playsinline preload="metadata" src="demo/simulation_0163.mp4"></video>
-    <div class="demo-body">
-      <div class="demo-head"><code>simulation_0163</code> <span class="tag">仿真渲染</span><span class="tag">S2MC</span><span class="tag">24 fps</span><span class="tag">评测类别 S2</span></div>
-      <p class="prior"><b>Prior：</b>diameter of the ball = 0.21 m</p>
-      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>SD</span></td><td>What is the speed of the ball at time 0.5s in m/s?</td><td class='ans'>3.148</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the acceleration of the ball at time 0.5s in m/s^2?</td><td class='ans'>0.359</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the speed of the ball at time 1s in m/s?</td><td class='ans'>2.974</td></tr><tr><td><span class='tag'>SD</span></td><td>What is the acceleration of the ball at time 1s in m/s^2?</td><td class='ans'>0.339</td></tr><tr><td><span class='tag'>SS</span></td><td>What is the height of the bowling pin in meters?</td><td class='ans'>0.32</td></tr><tr><td><span class='tag'>SS</span></td><td>What is the height of the ball return opening in meters?</td><td class='ans'>10</td></tr></table>
-    </div>
-  </div>
-  <div class="demo">
-    <video controls muted loop playsinline preload="metadata" src="demo/simulation_0098_segmented.mp4"></video>
-    <div class="demo-body">
-      <div class="demo-head"><code>simulation_0098_segmented</code> <span class="tag">仿真 + 分割掩码</span><span class="tag">V2MX</span><span class="tag">24 fps</span><span class="tag">评测类别 D2</span></div>
-      <p class="prior"><b>Prior：</b>speed of the shark = 3 m/s</p>
-      <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>DD</span></td><td>What is the average speed of the boat in m/s?</td><td class='ans'>5</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the boat in meters?</td><td class='ans'>10</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the shark in meters?</td><td class='ans'>3.26</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the height of the shark in meters?</td><td class='ans'>1.11</td></tr></table>
-    </div>
-  </div>
-</section>
-
-<section id="metric">
-  <h2>评测指标：MRA</h2>
-  <p>Mean Relative Accuracy。官方实现在 <code>evaluator.py</code>，用 <code>evaluate.sh</code> 启动。大致思路是对每个预测在一组相对误差阈值 θ 上判断是否命中，再对阈值取平均，最后按类别（S2、D2、S3、D3）汇总。</p>
-  <p>本地只能在验证集上算分，因为测试集没有答案。</p>
-</section>
-
-<section id="approach">
-  <h2>解题思路与流水线</h2>
-  <p>核心想法：不让 VLM 直接"猜"数值，而是把每个场景重建成可度量的几何与运动，再用 prior 标定尺度，用物理公式把被问的量算出来。VLM 只负责理解问题和指认物体。代码在主仓库的 <code>pipeline/</code> 目录，依赖 PyTorch、transformers、OpenCV，模型只用 Grounding DINO 和 SAM 2（均开源，Track B 可用），不需要任何 API key。</p>
-<pre><code>conda activate quantiphy
-python -m pipeline.run --split val            # 验证集，打印分类别 MRA
-python -m pipeline.run --split val --debug    # 另存带框的调试帧到 outputs/debug/
-python -m pipeline.run --split test --out outputs/submission.csv   # 填好官方模板</code></pre>
-  <p><b>完整案例演示：</b><a href="case/simulation_0300.html">simulation_0300</a>，从输入到答案逐阶段展示每个中间结果，并记录了 v1 到 v7 的迭代；<a href="case/simulation_0060.html">simulation_0060</a>，把 v7 模型推广到 13 题、多物体路口场景的第一次测试（0.28 → 0.78），含可交互的三维重建场景。</p>
-
-  <h3 id="为什么">为什么这么做</h3>
-  <p><b>为什么合理。</b>QuantiPhy 本质上是一个测量问题：所有题目都是"已知一个物理量，求另一个"，两者通过比例尺或运动学公式严格相关。端到端 VLM 对数值不敏感，官方 GPT-5.1 基线在验证集上只有 MRA 0.486，而且 6.3% 的答案无效。一个显式的"跟踪 + 标定 + 计算"流水线，只要测量误差能控制在 10% 以内，单题 MRA 就能接近 0.9。按编号组而不是按视频处理也正确：568 个视频只有 408 个编号组，117 个编号组各有 2 到 6 个变体。只换背景的变体（<code>s</code>、<code>x</code>、<code>_segmented</code>）与原视频共用同一相机和同一段运动，重建一次即可复用；题目大多相同但不完全一致，需按题目文本对齐。编号不同的同一事件（如黑猫 <code>simulation_0210</code> 到 <code>0217</code>）机位不同，相机要分别估计，但物体尺寸和运动轨迹相同，可以在视频之间互相校验。</p>
-  <div class="callout"><b>修正一：是"度量重建 + 物理拟合"，不是"重建后再仿真"。</b>视频里已经有真实运动，不需要前向仿真整个场景再读结果。我们要做的是把像素轨迹换算成物理量：静态量靠比例尺，动态量靠对轨迹做平滑和微分。物理模型（匀速、匀加速、抛体）的角色是<em>拟合约束</em>，用来去噪和反推尺度，而不是生成式模拟。真正需要"仿真式"反推的只有 prior 为重力加速度的 303 道题：对抛体轨迹拟合抛物线，用 g = 9.8 反推比例尺。</div>
-  <div class="callout"><b>修正二：编号组级复用可以反过来用。</b>带 <code>x</code> 或 <code>_segmented</code> 后缀的变体本身就是分割掩码视频，等于官方免费给了 148 个视频的精确物体分割。同编号组的原始背景版（C）和简化背景版（S）可以直接借用它的掩码和轨迹，不必再跑分割模型。</div>
-
-
-  <h3 id="五个阶段">五个阶段：设计与当前实现</h3>
-  <p>左列是设计目标，右列是代码里目前做到的程度。</p>
-  <table>
-    <tr><th>阶段</th><th>设计</th><th>当前实现</th></tr>
-    <tr><td>0 问题解析</td><td>每道题抽出：目标物理量、目标物体、时刻、答案单位、prior 的物体和数值。输出结构化 JSON。</td><td><code>parse.py</code>：规则解析器，覆盖全部 233 种 prior 写法，不调用 LLM。后续若换 LLM，Track A 可用 GPT / Claude，Track B 用 Qwen2.5-VL 或 Qwen3。</td></tr>
-    <tr><td>1 场景重建（每编号组一次）</td><td>抽帧；指认题目涉及的所有物体；分割并逐帧跟踪，得到每个物体每帧的 mask、bbox、中心轨迹。有分割变体的编号组直接用掩码。</td><td><code>perceive.py</code>：Grounding DINO 在 6 个采样帧上找物体，取分数最高的框作为提示，SAM 2 向前向后传播掩码，轨迹用掩码质心；掩码视频直接用前景像素。轨迹缓存到 <code>outputs/tracks/</code>，单个视频约 10 秒。</td></tr>
-    <tr><td>2 尺度标定</td><td><b>2D：</b>用 prior 物体的像素尺寸（或像素速度）得到比例尺 m/px。<b>3D：</b>用 prior 物体的像素尺寸和 depth_info 里的相机距离反推焦距 f，之后任意物体 真实尺寸 = 像素尺寸 × 距离 / f；速度的纵向分量用 depth_info 在不同时刻的差分。</td><td><code>calibrate.py</code>：按设计实现。物体视大小变化时按针孔关系 Z(t) = Z₀·h(t₀)/h(t) 生成逐帧深度并得到径向速度；用框的宽和高中变化较小的那个作为大小依据。实验室相机焦距若反推落在 450 到 950 px 之外，改用 650 px 先验。</td></tr>
-    <tr><td>3 物理拟合与计算</td><td>静态量：像素尺寸 × 比例尺。速度：轨迹平滑后一阶差分，或拟合匀速 / 匀加速模型后取导数。加速度：二阶，或直接取拟合参数。时刻按该视频 fps 精确定位到帧。prior 为重力加速度的 303 道题对抛体轨迹拟合抛物线反推比例尺。</td><td><code>physics.py</code>：Savitzky-Golay 平滑，局部二次拟合求速度和加速度，位移、平均速度、抛物线拟合重力。横向 = 像素偏移 × 深度，纵向 = 深度序列，再求导得到真实三维速度。<code>solve.py</code>：一道题到一个数。</td></tr>
-    <tr><td>4 校验与 agent 优化</td><td>三类一致性检查：同编号组不同变体答案应一致；同物体多道题互相约束；物理合理性范围。失败时 agent 诊断原因并重试：换指认提示、换帧、换拟合模型、改用另一变体的掩码。仍失败则回退到 VLM 直接回答。</td><td><code>verify.py</code>：目前只有合理范围检查、同编号组变体取中位数、兜底常数（避免空值和 0 被判无效）。agent 重试和 VLM 回退是下一步。</td></tr>
-  </table>
-  <p>辅助文件：<code>data.py</code> 读取数据、编号组与变体分组、解析 depth_info、按数据集 fps 把时刻换算成帧号；<code>metrics.py</code> 实现与官方 <code>evaluator.py</code> 完全一致的 MRA。</p>
-
-  <h3 id="重建需求">哪些编号组需要重建</h3>
-  <p><b>结论：不需要每个编号组都重建。</b>2D 不需要；3D 的 132 个编号组只有 31 个静态环境，且只有 69 个编号组的被问物体缺深度。3D 题中 73% 问运动物体，背景只需建到“地面 + 相机 + 被问到的几个静止物体”。</p>
-  <ul>
-    <li><b>2D（S2、D2）不需要重建。</b>物体在一个平面内运动，用 prior 标定一个比例尺即可。部分 internet 视频可能有相机晃动，需要的是稳像或单应校正，不是三维重建。</li>
-    <li><b>3D 看 <code>depth_info</code> 是否覆盖被问的物体。</b>每道题问的物体都有深度时，针孔模型 + 给定深度即可，不需要重建（63 个编号组）。有物体没给深度时，需要重建或用度量单目深度补上（69 个编号组）。缺深度的大多是静态背景：岩石、车道、路灯、桌子。</li>
-    <li><b>能共用的情况：</b>只换背景的变体共用同一次重建；同一环境的不同编号组（如路口组）共用静态几何，但每个视频仍需单独估计相机位姿（同组视频到同一物体的距离相差可达约 12 m，说明机位不同）。</li>
-  </ul>
-  <table>
-    <tr><th>类别</th><th>编号组数</th><th>被问物体缺深度</th></tr>
-    <tr><td><b>S2</b>（Static 2D）</td><td>91</td><td>0（不需要）</td></tr>
-    <tr><td><b>D2</b>（Dynamic 2D）</td><td>185</td><td>0（不需要）</td></tr>
-    <tr><td><b>S3</b>（Static 3D）</td><td>47</td><td>25</td></tr>
-    <tr><td><b>D3</b>（Dynamic 3D）</td><td>85</td><td>44</td></tr>
-    <tr><td><b>合计</b></td><td><b>408</b></td><td><b>69</b></td></tr>
-  </table>
-  <details><summary>D3（Dynamic 3D）：44 个需要重建的编号组</summary>
-  <table>
-    <tr><th>环境</th><th>编号组</th><th>缺深度的被问物体</th><th>能否共用</th></tr>
-    <tr><td>白色十字路口（E04）</td><td><code>simulation_0058</code>–<code>0063</code>、<code>0065</code>–<code>0067</code>（9 个）</td><td>车道、路缘、路灯、红绿灯</td><td>同一仿真场景、同一段运动，机位不同：静态几何重建一次，各视角做相机配准</td></tr>
-    <tr><td>涂鸦白墙街道（E05）</td><td><code>simulation_0033</code>、<code>0052</code>、<code>0055</code></td><td>车道、路灯</td><td>同一街道、同一辆橙色车，机位不同；与 E04 不是同一环境</td></tr>
-    <tr><td>草地中央带路口（E16）</td><td><code>simulation_0064</code></td><td>车道、红绿灯</td><td>同一事件（白车 4 m/s²），但路口几何与 E04 不同，单独重建</td></tr>
-    <tr><td>湖边木屋码头（E12）</td><td><code>simulation_0009</code></td><td>木楼梯</td><td>与 S3 的 <code>0008</code> 共用</td></tr>
-    <tr><td>海边沙丘（E02 / E03）</td><td><code>simulation_0024</code>（E02）、<code>0037</code>（E03）、<code>0038</code>（只有分割版）</td><td>岩石、船舱地板</td><td>E02 内共用；E03 待确认是否同一地图</td></tr>
-    <tr><td>小镇街道（骑车人、行人）</td><td><code>simulation_0045</code>、<code>0049</code>、<code>0050</code></td><td>电话亭、门柱、台阶</td><td><code>depth_info</code> 完全相同，很可能是同一事件多机位，可联合重建；与 S3 的 <code>0046</code>、<code>0048</code> 共用</td></tr>
-    <tr><td>桌面（打字机、放大镜）</td><td><code>simulation_0202</code>、<code>0205</code>、<code>0206</code>、<code>0209</code></td><td>桌子、打字机</td><td>同一环境</td></tr>
-    <tr><td>室内黑猫</td><td><code>simulation_0211</code>、<code>0212</code></td><td>台灯、花瓶</td><td>同一环境</td></tr>
-    <tr><td>血细胞</td><td><code>simulation_0109</code>、<code>0110</code></td><td>两个细胞的间距</td><td>同一事件</td></tr>
-    <tr><td>实验室：重力抛物</td><td><code>captured_0006</code>、<code>0008</code>、<code>0009</code>、<code>0010</code>、<code>0016</code>、<code>0018</code>、<code>0020</code></td><td>玩具、篮球、绳长、两人距离</td><td>同一台相机（焦距已知），摆放不同，逐个处理</td></tr>
-    <tr><td>实验室：斜坡滚球</td><td><code>captured_0013</code>、<code>0014</code></td><td>小球（只给了静态物体深度）</td><td>见“已知失败模式”</td></tr>
-    <tr><td>实验室：白板</td><td><code>captured_0062</code></td><td>白板本身</td><td>单独处理</td></tr>
-    <tr><td>其他</td><td><code>simulation_0032</code>（只有分割版）、<code>0141</code>（地砖）、<code>0168</code>（警车）、<code>0180</code>（闸门）、<code>0195</code>（木星模型）、<code>0242</code>（房子、窗户）</td><td>见括号</td><td>各自重建</td></tr>
-  </table>
   </details>
-  <details><summary>S3（Static 3D）：25 个需要重建的编号组</summary>
-  <table>
-    <tr><th>环境</th><th>编号组</th><th>缺深度的被问物体</th><th>能否共用</th></tr>
-    <tr><td>湖边木屋码头（E12）</td><td><code>simulation_0008</code></td><td>木楼梯、码头</td><td>与 D3 的 <code>0009</code> 共用</td></tr>
-    <tr><td>海边白色沙丘（E02）</td><td><code>simulation_0022</code>、<code>0027</code>、<code>0028</code>、<code>0043</code>、<code>0044</code></td><td>岩石、船舱地板、人的步行速度</td><td>与 D3 的 E02 组同一环境</td></tr>
-    <tr><td>实验室乒乓球桌</td><td><code>captured_0021</code>、<code>0022</code>、<code>0029</code>、<code>0031</code>、<code>0032</code>、<code>0036</code></td><td>桌子的长和宽</td><td>很可能同一张桌子、同一台相机，桌子尺寸测一次可复用</td></tr>
-    <tr><td>实验室其他</td><td><code>captured_0027</code>（红球）、<code>captured_0035</code>（篮球，a / b 两个机位）</td><td>被问的球本身没给深度</td><td>各自处理；<code>0035</code> 两个机位可联合</td></tr>
-    <tr><td>小镇街道</td><td><code>simulation_0046</code>、<code>0048</code></td><td>电话亭、门柱、台阶</td><td>与 D3 的 <code>0045</code> / <code>0049</code> / <code>0050</code> 共用</td></tr>
-    <tr><td>路口</td><td><code>simulation_0074</code></td><td>方形土台</td><td>与 D3 白色十字路口（E04）共用</td></tr>
-    <tr><td>汽车（轮胎为 prior）</td><td><code>simulation_0149</code>、<code>0150</code>；<code>0151</code>、<code>0152</code></td><td>车速、加速度、柱子间距</td><td>各组内共用</td></tr>
-    <tr><td>其他</td><td><code>simulation_0015</code>（中庭长椅、屋顶）、<code>0140</code>（霓虹灯牌）、<code>0143</code>（地砖）、<code>0144</code>（火箭、车）</td><td>见括号</td><td>各自重建</td></tr>
-  </table>
-  </details>
-  <p><small>“需要重建”按关键词判断：被问物体名是否出现在 <code>depth_info</code> 中，同义词（human / person / pedestrian 等）只能部分覆盖，69 这个数约有 ±5 的误差。“重建”不一定是完整的逆渲染：缺的多是静态背景深度，用度量单目深度模型估深度图、再用 <code>depth_info</code> 已知深度对齐尺度，可能就够了。</small></p>
-
-  <h3 id="3D环境核对">3D 环境核对清单</h3>
-  <p>3D 两类共 132 个编号组，每组看一帧（代表视频的中间时刻），按<b>静态几何</b>人工归并：地面、墙、家具、道路、地形相同即同一环境。机位、光照、云、阳光不同，或多了猫、警车等运动物体，都不算新环境；摆设或地点不同才算。</p>
-  <ul>
-    <li><b>结果：</b>31 个环境（若 E03 与 E02 是同一张地图则为 30），另有 17 个编号组没有可重建的环境（E00）。其中 15 个环境各含 2 到 33 个编号组，另外 16 个只出现一次（E16）。</li>
-    <li><b>集中度：</b>最大的 5 个环境（实验室 33、海边白色沙丘 15、白色十字路口 10、涂鸦白墙街道 5、小镇街道 5）覆盖 68 个编号组，超过一半。</li>
-    <li><b>数据标注问题：</b><code>captured_0021</code> 标为原始背景（<code>S3SC</code>），但三个版本的背景都已去除（白、蓝、黑）。</li>
-    <li><b>待确认：</b>E03 是否与 E02 同一地图；E08 草地谷仓与 E12 湖边木屋是否在同一张大地图里。其余归并在截帧中区别明显。</li>
-  </ul>
-  <table>
-    <tr><th>编号</th><th>环境</th><th>编号组</th><th>D3 / S3</th><th>编号组列表（链接到代表视频）</th><th>备注</th></tr>
-    <tr><td>E01</td><td><b>实验室（灰色隔板房间）</b></td><td>33</td><td>18 / 15</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0006.mp4"><code>cap_0006</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0008.mp4"><code>cap_0008</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0009.mp4"><code>cap_0009</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0010.mp4"><code>cap_0010</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0013.mp4"><code>cap_0013</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0014.mp4"><code>cap_0014</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0016.mp4"><code>cap_0016</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0018.mp4"><code>cap_0018</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0020.mp4"><code>cap_0020</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0022.mp4"><code>cap_0022</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0023.mp4"><code>cap_0023</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0024.mp4"><code>cap_0024</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0027.mp4"><code>cap_0027</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0028.mp4"><code>cap_0028</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0029.mp4"><code>cap_0029</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0030.mp4"><code>cap_0030</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0031.mp4"><code>cap_0031</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0032.mp4"><code>cap_0032</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0033.mp4"><code>cap_0033</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0034a.mp4"><code>cap_0034</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0035a.mp4"><code>cap_0035</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0036.mp4"><code>cap_0036</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0037.mp4"><code>cap_0037</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0038.mp4"><code>cap_0038</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0039.mp4"><code>cap_0039</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0040.mp4"><code>cap_0040</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0041.mp4"><code>cap_0041</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0047.mp4"><code>cap_0047</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0052.mp4"><code>cap_0052</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0053.mp4"><code>cap_0053</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0054a.mp4"><code>cap_0054</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0061.mp4"><code>cap_0061</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0062.mp4"><code>cap_0062</code></a></td><td>房间壳体固定；桌子、三脚架、人的位置在变。<code>0035</code>、<code>0053</code>、<code>0062</code> 朝向房间另一侧（门外有人）。<code>0001</code>、<code>0002</code>、<code>0021</code> 背景已去除，归入 E00</td></tr>
-    <tr><td>E02</td><td><b>海边白色沙丘 + 红船</b></td><td>15</td><td>8 / 7</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0022.mp4"><code>0022</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0023.mp4"><code>0023</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0024.mp4"><code>0024</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0025.mp4"><code>0025</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0026.mp4"><code>0026</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0027.mp4"><code>0027</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0028.mp4"><code>0028</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0029.mp4"><code>0029</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0030.mp4"><code>0030</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0031.mp4"><code>0031</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0039.mp4"><code>0039</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0040.mp4"><code>0040</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0042.mp4"><code>0042</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0043.mp4"><code>0043</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0044.mp4"><code>0044</code></a></td><td>同一张地图：红船、老鹰、行人、白色沙丘；有平视、俯视、远景多种机位。<code>0038</code> 只有分割版，归入 E00</td></tr>
-    <tr><td>E03</td><td><b>海面 + 金色沙丘</b></td><td>4</td><td>1 / 3</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0034.mp4"><code>0034</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0035.mp4"><code>0035</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0036.mp4"><code>0036</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0037.mp4"><code>0037</code></a></td><td><b>待确认：</b>也有红船和行人，但远处是金色长沙丘，光照偏暖，可能是 E02 换了朝向，也可能是另一张地图</td></tr>
-    <tr><td>E04</td><td><b>白色十字路口</b></td><td>10</td><td>9 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0058.mp4"><code>0058</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0059.mp4"><code>0059</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0060.mp4"><code>0060</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0061.mp4"><code>0061</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0062.mp4"><code>0062</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0063.mp4"><code>0063</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0065.mp4"><code>0065</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0066.mp4"><code>0066</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0067.mp4"><code>0067</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0074.mp4"><code>0074</code></a></td><td><code>0074</code> 为 S3，其余为 D3。<code>0064</code> 的路口中间是草地、两侧有楼，几何不同，归入 E16</td></tr>
-    <tr><td>E05</td><td><b>涂鸦白墙街道</b></td><td>5</td><td>4 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0021.mp4"><code>0021</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0033.mp4"><code>0033</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0052.mp4"><code>0052</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0055.mp4"><code>0055</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0056.mp4"><code>0056</code></a></td><td>与 E04 不是同一环境；<code>0056</code> 是沿街另一方向的机位</td></tr>
-    <tr><td>E06</td><td><b>Photo Lab 小镇街道</b></td><td>5</td><td>3 / 2</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0045.mp4"><code>0045</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0046.mp4"><code>0046</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0048.mp4"><code>0048</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0049.mp4"><code>0049</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0050.mp4"><code>0050</code></a></td><td><code>depth_info</code> 完全相同的 <code>0045</code> / <code>0049</code> / <code>0050</code> 很可能是同一事件多机位</td></tr>
-    <tr><td>E07</td><td><b>美术馆中庭</b></td><td>4</td><td>2 / 2</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0015.mp4"><code>0015</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0016.mp4"><code>0016</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0017.mp4"><code>0017</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0019.mp4"><code>0019</code></a></td><td><code>0016</code>、<code>0017</code> 为俯视</td></tr>
-    <tr><td>E08</td><td><b>草地谷仓</b></td><td>4</td><td>3 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0010.mp4"><code>0010</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0011.mp4"><code>0011</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0013.mp4"><code>0013</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0014.mp4"><code>0014</code></a></td><td>与 E12 的木屋不是同一建筑；是否在同一张大地图里看不出</td></tr>
-    <tr><td>E09</td><td><b>地下停车场</b></td><td>4</td><td>0 / 4</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0149.mp4"><code>0149</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0150.mp4"><code>0150</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0151.mp4"><code>0151</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0152.mp4"><code>0152</code></a></td><td><code>0151</code> / <code>0152</code> 多一辆蓝色小车</td></tr>
-    <tr><td>E10</td><td><b>书房书桌</b></td><td>4</td><td>4 / 0</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0202.mp4"><code>0202</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0205.mp4"><code>0205</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0206.mp4"><code>0206</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0209.mp4"><code>0209</code></a></td><td><code>0206</code> 多了椅子和台灯，桌子和墙相同</td></tr>
-    <tr><td>E11</td><td><b>仓库传送带</b></td><td>3</td><td>3 / 0</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0182.mp4"><code>0182</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0184.mp4"><code>0184</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0186.mp4"><code>0186</code></a></td><td>三个视频只换了箱子</td></tr>
-    <tr><td>E12</td><td><b>湖边木屋（码头）</b></td><td>2</td><td>1 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0008.mp4"><code>0008</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0009.mp4"><code>0009</code></a></td><td>与海边沙丘（E02 / E03）不是同一环境</td></tr>
-    <tr><td>E13</td><td><b>隧道走廊</b></td><td>2</td><td>1 / 1</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0141.mp4"><code>0141</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0143.mp4"><code>0143</code></a></td><td></td></tr>
-    <tr><td>E14</td><td><b>黑猫房间 1</b></td><td>2</td><td>2 / 0</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0211.mp4"><code>0211</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0212.mp4"><code>0212</code></a></td><td>同一房间在 D2 有 <code>0210</code>、<code>0213</code>（正机位）</td></tr>
-    <tr><td>E15</td><td><b>月球</b></td><td>2</td><td>0 / 2</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0170.mp4"><code>0170</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0172.mp4"><code>0172</code></a></td><td>同一事件在 S2 有 <code>0169</code>、<code>0171</code></td></tr>
-    <tr><td>E16</td><td><b>单独环境（各 1 组）</b></td><td>16</td><td>11 / 5</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0064.mp4"><code>0064</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0140.mp4"><code>0140</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0144.mp4"><code>0144</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0159.mp4"><code>0159</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0164.mp4"><code>0164</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0168.mp4"><code>0168</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0176.mp4"><code>0176</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0180.mp4"><code>0180</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0188.mp4"><code>0188</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0201.mp4"><code>0201</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0242.mp4"><code>0242</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0307.mp4"><code>0307</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0308.mp4"><code>0308</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0309.mp4"><code>0309</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0310.mp4"><code>0310</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0311.mp4"><code>0311</code></a></td><td><code>0164</code> 保龄球馆（S2 有 <code>0163</code>）、<code>0168</code> 夜间路口（D2 有 <code>0165</code>–<code>0167</code>）、<code>0176</code> 海岛（D2 有 <code>0173</code>、<code>0175</code>）；其余在 3D 中只出现一次</td></tr>
-    <tr><td>E00</td><td><b>无环境（纯色或背景已去除）</b></td><td>17</td><td>15 / 2</td><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0001.mp4"><code>cap_0001</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0002.mp4"><code>cap_0002</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0021.mp4"><code>cap_0021</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0032_segmented.mp4"><code>0032</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0038_segmented.mp4"><code>0038</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0109.mp4"><code>0109</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0110.mp4"><code>0110</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0195.mp4"><code>0195</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0299.mp4"><code>0299</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0300.mp4"><code>0300</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0301.mp4"><code>0301</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0302.mp4"><code>0302</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0303.mp4"><code>0303</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0304.mp4"><code>0304</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0305.mp4"><code>0305</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0306.mp4"><code>0306</code></a>、<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0312.mp4"><code>0312</code></a></td><td>不需要重建环境，只有前景物体：纯色或天空背景（<code>0109</code>、<code>0110</code>、<code>0299</code>–<code>0306</code>、<code>0312</code>）、太空（<code>0195</code>）、只有分割版（<code>0032</code>、<code>0038</code>）、实拍去背景（<code>captured_0001</code>、<code>0002</code>、<code>0021</code>）</td></tr>
-  </table>
-  <details><summary>每个环境的截帧（各编号组的代表视频，取视频中间时刻）</summary>
-    <p><b>E01 实验室（灰色隔板房间）</b>（33）</p>
-    <img src="demo/env3d/E01.jpg" alt="E01 实验室（灰色隔板房间） 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E02 海边白色沙丘 + 红船</b>（15）</p>
-    <img src="demo/env3d/E02.jpg" alt="E02 海边白色沙丘 + 红船 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E03 海面 + 金色沙丘</b>（4）</p>
-    <img src="demo/env3d/E03.jpg" alt="E03 海面 + 金色沙丘 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E04 白色十字路口</b>（10）</p>
-    <img src="demo/env3d/E04.jpg" alt="E04 白色十字路口 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E05 涂鸦白墙街道</b>（5）</p>
-    <img src="demo/env3d/E05.jpg" alt="E05 涂鸦白墙街道 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E06 Photo Lab 小镇街道</b>（5）</p>
-    <img src="demo/env3d/E06.jpg" alt="E06 Photo Lab 小镇街道 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E07 美术馆中庭</b>（4）</p>
-    <img src="demo/env3d/E07.jpg" alt="E07 美术馆中庭 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E08 草地谷仓</b>（4）</p>
-    <img src="demo/env3d/E08.jpg" alt="E08 草地谷仓 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E09 地下停车场</b>（4）</p>
-    <img src="demo/env3d/E09.jpg" alt="E09 地下停车场 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E10 书房书桌</b>（4）</p>
-    <img src="demo/env3d/E10.jpg" alt="E10 书房书桌 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E11 仓库传送带</b>（3）</p>
-    <img src="demo/env3d/E11.jpg" alt="E11 仓库传送带 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E12 湖边木屋（码头）</b>（2）</p>
-    <img src="demo/env3d/E12.jpg" alt="E12 湖边木屋（码头） 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E13 隧道走廊</b>（2）</p>
-    <img src="demo/env3d/E13.jpg" alt="E13 隧道走廊 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E14 黑猫房间 1</b>（2）</p>
-    <img src="demo/env3d/E14.jpg" alt="E14 黑猫房间 1 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E15 月球</b>（2）</p>
-    <img src="demo/env3d/E15.jpg" alt="E15 月球 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E16 单独环境（各 1 组）</b>（16）</p>
-    <img src="demo/env3d/E16.jpg" alt="E16 单独环境（各 1 组） 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-    <p><b>E00 无环境（纯色或背景已去除）</b>（17）</p>
-    <img src="demo/env3d/E00.jpg" alt="E00 无环境（纯色或背景已去除） 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
-  </details>
-
-  <h3 id="前景背景">3D 题目问前景还是背景</h3>
-  <p><b>前景</b>是视频里会动的物体（球、人、车、猫），尺寸和速度可以从它的运动加 prior 算出。<b>背景</b>是静止物体（桌子、路灯、车道、花瓶），视频里没有运动可用，只能靠场景的 3D 几何来量。这里的“背景”指静止物体，与“去背景”无关：去背景版里仍可见的桌子、斜坡也算背景。</p>
-  <table>
-    <tr><th>类别</th><th>题数</th><th>问前景</th><th>问背景</th><th>背景占比</th></tr>
-    <tr><td><b>D3</b></td><td>969</td><td>725</td><td>244</td><td>25%</td></tr>
-    <tr><td><b>S3</b></td><td>578</td><td>406</td><td>172</td><td>30%</td></tr>
-    <tr><td><b>合计</b></td><td><b>1,547</b></td><td><b>1,131</b></td><td><b>416</b></td><td><b>27%</b></td></tr>
-  </table>
-  <ul>
-    <li><b>背景题全是尺寸题：</b>高 138、宽 112、长 89、直径 36、两物体间距 30；没有一道问背景的速度。</li>
-    <li><b>分布不均：</b>132 个编号组中 75 个至少有一道背景题。按环境看，美术馆中庭（E07）35/40、草地谷仓（E08）18/25、湖边木屋（E12）15/25 以背景为主；实验室（E01）212/766；仓库传送带（E11）0/15、月球（E15）0/32 完全不问背景。</li>
-    <li><b>对建模的意义：</b>背景不需要逼真重建，只需地面、相机和被问到的那几个静止物体的几何；前景用分割掩码单独拟合，云、光照等外观差异不影响。</li>
-  </ul>
-  <table>
-    <tr><th>例子</th><th>prior</th><th>问前景</th><th>问背景</th></tr>
-    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0211.mp4"><code>simulation_0211</code></a> 黑猫</td><td>猫速 0.94 m/s</td><td>猫的长、高，猫到相机的距离</td><td>长凳、台灯、灯罩、花瓶、落地镜（8 题）</td></tr>
-    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0062.mp4"><code>simulation_0062</code></a> 路口</td><td>白车加速度 4 m/s²</td><td>白车、黄车、行人、自行车的尺寸和速度</td><td>车道宽、红绿灯高、路灯高（3 题）</td></tr>
-    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/captured_0023.mp4"><code>captured_0023</code></a> 书滑下斜坡</td><td>书在 1.4 s 的加速度</td><td>书的速度、尺寸、位移</td><td>斜坡长宽、桌子宽（3 题）</td></tr>
-    <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0015.mp4"><code>simulation_0015</code></a> 美术馆</td><td>人高 1.87 m</td><td>人的速度（1 题）</td><td>雕塑、底座、展板、长椅、屋顶框架（9 题）</td></tr>
-  </table>
-  <p><small>分类方法：问速度、加速度、位移的算前景；问尺寸的，看该物体在 <code>depth_info</code> 中距离是否随时间变化、是否出现在动态 prior 或速度题里。被判为背景的物体已逐个人工复核，把会动的（钟摆绳、实验室里的人、路口其他车辆、血细胞、木星模型等）改回前景。静止的道具（未被击倒的保龄球瓶、停着的火箭发射车）算背景。误差估计在几十道题以内。</small></p>
-
-  <h3 id="优先级">按子集的优先级</h3>
-  <table>
-    <tr><th>子集</th><th>题数</th><th>难度</th><th>原因</th></tr>
-    <tr><td>simulation 2D</td><td>1,039</td><td>低</td><td>渲染干净、相机固定、物体清晰，比例尺标定最可靠。先在这里把流水线跑通。</td></tr>
-    <tr><td>lab 3D</td><td>791</td><td>中</td><td>有 depth_info，背景可控，还有分割变体可借用。</td></tr>
-    <tr><td>simulation 3D / segmentation</td><td>594 / 430</td><td>中</td><td>同上，分割版本几乎零成本。</td></tr>
-    <tr><td>internet 2D</td><td>420</td><td>高</td><td>背景杂乱、可能有相机运动和透视，平面假设不一定成立。这部分可能要更多依赖 VLM 回退。</td></tr>
-  </table>
-
-  <h3 id="首次结果">首次验证集结果（2026-10-04）</h3>
-  <table>
-    <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>无效答案</th></tr>
-    <tr><td>官方 GPT-5.1 基线</td><td>0.486</td><td>0.569</td><td>0.354</td><td>0.456</td><td>0.564</td><td>6.3%</td></tr>
-    <tr><td>流水线 v0（Grounding DINO 逐帧检测）</td><td>0.436</td><td>0.413</td><td>0.368</td><td>0.651</td><td>0.311</td><td>0%</td></tr>
-    <tr><td><b>流水线 v1（SAM 2 跟踪 + 度量三维）</b></td><td><b>0.514</b></td><td>0.463</td><td>0.341</td><td>0.707</td><td>0.545</td><td>0%</td></tr>
-  </table>
-  <p>v1 按视频来源：分割掩码视频 0.87，实验室 0.62，仿真 0.46，互联网 0.35。v0 到 v1 的提升来自三处：</p>
-  <ul>
-    <li><b>SAM 2 替代逐帧检测。</b>Grounding DINO 只在 6 个采样帧上找物体，取分数最高的帧作为提示框，SAM 2 向前向后传播掩码；轨迹用掩码质心而不是框中心。相似物体之间不再跳框，轨迹抖动大幅减小。单个视频约 10 秒。</li>
-    <li><b>度量三维运动。</b>把像素轨迹换到度量坐标：横向 = 像素偏移 × 深度，纵向 = 深度序列，再求导得到真实三维速度和加速度。深度序列由 depth_info 锚定、按视大小变化外推；用框的宽和高中变化较小的那个作为大小依据，避免把车转弯的宽度变化误当作接近相机。速度和加速度 prior 的焦距按三维公式反解。</li>
-    <li><b>实验室相机焦距先验。</b>三个静态 prior 的实验室编号组反推焦距为 580、604、737 px，说明是同一台相机；动态 prior 的实验室编号组若反推焦距落在 450 到 950 之外，改用 650 px。</li>
-  </ul>
-  <p>加速度 prior 的题从 0.27 提到 0.52，实验室视频从 0.38 提到 0.62。</p>
-
-  <h3 id="已知失败模式">已知失败模式与下一步</h3>
-  <ul>
-    <li><b>语义指认不足（最大剩余瓶颈）。</b>Grounding DINO 无法定位 "the model of Io"、"the pencil tip"、"lane"（整条路被当成车道）、"floor tiles" 等；互联网视频 0.35 基本都是这个原因。下一步：用 VLM（Qwen2.5-VL）在采样帧上指认物体并输出点或框，再交给 SAM 2，即上表阶段 4 预留的 agent 层。</li>
-    <li><b>无深度锚点的三维动态 prior。</b><code>captured_0013</code> 的小球沿斜坡滚向相机，但 depth_info 没有小球的距离，像素加速度混入透视效应，整场 0.40。下一步：用场景中其他有深度的静态物体（斜坡远端、近端）约束小球的深度范围。</li>
-    <li><b>"平均速度"的真值定义是净位移除以时间</b>，不是路径长度（验证集弹跳球题目可验证），代码已按此实现。但对圆周运动（木星卫星模型）净位移接近零，真值却是轨道线速度，这类题需要专门识别。</li>
-    <li><b>静态尺寸题 0.41 到 0.46。</b>框包含阴影、物体被截断、"长度"与"宽度"在透视下对应的方向不明确。下一步：用掩码的主轴长度代替框，按物体朝向决定长宽。</li>
-    <li><b>两个物体间的距离</b>常因第二个物体没被跟踪而兜底。</li>
-  </ul>
 </section>
 
-<section id="related">
-  <h2>Related Work</h2>
-  <p>按四类整理，每类内按时间倒序。优先收录 2024 年以后的工作。</p>
-
-  <h3 id="rw-bench">定量物理与空间推理 benchmark</h3>
-  <table class="rw">
-    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
-    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2605.23898">SPACENUM</a></td><td>双向测试 VLM 能否把空间结构和数字互相映射（Num2Space / Space2Num）。</td><td class="muted">结论是现有 VLM 几乎接近随机猜，印证了“不能让 VLM 直接报数”。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.19526">QuantiPhy（本比赛）</a></td><td>给视频和一个物理量 prior，让 VLM 输出另一个物理量（尺寸、速度、加速度）的真实世界数值。</td><td class="muted">目标任务。论文发现 VLM 主要靠先验知识而不是视频内容作答。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.01989">PAI-Bench</a></td><td>面向 Physical AI 的综合 benchmark，覆盖视频生成与视频理解的感知和预测能力。</td><td class="muted">偏定性，不含数值测量，但说明“物理 AI 评测”是当前热点。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2510.02311">Inferring Dynamic Physical Properties from Video Foundation Models</a></td><td>从视频推断弹性、粘度、动摩擦等需要运动信息的物理属性，比较经典 CV oracle、视频基础模型 readout 和多模态 LLM 提示。</td><td class="muted">经典 CV 流水线作为 oracle 明显优于 VLM，和我们“显式测量 + 物理公式”的路线一致。</td></tr>
-    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2501.16411">PhysBench</a></td><td>1 万条图文视频混合题，评测 VLM 对物体属性、关系、场景和动力学的物理理解。</td><td class="muted">定性为主；证明通用 VLM 的物理理解普遍偏弱。</td></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.14171">Thinking in Space（VSI-Bench）</a></td><td>5,000 多道视频题评测多模态 LLM 的空间智能，包括物体尺寸、距离、计数等数值题。</td><td class="muted">最接近的“数值空间题” benchmark，但只有静态物体，没有运动量。</td></tr>
-    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2409.09788">Q-Spatial Bench / SpatialPrompt</a></td><td>评测 VLM 对尺寸、距离的定量空间推理，并提出用参照物引导推理的零样本提示。</td><td class="muted">用参照物标定尺度正是本比赛 prior 的用法；提示 VLM 显式借助参照物可大幅提分。</td></tr>
-    <tr><td class="yr">2024 · ICML</td><td><a href="https://arxiv.org/abs/2402.06119">ContPhy</a></td><td>从视频学习与推理连续介质（流体、软体、绳索）的物理概念。</td><td class="muted">扩展到软体和流体，QuantiPhy 只涉及刚体运动学。</td></tr>
-    <tr><td class="yr">2023 · NeurIPS</td><td><a href="https://arxiv.org/abs/2306.15668">Physion++</a></td><td>评测模型能否从视频里推断质量、摩擦、弹性、可变形性等隐含物体属性并预测结果。</td><td class="muted">属性推断是定性判断，不要求数值。</td></tr>
-    <tr><td class="yr">2020 · ICLR</td><td><a href="https://arxiv.org/abs/1910.01442">CLEVRER</a></td><td>合成碰撞视频上的描述、解释、预测与反事实问答。</td><td class="muted">物理视频问答的奠基 benchmark，全部为选择题。</td></tr>
-  </table>
-
-  <h3 id="rw-inverse">从视频反推物理参数（inverse physics / inverse rendering）</h3>
-  <table class="rw">
-    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
-    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.04575">PhysMind</a></td><td>不训练：从视频做物体分割、网格重建和 6D 位姿跟踪，再拟合解析的连续时间动力学来回答物理推理题。</td><td class="muted">与我们的思路最接近：agent VLM 负责语义和选工具（SAM 3 等），几何由专门模型给出，物理由拟合得到。</td></tr>
-    <tr><td class="yr">2026 · NeurIPS</td><td><a href="https://arxiv.org/abs/2605.30320">MonoPhysics</a></td><td>从单目视频联合估计可变形物体的几何、外观和杨氏模量，用 3D Gaussian Splatting 加可微仿真克服单目尺度歧义。</td><td class="muted">单目尺度歧义是 3D 题的核心难点，可以参考其尺度重参数化思路。</td></tr>
-    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2603.16958">PhysQuantAgent</a></td><td>给 VLM 加上检测、尺度估计和截面图等视觉提示，组成估计物体质量的推理流水线，并提出 VisPhysQuant 数据集。</td><td class="muted">“先给 VLM 显式尺度线索再让它答数”的思路可用于我们的 VLM 回退。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.08282">PAVAS</a></td><td>物理感知的视频生音频：用 VLM 估质量，用开放词表分割加 CUT3R 动态三维重建得到度量尺度的速度。</td><td class="muted">展示了“分割 + 前馈 4D 重建 → 度量速度”这条链路是可行的。</td></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2506.06440">Vid2Sim</a></td><td>从多视角视频前馈重建外观、几何和物理参数，再用无网格可微仿真微调，得到可仿真的数字资产。</td><td class="muted">多视角输入，不能直接用于单目；但说明前馈初始化 + 轻量优化的范式。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2503.17973">PhysTwin</a></td><td>从稀疏视角视频重建可变形物体的物理数字孪生，联合优化弹簧质点模型参数、几何和外观。</td><td class="muted">面向软体，但其“重建 → 参数拟合 → 仿真验证”的闭环和我们阶段 4 的校验一致。</td></tr>
-    <tr><td class="yr">2023 · ICLR</td><td><a href="https://arxiv.org/abs/2303.05512">PAC-NeRF</a></td><td>不假设几何拓扑，从多视角视频同时估计物体几何和物理参数（可微 MPM 仿真 + NeRF 渲染）。</td><td class="muted">inverse rendering 与 inverse physics 结合的代表作。</td></tr>
-    <tr><td class="yr">2016 · BMVC</td><td><a href="https://bmva-archive.org.uk/bmvc/2016/papers/paper039/index.html">Physics 101</a></td><td>17,408 段真实视频，无标注地学习物体质量、密度、弹性等物理属性。</td><td class="muted">早期用物理定律当监督信号从视频学属性的工作。</td></tr>
-    <tr><td class="yr">2015 · NeurIPS</td><td><a href="https://proceedings.neurips.cc/paper/2015/hash/d09bf41544a3365a46c9077ebb5e35c3-Abstract.html">Galileo</a></td><td>以 3D 物理引擎为核心的生成模型，从真实视频推断物体质量、摩擦等并预测事件结果。</td><td class="muted">“用物理引擎做反推”的源头。</td></tr>
-  </table>
-
-  <h3 id="rw-3d">度量尺度的深度与 3D / 4D 重建</h3>
-  <table class="rw">
-    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2503.11651">VGGT</a></td><td>单个前馈网络从一张到数百张图直接输出相机参数、深度图、点图和三维点轨迹。</td><td class="muted">CVPR 2025 最佳论文；可一次给出相机内参和深度，是 3D 题的候选工具。</td></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2501.12375">Video Depth Anything</a></td><td>在 Depth Anything V2 上加时空头，对任意长视频输出时间一致的深度。</td><td class="muted">逐帧深度抖动会直接变成速度噪声，时间一致性很重要。</td></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.04463">MegaSaM</a></td><td>从随手拍的动态场景单目视频快速稳健地估计相机参数和深度图。</td><td class="muted">处理 internet 视频中的相机运动。</td></tr>
-    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.03825">MonST3R</a></td><td>对动态场景逐时刻直接估计点图，得到视频深度和相机位姿。</td><td class="muted">前馈 4D 重建的代表，PAVAS 用的 CUT3R 是其后续。</td></tr>
-    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.02073">Depth Pro</a></td><td>零样本度量单目深度，不需要相机内参，0.3 秒出 2.25 MP 的锐利深度图。</td><td class="muted">没有 depth_info 时可以提供绝对尺度的初值。</td></tr>
-    <tr><td class="yr">2025 · ICCV</td><td><a href="https://arxiv.org/abs/2407.13764">Shape of Motion</a></td><td>用一组 SE(3) 运动基表示场景运动，从单目视频重建长程三维轨迹。</td><td class="muted">物体三维轨迹的另一种来源。</td></tr>
-    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2403.18913">UniDepth</a></td><td>跨域通用的单目度量深度，直接预测度量三维点并自估相机。</td><td class="muted">同上，度量深度基础模型。</td></tr>
-    <tr><td class="yr">2024 · NeurIPS</td><td><a href="https://arxiv.org/abs/2406.01584">SpatialRGPT</a></td><td>把深度作为插件接入 VLM，并用 3D 场景图生成区域级空间问答数据，评测度量距离与尺寸推理。</td><td class="muted">给 VLM 喂深度能显著提升数值空间推理。</td></tr>
-    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2401.12168">SpatialVLM</a></td><td>用 1,000 万张真实图像自动生成 20 亿条三维空间问答训练 VLM，使其能答距离和尺寸。</td><td class="muted">证明数值空间能力可以通过数据合成训练出来。</td></tr>
-  </table>
-
-  <h3 id="rw-tools">检测、分割与跟踪工具</h3>
-  <table class="rw">
-    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
-    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.16785">Calibration-Free Vehicle Speed Estimation</a></td><td>不标定相机、不依赖路面特征，用 36 个关键点的车辆模板和逐帧更新的单应矩阵把像素位移换算成米制速度。</td><td class="muted">把物体自身的已知结构当参照物来定尺度，和本比赛“用 prior 物体标定”的思路相同。</td></tr>
-    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2408.00714">SAM 2</a></td><td>图像与视频的可提示分割基础模型，给一帧提示即可在整段视频中传播掩码。</td><td class="muted">我们阶段 1 的跟踪器。</td></tr>
-    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2410.11831">CoTracker3</a></td><td>用伪标签在真实视频上半监督训练的点跟踪器，能跟踪可见与遮挡点。</td><td class="muted">掩码质心抖动时的备选轨迹来源。</td></tr>
-    <tr><td class="yr">2024 · ECCV</td><td><a href="https://arxiv.org/abs/2303.05499">Grounding DINO</a></td><td>开放词表目标检测，用自然语言短语给出物体框。</td><td class="muted">我们阶段 1 的物体指认器；对 "the model of Io" 一类名词仍会失败。</td></tr>
-    <tr><td class="yr">2024 · IEEE Access</td><td><a href="https://ieeexplore.ieee.org/document/10770228/">单目视频车速估计</a></td><td>YOLOv8 检测 + ByteTrack 跟踪 + 深度单应回归网络，从固定监控视频估计车速。</td><td class="muted">传统“检测 + 跟踪 + 标定”测速流程的近期实现，误差约 2 km/h。</td></tr>
-  </table>
-</section>
-
-<footer>最后更新 2026-10-05</footer>
+<footer>最后更新 2026-10-08</footer>
 </div>
 </div>
 <script>
 (function(){
   const list=document.getElementById('toc-list');
   const heads=[...document.querySelectorAll('.wrap h2')];
-  const links=new Map();
+  const links=new Map(), items=new Map(), subLinks=new Map();
+  // user-toggled state per section: true = forced open, false = forced closed, absent = follow scroll
+  const manual=new Map();
   heads.forEach(h=>{
     const sec=h.closest('section');
     if(!sec.id) sec.id='s-'+Math.random().toString(36).slice(2,7);
     const a=document.createElement('a'); a.href='#'+sec.id; a.textContent=h.textContent.trim();
-    const li=document.createElement('li'); li.appendChild(a); list.appendChild(li); links.set(sec.id,a);
+    const li=document.createElement('li');
+    const row=document.createElement('div'); row.className='toc-row';
+    const subs=[...sec.querySelectorAll('h3')];
+    if(subs.length){
+      const caret=document.createElement('button');
+      caret.className='toc-caret'; caret.type='button'; caret.textContent='▶';
+      caret.setAttribute('aria-label','展开 / 收起 '+a.textContent);
+      caret.addEventListener('click',()=>{ manual.set(sec.id,!li.classList.contains('open')); update(); });
+      row.appendChild(caret);
+    } else {
+      // spacer so labels without a caret line up with those that have one
+      const pad=document.createElement('span'); pad.className='toc-caret'; pad.setAttribute('aria-hidden','true');
+      row.appendChild(pad);
+    }
+    row.appendChild(a); li.appendChild(row);
+    if(subs.length){
+      const ul=document.createElement('ul'); ul.className='toc-sub';
+      subs.forEach(h3=>{
+        if(!h3.id) h3.id=sec.id+'-'+Math.random().toString(36).slice(2,7);
+        const sa=document.createElement('a'); sa.href='#'+h3.id; sa.textContent=h3.textContent.trim();
+        const sli=document.createElement('li'); sli.appendChild(sa); ul.appendChild(sli);
+        subLinks.set(h3,sa);
+      });
+      li.appendChild(ul);
+    }
+    list.appendChild(li); links.set(sec.id,a); items.set(sec.id,li);
   });
   const sections=[...document.querySelectorAll('.wrap section')];
+  const allSubs=[...subLinks.keys()];
   function update(){
     let cur=sections[0];
     for(const sec of sections){ if(sec.getBoundingClientRect().top<=120) cur=sec; }
     links.forEach(a=>a.classList.remove('active'));
     if(cur&&links.get(cur.id)) links.get(cur.id).classList.add('active');
+    // the current section opens automatically unless the user closed it; others open only if the user opened them
+    items.forEach((li,id)=>{
+      const m=manual.get(id);
+      li.classList.toggle('open', m===undefined ? (cur&&id===cur.id) : m);
+    });
+    // highlight the last h3 of the current section that has scrolled past the top
+    let curSub=null;
+    for(const h3 of allSubs){ if(cur&&cur.contains(h3)&&h3.getBoundingClientRect().top<=120) curSub=h3; }
+    subLinks.forEach((sa,h3)=>sa.classList.toggle('active',h3===curSub));
+    // keep the active entry visible inside the sidebar without scrolling the page itself
+    const toc=list.closest('.toc'), act=curSub ? subLinks.get(curSub) : (cur&&links.get(cur.id));
+    if(act&&act.offsetParent){
+      const r=act.getBoundingClientRect(), tr=toc.getBoundingClientRect();
+      if(r.bottom>tr.bottom) toc.scrollTop+=r.bottom-tr.bottom+8;
+      else if(r.top<tr.top) toc.scrollTop-=tr.top-r.top+8;
+    }
   }
+  // a TOC link into a collapsed appendix block opens that block first
+  function openTarget(){ const t=document.getElementById(decodeURIComponent(location.hash.slice(1))); const d=t&&t.closest('details'); if(d&&!d.open){ d.open=true; t.scrollIntoView(); } }
+  addEventListener('hashchange',openTarget); openTarget();
   addEventListener('scroll',update,{passive:true}); addEventListener('resize',update); update();
 })();
 </script>
