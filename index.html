@@ -124,6 +124,12 @@
   table.rw td.muted { color: var(--muted); }
   table.rw a { font-weight: 600; }
   footer { color: var(--muted); font-size: 13px; margin-top: 30px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 18px 0; }
+  .stat { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .stat .num { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.3; }
+  .stat .lbl { font-size: 13px; color: var(--muted); }
+  .stat.hi .num { color: var(--accent); }
+  .links-inline a { margin-right: 14px; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -137,136 +143,51 @@
 <header>
   <h1>Documentation</h1>
 </header>
-
-<section id="links">
-  <h2>链接</h2>
-  <ul>
-    <li>比赛页面：<a href="https://quantiphy.stanford.edu/competition/index.html">quantiphy.stanford.edu/competition</a></li>
-    <li>项目主页：<a href="https://quantiphy.stanford.edu/">quantiphy.stanford.edu</a></li>
-    <li>论文：<a href="https://arxiv.org/pdf/2512.19526">arXiv 2512.19526</a></li>
-    <li>官方代码：<a href="https://github.com/Paulineli/QuantiPhy">github.com/Paulineli/QuantiPhy</a></li>
-    <li>测试集：<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy">HF PaulineLi/QuantiPhy</a></li>
-    <li>验证集：<a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy-validation">HF PaulineLi/QuantiPhy-validation</a></li>
-  </ul>
+<section id="overview">
+  <h2>概览</h2>
+  <p>QuantiPhy 比赛：给一段视频和一个已知物理量（prior），推断另一个物理量（尺寸、速度、加速度）的数值。我们的做法是用跟踪、标定和物理拟合来<b>测量</b>，不让 VLM 直接猜。</p>
+  <div class="stats">
+    <div class="stat"><div class="num">10/23</div><div class="lbl">最终提交截止（23:59 AoE）</div></div>
+    <div class="stat hi"><div class="num">0.514</div><div class="lbl">当前最好：流水线 v1，验证集 macro MRA</div></div>
+    <div class="stat"><div class="num">0.486</div><div class="lbl">官方 GPT-5.1 基线</div></div>
+    <div class="stat"><div class="num">3,289</div><div class="lbl">测试集题数 · 568 视频 · 4 个评测类别</div></div>
+  </div>
+  <p><b>下一步：</b></p>
+  <ol>
+    <li>用 VLM（Qwen2.5-VL）指认物体，再交给 SAM 2，解决 Grounding DINO 找不到物体的问题（互联网视频只有 0.35，主要卡在这里）。</li>
+    <li>3D 动态 prior 缺深度锚点时，借场景里有深度的静态物体约束运动物体的深度。</li>
+    <li>静态尺寸题改用掩码主轴代替框，并按物体朝向区分长和宽。</li>
+  </ol>
+  <p class="links-inline"><b>链接：</b>
+    <a href="https://quantiphy.stanford.edu/competition/index.html">比赛页面</a>
+    <a href="https://quantiphy.stanford.edu/">项目主页</a>
+    <a href="https://arxiv.org/pdf/2512.19526">论文</a>
+    <a href="https://github.com/Paulineli/QuantiPhy">官方代码</a>
+    <a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy">测试集</a>
+    <a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy-validation">验证集</a>
+    <a href="https://docs.google.com/spreadsheets/d/1sX-I8rJ29uVSGej3MeLYaypRPPBK42d3KrWGub9MwrA/edit?usp=sharing">完整数据表</a>
+  </p>
 </section>
 
-<section id="info">
-  <h2>比赛信息</h2>
+<section id="competition">
+  <h2>比赛与数据</h2>
   <div class="callout"><b>队伍注册截止：2026 年 10 月 9 日 23:59 AoE</b>（之后不能新建或修改队伍）<br><b>最终提交截止：2026 年 10 月 23 日 23:59 AoE</b></div>
   <ul>
-    <li><b>任务：</b>给一段视频和一个已知物理量（prior），让模型推断另一个物理量，比如长度、速度、加速度，输出数值。</li>
     <li><b>两个赛道：</b>Track A（Main）任意模型；Track B（Open-Weight）仅限公开权重的模型和工具。</li>
-    <li><b>提交形式：</b>注册队伍（最多 5 人），在测试集上跑模型，预测结果整理成单个 CSV，通过官方 portal 上传，每天最多 3 次计分提交。</li>
-    <li><b>提交入口：</b>登录后在 <a href="https://quantiphy.stanford.edu/competition/auth/account.html">auth/account.html</a> 上传 CSV，选 Track A 或 B，页面列出自己每次提交的分数，可按日期或分数排序。官网目前没有公开的全队伍排行榜页面。</li>
-    <li><b>排行榜：</b>开发阶段实时更新，上传后立即返回 MRA 分数，但只在自己队伍的页面可见。测试集真值始终不公开，没有 public/private 划分。最终排名按四个诊断类别 macro-average 的 MRA。</li>
-    <li><b>奖金（每赛道）：</b>第一名 $1,000，第二名 $500，第三名 $250。</li>
+    <li><b>提交：</b>一个 CSV（官方模板 3,289 行，只填 <code>parsed_value</code>），每天最多 3 次计分提交，上传后立即返回 MRA，但只有自己队伍可见。</li>
+    <li><b>评分：</b>MRA（Mean Relative Accuracy），在一组相对误差阈值上判断是否命中再取平均；最终分数是 D2 / D3 / S2 / S3 四类 MRA 的平均。本地只能在验证集上算分。</li>
   </ul>
+  <p><small>提交物、复现包和奖金等细节见附录“提交细节”。</small></p>
 
-  <h3 id="最终提交物">最终要交什么</h3>
-  <table>
-    <tr><th>时间</th><th>交什么</th><th>谁要交</th></tr>
-    <tr><td>10 月 23 日 23:59 AoE 前</td><td><b>一个 CSV 预测文件</b>：官方模板 <code>quantiphy_submission_template.csv</code>（已在 <code>data/</code>），3,289 行，每行一道题（不能用 <code>video_id</code> 当行标识）。id 不动，只填 <code>parsed_value</code>：纯数字、不带单位、按题目要求的单位，文件最大 2 MB。两个赛道用同一模板，每次上传时选择计入 Track A 或 B。</td><td>所有队伍</td></tr>
-    <tr><td>赛后通知起 14 天内</td><td><b>可复现包</b>：代码或 Docker 容器，供官方复跑验证分数。</td><td>每赛道前三名</td></tr>
-    <tr><td>赛后</td><td><b>代码公开</b>：Track A 仅前三名需公开；Track B 官网写的是所有参赛作品都要公开。</td><td>见左</td></tr>
-    <tr><td>11 月</td><td><b>技术报告 / 简短技术总结</b>：官方邀请头部队伍提交。开发中用过闭源 API 输出的（比如用 Track A 结果辅助 Track B），必须在技术报告里说明。</td><td>受邀队伍</td></tr>
-    <tr><td>12 月 11–12 日</td><td><b>NeurIPS workshop 口头报告</b>：第一名 10 分钟，第二、三名 5 分钟。</td><td>每赛道前三名</td></tr>
-  </table>
-</section>
-
-<section id="data">
-  <h2>数据集</h2>
+  <h3 id="数据规模">数据规模</h3>
   <table>
     <tr><th>数据集</th><th>本地路径</th><th>大小</th><th>视频</th><th>编号组</th><th>QA 数</th><th>每视频题数</th><th>有答案</th></tr>
     <tr><td>测试集 <code>PaulineLi/QuantiPhy</code></td><td><code>data/QuantiPhy/</code></td><td>507 MB</td><td>568</td><td>408</td><td>3,289</td><td>1 到 19，中位数 5</td><td>否</td></tr>
     <tr><td>验证集 <code>PaulineLi/QuantiPhy-validation</code></td><td><code>data/QuantiPhy-validation/</code></td><td>6 MB</td><td>24（在 <code>validation_videos/</code> 下）</td><td>24</td><td>159</td><td>3 到 13，中位数 6</td><td>是</td></tr>
   </table>
-  <p>项目用的完整数据表（测试集与验证集）：<a href="https://docs.google.com/spreadsheets/d/1sX-I8rJ29uVSGej3MeLYaypRPPBK42d3KrWGub9MwrA/edit?usp=sharing">Google Sheets</a>。</p>
+  <p>下载：在仓库根目录运行 <code>./download_data.sh</code>，约 515 MB，下载到 <code>data/</code>。字段和单位的细节见附录。</p>
 
-  <h3 id="下载方式">下载方式</h3>
-  <p>clone 仓库后在仓库根目录运行自带脚本即可，只依赖 bash、curl 和 python3：</p>
-<pre><code>./download_data.sh</code></pre>
-  <p>脚本会把测试集、验证集和官方提交模板 <code>quantiphy_submission_template.csv</code> 下载到 <code>data/</code> 目录，共约 515 MB。该目录已 gitignore。脚本可重复运行，已下载且大小正确的文件会自动跳过，结束时会校验文件数量和大小。</p>
-  <p>表格每行的 <code>video_id</code> 就是视频文件名（不含 <code>.mp4</code>）。一个 <code>video_id</code> 对应唯一一个视频；一个视频有多道题，所以同一 <code>video_id</code>（如 <code>simulation_0082</code>）会出现在多行，各行的 question 和 inference_type 不同。</p>
-
-  <h3 id="字段">字段</h3>
-  <p>测试集 parquet 有 8 列：<code>video_id</code>, <code>video_source</code>, <code>video_type</code>, <code>fps</code>, <code>inference_type</code>, <code>question</code>, <code>prior</code>, <code>depth_info</code>。验证集多一列 <code>answer</code>。</p>
-  <p>运行 <code>download_data.sh</code> 后，parquet 位于 QuantiPhy 仓库的 <code>data/QuantiPhy/test_dataset.parquet</code>（验证集为 <code>data/QuantiPhy-validation/validation_dataset.parquet</code>）。脚本不会生成 CSV，想直接打开看可在仓库根目录自行导出：</p>
-<pre><code>python3 -c "import pandas as pd; pd.read_parquet('data/QuantiPhy/test_dataset.parquet').to_csv('data/QuantiPhy/test_dataset.csv', index=False)"</code></pre>
-
-  <h3 id="视频来源">四类视频来源</h3>
-  <table>
-    <tr><th><code>video_source</code></th><th>说明</th><th>视频数（测试集）</th><th>问题数</th></tr>
-    <tr><td>simulation 仿真</td><td>Blender 渲染（Sketchfab / BlenderKit 资产），物理参数完全可控</td><td>294</td><td>1,633</td></tr>
-    <tr><td>lab 实验室</td><td>实拍的真实运动，场景中常有标尺或校准网格。视频 id 前缀为 <code>captured_</code></td><td>115</td><td>806</td></tr>
-    <tr><td>segmentation 分割</td><td>用 SAM 抠出运动前景、背景换成纯色的对照版本</td><td>85</td><td>430</td></tr>
-    <tr><td>internet 互联网</td><td>野外真实视频，背景杂乱、光照变化、有遮挡</td><td>74</td><td>420</td></tr>
-  </table>
-  <p>帧率以 24 fps 为主（420 个视频），其余有 22、25、26、30、33、50、60、120，共 9 种。1,000 道题指定了具体时刻（如 "at 1.5s"），抽帧时要用表格的 <code>fps</code> 列把时刻换算成帧号（与 <code>pipeline/data.py</code> 一致）。</p>
-
-  <h3 id="物理量">物理量与单位</h3>
-  <p>只涉及平移运动学：尺寸 / 距离（长、宽、高、厚度、直径、间距、位移）、速度（瞬时、时段平均、水平）、加速度（瞬时、平均、重力，统一取 9.8 m/s²）。每个样本 = 1 个视频 + 1 个 prior + 1 个问题。测试集分布：</p>
-  <table>
-    <tr><th>量纲</th><th>被问的物理量（题数）</th><th>答案单位（题数）</th><th>问题小计</th><th>prior 关键词（题数）</th><th>prior 小计</th></tr>
-    <tr><td><b>尺寸 / 距离</b></td><td>长度 576<br>高度 555<br>距离 / 位移 438<br>宽度 397<br>直径 / 半径 255<br>厚度 5<br>其他（size、spacing、breadth 等）15</td><td>meters 1,642<br>cm 593<br>mm 6</td><td>2,241</td><td>diameter 476<br>length 302<br>height 220<br>width 146<br>radius 5<br>其他（size、ruler calibre 等）22</td><td>1,171</td></tr>
-    <tr><td><b>速度</b></td><td>速度 898</td><td>m/s 680<br>cm/s 218</td><td>898</td><td>speed 817<br>velocity 224</td><td>1,041</td></tr>
-    <tr><td><b>加速度</b></td><td>加速度 150</td><td>m/s² 135<br>cm/s² 15</td><td>150</td><td>acceleration 774<br>gravity 303</td><td>1,077</td></tr>
-    <tr><td><b>合计</b></td><td></td><td></td><td><b>3,289</b></td><td></td><td><b>3,289</b></td></tr>
-  </table>
-  <p><small>按关键词归类，每题只计一次：问题按 加速度 → 速度 → 距离 → 尺寸 的优先级匹配（含 velocoty、diatance 等拼写错误；“speedboat” 不算速度）；单位取问题中 “in &lt;单位&gt;” 的位置，不论在句中还是句尾；prior 按 gravity → acceleration → velocity → speed → 尺寸词 的优先级匹配。每一行的问题量纲与答案单位量纲逐题一致。prior 量纲与 <code>inference_type</code> 首字母有 28 题不一致（21 题标 D 但 prior 是尺寸，7 题标 S 但 prior 是速度，来自 <code>internet_0067</code>、<code>internet_0073</code>、<code>simulation_0084</code>、<code>0190</code>、<code>0280</code>、<code>0281</code>），评测类别以 <code>inference_type</code> 为准。</small></p>
-  <p>有 47 道题的单位写在句中（如 "What is the height, in meters, of ..."）而非句尾，解析单位时不能只看结尾。验证集答案范围从 0.00175 到 1086，中位数 3.6。MRA 是相对误差，量级本身不影响评分，但答案为 0 或非数值会被判无效。</p>
-
-  <h3 id="物体">涉及的物体</h3>
-  <p>物体都由文字明确指定，从铅笔尖到航天器都有：</p>
-  <table>
-    <tr><th>大类</th><th>细分类别</th><th>具体物理实体（Entities）</th><th>在数据集中的主要角色</th><th>常见测算物理量 / 作用</th></tr>
-    <tr><td rowspan="2"><b>交通与道路基础设施</b></td><td><b>机动/非机动车辆</b></td><td><code>white car</code>（白车）、<code>black car</code>（黑车）、<code>bus</code>（公交）、<code>race car</code>（赛车）、<code>bicycle</code>（自行车）</td><td>目标物体 / 参照物</td><td>移动速度、运动距离、车辆长度</td></tr>
-    <tr><td><b>道路设施</b></td><td><code>straight-through lane</code>（直行车道）、<code>roundabout lane</code>（环岛）、<code>center island planter</code>（花坛）</td><td>环境参照物</td><td>道路宽度、环岛半径、轨迹基准</td></tr>
-    <tr><td rowspan="3"><b>人物与特定角色</b></td><td><b>独立行人/路人</b></td><td><code>pedestrian</code>（行人）、<code>woman in yellow</code>（黄衣女子）</td><td>目标物体 / 参照物</td><td>身高、行走速度、空间深度</td></tr>
-    <tr><td><b>多角色互动</b></td><td><code>passer</code>（传球者/左侧人）、<code>receiver</code>（接球者/右侧人）</td><td>目标物体</td><td>人员间距、相对速度</td></tr>
-    <tr><td><b>特殊场景角色</b></td><td><code>astronaut</code>（宇航员）</td><td>目标物体</td><td>3D空间速度、加速度</td></tr>
-    <tr><td rowspan="2"><b>动物与空中实体</b></td><td><b>鸟类/自然生物</b></td><td><code>big bird</code>（大鸟）、<code>small bird</code>（小鸟）、<code>eagle</code>（老鹰）</td><td>目标物体</td><td>翼展/体长、飞行速度、相对距离</td></tr>
-    <tr><td><b>飞行器</b></td><td><code>spaceship</code>（飞船）、<code>drone</code>（无人机）</td><td>目标物体</td><td>3D运动轨迹、加速度</td></tr>
-    <tr><td rowspan="2"><b>体育器材与球类</b></td><td><b>台球运动</b></td><td><code>billiard ball</code>（台球，按颜色区分：红、黄、蓝、黑、紫、橙、白）</td><td>目标物体</td><td>碰撞后速度、球体间距</td></tr>
-    <tr><td><b>保龄球运动</b></td><td><code>bowling pin</code>（保龄球瓶）、<code>rolling sphere</code>（滚动球体）、<code>ball return opening</code>（回球口）</td><td>目标物体 / 参照物</td><td>保龄球瓶高度、球体直径、滚动速度</td></tr>
-    <tr><td rowspan="2"><b>物理教具与几何体</b></td><td><b>力学实验教具</b></td><td><code>pendulum</code>（单摆）、<code>sliding block</code>（滑块）、<code>track cart</code>（轨道小车）、<code>wood block</code>（木块）</td><td>目标物体</td><td>摆动周期、滑行加速度、速度</td></tr>
-    <tr><td><b>标准几何体</b></td><td><code>sphere</code>（球体）、<code>cube</code>（立方体）、<code>cylinder</code>（圆柱体）</td><td>目标物体</td><td>边长、直径、体积、运动速度</td></tr>
-    <tr><td rowspan="1"><b>工具与微观结构</b></td><td><b>工具与微观目标</b></td><td><code>saw</code>（锯子）、<code>pencil tip</code>（铅笔尖）</td><td>目标物体</td><td>锯切频率、微观移动速度</td></tr>
-    <tr><td rowspan="3"><b>环境与标定参照物</b></td><td><b>物理标定物</b></td><td><code>ruler</code> / <code>calibrated grid</code>（刻度尺 / 标定网格）</td><td>尺度参照物</td><td>像素-物理尺寸换算基准（Scale Factor）</td></tr>
-    <tr><td><b>室内环境参照</b></td><td><code>floor tiles</code>（地板砖）、<code>ceiling light</code>（吸顶灯）</td><td>环境参照物</td><td>地砖边长、室内坐标系基准</td></tr>
-    <tr><td><b>户外环境参照</b></td><td><code>road sign</code>（路牌）、<code>neon sign</code>（霓虹灯牌）、<code>street light</code>（路灯）</td><td>环境参照物</td><td>Z轴深度参考、相机移动校验</td></tr>
-  </table>
-  <h4>角色界定规则</h4>
-  <ul>
-    <li><b>目标物体（Target Entity）：</b><code>question</code> 显式要求计算其物理量（如 <code>length of eagle</code>、<code>velocity of white car</code>）的主体。</li>
-    <li><b>参照物（Reference Object）：</b>在 <code>prior</code> 或 <code>depth_info</code> 中给出已知尺寸/距离（如 <code>ruler = 1cm</code>、<code>distance_neonsign = 34.5m</code>），用于推算目标物体绝对数值的基准。</li>
-  </ul>
-  <h4>复合场景处理</h4>
-  <p>同一个物体（如 <code>white car</code>）在场景 A 中作为<b>测算目标</b>（求其速度），在场景 B 中可作为<b>参照物</b>（已知其速度，求旁边行人的身高）。</p>
-  <p>参照物（车道、地砖、网格等）常作为 prior 的载体，也是指认难点（见"已知失败模式"）。</p>
-</section>
-
-<section id="analysis">
-  <h2>数据集分析</h2>
-  <p>基于 <code>test_dataset.parquet</code> 与 <code>validation_dataset.parquet</code> 的统计（2026-10-04）。</p>
-
-  <h3 id="关键发现">关键发现</h3>
-  <ol>
-    <li><b>验证集是测试集的子集。</b>验证集 24 个视频全部出现在测试集中，159 道题里 124 道的题目文本与测试集完全一致，其余 35 道仅措辞略有差异。这 159 道题的答案我们实际上已经有了，约占测试集的 4.8%。</li>
-    <li><b>所有 3D 题都附带 depth_info，2D 题全部为空。</b>1,547 道 3D 题每道都有一段文字，按时间点给出各物体到相机的距离，最多 9 行。这是官方提供的输入，应当喂给模型。看 depth_info 是否为空即可判断 2D / 3D（见“2D 和 3D 的区别”）。</li>
-    <li><b>568 个视频只有 408 个编号组，实际重复更多。</b>video_id 去掉后缀就是编号组，117 个编号组有 2 到 6 个变体（换背景、分割掩码、换机位）。另有不少编号不同的 simulation 视频是同一事件（同一物体、同一运动，只换机位或光照），合并后为 373（严格）到约 266（宽松），且常常一个在 2D 类、一个在 3D 类（见“编号组与变体”和附录）。</li>
-    <li><b>3D 只有 31 个环境，约 1/4 的题问背景。</b>3D 的 132 个编号组按静态几何归并为 31 个环境；1,547 道 3D 题里 416 道（27%）问静止物体的尺寸，其余问运动物体（见“3D 环境核对清单”“3D 题目问前景还是背景”）。</li>
-  </ol>
-
-  <h3 id="题目类型">题目类型与评测类别</h3>
-  <p><code>inference_type</code> 两个字母分别表示 prior 与答案的类型：S = 静态量（长度、尺寸），D = 动态量（速度、加速度）。测试集：DS 1,684、SS 597、SD 560、DD 448。</p>
-  <p><code>video_type</code> 是 36 种四位编码（如 <code>S2MC</code>、<code>A3MC</code>、<code>V2MS</code>）：</p>
-  <table>
-    <tr><th>位</th><th>含义</th><th>测试集分布（题数）</th></tr>
-    <tr><td>第 1 位</td><td>prior 的类型：S 尺寸、V 速度、A 加速度</td><td>S 1,167 / V 1,061 / A 1,061</td></tr>
-    <tr><td>第 2 位</td><td>维度：2 平面运动、3 有深度</td><td>2D 1,742 / 3D 1,547</td></tr>
-    <tr><td>第 3 位</td><td>物体数：S 单个、M 多个</td><td>M 2,502 / S 787</td></tr>
-    <tr><td>第 4 位</td><td>背景：C 原始、S 简化、X 分割掩码</td><td>C 1,548 / S 930 / X 811</td></tr>
-  </table>
+  <h3 id="题目类型">评测类别</h3>
   <div class="note"><b>评测类别按 prior 划分，不按问题划分。</b>类别 = inference_type 首字母 + 维度（2 / 3）：D2 = Dynamic 2D，D3 = Dynamic 3D，S2 = Static 2D，S3 = Static 3D。Dynamic / Static 指 prior 是速度 / 加速度还是尺寸，与问题问什么无关：prior 是车长、问题求速度，仍归 S2（S2、S3 各有 225 道题问速度）。最终分数是四类 MRA 的平均，所以 S2、S3 题虽少，权重与另外两类相同。</div>
   <p>四类的规模（编号组 = 去掉后缀的编号，如 <code>captured_0054</code>；每个编号组及其所有变体只属于一个类别，所以编号组数相加正好是 408；但编号不同的同一事件可能分属 2D 和 3D 两类，见附录）：</p>
   <table>
@@ -277,10 +198,6 @@
     <tr><td><b>S3</b>（Static 3D）</td><td>578</td><td>100</td><td>47</td><td>31</td><td>31 / 16 / 0</td><td>308 / 225 / 45</td></tr>
     <tr><td><b>合计</b></td><td><b>3,289</b></td><td><b>568</b></td><td><b>408</b></td><td><b>117</b></td><td><b>297 / 37 / 74</b></td><td><b>2,241 / 898 / 150</b></td></tr>
   </table>
-  <ul>
-    <li><b>S3 对少数编号组很敏感：</b>只有 47 个编号组却有 578 题，平均每个编号组约 12 题、2.1 个视频，大量来自 <code>captured_</code> 实拍的多变体编号组。</li>
-    <li><b>来源与维度：</b>internet 的 74 个编号组全部是 2D；实拍 <code>captured_</code> 的 37 个编号组只有 <code>captured_0015</code> 在 2D，其余都是 3D。</li>
-  </ul>
 
   <h3 id="dim-2d-3d">2D 和 3D 的区别</h3>
   <p>下面两个验证集视频都是仿真渲染，prior 都是“人的身高”，可以直接对比。左边是 2D，右边是 3D。</p>
@@ -324,29 +241,155 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
     <tr><td>规模：题 / 视频 / 编号组 / 相机视角</td><td>1,742 / 333 / 276 / 276</td><td>1,547 / 235 / 132 / 135</td></tr>
   </table>
   <p><small>相机视角 = 编号组 + 机位：只换背景的变体与原视频共用同一视角，<code>a</code> / <code>b</code> 两个机位算两个。</small></p>
+</section>
 
-  <h3 id="场景与变体">编号组与变体</h3>
-  <p><b>编号组</b> = 去掉后缀的编号（如 <code>captured_0023</code>），即同一次拍摄或渲染的所有版本。408 个编号组里 117 个有变体：<code>s</code> 简化背景、<code>x</code> / <code>_segmented</code> 分割掩码、<code>a</code> / <code>b</code> 两个机位。对实现有影响的只有以下几点，明细见附录。</p>
+<section id="findings">
+  <h2>关键发现</h2>
+  <p>基于 <code>test_dataset.parquet</code> 与 <code>validation_dataset.parquet</code> 的统计（2026-10-04），只列对解题有影响的几条，明细见附录。</p>
+  <ol>
+    <li><b>验证集是测试集的子集。</b>验证集 24 个视频全部出现在测试集中，159 道题里 124 道的题目文本与测试集完全一致，其余 35 道仅措辞略有差异。这 159 道题的答案我们实际上已经有了，约占测试集的 4.8%。</li>
+    <li><b>判断 2D / 3D 只看 depth_info。</b>1,547 道 3D 题全部附带 depth_info（按时间点给出物体到相机的距离），2D 题全部为空。这是官方输入，应当喂给模型。</li>
+    <li><b>568 个视频只有 408 个编号组。</b>117 个编号组有 2 到 6 个变体（换背景、分割掩码、换机位），只换背景的变体重建一次即可复用。带 <code>x</code> / <code>_segmented</code> 后缀的 148 个视频本身就是精确的分割掩码，同组的其他版本可以直接借用。</li>
+    <li><b>3D 只有 31 个环境，只有 69 个编号组需要补深度。</b>2D 不需要重建；3D 题有 73% 问的是运动物体，背景只需要建出地面、相机和被问到的几个静止物体。</li>
+  </ol>
+
+  <h3 id="数据坑">数据坑</h3>
   <ul>
-    <li><b>只换背景的变体共用同一相机和同一段运动</b>，重建一次即可复用；分割版本身就是前景掩码，可以直接借给同组的原始版和简化版。</li>
-    <li><b>变体之间题目不完全相同</b>：117 组里只有 59 组完全一致，另有 14 组的 prior 写法不同，要按题目文本对齐。</li>
-    <li><b>编号不同也可能是同一事件</b>（同一物体、同一运动，只换机位或光照），合并后 373（严格）到约 266（宽松）组，且常跨 2D / 3D 类别，可互相校验尺寸和轨迹。</li>
-    <li><b>后缀解析忽略大小写</b>（<code>captured_0010</code> 的分割版后缀是大写 <code>X</code>）；<code>simulation_0032</code>、<code>0038</code>、<code>0115</code> 只有分割版。</li>
-  </ul>
-
-
-  <h3 id="其他注意事项">其他注意事项</h3>
-  <ul>
+    <li>47 道题的单位写在句中（如 "What is the height, in meters, of ..."），解析单位时不能只看句尾。</li>
+    <li>1,000 道题指定了时刻，要用表格的 <code>fps</code> 列换算成帧号（共 9 种帧率）。</li>
     <li>题目里有拼写错误（velocoty、velolicty、diasplacement），prompt 不要假设关键词拼写正确。</li>
     <li>验证集 <code>video_source</code> 拼成了 <code>segmentaion</code>，测试集是 <code>segmentation</code>，合并数据时要统一。</li>
+    <li>编号后缀解析要忽略大小写（<code>captured_0010</code> 的分割版后缀是大写 <code>X</code>）；<code>simulation_0032</code>、<code>0038</code>、<code>0115</code> 只有分割版。</li>
     <li>HuggingFace 上验证集文件 <code>captured_0041x.mp4</code> 的文件名开头多了一个空格，<code>download_data.sh</code> 已自动处理。</li>
     <li>评测时 <code>parsed_value</code> 会被取绝对值，所以符号不影响得分。</li>
     <li><code>depth_info</code> 有 19 行格式不规范（14 个视频）：缺 <code>_camera</code>（如 <code>simulation_0017</code> 的 <code>distance_the_freestanding_art_display_panel = 4.223m</code>）、名字里有空格（<code>0015</code>、<code>0017</code>、<code>0188</code>）、单位写成 <code>s</code>（<code>captured_0029</code>、<code>0030</code>）。主仓库 <code>pipeline/data.py</code> 的 <code>parse_depth_info</code> 会静默丢掉这些行。</li>
+    <li>答案为 0 或非数值会被判无效，必须兜底。</li>
   </ul>
 </section>
 
-<section id="demo">
-  <h2>数据样例</h2>
+<section id="approach">
+  <h2>方法与进展</h2>
+  <p><b>思路：</b>QuantiPhy 本质上是测量问题，题目都是“已知一个物理量，求另一个”。我们把像素轨迹换算成物理量：静态量靠比例尺，动态量靠对轨迹平滑和微分。物理模型（匀速、匀加速、抛体）只作为拟合约束，不做前向仿真。VLM 只负责理解问题和指认物体；模型只用 Grounding DINO 和 SAM 2，两者都开源，Track B 可用。</p>
+
+  <h3 id="五个阶段">流水线</h3>
+  <table>
+    <tr><th>阶段</th><th>做法</th><th>状态</th></tr>
+    <tr><td>0 问题解析</td><td>规则解析器抽出目标量、物体、时刻、单位和 prior（<code>parse.py</code>）</td><td>✅ 覆盖全部 233 种 prior 写法</td></tr>
+    <tr><td>1 感知</td><td>Grounding DINO 找物体，SAM 2 传播掩码，掩码质心作轨迹；有分割变体的直接用掩码（<code>perceive.py</code>）</td><td>✅ 指认能力不足</td></tr>
+    <tr><td>2 尺度标定</td><td>2D 用 prior 得到 m/px；3D 用 depth_info 反推焦距，再用针孔关系换算（<code>calibrate.py</code>）</td><td>✅</td></tr>
+    <tr><td>3 物理拟合</td><td>Savitzky-Golay 平滑加局部二次拟合求速度和加速度；重力题拟合抛物线（<code>physics.py</code>、<code>solve.py</code>）</td><td>✅</td></tr>
+    <tr><td>4 校验 / agent</td><td>合理范围检查、同组变体取中位数、兜底常数（<code>verify.py</code>）</td><td>🚧 agent 重试和 VLM 回退未做</td></tr>
+  </table>
+  <p><small>每个阶段的设计目标与实现细节见附录。</small></p>
+
+  <h3 id="首次结果">验证集结果（2026-10-04）</h3>
+  <table>
+    <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>无效答案</th></tr>
+    <tr><td>官方 GPT-5.1 基线</td><td>0.486</td><td>0.569</td><td>0.354</td><td>0.456</td><td>0.564</td><td>6.3%</td></tr>
+    <tr><td>流水线 v0（Grounding DINO 逐帧检测）</td><td>0.436</td><td>0.413</td><td>0.368</td><td>0.651</td><td>0.311</td><td>0%</td></tr>
+    <tr><td><b>流水线 v1（SAM 2 跟踪 + 度量三维）</b></td><td><b>0.514</b></td><td>0.463</td><td>0.341</td><td>0.707</td><td>0.545</td><td>0%</td></tr>
+  </table>
+  <p>v1 按视频来源：分割掩码视频 0.87，实验室 0.62，仿真 0.46，互联网 0.35。v0 到 v1 的提升主要来自三处：SAM 2 跟踪、度量三维运动、实验室相机焦距先验（细节见附录）。</p>
+
+  <h3 id="已知失败模式">失败模式与下一步</h3>
+  <ul>
+    <li><b>语义指认不足（最大剩余瓶颈）。</b>Grounding DINO 无法定位 "the model of Io"、"the pencil tip"、"lane"（整条路被当成车道）、"floor tiles" 等；互联网视频 0.35 基本都是这个原因。下一步：用 VLM（Qwen2.5-VL）在采样帧上指认物体并输出点或框，再交给 SAM 2，即上表阶段 4 预留的 agent 层。</li>
+    <li><b>无深度锚点的三维动态 prior。</b><code>captured_0013</code> 的小球沿斜坡滚向相机，但 depth_info 没有小球的距离，像素加速度混入透视效应，整场 0.40。下一步：用场景中其他有深度的静态物体（斜坡远端、近端）约束小球的深度范围。</li>
+    <li><b>"平均速度"的真值定义是净位移除以时间</b>，不是路径长度（验证集弹跳球题目可验证），代码已按此实现。但对圆周运动（木星卫星模型）净位移接近零，真值却是轨道线速度，这类题需要专门识别。</li>
+    <li><b>静态尺寸题 0.41 到 0.46。</b>框包含阴影、物体被截断、"长度"与"宽度"在透视下对应的方向不明确。下一步：用掩码的主轴长度代替框，按物体朝向决定长宽。</li>
+    <li><b>两个物体间的距离</b>常因第二个物体没被跟踪而兜底。</li>
+  </ul>
+
+  <h3 id="运行">运行与案例</h3>
+<pre><code>conda activate quantiphy
+python -m pipeline.run --split val            # 验证集，打印分类别 MRA
+python -m pipeline.run --split val --debug    # 另存带框的调试帧到 outputs/debug/
+python -m pipeline.run --split test --out outputs/submission.csv   # 填好官方模板</code></pre>
+  <p><b>完整案例演示：</b><a href="case/simulation_0300.html">simulation_0300</a>，从输入到答案逐阶段展示每个中间结果，并记录了 v1 到 v7 的迭代；<a href="case/simulation_0060.html">simulation_0060</a>，把 v7 模型推广到 13 题、多物体路口场景的第一次测试（0.28 → 0.78），含可交互的三维重建场景。</p>
+</section>
+
+<section id="appendix">
+  <h2>附录</h2>
+  <p>查数据和查细节时用，默认收起，点标题展开。</p>
+
+  <details class="appx">
+  <summary><h3 id="appx-提交">提交细节</h3></summary>
+  <p>Mean Relative Accuracy。官方实现在 <code>evaluator.py</code>，用 <code>evaluate.sh</code> 启动。大致思路是对每个预测在一组相对误差阈值 θ 上判断是否命中，再对阈值取平均，最后按类别（S2、D2、S3、D3）汇总。</p>
+  <ul>
+    <li><b>任务：</b>给一段视频和一个已知物理量（prior），让模型推断另一个物理量，比如长度、速度、加速度，输出数值。</li>
+    <li><b>两个赛道：</b>Track A（Main）任意模型；Track B（Open-Weight）仅限公开权重的模型和工具。</li>
+    <li><b>提交形式：</b>注册队伍（最多 5 人），在测试集上跑模型，预测结果整理成单个 CSV，通过官方 portal 上传，每天最多 3 次计分提交。</li>
+    <li><b>提交入口：</b>登录后在 <a href="https://quantiphy.stanford.edu/competition/auth/account.html">auth/account.html</a> 上传 CSV，选 Track A 或 B，页面列出自己每次提交的分数，可按日期或分数排序。官网目前没有公开的全队伍排行榜页面。</li>
+    <li><b>排行榜：</b>开发阶段实时更新，上传后立即返回 MRA 分数，但只在自己队伍的页面可见。测试集真值始终不公开，没有 public/private 划分。最终排名按四个诊断类别 macro-average 的 MRA。</li>
+    <li><b>奖金（每赛道）：</b>第一名 $1,000，第二名 $500，第三名 $250。</li>
+  </ul>
+
+  <h4 id="最终提交物">最终要交什么</h4>
+  <table>
+    <tr><th>时间</th><th>交什么</th><th>谁要交</th></tr>
+    <tr><td>10 月 23 日 23:59 AoE 前</td><td><b>一个 CSV 预测文件</b>：官方模板 <code>quantiphy_submission_template.csv</code>（已在 <code>data/</code>），3,289 行，每行一道题（不能用 <code>video_id</code> 当行标识）。id 不动，只填 <code>parsed_value</code>：纯数字、不带单位、按题目要求的单位，文件最大 2 MB。两个赛道用同一模板，每次上传时选择计入 Track A 或 B。</td><td>所有队伍</td></tr>
+    <tr><td>赛后通知起 14 天内</td><td><b>可复现包</b>：代码或 Docker 容器，供官方复跑验证分数。</td><td>每赛道前三名</td></tr>
+    <tr><td>赛后</td><td><b>代码公开</b>：Track A 仅前三名需公开；Track B 官网写的是所有参赛作品都要公开。</td><td>见左</td></tr>
+    <tr><td>11 月</td><td><b>技术报告 / 简短技术总结</b>：官方邀请头部队伍提交。开发中用过闭源 API 输出的（比如用 Track A 结果辅助 Track B），必须在技术报告里说明。</td><td>受邀队伍</td></tr>
+    <tr><td>12 月 11–12 日</td><td><b>NeurIPS workshop 口头报告</b>：第一名 10 分钟，第二、三名 5 分钟。</td><td>每赛道前三名</td></tr>
+  </table>
+  </details>
+
+  <details class="appx">
+  <summary><h3 id="appx-字段">字段、视频来源与单位</h3></summary>
+  <h4 id="下载方式">下载方式</h4>
+  <p>clone 仓库后在仓库根目录运行自带脚本即可，只依赖 bash、curl 和 python3：</p>
+<pre><code>./download_data.sh</code></pre>
+  <p>脚本会把测试集、验证集和官方提交模板 <code>quantiphy_submission_template.csv</code> 下载到 <code>data/</code> 目录，共约 515 MB。该目录已 gitignore。脚本可重复运行，已下载且大小正确的文件会自动跳过，结束时会校验文件数量和大小。</p>
+  <p>表格每行的 <code>video_id</code> 就是视频文件名（不含 <code>.mp4</code>）。一个 <code>video_id</code> 对应唯一一个视频；一个视频有多道题，所以同一 <code>video_id</code>（如 <code>simulation_0082</code>）会出现在多行，各行的 question 和 inference_type 不同。</p>
+
+  <h4 id="字段">字段</h4>
+  <p>测试集 parquet 有 8 列：<code>video_id</code>, <code>video_source</code>, <code>video_type</code>, <code>fps</code>, <code>inference_type</code>, <code>question</code>, <code>prior</code>, <code>depth_info</code>。验证集多一列 <code>answer</code>。</p>
+  <p>运行 <code>download_data.sh</code> 后，parquet 位于 QuantiPhy 仓库的 <code>data/QuantiPhy/test_dataset.parquet</code>（验证集为 <code>data/QuantiPhy-validation/validation_dataset.parquet</code>）。脚本不会生成 CSV，想直接打开看可在仓库根目录自行导出：</p>
+<pre><code>python3 -c "import pandas as pd; pd.read_parquet('data/QuantiPhy/test_dataset.parquet').to_csv('data/QuantiPhy/test_dataset.csv', index=False)"</code></pre>
+
+  <h4 id="视频来源">四类视频来源</h4>
+  <table>
+    <tr><th><code>video_source</code></th><th>说明</th><th>视频数（测试集）</th><th>问题数</th></tr>
+    <tr><td>simulation 仿真</td><td>Blender 渲染（Sketchfab / BlenderKit 资产），物理参数完全可控</td><td>294</td><td>1,633</td></tr>
+    <tr><td>lab 实验室</td><td>实拍的真实运动，场景中常有标尺或校准网格。视频 id 前缀为 <code>captured_</code></td><td>115</td><td>806</td></tr>
+    <tr><td>segmentation 分割</td><td>用 SAM 抠出运动前景、背景换成纯色的对照版本</td><td>85</td><td>430</td></tr>
+    <tr><td>internet 互联网</td><td>野外真实视频，背景杂乱、光照变化、有遮挡</td><td>74</td><td>420</td></tr>
+  </table>
+  <p>帧率以 24 fps 为主（420 个视频），其余有 22、25、26、30、33、50、60、120，共 9 种。1,000 道题指定了具体时刻（如 "at 1.5s"），抽帧时要用表格的 <code>fps</code> 列把时刻换算成帧号（与 <code>pipeline/data.py</code> 一致）。</p>
+
+  <h4 id="物理量">物理量与单位</h4>
+  <p>只涉及平移运动学：尺寸 / 距离（长、宽、高、厚度、直径、间距、位移）、速度（瞬时、时段平均、水平）、加速度（瞬时、平均、重力，统一取 9.8 m/s²）。每个样本 = 1 个视频 + 1 个 prior + 1 个问题。测试集分布：</p>
+  <table>
+    <tr><th>量纲</th><th>被问的物理量（题数）</th><th>答案单位（题数）</th><th>问题小计</th><th>prior 关键词（题数）</th><th>prior 小计</th></tr>
+    <tr><td><b>尺寸 / 距离</b></td><td>长度 576<br>高度 555<br>距离 / 位移 438<br>宽度 397<br>直径 / 半径 255<br>厚度 5<br>其他（size、spacing、breadth 等）15</td><td>meters 1,642<br>cm 593<br>mm 6</td><td>2,241</td><td>diameter 476<br>length 302<br>height 220<br>width 146<br>radius 5<br>其他（size、ruler calibre 等）22</td><td>1,171</td></tr>
+    <tr><td><b>速度</b></td><td>速度 898</td><td>m/s 680<br>cm/s 218</td><td>898</td><td>speed 817<br>velocity 224</td><td>1,041</td></tr>
+    <tr><td><b>加速度</b></td><td>加速度 150</td><td>m/s² 135<br>cm/s² 15</td><td>150</td><td>acceleration 774<br>gravity 303</td><td>1,077</td></tr>
+    <tr><td><b>合计</b></td><td></td><td></td><td><b>3,289</b></td><td></td><td><b>3,289</b></td></tr>
+  </table>
+  <p><small>按关键词归类，每题只计一次：问题按 加速度 → 速度 → 距离 → 尺寸 的优先级匹配（含 velocoty、diatance 等拼写错误；“speedboat” 不算速度）；单位取问题中 “in &lt;单位&gt;” 的位置，不论在句中还是句尾；prior 按 gravity → acceleration → velocity → speed → 尺寸词 的优先级匹配。每一行的问题量纲与答案单位量纲逐题一致。prior 量纲与 <code>inference_type</code> 首字母有 28 题不一致（21 题标 D 但 prior 是尺寸，7 题标 S 但 prior 是速度，来自 <code>internet_0067</code>、<code>internet_0073</code>、<code>simulation_0084</code>、<code>0190</code>、<code>0280</code>、<code>0281</code>），评测类别以 <code>inference_type</code> 为准。</small></p>
+  <p>有 47 道题的单位写在句中（如 "What is the height, in meters, of ..."）而非句尾，解析单位时不能只看结尾。验证集答案范围从 0.00175 到 1086，中位数 3.6。MRA 是相对误差，量级本身不影响评分，但答案为 0 或非数值会被判无效。</p>
+  </details>
+
+  <details class="appx">
+  <summary><h3 id="appx-编码">inference_type 与 video_type 编码</h3></summary>
+  <p><code>inference_type</code> 两个字母分别表示 prior 与答案的类型：S = 静态量（长度、尺寸），D = 动态量（速度、加速度）。测试集：DS 1,684、SS 597、SD 560、DD 448。</p>
+  <p><code>video_type</code> 是 36 种四位编码（如 <code>S2MC</code>、<code>A3MC</code>、<code>V2MS</code>）：</p>
+  <table>
+    <tr><th>位</th><th>含义</th><th>测试集分布（题数）</th></tr>
+    <tr><td>第 1 位</td><td>prior 的类型：S 尺寸、V 速度、A 加速度</td><td>S 1,167 / V 1,061 / A 1,061</td></tr>
+    <tr><td>第 2 位</td><td>维度：2 平面运动、3 有深度</td><td>2D 1,742 / 3D 1,547</td></tr>
+    <tr><td>第 3 位</td><td>物体数：S 单个、M 多个</td><td>M 2,502 / S 787</td></tr>
+    <tr><td>第 4 位</td><td>背景：C 原始、S 简化、X 分割掩码</td><td>C 1,548 / S 930 / X 811</td></tr>
+  </table>
+  <ul>
+    <li><b>S3 对少数编号组很敏感：</b>只有 47 个编号组却有 578 题，平均每个编号组约 12 题、2.1 个视频，大量来自 <code>captured_</code> 实拍的多变体编号组。</li>
+    <li><b>来源与维度：</b>internet 的 74 个编号组全部是 2D；实拍 <code>captured_</code> 的 37 个编号组只有 <code>captured_0015</code> 在 2D，其余都是 3D。</li>
+  </ul>
+  </details>
+
+  <details class="appx">
+  <summary><h3 id="appx-样例">更多数据样例（验证集 5 个）</h3></summary>
   <p>以下 5 个样例来自验证集，所以带有答案。每个视频配一个已知物理量（prior）和若干问题，类型标签和评测类别的含义见“题目类型与评测类别”。</p>
   <div class="demo">
     <video controls muted loop playsinline preload="metadata" src="demo/internet_0027.mp4"></video>
@@ -388,30 +431,17 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
       <table class="qa"><tr><th>类型</th><th>问题</th><th>答案</th></tr><tr><td><span class='tag'>DD</span></td><td>What is the average speed of the boat in m/s?</td><td class='ans'>5</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the boat in meters?</td><td class='ans'>10</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the length of the shark in meters?</td><td class='ans'>3.26</td></tr><tr><td><span class='tag'>DS</span></td><td>What is the height of the shark in meters?</td><td class='ans'>1.11</td></tr></table>
     </div>
   </div>
-</section>
+  </details>
 
-<section id="metric">
-  <h2>评测指标：MRA</h2>
-  <p>Mean Relative Accuracy。官方实现在 <code>evaluator.py</code>，用 <code>evaluate.sh</code> 启动。大致思路是对每个预测在一组相对误差阈值 θ 上判断是否命中，再对阈值取平均，最后按类别（S2、D2、S3、D3）汇总。</p>
-  <p>本地只能在验证集上算分，因为测试集没有答案。</p>
-</section>
-
-<section id="approach">
-  <h2>解题思路与流水线</h2>
-  <p>核心想法：不让 VLM 直接"猜"数值，而是把每个场景重建成可度量的几何与运动，再用 prior 标定尺度，用物理公式把被问的量算出来。VLM 只负责理解问题和指认物体。代码在主仓库的 <code>pipeline/</code> 目录，依赖 PyTorch、transformers、OpenCV，模型只用 Grounding DINO 和 SAM 2（均开源，Track B 可用），不需要任何 API key。</p>
-<pre><code>conda activate quantiphy
-python -m pipeline.run --split val            # 验证集，打印分类别 MRA
-python -m pipeline.run --split val --debug    # 另存带框的调试帧到 outputs/debug/
-python -m pipeline.run --split test --out outputs/submission.csv   # 填好官方模板</code></pre>
-  <p><b>完整案例演示：</b><a href="case/simulation_0300.html">simulation_0300</a>，从输入到答案逐阶段展示每个中间结果，并记录了 v1 到 v7 的迭代；<a href="case/simulation_0060.html">simulation_0060</a>，把 v7 模型推广到 13 题、多物体路口场景的第一次测试（0.28 → 0.78），含可交互的三维重建场景。</p>
-
-  <h3 id="为什么">为什么这么做</h3>
+  <details class="appx">
+  <summary><h3 id="appx-流水线">流水线：设计与当前实现</h3></summary>
+  <h4 id="为什么">为什么这么做</h4>
   <p><b>为什么合理。</b>QuantiPhy 本质上是一个测量问题：所有题目都是"已知一个物理量，求另一个"，两者通过比例尺或运动学公式严格相关。端到端 VLM 对数值不敏感，官方 GPT-5.1 基线在验证集上只有 MRA 0.486，而且 6.3% 的答案无效。一个显式的"跟踪 + 标定 + 计算"流水线，只要测量误差能控制在 10% 以内，单题 MRA 就能接近 0.9。按编号组而不是按视频处理也正确：568 个视频只有 408 个编号组，117 个编号组各有 2 到 6 个变体。只换背景的变体（<code>s</code>、<code>x</code>、<code>_segmented</code>）与原视频共用同一相机和同一段运动，重建一次即可复用；题目大多相同但不完全一致，需按题目文本对齐。编号不同的同一事件（如黑猫 <code>simulation_0210</code> 到 <code>0217</code>）机位不同，相机要分别估计，但物体尺寸和运动轨迹相同，可以在视频之间互相校验。</p>
   <div class="callout"><b>修正一：是"度量重建 + 物理拟合"，不是"重建后再仿真"。</b>视频里已经有真实运动，不需要前向仿真整个场景再读结果。我们要做的是把像素轨迹换算成物理量：静态量靠比例尺，动态量靠对轨迹做平滑和微分。物理模型（匀速、匀加速、抛体）的角色是<em>拟合约束</em>，用来去噪和反推尺度，而不是生成式模拟。真正需要"仿真式"反推的只有 prior 为重力加速度的 303 道题：对抛体轨迹拟合抛物线，用 g = 9.8 反推比例尺。</div>
   <div class="callout"><b>修正二：编号组级复用可以反过来用。</b>带 <code>x</code> 或 <code>_segmented</code> 后缀的变体本身就是分割掩码视频，等于官方免费给了 148 个视频的精确物体分割。同编号组的原始背景版（C）和简化背景版（S）可以直接借用它的掩码和轨迹，不必再跑分割模型。</div>
 
 
-  <h3 id="五个阶段">五个阶段：设计与当前实现</h3>
+  <h4 id="appx-五个阶段">五个阶段：设计与当前实现</h4>
   <p>左列是设计目标，右列是代码里目前做到的程度。</p>
   <table>
     <tr><th>阶段</th><th>设计</th><th>当前实现</th></tr>
@@ -422,8 +452,21 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
     <tr><td>4 校验与 agent 优化</td><td>三类一致性检查：同编号组不同变体答案应一致；同物体多道题互相约束；物理合理性范围。失败时 agent 诊断原因并重试：换指认提示、换帧、换拟合模型、改用另一变体的掩码。仍失败则回退到 VLM 直接回答。</td><td><code>verify.py</code>：目前只有合理范围检查、同编号组变体取中位数、兜底常数（避免空值和 0 被判无效）。agent 重试和 VLM 回退是下一步。</td></tr>
   </table>
   <p>辅助文件：<code>data.py</code> 读取数据、编号组与变体分组、解析 depth_info、按数据集 fps 把时刻换算成帧号；<code>metrics.py</code> 实现与官方 <code>evaluator.py</code> 完全一致的 MRA。</p>
+  </details>
 
-  <h3 id="重建需求">哪些编号组需要重建</h3>
+  <details class="appx">
+  <summary><h3 id="appx-v1">v0 到 v1 的改进</h3></summary>
+  <p>v1 按视频来源：分割掩码视频 0.87，实验室 0.62，仿真 0.46，互联网 0.35。v0 到 v1 的提升来自三处：</p>
+  <ul>
+    <li><b>SAM 2 替代逐帧检测。</b>Grounding DINO 只在 6 个采样帧上找物体，取分数最高的帧作为提示框，SAM 2 向前向后传播掩码；轨迹用掩码质心而不是框中心。相似物体之间不再跳框，轨迹抖动大幅减小。单个视频约 10 秒。</li>
+    <li><b>度量三维运动。</b>把像素轨迹换到度量坐标：横向 = 像素偏移 × 深度，纵向 = 深度序列，再求导得到真实三维速度和加速度。深度序列由 depth_info 锚定、按视大小变化外推；用框的宽和高中变化较小的那个作为大小依据，避免把车转弯的宽度变化误当作接近相机。速度和加速度 prior 的焦距按三维公式反解。</li>
+    <li><b>实验室相机焦距先验。</b>三个静态 prior 的实验室编号组反推焦距为 580、604、737 px，说明是同一台相机；动态 prior 的实验室编号组若反推焦距落在 450 到 950 之外，改用 650 px。</li>
+  </ul>
+  <p>加速度 prior 的题从 0.27 提到 0.52，实验室视频从 0.38 提到 0.62。</p>
+  </details>
+
+  <details class="appx">
+  <summary><h3 id="重建需求">哪些编号组需要重建</h3></summary>
   <p><b>结论：不需要每个编号组都重建。</b>2D 不需要；3D 的 132 个编号组只有 31 个静态环境，且只有 69 个编号组的被问物体缺深度。3D 题中 73% 问运动物体，背景只需建到“地面 + 相机 + 被问到的几个静止物体”。</p>
   <ul>
     <li><b>2D（S2、D2）不需要重建。</b>物体在一个平面内运动，用 prior 标定一个比例尺即可。部分 internet 视频可能有相机晃动，需要的是稳像或单应校正，不是三维重建。</li>
@@ -473,8 +516,10 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
   </details>
   <p><b>其中 6 个编号组没有可重建的环境</b>（E00，背景已去除或纯色）：D3 的 <code>simulation_0032</code>、<code>0038</code>（只有分割版）、<code>0109</code>、<code>0110</code>（血细胞）、<code>0195</code>（木星模型），S3 的 <code>captured_0021</code>（背景已去除）。这些缺的深度没法靠重建背景补，只能用度量单目深度或物体的先验尺寸。</p>
   <p><small>判断规则：被问物体（距离题还包括第二个物体）的名字没有出现在同一视频的 <code>depth_info</code> 里，即为缺深度；编号组内任一题缺深度，就算需要重建。2026-10-08 用 <code>pipeline/parse.py</code> 解析题目物体、逐题复核，修正了 4 个编号组：删 <code>captured_0016</code>（两人都有深度）、<code>captured_0035</code>（两个球都有深度），加 <code>captured_0041</code>、<code>simulation_0164</code>，总数不变。边界情况按“有深度”处理：<code>simulation_0030</code>（问 eagle，<code>depth_info</code> 只写 bird）、<code>0176</code>（stone cliff 对应 big rock，起落架轮子按机头深度）。“重建”不一定是完整的逆渲染：缺的多是静态背景深度，用度量单目深度模型估深度图、再用 <code>depth_info</code> 已知深度对齐尺度，可能就够了。</small></p>
+  </details>
 
-  <h3 id="3D环境核对">3D 环境核对清单</h3>
+  <details class="appx">
+  <summary><h3 id="3D环境核对">3D 环境核对清单与截帧</h3></summary>
   <p>3D 两类共 132 个编号组，每组看一帧（代表视频的中间时刻），按<b>静态几何</b>人工归并：地面、墙、家具、道路、地形相同即同一环境。机位、光照、云、阳光不同，或多了猫、警车等运动物体，都不算新环境；摆设或地点不同才算。</p>
   <ul>
     <li><b>结果：</b>31 个环境，另有 17 个编号组没有可重建的环境（E00）。其中 15 个环境各含 2 到 33 个编号组，另外 16 个只出现一次（E16）。</li>
@@ -538,8 +583,10 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
     <p><b>E00 无环境（纯色或背景已去除）</b>（17）</p>
     <img src="demo/env3d/E00.jpg" alt="E00 无环境（纯色或背景已去除） 各编号组截帧" style="width:100%;border-radius:6px;margin-bottom:8px" loading="lazy">
   </details>
+  </details>
 
-  <h3 id="前景背景">3D 题目问前景还是背景</h3>
+  <details class="appx">
+  <summary><h3 id="前景背景">3D 题目问前景还是背景</h3></summary>
   <p><b>前景</b>是视频里会动的物体（球、人、车、猫），尺寸和速度可以从它的运动加 prior 算出。<b>背景</b>是静止物体（桌子、路灯、车道、花瓶），视频里没有运动可用，只能靠场景的 3D 几何来量。这里的“背景”指静止物体，与“去背景”无关：去背景版里仍可见的桌子、斜坡也算背景。</p>
   <table>
     <tr><th>类别</th><th>题数</th><th>问前景</th><th>问背景</th><th>背景占比</th></tr>
@@ -560,102 +607,18 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
     <tr><td><a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy/blob/main/simulation_0015.mp4"><code>simulation_0015</code></a> 美术馆</td><td>人高 1.87 m</td><td>人的速度（1 题）</td><td>雕塑、底座、展板、长椅、屋顶框架（9 题）</td></tr>
   </table>
   <p><small>分类方法：问速度、加速度、位移的算前景；问尺寸的，看该物体在 <code>depth_info</code> 中距离是否随时间变化、是否出现在动态 prior 或速度题里。被判为背景的物体已逐个人工复核，把会动的（钟摆绳、实验室里的人、路口其他车辆、血细胞、木星模型等）改回前景。静止的道具（未被击倒的保龄球瓶、停着的火箭发射车）算背景。误差估计在几十道题以内。</small></p>
+  </details>
 
-  <h3 id="优先级">按子集的优先级</h3>
-  <table>
-    <tr><th>子集</th><th>题数</th><th>难度</th><th>原因</th></tr>
-    <tr><td>simulation 2D</td><td>1,039</td><td>低</td><td>渲染干净、相机固定、物体清晰，比例尺标定最可靠。先在这里把流水线跑通。</td></tr>
-    <tr><td>lab 3D</td><td>791</td><td>中</td><td>有 depth_info，背景可控，还有分割变体可借用。</td></tr>
-    <tr><td>simulation 3D / segmentation</td><td>594 / 430</td><td>中</td><td>同上，分割版本几乎零成本。</td></tr>
-    <tr><td>internet 2D</td><td>420</td><td>高</td><td>背景杂乱、可能有相机运动和透视，平面假设不一定成立。这部分可能要更多依赖 VLM 回退。</td></tr>
-  </table>
-
-  <h3 id="首次结果">首次验证集结果（2026-10-04）</h3>
-  <table>
-    <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>无效答案</th></tr>
-    <tr><td>官方 GPT-5.1 基线</td><td>0.486</td><td>0.569</td><td>0.354</td><td>0.456</td><td>0.564</td><td>6.3%</td></tr>
-    <tr><td>流水线 v0（Grounding DINO 逐帧检测）</td><td>0.436</td><td>0.413</td><td>0.368</td><td>0.651</td><td>0.311</td><td>0%</td></tr>
-    <tr><td><b>流水线 v1（SAM 2 跟踪 + 度量三维）</b></td><td><b>0.514</b></td><td>0.463</td><td>0.341</td><td>0.707</td><td>0.545</td><td>0%</td></tr>
-  </table>
-  <p>v1 按视频来源：分割掩码视频 0.87，实验室 0.62，仿真 0.46，互联网 0.35。v0 到 v1 的提升来自三处：</p>
+  <details class="appx">
+  <summary><h3 id="场景与变体">编号组与变体（要点）</h3></summary>
+  <p><b>编号组</b> = 去掉后缀的编号（如 <code>captured_0023</code>），即同一次拍摄或渲染的所有版本。408 个编号组里 117 个有变体：<code>s</code> 简化背景、<code>x</code> / <code>_segmented</code> 分割掩码、<code>a</code> / <code>b</code> 两个机位。对实现有影响的只有以下几点，明细见附录。</p>
   <ul>
-    <li><b>SAM 2 替代逐帧检测。</b>Grounding DINO 只在 6 个采样帧上找物体，取分数最高的帧作为提示框，SAM 2 向前向后传播掩码；轨迹用掩码质心而不是框中心。相似物体之间不再跳框，轨迹抖动大幅减小。单个视频约 10 秒。</li>
-    <li><b>度量三维运动。</b>把像素轨迹换到度量坐标：横向 = 像素偏移 × 深度，纵向 = 深度序列，再求导得到真实三维速度和加速度。深度序列由 depth_info 锚定、按视大小变化外推；用框的宽和高中变化较小的那个作为大小依据，避免把车转弯的宽度变化误当作接近相机。速度和加速度 prior 的焦距按三维公式反解。</li>
-    <li><b>实验室相机焦距先验。</b>三个静态 prior 的实验室编号组反推焦距为 580、604、737 px，说明是同一台相机；动态 prior 的实验室编号组若反推焦距落在 450 到 950 之外，改用 650 px。</li>
+    <li><b>只换背景的变体共用同一相机和同一段运动</b>，重建一次即可复用；分割版本身就是前景掩码，可以直接借给同组的原始版和简化版。</li>
+    <li><b>变体之间题目不完全相同</b>：117 组里只有 59 组完全一致，另有 14 组的 prior 写法不同，要按题目文本对齐。</li>
+    <li><b>编号不同也可能是同一事件</b>（同一物体、同一运动，只换机位或光照），合并后 373（严格）到约 266（宽松）组，且常跨 2D / 3D 类别，可互相校验尺寸和轨迹。</li>
+    <li><b>后缀解析忽略大小写</b>（<code>captured_0010</code> 的分割版后缀是大写 <code>X</code>）；<code>simulation_0032</code>、<code>0038</code>、<code>0115</code> 只有分割版。</li>
   </ul>
-  <p>加速度 prior 的题从 0.27 提到 0.52，实验室视频从 0.38 提到 0.62。</p>
-
-  <h3 id="已知失败模式">已知失败模式与下一步</h3>
-  <ul>
-    <li><b>语义指认不足（最大剩余瓶颈）。</b>Grounding DINO 无法定位 "the model of Io"、"the pencil tip"、"lane"（整条路被当成车道）、"floor tiles" 等；互联网视频 0.35 基本都是这个原因。下一步：用 VLM（Qwen2.5-VL）在采样帧上指认物体并输出点或框，再交给 SAM 2，即上表阶段 4 预留的 agent 层。</li>
-    <li><b>无深度锚点的三维动态 prior。</b><code>captured_0013</code> 的小球沿斜坡滚向相机，但 depth_info 没有小球的距离，像素加速度混入透视效应，整场 0.40。下一步：用场景中其他有深度的静态物体（斜坡远端、近端）约束小球的深度范围。</li>
-    <li><b>"平均速度"的真值定义是净位移除以时间</b>，不是路径长度（验证集弹跳球题目可验证），代码已按此实现。但对圆周运动（木星卫星模型）净位移接近零，真值却是轨道线速度，这类题需要专门识别。</li>
-    <li><b>静态尺寸题 0.41 到 0.46。</b>框包含阴影、物体被截断、"长度"与"宽度"在透视下对应的方向不明确。下一步：用掩码的主轴长度代替框，按物体朝向决定长宽。</li>
-    <li><b>两个物体间的距离</b>常因第二个物体没被跟踪而兜底。</li>
-  </ul>
-</section>
-
-<section id="related">
-  <h2>Related Work</h2>
-  <p>按四类整理，每类内按时间倒序。优先收录 2024 年以后的工作。</p>
-
-  <h3 id="rw-bench">定量物理与空间推理 benchmark</h3>
-  <table class="rw">
-    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
-    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2605.23898">SPACENUM</a></td><td>双向测试 VLM 能否把空间结构和数字互相映射（Num2Space / Space2Num）。</td><td class="muted">结论是现有 VLM 几乎接近随机猜，印证了“不能让 VLM 直接报数”。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.19526">QuantiPhy（本比赛）</a></td><td>给视频和一个物理量 prior，让 VLM 输出另一个物理量（尺寸、速度、加速度）的真实世界数值。</td><td class="muted">目标任务。论文发现 VLM 主要靠先验知识而不是视频内容作答。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.01989">PAI-Bench</a></td><td>面向 Physical AI 的综合 benchmark，覆盖视频生成与视频理解的感知和预测能力。</td><td class="muted">偏定性，不含数值测量，但说明“物理 AI 评测”是当前热点。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2510.02311">Inferring Dynamic Physical Properties from Video Foundation Models</a></td><td>从视频推断弹性、粘度、动摩擦等需要运动信息的物理属性，比较经典 CV oracle、视频基础模型 readout 和多模态 LLM 提示。</td><td class="muted">经典 CV 流水线作为 oracle 明显优于 VLM，和我们“显式测量 + 物理公式”的路线一致。</td></tr>
-    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2501.16411">PhysBench</a></td><td>1 万条图文视频混合题，评测 VLM 对物体属性、关系、场景和动力学的物理理解。</td><td class="muted">定性为主；证明通用 VLM 的物理理解普遍偏弱。</td></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.14171">Thinking in Space（VSI-Bench）</a></td><td>5,000 多道视频题评测多模态 LLM 的空间智能，包括物体尺寸、距离、计数等数值题。</td><td class="muted">最接近的“数值空间题” benchmark，但只有静态物体，没有运动量。</td></tr>
-    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2409.09788">Q-Spatial Bench / SpatialPrompt</a></td><td>评测 VLM 对尺寸、距离的定量空间推理，并提出用参照物引导推理的零样本提示。</td><td class="muted">用参照物标定尺度正是本比赛 prior 的用法；提示 VLM 显式借助参照物可大幅提分。</td></tr>
-    <tr><td class="yr">2024 · ICML</td><td><a href="https://arxiv.org/abs/2402.06119">ContPhy</a></td><td>从视频学习与推理连续介质（流体、软体、绳索）的物理概念。</td><td class="muted">扩展到软体和流体，QuantiPhy 只涉及刚体运动学。</td></tr>
-    <tr><td class="yr">2023 · NeurIPS</td><td><a href="https://arxiv.org/abs/2306.15668">Physion++</a></td><td>评测模型能否从视频里推断质量、摩擦、弹性、可变形性等隐含物体属性并预测结果。</td><td class="muted">属性推断是定性判断，不要求数值。</td></tr>
-    <tr><td class="yr">2020 · ICLR</td><td><a href="https://arxiv.org/abs/1910.01442">CLEVRER</a></td><td>合成碰撞视频上的描述、解释、预测与反事实问答。</td><td class="muted">物理视频问答的奠基 benchmark，全部为选择题。</td></tr>
-  </table>
-
-  <h3 id="rw-inverse">从视频反推物理参数（inverse physics / inverse rendering）</h3>
-  <table class="rw">
-    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
-    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.04575">PhysMind</a></td><td>不训练：从视频做物体分割、网格重建和 6D 位姿跟踪，再拟合解析的连续时间动力学来回答物理推理题。</td><td class="muted">与我们的思路最接近：agent VLM 负责语义和选工具（SAM 3 等），几何由专门模型给出，物理由拟合得到。</td></tr>
-    <tr><td class="yr">2026 · NeurIPS</td><td><a href="https://arxiv.org/abs/2605.30320">MonoPhysics</a></td><td>从单目视频联合估计可变形物体的几何、外观和杨氏模量，用 3D Gaussian Splatting 加可微仿真克服单目尺度歧义。</td><td class="muted">单目尺度歧义是 3D 题的核心难点，可以参考其尺度重参数化思路。</td></tr>
-    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2603.16958">PhysQuantAgent</a></td><td>给 VLM 加上检测、尺度估计和截面图等视觉提示，组成估计物体质量的推理流水线，并提出 VisPhysQuant 数据集。</td><td class="muted">“先给 VLM 显式尺度线索再让它答数”的思路可用于我们的 VLM 回退。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.08282">PAVAS</a></td><td>物理感知的视频生音频：用 VLM 估质量，用开放词表分割加 CUT3R 动态三维重建得到度量尺度的速度。</td><td class="muted">展示了“分割 + 前馈 4D 重建 → 度量速度”这条链路是可行的。</td></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2506.06440">Vid2Sim</a></td><td>从多视角视频前馈重建外观、几何和物理参数，再用无网格可微仿真微调，得到可仿真的数字资产。</td><td class="muted">多视角输入，不能直接用于单目；但说明前馈初始化 + 轻量优化的范式。</td></tr>
-    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2503.17973">PhysTwin</a></td><td>从稀疏视角视频重建可变形物体的物理数字孪生，联合优化弹簧质点模型参数、几何和外观。</td><td class="muted">面向软体，但其“重建 → 参数拟合 → 仿真验证”的闭环和我们阶段 4 的校验一致。</td></tr>
-    <tr><td class="yr">2023 · ICLR</td><td><a href="https://arxiv.org/abs/2303.05512">PAC-NeRF</a></td><td>不假设几何拓扑，从多视角视频同时估计物体几何和物理参数（可微 MPM 仿真 + NeRF 渲染）。</td><td class="muted">inverse rendering 与 inverse physics 结合的代表作。</td></tr>
-    <tr><td class="yr">2016 · BMVC</td><td><a href="https://bmva-archive.org.uk/bmvc/2016/papers/paper039/index.html">Physics 101</a></td><td>17,408 段真实视频，无标注地学习物体质量、密度、弹性等物理属性。</td><td class="muted">早期用物理定律当监督信号从视频学属性的工作。</td></tr>
-    <tr><td class="yr">2015 · NeurIPS</td><td><a href="https://proceedings.neurips.cc/paper/2015/hash/d09bf41544a3365a46c9077ebb5e35c3-Abstract.html">Galileo</a></td><td>以 3D 物理引擎为核心的生成模型，从真实视频推断物体质量、摩擦等并预测事件结果。</td><td class="muted">“用物理引擎做反推”的源头。</td></tr>
-  </table>
-
-  <h3 id="rw-3d">度量尺度的深度与 3D / 4D 重建</h3>
-  <table class="rw">
-    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2503.11651">VGGT</a></td><td>单个前馈网络从一张到数百张图直接输出相机参数、深度图、点图和三维点轨迹。</td><td class="muted">CVPR 2025 最佳论文；可一次给出相机内参和深度，是 3D 题的候选工具。</td></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2501.12375">Video Depth Anything</a></td><td>在 Depth Anything V2 上加时空头，对任意长视频输出时间一致的深度。</td><td class="muted">逐帧深度抖动会直接变成速度噪声，时间一致性很重要。</td></tr>
-    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.04463">MegaSaM</a></td><td>从随手拍的动态场景单目视频快速稳健地估计相机参数和深度图。</td><td class="muted">处理 internet 视频中的相机运动。</td></tr>
-    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.03825">MonST3R</a></td><td>对动态场景逐时刻直接估计点图，得到视频深度和相机位姿。</td><td class="muted">前馈 4D 重建的代表，PAVAS 用的 CUT3R 是其后续。</td></tr>
-    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.02073">Depth Pro</a></td><td>零样本度量单目深度，不需要相机内参，0.3 秒出 2.25 MP 的锐利深度图。</td><td class="muted">没有 depth_info 时可以提供绝对尺度的初值。</td></tr>
-    <tr><td class="yr">2025 · ICCV</td><td><a href="https://arxiv.org/abs/2407.13764">Shape of Motion</a></td><td>用一组 SE(3) 运动基表示场景运动，从单目视频重建长程三维轨迹。</td><td class="muted">物体三维轨迹的另一种来源。</td></tr>
-    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2403.18913">UniDepth</a></td><td>跨域通用的单目度量深度，直接预测度量三维点并自估相机。</td><td class="muted">同上，度量深度基础模型。</td></tr>
-    <tr><td class="yr">2024 · NeurIPS</td><td><a href="https://arxiv.org/abs/2406.01584">SpatialRGPT</a></td><td>把深度作为插件接入 VLM，并用 3D 场景图生成区域级空间问答数据，评测度量距离与尺寸推理。</td><td class="muted">给 VLM 喂深度能显著提升数值空间推理。</td></tr>
-    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2401.12168">SpatialVLM</a></td><td>用 1,000 万张真实图像自动生成 20 亿条三维空间问答训练 VLM，使其能答距离和尺寸。</td><td class="muted">证明数值空间能力可以通过数据合成训练出来。</td></tr>
-  </table>
-
-  <h3 id="rw-tools">检测、分割与跟踪工具</h3>
-  <table class="rw">
-    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
-    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.16785">Calibration-Free Vehicle Speed Estimation</a></td><td>不标定相机、不依赖路面特征，用 36 个关键点的车辆模板和逐帧更新的单应矩阵把像素位移换算成米制速度。</td><td class="muted">把物体自身的已知结构当参照物来定尺度，和本比赛“用 prior 物体标定”的思路相同。</td></tr>
-    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2408.00714">SAM 2</a></td><td>图像与视频的可提示分割基础模型，给一帧提示即可在整段视频中传播掩码。</td><td class="muted">我们阶段 1 的跟踪器。</td></tr>
-    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2410.11831">CoTracker3</a></td><td>用伪标签在真实视频上半监督训练的点跟踪器，能跟踪可见与遮挡点。</td><td class="muted">掩码质心抖动时的备选轨迹来源。</td></tr>
-    <tr><td class="yr">2024 · ECCV</td><td><a href="https://arxiv.org/abs/2303.05499">Grounding DINO</a></td><td>开放词表目标检测，用自然语言短语给出物体框。</td><td class="muted">我们阶段 1 的物体指认器；对 "the model of Io" 一类名词仍会失败。</td></tr>
-    <tr><td class="yr">2024 · IEEE Access</td><td><a href="https://ieeexplore.ieee.org/document/10770228/">单目视频车速估计</a></td><td>YOLOv8 检测 + ByteTrack 跟踪 + 深度单应回归网络，从固定监控视频估计车速。</td><td class="muted">传统“检测 + 跟踪 + 标定”测速流程的近期实现，误差约 2 km/h。</td></tr>
-  </table>
-</section>
-
-<section id="appendix">
-  <h2>附录：数据集明细</h2>
-  <p>与解题流程无直接关系、但查数据时有用的明细表，默认收起，点击标题展开。</p>
+  </details>
 
   <details class="appx">
   <summary><h3 id="appx-对象环境">按测量对象和环境分类（全部 408 个编号组）</h3></summary>
@@ -1240,7 +1203,108 @@ diameter of the tire of the blue car = 0.369m</td></tr>
   </details>
 
   </details>
+  <details class="appx">
+  <summary><h3 id="物体">涉及的物体</h3></summary>
+  <p>物体都由文字明确指定，从铅笔尖到航天器都有：</p>
+  <table>
+    <tr><th>大类</th><th>细分类别</th><th>具体物理实体（Entities）</th><th>在数据集中的主要角色</th><th>常见测算物理量 / 作用</th></tr>
+    <tr><td rowspan="2"><b>交通与道路基础设施</b></td><td><b>机动/非机动车辆</b></td><td><code>white car</code>（白车）、<code>black car</code>（黑车）、<code>bus</code>（公交）、<code>race car</code>（赛车）、<code>bicycle</code>（自行车）</td><td>目标物体 / 参照物</td><td>移动速度、运动距离、车辆长度</td></tr>
+    <tr><td><b>道路设施</b></td><td><code>straight-through lane</code>（直行车道）、<code>roundabout lane</code>（环岛）、<code>center island planter</code>（花坛）</td><td>环境参照物</td><td>道路宽度、环岛半径、轨迹基准</td></tr>
+    <tr><td rowspan="3"><b>人物与特定角色</b></td><td><b>独立行人/路人</b></td><td><code>pedestrian</code>（行人）、<code>woman in yellow</code>（黄衣女子）</td><td>目标物体 / 参照物</td><td>身高、行走速度、空间深度</td></tr>
+    <tr><td><b>多角色互动</b></td><td><code>passer</code>（传球者/左侧人）、<code>receiver</code>（接球者/右侧人）</td><td>目标物体</td><td>人员间距、相对速度</td></tr>
+    <tr><td><b>特殊场景角色</b></td><td><code>astronaut</code>（宇航员）</td><td>目标物体</td><td>3D空间速度、加速度</td></tr>
+    <tr><td rowspan="2"><b>动物与空中实体</b></td><td><b>鸟类/自然生物</b></td><td><code>big bird</code>（大鸟）、<code>small bird</code>（小鸟）、<code>eagle</code>（老鹰）</td><td>目标物体</td><td>翼展/体长、飞行速度、相对距离</td></tr>
+    <tr><td><b>飞行器</b></td><td><code>spaceship</code>（飞船）、<code>drone</code>（无人机）</td><td>目标物体</td><td>3D运动轨迹、加速度</td></tr>
+    <tr><td rowspan="2"><b>体育器材与球类</b></td><td><b>台球运动</b></td><td><code>billiard ball</code>（台球，按颜色区分：红、黄、蓝、黑、紫、橙、白）</td><td>目标物体</td><td>碰撞后速度、球体间距</td></tr>
+    <tr><td><b>保龄球运动</b></td><td><code>bowling pin</code>（保龄球瓶）、<code>rolling sphere</code>（滚动球体）、<code>ball return opening</code>（回球口）</td><td>目标物体 / 参照物</td><td>保龄球瓶高度、球体直径、滚动速度</td></tr>
+    <tr><td rowspan="2"><b>物理教具与几何体</b></td><td><b>力学实验教具</b></td><td><code>pendulum</code>（单摆）、<code>sliding block</code>（滑块）、<code>track cart</code>（轨道小车）、<code>wood block</code>（木块）</td><td>目标物体</td><td>摆动周期、滑行加速度、速度</td></tr>
+    <tr><td><b>标准几何体</b></td><td><code>sphere</code>（球体）、<code>cube</code>（立方体）、<code>cylinder</code>（圆柱体）</td><td>目标物体</td><td>边长、直径、体积、运动速度</td></tr>
+    <tr><td rowspan="1"><b>工具与微观结构</b></td><td><b>工具与微观目标</b></td><td><code>saw</code>（锯子）、<code>pencil tip</code>（铅笔尖）</td><td>目标物体</td><td>锯切频率、微观移动速度</td></tr>
+    <tr><td rowspan="3"><b>环境与标定参照物</b></td><td><b>物理标定物</b></td><td><code>ruler</code> / <code>calibrated grid</code>（刻度尺 / 标定网格）</td><td>尺度参照物</td><td>像素-物理尺寸换算基准（Scale Factor）</td></tr>
+    <tr><td><b>室内环境参照</b></td><td><code>floor tiles</code>（地板砖）、<code>ceiling light</code>（吸顶灯）</td><td>环境参照物</td><td>地砖边长、室内坐标系基准</td></tr>
+    <tr><td><b>户外环境参照</b></td><td><code>road sign</code>（路牌）、<code>neon sign</code>（霓虹灯牌）、<code>street light</code>（路灯）</td><td>环境参照物</td><td>Z轴深度参考、相机移动校验</td></tr>
+  </table>
+  <h4>角色界定规则</h4>
+  <ul>
+    <li><b>目标物体（Target Entity）：</b><code>question</code> 显式要求计算其物理量（如 <code>length of eagle</code>、<code>velocity of white car</code>）的主体。</li>
+    <li><b>参照物（Reference Object）：</b>在 <code>prior</code> 或 <code>depth_info</code> 中给出已知尺寸/距离（如 <code>ruler = 1cm</code>、<code>distance_neonsign = 34.5m</code>），用于推算目标物体绝对数值的基准。</li>
+  </ul>
+  <h4>复合场景处理</h4>
+  <p>同一个物体（如 <code>white car</code>）在场景 A 中作为<b>测算目标</b>（求其速度），在场景 B 中可作为<b>参照物</b>（已知其速度，求旁边行人的身高）。</p>
+  <p>参照物（车道、地砖、网格等）常作为 prior 的载体，也是指认难点（见"已知失败模式"）。</p>
+  </details>
+
+  <details class="appx">
+  <summary><h3 id="优先级">按子集的优先级</h3></summary>
+  <table>
+    <tr><th>子集</th><th>题数</th><th>难度</th><th>原因</th></tr>
+    <tr><td>simulation 2D</td><td>1,039</td><td>低</td><td>渲染干净、相机固定、物体清晰，比例尺标定最可靠。先在这里把流水线跑通。</td></tr>
+    <tr><td>lab 3D</td><td>791</td><td>中</td><td>有 depth_info，背景可控，还有分割变体可借用。</td></tr>
+    <tr><td>simulation 3D / segmentation</td><td>594 / 430</td><td>中</td><td>同上，分割版本几乎零成本。</td></tr>
+    <tr><td>internet 2D</td><td>420</td><td>高</td><td>背景杂乱、可能有相机运动和透视，平面假设不一定成立。这部分可能要更多依赖 VLM 回退。</td></tr>
+  </table>
+  </details>
+
+  <details class="appx">
+  <summary><h3 id="appx-related">Related Work</h3></summary>
+  <p>按四类整理，每类内按时间倒序。优先收录 2024 年以后的工作。</p>
+
+  <h4 id="rw-bench">定量物理与空间推理 benchmark</h4>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2605.23898">SPACENUM</a></td><td>双向测试 VLM 能否把空间结构和数字互相映射（Num2Space / Space2Num）。</td><td class="muted">结论是现有 VLM 几乎接近随机猜，印证了“不能让 VLM 直接报数”。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.19526">QuantiPhy（本比赛）</a></td><td>给视频和一个物理量 prior，让 VLM 输出另一个物理量（尺寸、速度、加速度）的真实世界数值。</td><td class="muted">目标任务。论文发现 VLM 主要靠先验知识而不是视频内容作答。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.01989">PAI-Bench</a></td><td>面向 Physical AI 的综合 benchmark，覆盖视频生成与视频理解的感知和预测能力。</td><td class="muted">偏定性，不含数值测量，但说明“物理 AI 评测”是当前热点。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2510.02311">Inferring Dynamic Physical Properties from Video Foundation Models</a></td><td>从视频推断弹性、粘度、动摩擦等需要运动信息的物理属性，比较经典 CV oracle、视频基础模型 readout 和多模态 LLM 提示。</td><td class="muted">经典 CV 流水线作为 oracle 明显优于 VLM，和我们“显式测量 + 物理公式”的路线一致。</td></tr>
+    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2501.16411">PhysBench</a></td><td>1 万条图文视频混合题，评测 VLM 对物体属性、关系、场景和动力学的物理理解。</td><td class="muted">定性为主；证明通用 VLM 的物理理解普遍偏弱。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.14171">Thinking in Space（VSI-Bench）</a></td><td>5,000 多道视频题评测多模态 LLM 的空间智能，包括物体尺寸、距离、计数等数值题。</td><td class="muted">最接近的“数值空间题” benchmark，但只有静态物体，没有运动量。</td></tr>
+    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2409.09788">Q-Spatial Bench / SpatialPrompt</a></td><td>评测 VLM 对尺寸、距离的定量空间推理，并提出用参照物引导推理的零样本提示。</td><td class="muted">用参照物标定尺度正是本比赛 prior 的用法；提示 VLM 显式借助参照物可大幅提分。</td></tr>
+    <tr><td class="yr">2024 · ICML</td><td><a href="https://arxiv.org/abs/2402.06119">ContPhy</a></td><td>从视频学习与推理连续介质（流体、软体、绳索）的物理概念。</td><td class="muted">扩展到软体和流体，QuantiPhy 只涉及刚体运动学。</td></tr>
+    <tr><td class="yr">2023 · NeurIPS</td><td><a href="https://arxiv.org/abs/2306.15668">Physion++</a></td><td>评测模型能否从视频里推断质量、摩擦、弹性、可变形性等隐含物体属性并预测结果。</td><td class="muted">属性推断是定性判断，不要求数值。</td></tr>
+    <tr><td class="yr">2020 · ICLR</td><td><a href="https://arxiv.org/abs/1910.01442">CLEVRER</a></td><td>合成碰撞视频上的描述、解释、预测与反事实问答。</td><td class="muted">物理视频问答的奠基 benchmark，全部为选择题。</td></tr>
+  </table>
+
+  <h4 id="rw-inverse">从视频反推物理参数（inverse physics / inverse rendering）</h4>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.04575">PhysMind</a></td><td>不训练：从视频做物体分割、网格重建和 6D 位姿跟踪，再拟合解析的连续时间动力学来回答物理推理题。</td><td class="muted">与我们的思路最接近：agent VLM 负责语义和选工具（SAM 3 等），几何由专门模型给出，物理由拟合得到。</td></tr>
+    <tr><td class="yr">2026 · NeurIPS</td><td><a href="https://arxiv.org/abs/2605.30320">MonoPhysics</a></td><td>从单目视频联合估计可变形物体的几何、外观和杨氏模量，用 3D Gaussian Splatting 加可微仿真克服单目尺度歧义。</td><td class="muted">单目尺度歧义是 3D 题的核心难点，可以参考其尺度重参数化思路。</td></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2603.16958">PhysQuantAgent</a></td><td>给 VLM 加上检测、尺度估计和截面图等视觉提示，组成估计物体质量的推理流水线，并提出 VisPhysQuant 数据集。</td><td class="muted">“先给 VLM 显式尺度线索再让它答数”的思路可用于我们的 VLM 回退。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2512.08282">PAVAS</a></td><td>物理感知的视频生音频：用 VLM 估质量，用开放词表分割加 CUT3R 动态三维重建得到度量尺度的速度。</td><td class="muted">展示了“分割 + 前馈 4D 重建 → 度量速度”这条链路是可行的。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2506.06440">Vid2Sim</a></td><td>从多视角视频前馈重建外观、几何和物理参数，再用无网格可微仿真微调，得到可仿真的数字资产。</td><td class="muted">多视角输入，不能直接用于单目；但说明前馈初始化 + 轻量优化的范式。</td></tr>
+    <tr><td class="yr">2025 · arXiv</td><td><a href="https://arxiv.org/abs/2503.17973">PhysTwin</a></td><td>从稀疏视角视频重建可变形物体的物理数字孪生，联合优化弹簧质点模型参数、几何和外观。</td><td class="muted">面向软体，但其“重建 → 参数拟合 → 仿真验证”的闭环和我们阶段 4 的校验一致。</td></tr>
+    <tr><td class="yr">2023 · ICLR</td><td><a href="https://arxiv.org/abs/2303.05512">PAC-NeRF</a></td><td>不假设几何拓扑，从多视角视频同时估计物体几何和物理参数（可微 MPM 仿真 + NeRF 渲染）。</td><td class="muted">inverse rendering 与 inverse physics 结合的代表作。</td></tr>
+    <tr><td class="yr">2016 · BMVC</td><td><a href="https://bmva-archive.org.uk/bmvc/2016/papers/paper039/index.html">Physics 101</a></td><td>17,408 段真实视频，无标注地学习物体质量、密度、弹性等物理属性。</td><td class="muted">早期用物理定律当监督信号从视频学属性的工作。</td></tr>
+    <tr><td class="yr">2015 · NeurIPS</td><td><a href="https://proceedings.neurips.cc/paper/2015/hash/d09bf41544a3365a46c9077ebb5e35c3-Abstract.html">Galileo</a></td><td>以 3D 物理引擎为核心的生成模型，从真实视频推断物体质量、摩擦等并预测事件结果。</td><td class="muted">“用物理引擎做反推”的源头。</td></tr>
+  </table>
+
+  <h4 id="rw-3d">度量尺度的深度与 3D / 4D 重建</h4>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2503.11651">VGGT</a></td><td>单个前馈网络从一张到数百张图直接输出相机参数、深度图、点图和三维点轨迹。</td><td class="muted">CVPR 2025 最佳论文；可一次给出相机内参和深度，是 3D 题的候选工具。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2501.12375">Video Depth Anything</a></td><td>在 Depth Anything V2 上加时空头，对任意长视频输出时间一致的深度。</td><td class="muted">逐帧深度抖动会直接变成速度噪声，时间一致性很重要。</td></tr>
+    <tr><td class="yr">2025 · CVPR</td><td><a href="https://arxiv.org/abs/2412.04463">MegaSaM</a></td><td>从随手拍的动态场景单目视频快速稳健地估计相机参数和深度图。</td><td class="muted">处理 internet 视频中的相机运动。</td></tr>
+    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.03825">MonST3R</a></td><td>对动态场景逐时刻直接估计点图，得到视频深度和相机位姿。</td><td class="muted">前馈 4D 重建的代表，PAVAS 用的 CUT3R 是其后续。</td></tr>
+    <tr><td class="yr">2025 · ICLR</td><td><a href="https://arxiv.org/abs/2410.02073">Depth Pro</a></td><td>零样本度量单目深度，不需要相机内参，0.3 秒出 2.25 MP 的锐利深度图。</td><td class="muted">没有 depth_info 时可以提供绝对尺度的初值。</td></tr>
+    <tr><td class="yr">2025 · ICCV</td><td><a href="https://arxiv.org/abs/2407.13764">Shape of Motion</a></td><td>用一组 SE(3) 运动基表示场景运动，从单目视频重建长程三维轨迹。</td><td class="muted">物体三维轨迹的另一种来源。</td></tr>
+    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2403.18913">UniDepth</a></td><td>跨域通用的单目度量深度，直接预测度量三维点并自估相机。</td><td class="muted">同上，度量深度基础模型。</td></tr>
+    <tr><td class="yr">2024 · NeurIPS</td><td><a href="https://arxiv.org/abs/2406.01584">SpatialRGPT</a></td><td>把深度作为插件接入 VLM，并用 3D 场景图生成区域级空间问答数据，评测度量距离与尺寸推理。</td><td class="muted">给 VLM 喂深度能显著提升数值空间推理。</td></tr>
+    <tr><td class="yr">2024 · CVPR</td><td><a href="https://arxiv.org/abs/2401.12168">SpatialVLM</a></td><td>用 1,000 万张真实图像自动生成 20 亿条三维空间问答训练 VLM，使其能答距离和尺寸。</td><td class="muted">证明数值空间能力可以通过数据合成训练出来。</td></tr>
+  </table>
+
+  <h4 id="rw-tools">检测、分割与跟踪工具</h4>
+  <table class="rw">
+    <tr><th>年份</th><th>工作</th><th>任务</th><th>对我们的意义</th></tr>
+    <tr><td class="yr">2026 · arXiv</td><td><a href="https://arxiv.org/abs/2608.16785">Calibration-Free Vehicle Speed Estimation</a></td><td>不标定相机、不依赖路面特征，用 36 个关键点的车辆模板和逐帧更新的单应矩阵把像素位移换算成米制速度。</td><td class="muted">把物体自身的已知结构当参照物来定尺度，和本比赛“用 prior 物体标定”的思路相同。</td></tr>
+    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2408.00714">SAM 2</a></td><td>图像与视频的可提示分割基础模型，给一帧提示即可在整段视频中传播掩码。</td><td class="muted">我们阶段 1 的跟踪器。</td></tr>
+    <tr><td class="yr">2024 · arXiv</td><td><a href="https://arxiv.org/abs/2410.11831">CoTracker3</a></td><td>用伪标签在真实视频上半监督训练的点跟踪器，能跟踪可见与遮挡点。</td><td class="muted">掩码质心抖动时的备选轨迹来源。</td></tr>
+    <tr><td class="yr">2024 · ECCV</td><td><a href="https://arxiv.org/abs/2303.05499">Grounding DINO</a></td><td>开放词表目标检测，用自然语言短语给出物体框。</td><td class="muted">我们阶段 1 的物体指认器；对 "the model of Io" 一类名词仍会失败。</td></tr>
+    <tr><td class="yr">2024 · IEEE Access</td><td><a href="https://ieeexplore.ieee.org/document/10770228/">单目视频车速估计</a></td><td>YOLOv8 检测 + ByteTrack 跟踪 + 深度单应回归网络，从固定监控视频估计车速。</td><td class="muted">传统“检测 + 跟踪 + 标定”测速流程的近期实现，误差约 2 km/h。</td></tr>
+  </table>
+  </details>
+
 </section>
+
 
 <footer>最后更新 2026-10-08</footer>
 </div>
