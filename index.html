@@ -353,6 +353,69 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
   <p><small>每格是该视频所有题的平均 MRA，场景拟合未答的题计 0；粗体为该视频最好的方法。运行方式：<code>python -m pipeline.scene_fit --split val --video &lt;id&gt; --scene3d &lt;dir&gt; --render &lt;dir&gt;/scene_fit.mp4</code>。</small></p>
 </section>
 
+<section id="physmind">
+  <h2>PhysMind 在 QuantiPhy 上为什么失败</h2>
+  <p><a href="https://github.com/ccyydd/PhysMind">PhysMind</a>（world-model agent：SAM 3 跟踪 → SAM 3D Objects 网格 → 单目度量深度定尺度 → FoundationPose 逐帧 6D 位姿 → 仿真/作答）与我们的思路相近，所以在实现自己的方法前先在验证集上测了它。运行环境 RunPod A40 48 GB，VLM 为 Gemini 3 Flash（OpenRouter）。QuantiPhy 适配是我们自己做的，不是官方结果。2026-10-09 至 10-11。</p>
+  <h3 id="pm-result">结果</h3>
+  <ul>
+    <li><b>原版路线跑不通：</b>抽样 8 个验证视频，第 2 阶段全部失败。QuantiPhy 没有专属路线，走的是 CLEVRER 路线：SAM 3 的文本提示固定为 "all visible objects"，普通视频里什么都检测不到；分割视频能检测和跟踪，但网格换算到米制尺度（mesh conditioning）全部失败。</li>
+    <li><b>改造后（变体 B）：</b>用题目里的物体名做 SAM 3 概念提示，并且每个概念单独开一个 SAM 3 会话（同一会话只保留最后一个文本提示，已验证）。5 个视频完整重建，35 题中 PhysMind 实际测量了 17 题，其余回退到 VLM。</li>
+    <li>这 17 题上 PhysMind 的平均 MRA 为 <b>0.25</b>，同一 VLM 直接作答为 0.55，我们更简单的 v1（SAM 3 掩码中心 + 度量深度）为 0.44。</li>
+  </ul>
+  <p><b>交互查看：</b><a href="case/physmind/index.html">PhysMind 三维场景查看器</a>，5 个视频，左边是视频叠加按位姿投影的网格，右边是相机坐标系下的三维场景，可拖动旋转、逐帧播放。</p>
+  <h3 id="pm-d1">诊断 1：深度（尺度）</h3>
+  <p>PhysMind 用单目度量深度（Video Depth Anything）决定物体离相机多远，进而决定所有长度和速度的尺度。QuantiPhy 的 3D 题在 depth_info 里直接给了真实距离，可以逐个核对：</p>
+  <table><tr><th>视频</th><th>物体</th><th>t</th><th>真实距离</th><th>PhysMind</th><th>PhysMind ÷ 真实</th></tr>
+    <tr><td><code>captured_0013</code></td><td>cup</td><td>0 s</td><td>1.21 m</td><td>1.96 m</td><td><b>1.62×</b></td></tr>
+    <tr><td><code>captured_0013</code></td><td>pen</td><td>0 s</td><td>1.18 m</td><td>1.63 m</td><td><b>1.39×</b></td></tr>
+    <tr><td><code>captured_0013</code></td><td>desk left</td><td>0 s</td><td>0.87 m</td><td>1.49 m</td><td><b>1.72×</b></td></tr>
+    <tr><td><code>captured_0013</code></td><td>desk right</td><td>0 s</td><td>0.85 m</td><td>1.49 m</td><td><b>1.75×</b></td></tr>
+    <tr><td><code>simulation_0015</code></td><td>human</td><td>0 s</td><td>12.26 m</td><td>12.80 m</td><td><b>1.04×</b></td></tr>
+    <tr><td><code>simulation_0015</code></td><td>human</td><td>1 s</td><td>10.97 m</td><td>11.18 m</td><td><b>1.02×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>boat</td><td>1 s</td><td>96.90 m</td><td>15.33 m</td><td><b>0.16×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>boat</td><td>2 s</td><td>92.85 m</td><td>14.51 m</td><td><b>0.16×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>human</td><td>1 s</td><td>92.19 m</td><td>16.75 m</td><td><b>0.18×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>human</td><td>2 s</td><td>92.20 m</td><td>16.63 m</td><td><b>0.18×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>eagle</td><td>2 s</td><td>103.43 m</td><td>15.37 m</td><td><b>0.15×</b></td></tr>
+  </table>
+  <p>误差两个方向都有：实验室桌面（约 1 m）远了 1.4 到 1.7 倍，海滩分割视频（约 95 m）近了 5.5 到 6.7 倍，只有美术馆场景基本准。分割视频背景是纯色，深度模型几乎没有线索。PhysMind 完全不使用题目给的 prior 和 depth_info，这正是 QuantiPhy 提供尺度的地方。</p>
+  <h3 id="pm-d2">诊断 2：位姿跟踪</h3>
+  <p>把 FoundationPose 的位姿投影回画面，和同一物体的 SAM 3 掩码中心比较（只看 2D，与深度无关）。掩码移动了而位姿没动，说明位姿跟丢了：</p>
+  <table><tr><th>视频</th><th>物体</th><th>掩码净位移</th><th>位姿投影净位移</th><th>比值</th><th>重投影误差中位数</th></tr>
+    <tr><td><code>simulation_0163</code></td><td>dark blue marble sphere</td><td>693 px</td><td>20 px</td><td><b>0.03</b></td><td>439 px</td></tr>
+    <tr><td><code>captured_0013</code></td><td>small pink sphere</td><td>212 px</td><td>8 px</td><td><b>0.04</b></td><td>36 px</td></tr>
+    <tr><td><code>internet_0004</code></td><td>a long, rectangular light-colore</td><td>77 px</td><td>210 px</td><td><b>2.72</b></td><td>191 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>76 px</td><td>13 px</td><td><b>0.17</b></td><td>10 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>72 px</td><td>6 px</td><td><b>0.08</b></td><td>19 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>70 px</td><td>18 px</td><td><b>0.26</b></td><td>4 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>68 px</td><td>20 px</td><td><b>0.30</b></td><td>7 px</td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>a person walking on the beach</td><td>63 px</td><td>63 px</td><td><b>1.01</b></td><td>2 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>top portion of a white bowling p</td><td>47 px</td><td>4 px</td><td><b>0.09</b></td><td>7 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>46 px</td><td>7 px</td><td><b>0.15</b></td><td>18 px</td></tr>
+  </table>
+  <p>SAM 3 对运动物体的跟踪是对的，FoundationPose 却几乎停在原地：simulation_0163 的蓝球掩码走了约 700 px，位姿只动了 20 px，所以测出的速度是 0.03 到 0.06 m/s，真值约 3 m/s。慢速行走的人跟得上（比值约 1.0），互联网特写视频里位姿反而乱跳（比值 2.7 到 5.2）。</p>
+  <h3 id="pm-d3">诊断 3：逐项消融</h3>
+  <p>在同一组题上每次只去掉一个原因，重新计分（平均 MRA；未测量的题保持 VLM 回退答案）：</p>
+  <table><tr><th>变体</th><th>全部 35 题</th><th>PhysMind 测量的 17 题</th><th>其中运动题 8 题</th></tr>
+    <tr><td>PhysMind 变体 B（原样）</td><td>0.460</td><td>0.253</td><td>0.212</td></tr>
+    <tr><td>+ 用 depth_info 校正尺度（只用题目给的信息）</td><td>0.489</td><td>0.312</td><td>0.162</td></tr>
+    <tr><td>+ 理想尺度（按其余题的真值，分尺寸 / 运动分别校准，留一法）</td><td>0.486</td><td>0.306</td><td>0.213</td></tr>
+    <tr><td>+ 轨迹按匀加速拟合后再求导</td><td>0.437</td><td>0.206</td><td>0.112</td></tr>
+    <tr><td>换掉 FoundationPose：v1（SAM 3 掩码中心 + 深度）</td><td>0.483</td><td>0.441</td><td>0.338</td></tr>
+    <tr><td>Gemini 3 Flash 直接作答</td><td>0.603</td><td>0.547</td><td>0.512</td></tr>
+  </table>
+  <ul>
+    <li><b>尺寸题的误差基本是一个整体尺度。</b>captured_0013 里杯子、笔都大了 1.75 倍，笔记本 1.30 倍；校正尺度后尺寸题从 0.29 升到 0.40。</li>
+    <li><b>运动题无法靠尺度修复。</b>速度只有真值的 0.01 到 0.67，同一视频内没有共同倍数，理想尺度下仍是 0.21。</li>
+    <li><b>平滑反而更差。</b>匀加速拟合去掉了抖动，但跟丢的轨迹仍是平的，碰撞前后也不是一条抛物线。抖动不是主因。</li>
+    <li><b>只把 FoundationPose 换成掩码中心，测量题就从 0.25 升到 0.44</b>，是所有单项改动里最大的。</li>
+  </ul>
+  <h3 id="pm-why">结论</h3>
+  <div class="callout">每个组件在自己的任务上都很强，但假设和 QuantiPhy 不匹配：<b>SAM 3</b> 只做 2D 分割和跟踪，这一步是对的；<b>SAM 3D</b> 给出的形状对但没有真实尺寸；<b>单目深度</b>负责猜尺度，这里偏差 0.6 到 6.7 倍，而题目明明给了尺度；<b>FoundationPose</b> 假设物体慢、近、有纹理并且有真实深度传感器，QuantiPhy 里的物体快、远、深度是预测的，于是跟丢。PhysMind 原本面向 CLEVRER / Physion 这类定性题（会不会碰撞），2 倍误差无所谓；QuantiPhy 要求 5% 到 50% 以内的数值精度，各环节误差相乘。干净背景帮不上忙：分割视频正是深度误差最大（6 倍）、原版网格尺度化全部失败的那一类。</div>
+  <p>对我们方法的启发：尺度要从题目给的 prior / depth_info 来，不要靠单目深度猜；运动要用 2D 掩码轨迹加运动模型，而不是逐帧 6D 位姿。这两点正是 <a href="#scene-fit">场景拟合</a> 的做法，它的瓶颈在“物体站在地面上”这个假设，与 PhysMind 的问题不同。</p>
+  <p><small>样本小：5 个视频、35 题、17 题实际测量，数字只代表方向。诊断脚本 <code>diagnose_physmind.py</code>，用保存下来的中间结果在 CPU 上复现。</small></p>
+</section>
+
 <section id="appendix">
   <h2>附录</h2>
   <p>查数据和查细节时用，默认收起，点标题展开。</p>
