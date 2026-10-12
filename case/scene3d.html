@@ -70,6 +70,7 @@
     <button id="tgFrustum" class="on">相机视锥</button>
   </div>
   <table id="objs"><tr><th>物体</th><th>形状</th><th>拟合尺寸 (m)</th><th>depth_info</th><th>框残差 px</th></tr></table>
+  <table id="answers"><tr><th>问题</th><th>真值</th><th>场景拟合</th><th>MRA</th><th>方法</th></tr></table>
   <p class="sub">绿色网格每格 0.5 m，每 5 m 一条粗线，原点在相机的地面垂足，轴向沿路的方向；视频叠加里的网格是同一套定义，两边应逐格重合。左右共用一个时间轴，视频是主时钟。"叠加到视频"把三维场景按拟合出的相机（焦距、俯仰、高度）半透明画在视频上，网格、尺寸盒和模型应与画面中的路面与物体重合；偏差处即拟合误差。坐标系：相机在原点，Y 向上；关键帧是 depth_info 给出距离的时刻。</p>
 </div>
 <script type="module">
@@ -81,12 +82,15 @@ const PAL = ['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#4a3aa7','#e3494
 const params = new URLSearchParams(location.search);
 const sceneUrl = params.get('scene') || 'simulation_0060/scene3d.json';
 const base = sceneUrl.substring(0, sceneUrl.lastIndexOf('/') + 1);
-document.getElementById('back').href = base.replace(/\/$/, '') + '.html';
+document.getElementById('back').href = params.get('back') || base.replace(/\/$/, '') + '.html';
 const toW = (v) => new THREE.Vector3(v[0], -v[1], -v[2]);   // camera frame (X right, Y down, Z fwd) -> three.js (Y up, -Z fwd)
 
 const S = await (await fetch(sceneUrl)).json();
 const { f, W, H } = S.camera;
 const nF = S.n_frames, fps = S.fps;
+const kf0 = Math.round((S.keyframes_t[0] ?? 0) * fps);
+const dists = S.objects.map(o => { const p = o.poses[Math.min(kf0, o.poses.length - 1)].p; return Math.hypot(p[0], p[1], p[2]); }).sort((a, b) => a - b);
+const K = Math.max(0.02, (dists[Math.floor(dists.length / 2)] || 27.15) / 27.15);   // 1 for simulation_0060
 
 // ---------- video (master clock) ----------
 const vid = document.getElementById('vid');
@@ -103,7 +107,7 @@ const scene = new THREE.Scene();
 const dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
 const bgColor = new THREE.Color(dark ? 0x14171d : 0xeef0f3);
 scene.background = bgColor;
-const cam = new THREE.PerspectiveCamera(50, W / H, 0.1, 2000);
+const cam = new THREE.PerspectiveCamera(50, W / H, 0.1 * K, 2000 * K);
 const controls = new OrbitControls(cam, renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x667788, 1.1));
 const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(10, 30, 10); scene.add(sun);
@@ -121,7 +125,7 @@ if (S.plane.u1) {
   groundGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n); groundGroup.position.copy(p0);
 }
 // canonical grid, identical to the video overlay: origin at the camera's foot point, 0.5 m cells, darker line every 5 m
-const STEP = 0.5, MAJOR = 5, EXT = 60, MINOR_EXT = 25;   // same constants as pipeline/fit3d_viz.py
+const STEP = 0.5, MAJOR = 5, EXT = Math.max(MAJOR, Math.round(60 * K / MAJOR) * MAJOR), MINOR_EXT = Math.min(25, EXT);   // cell sizes as in pipeline/fit3d_viz.py; extent follows the scene
 const gpts = [], mpts = [];
 for (let k = -EXT; k <= EXT + 1e-6; k += STEP) {
   const isMajor = Math.abs(k / MAJOR - Math.round(k / MAJOR)) < 1e-6;
@@ -139,12 +143,12 @@ scene.add(groundGroup);
 
 // ---------- frustum ----------
 const fr = new THREE.Group();
-const depth = 40;
+const depth = 40 * K;
 const corners = [[0, 0], [W, 0], [W, H], [0, H]].map(([u, v]) => toW([(u - W / 2) * depth / f, (v - H / 2) * depth / f, depth]));
 const fpts = [];
 corners.forEach((c, i) => { fpts.push(new THREE.Vector3(0, 0, 0), c, c, corners[(i + 1) % 4]); });
 fr.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(fpts), new THREE.LineBasicMaterial({ color: 0x888888 })));
-fr.add(new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.2, 12), new THREE.MeshStandardMaterial({ color: 0x1baf7a })));
+fr.add(new THREE.Mesh(new THREE.ConeGeometry(0.6 * K, 1.2 * K, 12), new THREE.MeshStandardMaterial({ color: 0x1baf7a })));
 scene.add(fr);
 
 // ---------- objects ----------
@@ -155,7 +159,7 @@ function makeLabel(text, color) {
   const c = document.createElement('canvas'); c.width = 512; c.height = 96;
   const g = c.getContext('2d'); g.font = 'bold 40px sans-serif'; g.fillStyle = color; g.textAlign = 'center'; g.fillText(text, 256, 60);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true }));
-  sp.scale.set(6, 1.1, 1); return sp;
+  sp.scale.set(6 * K, 1.1 * K, 1); return sp;
 }
 S.objects.forEach((o, i) => {
   const color = PAL[i % PAL.length];
@@ -168,7 +172,7 @@ S.objects.forEach((o, i) => {
   const boxMesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ color, transparent: true, opacity: o.mesh ? 0.15 : 0.5 }));
   const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geom), new THREE.LineBasicMaterial({ color }));
   const boxGroup = new THREE.Group(); boxGroup.add(boxMesh, edges); g.add(boxGroup);
-  const label = makeLabel(o.name, color); label.position.set(0, 0, (d.H ?? d.D ?? 1) / 2 + 1.0); g.add(label);
+  const label = makeLabel(o.name, color); label.position.set(0, 0, (d.H ?? d.D ?? 1) / 2 + 1.0 * K); g.add(label);
   const meshGroup = new THREE.Group(); g.add(meshGroup);
   if (o.mesh) {
     loader.load(base + o.mesh.file, (gltf) => {
@@ -192,6 +196,14 @@ S.objects.forEach((o, i) => {
   const dimsTxt = Object.entries(d).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(' · ');
   row.innerHTML = `<td><span class="sw" style="background:${color}"></span>${o.name}${o.is_prior ? ' <small>(prior)</small>' : ''}</td><td>${o.shape}${o.mesh ? ' + mesh' : ''}</td><td>${dimsTxt}</td><td>${o.anchors.length ? o.anchors.map(a => `t=${a.t}s: ${a.Z.toFixed(1)} m`).join('<br>') : '—'}</td><td>${(o.rms ?? 0).toFixed(1)}</td>`;
   objList.appendChild(row);
+});
+
+const ansTable = document.getElementById('answers');
+(S.results || []).forEach(r => {
+  const row = document.createElement('tr');
+  const fmt = v => v == null ? '—' : (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
+  row.innerHTML = `<td>${r.question}</td><td>${fmt(r.answer)}</td><td>${fmt(r.pred)}</td><td>${r.mra == null ? '—' : r.mra.toFixed(1)}</td><td><code>${r.method}</code></td>`;
+  ansTable.appendChild(row);
 });
 
 // ---------- time (video is the master clock) ----------
@@ -228,8 +240,8 @@ function cameraView() {
   cam.fov = 2 * Math.atan(H / 2 / f) * 180 / Math.PI; cam.aspect = W / H; cam.updateProjectionMatrix();
   cam.lookAt(0, 0, -1); controls.enabled = false;
 }
-function freeView() { controls.enabled = true; cam.fov = 50; cam.updateProjectionMatrix(); cam.position.set(12, 18, 14); controls.target.set(0, 0, -22); controls.update(); }
-function topView() { controls.enabled = true; cam.fov = 50; cam.updateProjectionMatrix(); cam.position.set(0, 70, -25); controls.target.set(0, 0, -25); controls.update(); }
+function freeView() { controls.enabled = true; cam.fov = 50; cam.updateProjectionMatrix(); cam.position.set(12 * K, 18 * K, 14 * K); controls.target.set(0, 0, -22 * K); controls.update(); }
+function topView() { controls.enabled = true; cam.fov = 50; cam.updateProjectionMatrix(); cam.position.set(0, 70 * K, -25 * K); controls.target.set(0, 0, -25 * K); controls.update(); }
 document.getElementById('camView').onclick = () => { setOverlay(false); cameraView(); };
 document.getElementById('topView').onclick = () => { setOverlay(false); topView(); };
 document.getElementById('freeView').onclick = () => { setOverlay(false); freeView(); };
