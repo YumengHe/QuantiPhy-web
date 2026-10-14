@@ -353,6 +353,36 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
   <p><small>每格是该视频所有题的平均 MRA，场景拟合未答的题计 0；粗体为该视频最好的方法。运行方式：<code>python -m pipeline.scene_fit --split val --video &lt;id&gt; --scene3d &lt;dir&gt; --render &lt;dir&gt;/scene_fit.mp4</code>。</small></p>
 </section>
 
+<section id="depth-guidance">
+  <h2>单目深度作为引导（2026-10-13）</h2>
+  <p>用 Depth Anything V2 预测每帧的相对逆深度，再用题目给的 depth_info 解出尺度和偏移，得到逐帧米制深度，作为场景拟合的引导。锚点物体先按同义词匹配已有跟踪，跟踪里没有的（码头、楼梯等）由本地 Qwen3.8-27B 指认位置。代码：<code>pipeline/depth.py</code>、<code>scene_depth.py</code>、<code>qwen.py</code>，开关 <code>scene_fit --depth</code>。</p>
+  <h3>深度本身有多准</h3>
+  <p>12 个带锚点的 3D 验证视频、共 48 个锚点，留一法：用其余锚点对齐，预测被留出的那个。</p>
+  <table>
+    <tr><th>方法</th><th>相对误差中位数</th><th>误差 &lt; 10% 的比例</th></tr>
+    <tr><td>Depth Pro 原始米制深度</td><td>62%</td><td>9%</td></tr>
+    <tr><td>Depth Pro + 一个尺度</td><td>17%</td><td>23%</td></tr>
+    <tr><td><b>Depth Anything V2 + 尺度和偏移</b></td><td><b>7.4%</b></td><td><b>74%</b></td></tr>
+  </table>
+  <p>Depth Pro 在仿真画面上的米制深度和焦距都不可靠（焦距估计从 401 到 7620 px）。误差大的主要是"桌子左端、斜坡远端"这类边缘锚点，Qwen 给的点常落在背景上；captured_0027s 是简化背景变体，锚点物体被抠掉了，无法使用。</p>
+  <h3>接入场景拟合</h3>
+  <ul>
+    <li>每个被跟踪的物体每隔 4 帧得到一个深度观测，作为比真实锚点弱的约束。</li>
+    <li>每帧先用静止背景把逆深度对齐到参考帧，消除模型逐帧的尺度漂移，再统一换算为米。</li>
+    <li>框底中心的深度可以当作地面接触点，但它混合了物体和地面像素，近处偏深 13% 到 17%；所以只在检测不到地平线时才用它定地面。</li>
+  </ul>
+  <table>
+    <tr><th>验证集 macro MRA</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td>场景拟合，无深度（未答计 0）</td><td>0.329</td><td>0.319</td><td>0.189</td><td>0.349</td><td>0.457</td></tr>
+    <tr><td>场景拟合 + 深度（未答计 0）</td><td>0.355</td><td>0.319</td><td>0.189</td><td>0.374</td><td>0.536</td></tr>
+    <tr><td><code>pipeline.run</code></td><td>0.497</td><td>0.462</td><td>0.341</td><td>0.707</td><td>0.477</td></tr>
+    <tr><td><b>路由：3D 视频的 D3 题用场景拟合 + 深度，其余用 <code>pipeline.run</code></b></td><td><b>0.517</b></td><td>0.462</td><td>0.341</td><td>0.707</td><td><b>0.557</b></td></tr>
+    <tr><td>同样路由但不加深度</td><td>0.497</td><td>0.462</td><td>0.341</td><td>0.707</td><td>0.479</td></tr>
+  </table>
+  <p>深度带来的提升集中在 3D 视频的动态题。逐视频看，captured_0021x 从 0.02 到 0.54，simulation_0009 从 0.04 到 0.41；退步的是 captured_0034as 和 captured_0061，原因是这些实验室视频里物体在桌上或在空中，"所有物体贴着一个地面"的假设不成立，平面被拟合到 30° 以上的倾斜。去掉平面、让物体在三维自由运动（<code>--free3d</code>）后，空中和水上的物体变好、桌面物体变差，12 个视频平均 0.44，低于带平面的 0.46，所以默认仍带平面。</p>
+  <p><b>下一步：</b>把单一地面推广成支撑关系图（物体在桌上、桌在地上、球在空中），每个物体按它实际的支撑面放置，主攻实验室视频；2D 视频没有 depth_info，需要用 prior 给深度定尺度。</p>
+</section>
+
 <section id="physmind">
   <h2>PhysMind 在 QuantiPhy 上为什么失败</h2>
   <p><a href="https://github.com/ccyydd/PhysMind">PhysMind</a>（world-model agent：SAM 3 跟踪 → SAM 3D Objects 网格 → 单目度量深度定尺度 → FoundationPose 逐帧 6D 位姿 → 仿真/作答）与我们的思路相近，所以在实现自己的方法前先在验证集上测了它。运行环境 RunPod A40 48 GB，VLM 为 Gemini 3 Flash（OpenRouter）。QuantiPhy 适配是我们自己做的，不是官方结果。2026-10-09 至 10-11。</p>
