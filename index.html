@@ -383,6 +383,46 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
   <p><b>下一步：</b>把单一地面推广成支撑关系图（物体在桌上、桌在地上、球在空中），每个物体按它实际的支撑面放置，主攻实验室视频；2D 视频没有 depth_info，需要用 prior 给深度定尺度。</p>
 </section>
 
+<section id="track2d">
+  <h2>2D 方案：几何测量 + VLM 兜底（2026-10-18）</h2>
+  <p>只针对 2D 题（S2、D2），所有模型都是开源模型，满足 Track B 的要求。验证集共 69 道 2D 题（S2 32 道，D2 37 道），测试集共 1741 道。</p>
+
+  <h3 id="t2-pipeline">当前流水线</h3>
+  <table>
+    <tr><th>阶段</th><th>做法</th></tr>
+    <tr><td>1 问题解析</td><td>规则解析器，同前（<code>parse.py</code>）</td></tr>
+    <tr><td>2 指认与跟踪</td><td>Grounding DINO 找物体；DINO 找不到的物体由 Qwen3-VL-8B 给框（vLLM 本地服务）；SAM 2 做视频跟踪（<code>perceive.py</code>）</td></tr>
+    <tr><td>3 像素测量</td><td>用框和轨迹量像素长度、速度和加速度（<code>physics.py</code>）；关闭掩码尺寸和动态 prior 检查，因为消融显示这两项没有帮助（<code>--disable mask,dyncheck</code>）</td></tr>
+    <tr><td>4 标定与求解</td><td>m/px = prior 的物理量 ÷ prior 的像素量，再换算成目标量（<code>calibrate.py</code>、<code>solve.py</code>）</td></tr>
+    <tr><td>5 校验</td><td>做合理范围检查；测不出来或结果不合理时，先填验证集中位数常数（<code>verify.py</code>）</td></tr>
+    <tr><td><b>6 VLM 兜底（新）</b></td><td>第 5 步填了常数的题，改用 <a href="https://huggingface.co/MirroS-Lab/Code-as-World-VL-9B">Code-as-World-VL-9B</a>（基于 Qwen3.5-9B，Apache 2.0）直接看视频作答：输入 16 帧，长边缩到 854 px。VLM 的答案同样要通过合理范围检查，不通过就保留常数（<code>vlm.py</code>、<code>mix.py</code>）</td></tr>
+  </table>
+<pre><code>python -m pipeline.run --split test --dim 2 --disable mask,dyncheck --out outputs/test_2d.csv
+python -m pipeline.vlm --split test --dim 2 --engine server --tag caw_test_2d     # 需要 vLLM 运行 Code-as-World-VL-9B
+python -m pipeline.mix --geo test_2d.csv --vlm caw_test_2d.csv --out test_2d_mix.csv</code></pre>
+
+  <h3 id="t2-versions">重要版本（验证集 2D）</h3>
+  <table>
+    <tr><th>版本</th><th>S2</th><th>D2</th><th>说明</th></tr>
+    <tr><td>流水线 v1（10-04）</td><td>0.463</td><td>0.341</td><td>Grounding DINO + SAM 2</td></tr>
+    <tr><td>几何 + Qwen 指认</td><td>0.478</td><td>0.376</td><td>所有功能都打开；去掉 Qwen 后 D2 降到 0.368</td></tr>
+    <tr><td>几何 + Qwen 指认，关闭 mask/dyncheck</td><td>0.487</td><td>0.386</td><td>纯几何方案里最好的一版，测试集用的就是这个配置</td></tr>
+    <tr><td>Qwen3-VL-8B 直接作答</td><td>0.331</td><td>0.378</td><td></td></tr>
+    <tr><td>Code-as-World-VL-9B 直接作答</td><td>0.391</td><td><b>0.457</b></td><td>D2 明显好于几何，S2 不如几何</td></tr>
+    <tr><td>Agent：Qwen 选框并校验跟踪</td><td>0.456</td><td>0.332</td><td>没有采用：Qwen 8B 的 yes/no 校验误删了正确的轨迹（误删 19 题，只救回 7 题）</td></tr>
+    <tr><td><b>几何 + Code-as-World 兜底（当前）</b></td><td><b>0.503</b></td><td><b>0.508</b></td><td>只替换几何方法测不出来的题</td></tr>
+    <tr><td><small>参考：Gemini 3 Flash 直接作答</small></td><td><small>0.463</small></td><td><small>0.592</small></td><td><small>闭源模型，不能用于 Track B</small></td></tr>
+  </table>
+  <p><small>"当前"这一行是用 <code>mix.py</code> 的规则在"所有功能都打开"的几何结果上算出来的。合并方式稍有不同时，分数在 0.50 到 0.53 之间。</small></p>
+
+  <h3 id="t2-notes">观察与下一步</h3>
+  <ul>
+    <li><b>几何适合 S2，VLM 适合 D2。</b>S2 题全部交给 Code-as-World 时，S2 会掉到 0.375。D2 题全部交给它时，在两份几何结果上分别得到 +0.05 和 −0.05。验证集只有 37 道 D2 题，噪声太大，准备用两次测试集提交来比较。</li>
+    <li><b>测试集和验证集的分布不同：</b>测试集的视频大多是 1080p 到 4K（验证集是 854×480）；加速度 prior 占 28%（验证集 10%）；D2 题占 67%。</li>
+    <li><b>测试集状态：</b>1741 道 2D 题里，有 202 道几何方法测不出来或是手填的，其中 171 道换成了 Code-as-World 的答案。3D 部分合并后再提交。</li>
+  </ul>
+</section>
+
 <section id="physmind">
   <h2>PhysMind 在 QuantiPhy 上为什么失败</h2>
   <p><a href="https://github.com/ccyydd/PhysMind">PhysMind</a>（world-model agent：SAM 3 跟踪 → SAM 3D Objects 网格 → 单目度量深度定尺度 → FoundationPose 逐帧 6D 位姿 → 仿真/作答）与我们的思路相近，所以在实现自己的方法前先在验证集上测了它。运行环境 RunPod A40 48 GB，VLM 为 Gemini 3 Flash（OpenRouter）。QuantiPhy 适配是我们自己做的，不是官方结果。2026-10-09 至 10-11。</p>
