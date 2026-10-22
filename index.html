@@ -523,6 +523,45 @@ python -m pipeline.route --split test --geo outputs/test_geo_detailed.csv --vlm 
   </ul>
 </section>
 
+<section id="cad-template">
+  <h2>参数化 CAD 模板（借鉴 SPARK2 Procedura）（2026-10-22，未采用）</h2>
+  <p>动机：Meshy 额度已用完。用户提出用 CAD 生成物体，这样长宽高可以在场景拟合时直接优化。代码：<code>pipeline/procmesh.py</code>、<code>scene_fit.py</code>。</p>
+
+  <h3>做法</h3>
+  <ul>
+    <li>先照搬 Procedura 的做法，让本地 Qwen 写 OpenSCAD：8 个物体全部能编译，每个耗时 15–20 s，但其中 2 个比例明显不对（白车宽 2.8 m，黄车长 2.8 m）。</li>
+    <li>场景拟合只用到形状的投影包围盒，也就是凸包，不需要精细几何，所以改用手写的部件化模板：12 类、约 40 个子类型（轿车 / SUV / 卡车 / 公交 / 自行车 / 摩托 / 人 / 船 / 飞机 / 鸟 / 鱼 / 四足动物）。</li>
+    <li>长宽高作为拟合参数，并加类别比例先验，防止被压扁。Qwen 看裁剪图选子类型并给出初始尺寸。生成一个物体约 1 s，不花 credits。</li>
+  </ul>
+
+  <h3>场景拟合本身（验证集 3D 共 90 题，未答计 0）</h3>
+  <table>
+    <tr><th>版本</th><th>3D macro</th><th>S3</th><th>D3</th><th>网格类物体（34 题）</th><th>其中尺寸题（17 题）</th></tr>
+    <tr><td>Meshy 网格（基线）</td><td>0.458</td><td>0.356</td><td><b>0.560</b></td><td>0.624</td><td>0.641</td></tr>
+    <tr><td>基本几何体</td><td>0.455</td><td>0.372</td><td>0.538</td><td>0.618</td><td>0.647</td></tr>
+    <tr><td>CAD 固定尺寸（Qwen 估计）</td><td><b>0.484</b></td><td><b>0.440</b></td><td>0.528</td><td>0.644</td><td>0.665</td></tr>
+    <tr><td>CAD 参数化，只补没有 Meshy 的物体</td><td>0.463</td><td>0.374</td><td>0.551</td><td>0.624</td><td>0.653</td></tr>
+    <tr><td>CAD 参数化，全部替换（Qwen 先验）</td><td>0.474</td><td>0.407</td><td>0.540</td><td>0.635</td><td>0.653</td></tr>
+    <tr><td>CAD 参数化，类别默认尺寸</td><td>0.483</td><td>0.414</td><td>0.551</td><td><b>0.653</b></td><td><b>0.712</b></td></tr>
+  </table>
+
+  <h3>完整 harness（验证集）</h3>
+  <table>
+    <tr><th>版本</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td><b>当前最好（Meshy 网格作提示）</b></td><td><b>0.639</b></td><td>0.594</td><td>0.581</td><td>0.707</td><td><b>0.674</b></td></tr>
+    <tr><td>CAD 只补没有 Meshy 的物体</td><td>0.638</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.668</td></tr>
+    <tr><td>CAD 参数化，类别默认尺寸</td><td>0.636</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.662</td></tr>
+    <tr><td>CAD 固定尺寸 / 参数化（Qwen 先验）</td><td>0.635</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.657</td></tr>
+  </table>
+
+  <h3>结论与未采用的原因</h3>
+  <ul>
+    <li>CAD 明显改善了场景拟合本身（3D macro 0.45 → 0.48，尺寸题 0.64 → 0.71），主要是修好了 Meshy 没有网格或朝向错误的物体（老鹰、鸟、simulation_0034 的船）。</li>
+    <li>但在 harness 里，S3 走几何流水线，这些题上几何结果已有 0.84，用不上场景拟合；D3 上 Qwen 已接近满分，换提示反而略降。所以总分变化在噪声内且偏负，未采用，没有对应的提交文件。</li>
+    <li>顺带发现：Meshy 的人和船网格有坐标轴推断错误（身高方向被当成了车头方向），留作后续修复。</li>
+  </ul>
+</section>
+
 <section id="physmind">
   <h2>PhysMind 在 QuantiPhy 上为什么失败</h2>
   <p><a href="https://github.com/ccyydd/PhysMind">PhysMind</a>（world-model agent：SAM 3 跟踪 → SAM 3D Objects 网格 → 单目度量深度定尺度 → FoundationPose 逐帧 6D 位姿 → 仿真/作答）与我们的思路相近，所以在实现自己的方法前先在验证集上测了它。运行环境 RunPod A40 48 GB，VLM 为 Gemini 3 Flash（OpenRouter）。QuantiPhy 适配是我们自己做的，不是官方结果。2026-10-09 至 10-11。</p>
