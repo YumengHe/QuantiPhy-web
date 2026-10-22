@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Serve this directory on port 9688 in the background. Usage: ./serve.sh [start|stop|status]
+# Serve this directory on port $PORT (default 9002) in the background. Usage: ./serve.sh [start|stop|status]
 cd "$(dirname "$0")"
-PORT=9688
+PORT=${PORT:-9002}
 PIDFILE=.serve.pid
 case "${1:-start}" in
   start)
