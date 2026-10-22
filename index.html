@@ -480,6 +480,49 @@ python -m pipeline.vlm_hint --split test --tag qwen16hint --hint outputs/test_ge
 python -m pipeline.route --split test --geo outputs/test_geo_detailed.csv --vlm outputs/vlm/test_qwen16hint_pred.csv --out outputs/submission_v1.csv</code></pre>
 </section>
 
+<section id="scene-mesh">
+  <h2>3D 场景拟合 + Meshy 网格库进入 harness（2026-10-22）</h2>
+  <p>目标：所有 3D 视频都跑场景拟合（深度 + 地面 + 形状），需要网格的物体用 Meshy，但每个物体只生成一次。代码：<code>pipeline/meshlib.py</code>、<code>scene_fit.py --meshlib</code>、<code>vlm_hint.py --mesh-hint</code>。</p>
+
+  <h3>网格库</h3>
+  <ul>
+    <li>按"场景 + 物体名的词集合"存放在 <code>outputs/meshy/lib/&lt;scene&gt;/&lt;slug&gt;/</code>：同一场景的各个变体共用；"the white car"和"white car"命中同一个网格；已有网格直接复用，不再重复生成。</li>
+    <li>只给基本几何体描述不了的物体生成网格：车、人、动物、船、飞机等；球、盒子、圆柱仍用解析几何体。</li>
+    <li><b>付费前的检查：</b>物体短边要至少 48 px，而且要由 Qwen 确认裁剪图里确实是这个物体。没通过就不调用 Meshy，记为 rejected，以后也不重试。早期有 4 个网格是用错误裁剪生成的（裁到地板、空白，或者跟错了物体，生成出一串文字），已标记为不可用。</li>
+    <li>花费：一共生成 27 个网格，810 credits（验证集 8 个，测试集 19 个）；检查拒掉 54 个裁剪，没有花费。之后 Meshy 返回 402：API 只扣月度 credits（剩 20），永久 credits（9747）不能通过 API 使用，月度额度 11 月中才重置。所以测试集 3D 场景目前可用的网格是 26 个。</li>
+  </ul>
+
+  <h3>验证集 3D 题（场景拟合本身，未答计 0）</h3>
+  <table>
+    <tr><th>版本</th><th>已答</th><th>3D macro</th><th>S3</th><th>D3</th></tr>
+    <tr><td>场景拟合 + 深度</td><td>84/90</td><td>0.455</td><td>0.372</td><td>0.538</td></tr>
+    <tr><td>+ 网格库</td><td>76/90</td><td>0.412</td><td>0.267</td><td>0.557</td></tr>
+    <tr><td>+ 网格库，网格拟合失败时退回基本几何体</td><td>84/90</td><td>0.458</td><td>0.356</td><td><b>0.560</b></td></tr>
+  </table>
+  <p>用网格拟合的物体平均 MRA 0.72（15 题），基本几何体只有 0.42–0.48。车辆场景提升最明显：simulation_0060 从 0.70 升到 0.77。但在这 15 题上，"Qwen + 几何提示"已经有 0.84，所以场景拟合更适合用来给 Qwen 当提示，而不是直接作答。</p>
+
+  <h3>接入 harness</h3>
+  <table>
+    <tr><th>做法（验证集）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td>v3：两种几何提示 + 路由</td><td>0.636</td><td>0.597</td><td>0.581</td><td>0.707</td><td>0.660</td></tr>
+    <tr><td><b>v4：网格物体的提示改用场景拟合的结果</b></td><td><b>0.639</b></td><td>0.594</td><td>0.581</td><td>0.707</td><td><b>0.674</b></td></tr>
+    <tr><td>同时给几何和场景拟合两个数</td><td>0.611</td><td>0.594</td><td>0.530</td><td>0.707</td><td>0.613</td></tr>
+    <tr><td>几何与场景拟合一致时取二者平均</td><td>0.630–0.638</td><td colspan="4">没有收益</td></tr>
+    <tr><td>再给 Qwen 一张画了跟踪框的图</td><td>0.589</td><td>0.494</td><td>0.527</td><td>0.707</td><td>0.628</td></tr>
+    <tr><td>场景拟合加焦距先验 / 带宽、最薄边约束</td><td colspan="5">场景拟合本身变化只有零点零几，在噪声内，不采用</td></tr>
+  </table>
+
+  <h3>这一轮修的问题</h3>
+  <ul>
+    <li><b>验证集和测试集共用 24 个 video_id：</b>是同样的视频，测试集的分辨率更高。缓存原来只按 video_id 存，两边互相覆盖了跟踪和深度结果。现在按数据集分目录存（<code>tracks/</code>、<code>tracks_test/</code>，<code>depth/</code>、<code>depth_test/</code>），受影响的视频已重新跟踪、重新作答，得到 v3。</li>
+    <li><b>验证集 159 题里有 124 题原样出现在测试集中。</b>我们没有使用这些题的验证集答案。</li>
+    <li>SAM 2 单帧分割在新版 transformers 下接口变了，给出的掩码也不可靠，所以网格裁剪不再用掩码，Meshy 会自己去背景。</li>
+    <li>场景拟合找不到某个变体的跟踪时，改用同场景其他变体的跟踪（<code>pipeline.run</code> 本来就是一个场景共用一份掩码变体的跟踪）。</li>
+    <li>测试集：场景拟合（深度 + 网格库）跑完 235 个 3D 视频中的 211 个，得到 1342 个答案，其中 80 个是用网格拟合的物体，这些题的提示换成了场景拟合的结果，得到 <b><code>outputs/submission_v4.csv</code></b>，和 v3 相比有 43 题的数值变化超过 1%。另外 24 个视频拟合失败，保留原来的答案。</li>
+    <li>/data 被其他用户写满后，把数据、深度和网格搬到了 <code>/nas/yumenghe/QuantiPhy-data</code>，在 repo 里用软链接指过去。HF 缓存依赖软链接，而 NAS 不支持软链接，所以 HF 缓存仍留在 /data。</li>
+  </ul>
+</section>
+
 <section id="physmind">
   <h2>PhysMind 在 QuantiPhy 上为什么失败</h2>
   <p><a href="https://github.com/ccyydd/PhysMind">PhysMind</a>（world-model agent：SAM 3 跟踪 → SAM 3D Objects 网格 → 单目度量深度定尺度 → FoundationPose 逐帧 6D 位姿 → 仿真/作答）与我们的思路相近，所以在实现自己的方法前先在验证集上测了它。运行环境 RunPod A40 48 GB，VLM 为 Gemini 3 Flash（OpenRouter）。QuantiPhy 适配是我们自己做的，不是官方结果。2026-10-09 至 10-11。</p>
