@@ -442,8 +442,11 @@ python -m pipeline.mix --geo test_2d.csv --vlm caw_test_2d.csv --out test_2d_mix
     <tr><td>Qwen 直接作答，无提示</td><td>0.452</td><td>0.325</td><td>0.459</td><td>0.421</td><td>0.602</td></tr>
     <tr><td>Qwen 直接作答 + 几何提示</td><td>0.591</td><td>0.594</td><td>0.508</td><td>0.623</td><td>0.638</td></tr>
     <tr><td><b>路由：S3 用几何，其余用"Qwen + 几何提示"（提交 v1）</b></td><td><b>0.616</b></td><td>0.594</td><td>0.508</td><td><b>0.707</b></td><td><b>0.655</b></td></tr>
+    <tr><td>同上，但提示来自"Qwen 检查过提示框"的跟踪</td><td>0.629</td><td>0.603</td><td>0.541</td><td>0.707</td><td>0.664</td></tr>
+    <tr><td><b>两种提示各跑一次，Qwen 答案取几何平均（提交 v2）</b></td><td><b>0.636</b></td><td>0.597</td><td><b>0.581</b></td><td>0.707</td><td>0.660</td></tr>
     <tr><td><small>参考：Gemini 3 Flash 直接作答（闭源）</small></td><td><small>0.582</small></td><td></td><td></td><td></td><td></td></tr>
   </table>
+  <p><small>同一配置重跑一次，单个类别会有 ±0.03 的波动，所以 v1 和 v2 的差距（0.02）在噪声范围内。v2 的好处是两种提示各跑一次再取平均，方差更小。</small></p>
   <h3>试过但没有采用的</h3>
   <table>
     <tr><th>尝试</th><th>验证集</th><th>结论</th></tr>
@@ -467,6 +470,7 @@ python -m pipeline.mix --geo test_2d.csv --vlm caw_test_2d.csv --out test_2d_mix
   <h3>测试集提交文件</h3>
   <ul>
     <li><code>outputs/submission_v1.csv</code>：3289 行，没有空值。S3 的 578 题来自几何；其余 2674 题来自 Qwen；Qwen 无效的 37 题退回几何。</li>
+    <li><b><code>outputs/submission_v2.csv</code>（推荐先交）：</b>和 v1 一样路由，只是 Qwen 答案换成两次运行的几何平均：一次用普通跟踪做提示，一次用 Qwen 检查过提示框的跟踪（<code>outputs/tracks_qwen/</code>）做提示。和 v1 相比有 637 题的数值变化超过 1%。</li>
     <li>测试集的跟踪用 6 张 GPU 并行，约 15 分钟（<code>pipeline.run --shard k/6</code>）；Qwen 作答 3289 题约 16 分钟。</li>
   </ul>
 <pre><code>python -m pipeline.run --split test --shard k/6                    # 6 个进程并行跟踪，结果缓存在 outputs/tracks/
