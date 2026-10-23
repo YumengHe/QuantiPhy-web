@@ -81,17 +81,23 @@
       `<div class="sub">${esc(v.source)} · ${esc(v.video_type)} · ${v.fps} fps${v.duration ? ' · ' + fmt(v.duration, 1) + ' s' : ''} · ${qs.length} 题 ` +
       v.cats.map((c) => `<span class="tag">${c}</span>`).join('') + sceneTag + '</div></div>' +
       (split === 'val' ? `<div title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</div>` : '') + '</summary>';
-    let built = false, viewer = null;
+    let built = false, viewer = null, video = null;
     d.addEventListener('toggle', () => {
       if (d.open && !built) {
         built = true;
         const body = document.createElement('div');
         body.className = 'vbody';
-        body.innerHTML = questionTable(qs, split) + (v.dim === 3 ? sceneBlock(v, split) : '');
+        body.innerHTML = mediaBlock(v, split) + questionTable(qs, split) + (v.dim === 3 ? sceneTables(v, split) : '');
         d.appendChild(body);
+        video = body.querySelector('video');
+      }
+      // the <video> only holds a src while its card is open, so collapsed cards do not keep connections or buffers
+      if (video) {
+        if (d.open && !video.getAttribute('src')) video.src = v.video;
+        if (!d.open) { video.pause(); video.removeAttribute('src'); video.load(); }
       }
       if (v.dim === 3 && v.scene) {
-        if (d.open && !viewer) viewer = startViewer(d.querySelector('.viewer'), d.querySelector('.timebar'), v);
+        if (d.open && !viewer) viewer = startViewer(d.querySelector('.viewer'), d.querySelector('.timebar'), v, video);
         if (!d.open && viewer) { viewer.then((x) => x && x.dispose()); viewer = null; }
       }
     });
@@ -130,7 +136,27 @@
     return [fmtNum(d.L), fmtNum(d.W), fmtNum(d.H)];
   }
 
-  function sceneBlock(v, split) {
+  // top of an opened card: original video (left) and, for 3D videos with a scene fit, the 3D view (right)
+  function mediaBlock(v, split) {
+    let vid;
+    if (v.video) {
+      const note = v.video_from !== split ? `<p class="muted vnote">验证集的原文件是 MPEG-4 Part 2 编码，浏览器放不了；这里放的是测试集里同一视频的 H.264 版本（帧数相同，分辨率更高）。<a href="${esc(v.orig)}">下载验证集原文件</a></p>` : '';
+      vid = `<h4>原视频</h4><video class="orig" controls muted loop playsinline preload="metadata"></video>${note}`;
+    } else {
+      vid = `<h4>原视频</h4><div class="noscene">这个视频的编码是 MPEG-4 Part 2（<code>${esc(v.codec)}</code>），浏览器放不了，也没有可替代的 H.264 版本。<a href="${esc(v.orig)}">下载原文件</a></div>`;
+    }
+    let scene = '';
+    if (v.dim === 3 && v.scene) {
+      scene = `<div><h4>3D 场景（<code>${esc(v.scene.file)}</code>）</h4>` +
+        '<div class="viewer"><div class="msg">加载 three.js …</div></div>' +
+        '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
+        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">灰色网格 = 拟合出的地面；黑色线框 = 相机（原点）与视野；彩色 = 物体及其匀加速轨迹（虚线）。拖动旋转，滚轮缩放。' +
+        (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
+    }
+    return `<div class="media"><div>${vid}</div>${scene}</div>`;
+  }
+
+  function sceneTables(v, split) {
     if (!v.scene) return '<h4>3D 场景</h4><div class="noscene">无场景拟合（拟合失败或没有结果）。</div>';
     const s = v.scene;
     let rows = '';
@@ -149,12 +175,8 @@
       });
       res += '</table></div></details>';
     }
-    return `<h4>3D 场景（<code>${esc(s.file)}</code>）</h4><div class="scene"><div>` +
-      '<div class="viewer"><div class="msg">加载 three.js …</div></div>' +
-      '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
-      '<p class="muted" style="font-size:12.5px;margin:6px 0 0">灰色网格 = 拟合出的地面；黑色线框 = 相机（原点）与视野；彩色 = 物体及其匀加速轨迹（虚线）。拖动旋转，滚轮缩放。</p></div>' +
-      `<div><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th><th class="n">残差 (px)</th></tr>${rows}</table></div>` +
-      `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px。残差是拟合框与跟踪框的均方根误差。</p>${res}</div></div>`;
+    return `<h4>场景拟合的物体</h4><div><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th><th class="n">残差 (px)</th></tr>${rows}</table></div>` +
+      `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px。残差是拟合框与跟踪框的均方根误差。</p>${res}</div>`;
   }
 
   // ---------- three.js scene viewer ----------
@@ -164,7 +186,7 @@
     return threeP;
   }
 
-  async function startViewer(box, bar, v) {
+  async function startViewer(box, bar, v, video) {
     let THREE, OrbitControls;
     try { [THREE, { OrbitControls }] = await loadThree(); } catch (e) {
       box.querySelector('.msg').textContent = 'three.js 加载失败（需要能访问 cdn.jsdelivr.net）';
@@ -275,23 +297,48 @@
     }
     function render() { renderer.render(scene, cam); }
     controls.addEventListener('change', render);
-    slider.oninput = () => setTime((slider.value / 1000) * T);
     let raf = 0, t0 = 0, playing = false;
+    // Linked to the <video>: the scene time is the same fraction of T as currentTime is of the video's duration
+    // (the H.264 test copy of a validation video has the same frames but sometimes a different nominal fps).
+    const ac = new AbortController();
+    const linked = () => video && !video.error && video.duration > 0;
+    const fromVideo = () => {
+      const fr = Math.min(1, video.currentTime / video.duration);
+      slider.value = String(Math.round(fr * 1000)); setTime(fr * T);
+    };
     function tick(now) {
-      if (!playing) return;
-      const t = (((now - t0) / 1000) % T);
-      slider.value = String(Math.round((t / T) * 1000));
-      setTime(t);
+      if (linked()) {
+        if (video.paused) return;
+        fromVideo();
+      } else {
+        if (!playing) return;
+        const t = (((now - t0) / 1000) % T);
+        slider.value = String(Math.round((t / T) * 1000));
+        setTime(t);
+      }
       raf = requestAnimationFrame(tick);
     }
+    slider.oninput = () => {
+      const fr = slider.value / 1000;
+      setTime(fr * T);
+      if (linked()) video.currentTime = fr * video.duration;
+    };
     play.onclick = () => {
+      if (linked()) { if (video.paused) video.play(); else video.pause(); return; }
       playing = !playing; play.textContent = playing ? '暂停' : '播放';
       if (playing) { t0 = performance.now() - (slider.value / 1000) * T * 1000; raf = requestAnimationFrame(tick); } else cancelAnimationFrame(raf);
     };
+    if (video) {
+      const o = { signal: ac.signal };
+      video.addEventListener('play', () => { play.textContent = '暂停'; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }, o);
+      video.addEventListener('pause', () => { play.textContent = '播放'; cancelAnimationFrame(raf); if (linked()) fromVideo(); }, o);
+      video.addEventListener('seeked', () => { if (linked() && video.paused) fromVideo(); }, o);
+    }
     const ro = new ResizeObserver(resize); ro.observe(box);
     resize(); setTime(0);
     return {
       dispose() {
+        ac.abort();
         playing = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
         scene.traverse((x) => { if (x.geometry) x.geometry.dispose(); if (x.material) x.material.dispose(); });
         renderer.dispose(); renderer.forceContextLoss();

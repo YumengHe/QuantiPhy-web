@@ -150,6 +150,22 @@
   #background > details.appx > summary h2.bg-title { display: inline-block; margin: 0; padding: 0; border: 0; font-size: 20px; }
   .toc .toc-extra { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border); }
   .toc .toc-extra a { color: var(--muted); font-size: 13px; }
+  a { color: var(--accent); }
+  /* pipeline flow: step cards with arrows; vertical on narrow screens */
+  .flow { display: flex; align-items: stretch; margin: 14px 0 6px; list-style: none; padding: 0; }
+  .flow > li { flex: 1 1 0; min-width: 0; margin: 0; display: flex; align-items: stretch; }
+  .flow > li + li::before { content: "→"; flex: 0 0 22px; align-self: center; text-align: center; color: var(--muted); font-size: 18px; }
+  .flow .step { flex: 1 1 auto; min-width: 0; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--panel); font-size: 13.5px; line-height: 1.5; }
+  .flow .step.hl { border-color: var(--accent); background: var(--accent-soft); }
+  .flow .step b { display: block; font-size: 14.5px; margin-bottom: 4px; }
+  .flow .step .n { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+  .flow .step .m { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+  @media (max-width: 1100px) {
+    .flow { flex-direction: column; }
+    .flow > li { flex-direction: column; }
+    .flow > li + li::before { content: "↓"; flex: 0 0 auto; padding: 2px 0; }
+  }
+  table.steps td:first-child { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -194,11 +210,25 @@
     <tr><td><small>参考：几何流水线 <code>pipeline.run</code></small></td><td><small>0.497</small></td><td><small>0.462</small></td><td><small>0.341</small></td><td><small>0.707</small></td><td><small>0.477</small></td></tr>
     <tr><td><small>参考：官方 GPT-5.1 基线</small></td><td><small>0.486</small></td><td><small>0.569</small></td><td><small>0.354</small></td><td><small>0.456</small></td><td><small>0.564</small></td></tr>
   </table>
-  <ol>
-    <li><b>几何提示：</b>几何流水线（<code>pipeline.run</code>）给出每题的估计值；网格物体的提示改用场景拟合（<code>scene_fit --depth --meshlib</code>）的结果。</li>
-    <li><b>Qwen 直接作答：</b>Qwen3.8-27B 看 16 帧，带着提示直接输出数字（<code>vlm_hint --direct</code>）。用两种跟踪（普通跟踪、Qwen 检查过提示框的跟踪）各跑一次，答案取几何平均。</li>
-    <li><b>路由：</b>S3 用几何结果，S2、D2、D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何。</li>
+  <h3 id="pipe3d">3D 流程（S3、D3）</h3>
+  <ol class="flow" aria-label="3D 流程">
+    <li><div class="step"><b><span class="n">1</span>解析</b>规则解析器提取物理量、物体、时间、单位<div class="m">parse.py</div></div></li>
+    <li><div class="step"><b><span class="n">2</span>跟踪</b>Grounding DINO 找物体，Qwen 查框，SAM 2 跟踪<div class="m">perceive.py</div></div></li>
+    <li><div class="step"><b><span class="n">3</span>几何测量</b>由 depth_info 和视大小估焦距与逐帧深度 → 几何值<div class="m">calibrate / physics / solve</div></div></li>
+    <li><div class="step"><b><span class="n">4</span>3D 场景拟合</b>Depth Anything 深度 + 地面与相机 + 几何体或 Meshy 网格 → 场景拟合值<div class="m">scene_fit / fit3d / meshlib</div></div></li>
+    <li><div class="step"><b><span class="n">5</span>Qwen 作答</b>Qwen3.8-27B 看 16 帧，带提示值直接给数字<div class="m">vlm_hint.py --direct</div></div></li>
+    <li><div class="step hl"><b><span class="n">6</span>路由</b>S3 用几何值，D3 用 Qwen 的答案<div class="m">route.py</div></div></li>
   </ol>
+  <table class="steps">
+    <tr><th>步骤</th><th>做法</th><th>代码</th></tr>
+    <tr><td>1 解析</td><td>规则解析器从问题和已知条件里提取物理量、物体名、时间、单位。</td><td><code>parse.py</code></td></tr>
+    <tr><td>2 跟踪</td><td>Grounding DINO 找物体，Qwen 检查提示框，SAM 2 做视频跟踪；验证集和测试集的缓存分开存。</td><td><code>perceive.py</code></td></tr>
+    <tr><td>3 几何测量</td><td>根据 depth_info 给的物体到相机距离和物体的视大小，估计焦距和逐帧深度；实验室视频估计失败时，用按帧宽缩放的焦距先验。得到每题的"几何值"。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
+    <tr><td>4 3D 场景拟合</td><td>Depth Anything 给出稠密深度；拟合地面平面和相机；把每个物体拟合成解析几何体（盒子、球、圆柱），或网格库里的 Meshy 网格（车、人、船、动物等，每个"场景 + 物体"只生成一次）；拟合尺寸、位置和匀加速轨迹。得到每题的"场景拟合值"。</td><td><code>scene_fit.py</code> <code>fit3d.py</code> <code>meshlib.py</code></td></tr>
+    <tr><td>5 Qwen 作答</td><td>本地 Qwen3.8-27B 看 16 帧，加上提示值作答。提示值一般用几何值，网格拟合的物体改用场景拟合值。两种跟踪（普通、Qwen 检查过提示框）各问一次，取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
+    <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
+  </table>
+  <p>验证集结果：S3 <b>0.707</b>、D3 <b>0.674</b>。S2、D2 的流程见 <a href="#pipe2d">2D 流程</a>。</p>
   <p><b>最新测试集提交：</b><code>outputs/submission_v5.csv</code>（v4 加上实验室焦距按帧宽缩放的修正）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_best_routed.csv</code>）。</p>
   <p><small>同一配置重跑一次，单个类别会波动 ±0.03，所以差距不到约 0.01 的改动不算结论。</small></p>
 </section>
@@ -574,6 +604,29 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
 
 <div class="group" data-group="2D">
 <p class="group-label">2D</p>
+
+<section id="pipe2d">
+  <h2>2D 流程</h2>
+  <p>2D 题（S2、D2）目前有两条线。</p>
+  <h3 id="pipe2d-v5">当前提交（v5）用的</h3>
+  <ol class="flow" aria-label="2D 流程（v5）">
+    <li><div class="step"><b><span class="n">1</span>解析</b>规则解析器提取物理量、物体、时间、单位<div class="m">parse.py</div></div></li>
+    <li><div class="step"><b><span class="n">2</span>跟踪</b>Grounding DINO 找物体，Qwen 查框，SAM 2 跟踪<div class="m">perceive.py</div></div></li>
+    <li><div class="step"><b><span class="n">3</span>几何测量</b>由已知条件标定 m/px，换算出几何值作为提示值<div class="m">calibrate / physics / solve</div></div></li>
+    <li><div class="step"><b><span class="n">4</span>Qwen 作答</b>Qwen3.8-27B 看 16 帧，带提示值直接给数字<div class="m">vlm_hint.py --direct</div></div></li>
+    <li><div class="step hl"><b><span class="n">5</span>路由</b>S2、D2 都用 Qwen 的答案<div class="m">route.py</div></div></li>
+  </ol>
+  <table class="steps">
+    <tr><th>步骤</th><th>做法</th><th>代码</th></tr>
+    <tr><td>1–2 解析、跟踪</td><td>和 <a href="#pipe3d">3D 流程</a>的第 1、2 步相同。</td><td><code>parse.py</code> <code>perceive.py</code></td></tr>
+    <tr><td>3 几何测量</td><td>m/px = 已知量 ÷ 它的像素量，再换算成目标量，作为提示值。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
+    <tr><td>4 Qwen 作答</td><td>和 3D 流程第 5 步相同：Qwen3.8-27B 看 16 帧加提示值作答，两种跟踪各问一次取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
+    <tr><td>5 路由</td><td>S2、D2 都用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
+  </table>
+  <p>验证集结果：S2 <b>0.594</b>、D2 <b>0.581</b>。</p>
+  <h3 id="pipe2d-track2d">队友的 2D 方案</h3>
+  <p>同样先做几何测量，几何测不出来的题由 Code-as-World-VL-9B 直接看视频兜底。验证集 S2 0.503、D2 0.508，详见 <a href="#track2d">2D 方案：几何测量 + VLM 兜底</a>。</p>
+</section>
 
 <section id="track2d">
   <h2>2D 方案：几何测量 + VLM 兜底（2026-10-18）</h2>

@@ -80,7 +80,10 @@
   .qtable .known { color: var(--muted); font-size: 12.5px; white-space: pre-wrap; margin-top: 3px; }
   .known-shared { white-space: pre-wrap; font-size: 13px; color: var(--muted); background: var(--code-bg); border-radius: 6px; padding: 8px 10px; margin: 0 0 8px; }
   .qtable td.pred { font-weight: 600; }
-  .scene { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 4px; }
+  video.orig { display: block; width: 100%; height: 340px; background: #000; border: 1px solid var(--border); border-radius: 8px; object-fit: contain; }
+  .vnote { font-size: 12.5px; margin: 6px 0 0; }
+  .vbody h4 code { overflow-wrap: anywhere; }
   .viewer { position: relative; width: 100%; height: 340px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--scene-bg); }
   .viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   .viewer .msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; padding: 12px; text-align: center; }
@@ -95,7 +98,8 @@
   .scroll-x { overflow-x: auto; }
   @media (max-width: 860px) {
     .wrap { padding: 18px 16px 60px; }
-    .summary-grid, .scene { grid-template-columns: 1fr; }
+    .summary-grid, .media { grid-template-columns: minmax(0, 1fr); }
+    video.orig { height: auto; max-height: 60vh; }
     .thumb { width: 72px; height: 40px; flex-basis: 72px; }
     .qtable td.q { min-width: 200px; }
   }
@@ -105,7 +109,7 @@
 <div class="wrap">
 <header>
   <h1>视频与问题</h1>
-  <p>验证集逐题看当前最好 harness 的预测和准确度，测试集看最新提交的预测值；3D 视频展开后有场景拟合的三维视图。<a href="index.html">返回文档主页</a></p>
+  <p>验证集逐题看当前最好 harness 的预测和准确度，测试集看最新提交的预测值；展开视频可以看原视频，3D 视频还有场景拟合的三维视图（和视频时间联动）。<a href="index.html">返回文档主页</a></p>
   <p id="gen" class="muted"></p>
 </header>
 

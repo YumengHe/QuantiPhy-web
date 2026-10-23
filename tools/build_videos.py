@@ -10,6 +10,8 @@ Inputs (relative to the QuantiPhy repo root):
   outputs/scene_fit_eval/c_mesh2/<video>.json    validation scene fits
   outputs/scene_fit_eval/test_mesh/<video>.json  test scene fits
   data/QuantiPhy*/...mp4                         only to grab the first frame and duration
+
+The page plays the original videos from media/val and media/test (git-ignored symlinks, see video_info).
 """
 from __future__ import annotations
 
@@ -114,6 +116,29 @@ def video_meta(split: str, vid: str, make_thumb: bool):
     return num(dur, 4), w, h, thumb
 
 
+def fourcc(p: Path) -> str:
+    cap = cv2.VideoCapture(str(p))
+    code = int(cap.get(cv2.CAP_PROP_FOURCC))
+    cap.release()
+    return "".join(chr((code >> (8 * k)) & 0xFF) for k in range(4)).strip("\x00").lower()
+
+
+def video_info(split: str, vid: str) -> dict:
+    """Page-relative URL of the original mp4 (media/<split> are git-ignored symlinks to the video dirs of video_path()).
+
+    Browsers only decode H.264 here. All validation mp4s are MPEG-4 Part 2 ('mp4v'); the test set has the same
+    video_id at higher resolution, usually in H.264, so the page plays that copy instead and says so.
+    "video" is None when no browser-playable copy exists; "orig" is always the original file.
+    """
+    orig = f"media/{split}/{video_path(split, vid).name}"
+    codec = fourcc(video_path(split, vid))
+    info = {"orig": orig, "codec": codec, "video": orig if codec in ("avc1", "h264") else None, "video_from": split}
+    if info["video"] is None and split == "val" and video_path("test", vid).exists():
+        if fourcc(video_path("test", vid)) in ("avc1", "h264"):
+            info.update(video=f"media/test/{video_path('test', vid).name}", video_from="test")
+    return info
+
+
 def build_val(make_thumb: bool):
     df = pd.read_csv(VAL_CSV)
     df["mra"] = [mra_row(p, g) for p, g in zip(df["pred"], df["answer"])]
@@ -129,7 +154,8 @@ def build_val(make_thumb: bool):
         is3d = str(first.dim) == "3"
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
-                       "thumb": thumb, "scene": scene_fit("val", vid) if is3d else None, "questions": qs})
+                       "thumb": thumb, **video_info("val", vid),
+                       "scene": scene_fit("val", vid) if is3d else None, "questions": qs})
     return {"file": str(VAL_CSV.relative_to(ROOT)), "macro": num(ev["average"], 6),
             "per_cat": {c: num(ev[c], 6) for c in CATEGORIES}, "videos": videos}
 
@@ -155,7 +181,7 @@ def build_test(make_thumb: bool):
                "depth": text(r.depth_info), "pred": num(r.pred)} for i, r in zip(g.index, g.itertuples())]
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
-                       "thumb": thumb, "scene": sc, "questions": qs})
+                       "thumb": thumb, **video_info("test", vid), "scene": sc, "questions": qs})
     n3d = sum(v["dim"] == 3 for v in videos)
     print(f"test: {len(ref)} questions, {len(videos)} videos, scene fit {n_fit}/{n3d} 3D videos")
     return {"file": str(TEST_CSV.relative_to(ROOT)), "videos": videos}
