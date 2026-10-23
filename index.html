@@ -230,7 +230,7 @@
     <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
   </table>
   <p>验证集结果：S3 <b>0.686</b>、D3 <b>0.647</b>。S2、D2 的流程见 <a href="#pipe2d">2D 流程</a>。</p>
-  <p><b>最新测试集提交：</b><code>outputs/submission_v6.csv</code>（生成中；v5 加上解析和场景拟合修复、回退常数去泄漏）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_best_routed.csv</code>）。</p>
+  <p><b>最新测试集提交：</b><code>outputs/submission_v6.csv</code>（v5 加上解析和场景拟合修复、回退常数去泄漏）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_best_routed.csv</code>）。</p>
   <p><small>同一配置重跑一次，单个类别会波动 ±0.03，所以差距不到约 0.01 的改动不算结论。</small></p>
 </section>
 
@@ -239,7 +239,7 @@
   <p>按时间倒序，点开看细节。早期影响所有类别的改动（几何流水线、Qwen 路由）也记在这里；只针对 2D 的迭代见 2D 组。</p>
 
   <details class="iter" id="sf-zero">
-    <summary><span class="d">10-22</span>场景拟合 0 分题排查 + 解析修复 + 回退常数去泄漏 · 0 分题 21→14，3D 场景拟合 0.460→0.513；harness 0.639→0.620（去掉验证集答案泄漏）<span class="yes">采用，提交 v6（生成中）</span></summary>
+    <summary><span class="d">10-22</span>场景拟合 0 分题排查 + 解析修复 + 回退常数去泄漏 · 0 分题 21→14，3D 场景拟合 0.460→0.513；harness 0.639→0.620（去掉验证集答案泄漏）<span class="yes">采用，提交 v6</span></summary>
     <div class="iter-body">
   <h4>0 分题根因</h4>
   <table>
@@ -274,7 +274,7 @@
     <tr><td><b>+ 回退常数去泄漏（当前）</b></td><td><b>0.620</b></td><td>0.594</td><td>0.551</td><td>0.686</td><td>0.647</td></tr>
   </table>
   <p>两次下降都来自去掉样本内泄漏。第二行 S3 下降的 2 题（captured_0034as 的"总路程"）以前因为解析失败，拿到的回退常数恰好等于自身答案；解析修好后改为真实测量，所以分数回落。第三行 D2、D3 下降，是因为旧回退常数在验证集上就是验证集自己的答案，旧分数虚高。</p>
-  <p>对应提交文件：<b><code>outputs/submission_v6.csv</code></b>（生成中）。</p>
+  <p>对应提交文件：<b><code>outputs/submission_v6.csv</code></b>。</p>
     </div>
   </details>
 
