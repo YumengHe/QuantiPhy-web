@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Documentation</title>
+<title>QuantiPhy 文档</title>
 <meta name="robots" content="noindex, nofollow">
 <style>
   :root {
@@ -130,6 +130,26 @@
   .stat .lbl { font-size: 13px; color: var(--muted); }
   .stat.hi .num { color: var(--accent); }
   .links-inline a { margin-right: 14px; white-space: nowrap; }
+  .lede { margin: 6px 0 4px; }
+  p code, li code, td code { overflow-wrap: anywhere; }
+  @media (max-width: 860px) { .links-inline a { white-space: normal; } header .stats { grid-template-columns: 1fr 1fr; } .stat .num { font-size: 20px; } }
+  header .stats { margin: 14px 0 10px; }
+  a.cta { display: inline-block; padding: 6px 14px; border-radius: 8px; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; }
+  a.cta:hover { opacity: .9; }
+  .group-label { font-size: 13px; letter-spacing: .1em; color: var(--muted); font-weight: 700; margin: 8px 0 10px 4px; }
+  details.iter { border: 1px solid var(--border); border-radius: 8px; margin: 10px 0; padding: 0 16px; }
+  details.iter[open] { padding-bottom: 14px; }
+  details.iter > summary { cursor: pointer; padding: 10px 0; color: var(--text); line-height: 1.5; }
+  details.iter > summary .d { display: inline-block; min-width: 92px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  details.iter > summary .yes, details.iter > summary .no { display: inline-block; font-size: 12px; padding: 0 8px; border-radius: 999px; margin-left: 6px; white-space: nowrap; }
+  details.iter > summary .yes { background: var(--accent-soft); color: var(--accent); }
+  details.iter > summary .no { background: var(--warn-soft); color: var(--warn); }
+  details.iter h4 { margin: 18px 0 6px; }
+  #background > details.appx { border: 0; padding: 0; margin: 0; }
+  #background > details.appx > summary { margin-left: 18px; }
+  #background > details.appx > summary h2.bg-title { display: inline-block; margin: 0; padding: 0; border: 0; font-size: 20px; }
+  .toc .toc-extra { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .toc .toc-extra a { color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -137,27 +157,20 @@
 <aside class="toc" aria-label="目录">
   <p class="toc-title">Contents</p>
   <ul id="toc-list"></ul>
+  <div class="toc-extra"><a href="videos.html">视频与问题 →</a><a href="#background">比赛与数据背景</a></div>
 </aside>
 <div class="wrap">
 
 <header>
-  <h1>Documentation</h1>
-</header>
-<section id="overview">
-  <h2>概览</h2>
-  <p>QuantiPhy 比赛：给一段视频和一个已知物理量（prior），推断另一个物理量（尺寸、速度、加速度）的数值。我们的做法是用跟踪、标定和物理拟合来<b>测量</b>，不让 VLM 直接猜。</p>
+  <h1>QuantiPhy 文档</h1>
+  <p class="lede">NeurIPS 2026 QuantiPhy 挑战赛：给一段视频和一个已知物理量（prior），求另一个物理量（尺寸、速度、加速度）。指标是 S2 / D2 / S3 / D3 四类 MRA 的平均（macro），只用开源权重（Track B）。最终提交截止 <b>2026-10-23 23:59 AoE</b>。</p>
   <div class="stats">
-    <div class="stat"><div class="num">10/23</div><div class="lbl">最终提交截止（23:59 AoE）</div></div>
-    <div class="stat hi"><div class="num">0.514</div><div class="lbl">当前最好：流水线 v1，验证集 macro MRA</div></div>
+    <div class="stat hi"><div class="num">0.639</div><div class="lbl">当前最好，验证集 macro MRA</div></div>
+    <div class="stat"><div class="num">0.594 / 0.581</div><div class="lbl">S2 / D2</div></div>
+    <div class="stat"><div class="num">0.707 / 0.674</div><div class="lbl">S3 / D3</div></div>
     <div class="stat"><div class="num">0.486</div><div class="lbl">官方 GPT-5.1 基线</div></div>
-    <div class="stat"><div class="num">3,289</div><div class="lbl">测试集题数 · 568 视频 · 4 个评测类别</div></div>
   </div>
-  <p><b>下一步：</b></p>
-  <ol>
-    <li>用 VLM（Qwen2.5-VL）指认物体，再交给 SAM 2，解决 Grounding DINO 找不到物体的问题（互联网视频只有 0.35，主要卡在这里）。</li>
-    <li>3D 动态 prior 缺深度锚点时，借场景里有深度的静态物体约束运动物体的深度。</li>
-    <li>静态尺寸题改用掩码主轴代替框，并按物体朝向区分长和宽。</li>
-  </ol>
+  <p class="links-inline"><a class="cta" href="videos.html">逐视频浏览：问题、预测、准确度、3D 场景 →</a></p>
   <p class="links-inline"><b>链接：</b>
     <a href="https://quantiphy.stanford.edu/competition/index.html">比赛页面</a>
     <a href="https://quantiphy.stanford.edu/">项目主页</a>
@@ -166,10 +179,446 @@
     <a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy">测试集</a>
     <a href="https://huggingface.co/datasets/PaulineLi/QuantiPhy-validation">验证集</a>
     <a href="https://docs.google.com/spreadsheets/d/1sX-I8rJ29uVSGej3MeLYaypRPPBK42d3KrWGub9MwrA/edit?usp=sharing">完整数据表</a>
+    <a href="#background">比赛与数据背景</a>
   </p>
+</header>
+
+<div class="group" data-group="3D">
+<p class="group-label">3D</p>
+
+<section id="best">
+  <h2>当前最好方案</h2>
+  <table>
+    <tr><th>验证集（159 题）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td><b>当前最好 harness</b></td><td><b>0.639</b></td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.674</td></tr>
+    <tr><td><small>参考：几何流水线 <code>pipeline.run</code></small></td><td><small>0.497</small></td><td><small>0.462</small></td><td><small>0.341</small></td><td><small>0.707</small></td><td><small>0.477</small></td></tr>
+    <tr><td><small>参考：官方 GPT-5.1 基线</small></td><td><small>0.486</small></td><td><small>0.569</small></td><td><small>0.354</small></td><td><small>0.456</small></td><td><small>0.564</small></td></tr>
+  </table>
+  <ol>
+    <li><b>几何提示：</b>几何流水线（<code>pipeline.run</code>）给出每题的估计值；网格物体的提示改用场景拟合（<code>scene_fit --depth --meshlib</code>）的结果。</li>
+    <li><b>Qwen 直接作答：</b>Qwen3.8-27B 看 16 帧，带着提示直接输出数字（<code>vlm_hint --direct</code>）。用两种跟踪（普通跟踪、Qwen 检查过提示框的跟踪）各跑一次，答案取几何平均。</li>
+    <li><b>路由：</b>S3 用几何结果，S2、D2、D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何。</li>
+  </ol>
+  <p><b>最新测试集提交：</b><code>outputs/submission_v5.csv</code>（v4 加上实验室焦距按帧宽缩放的修正）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_best_routed.csv</code>）。</p>
+  <p><small>同一配置重跑一次，单个类别会波动 ±0.03，所以差距不到约 0.01 的改动不算结论。</small></p>
 </section>
 
-<section id="competition">
+<section id="iter3d">
+  <h2>迭代记录</h2>
+  <p>按时间倒序，点开看细节。早期影响所有类别的改动（几何流水线、Qwen 路由）也记在这里；只针对 2D 的迭代见 2D 组。</p>
+
+  <details class="iter" id="sf-fixes">
+    <summary><span class="d">10-22</span>场景拟合失败排查 + 实验室焦距按帧宽缩放 · 验证集 0.639 不变 <span class="yes">采用，提交 v5</span></summary>
+    <div class="iter-body">
+  <p>逐个检查场景拟合在验证集和测试集上失败或退回的视频，按原因归类并修复能修的部分；排查中顺带发现实验室视频的焦距回退值没有按分辨率换算。</p>
+  <h4>失败原因分类</h4>
+  <table>
+    <tr><th>原因</th><th>测试集</th><th>验证集</th><th>处理</th></tr>
+    <tr><td>先验是重力加速度（"acceleration = 9.8"），解析不出物体，整个视频失败</td><td>24 个视频</td><td>0</td><td>已修：自动选一个被问到的物体，不用先验，靠深度定尺度</td></tr>
+    <tr><td>网格物体带高度或宽度先验时崩溃，退回基本几何体</td><td>5 个视频</td><td>1 个视频</td><td>已修</td></tr>
+    <tr><td>人和宇航员的网格被放倒（把身高方向当成车头方向）</td><td>所有 Meshy 的人</td><td>同左</td><td>已修：竖直放置。验证集宇航员从 5.15×3.11×2.18 m 变成 1.32×0.93×2.19 m</td></tr>
+    <tr><td>跟踪框几乎占满画面，物体被跳过</td><td>18 个物体</td><td>4 个物体</td><td>未修，需要重新跟踪</td></tr>
+    <tr><td>问的是场景结构（车道、坡、地砖、路程），单物体模型答不了</td><td>34 题</td><td>6 题</td><td>按设计退回几何</td></tr>
+  </table>
+
+  <h4>验证集结果</h4>
+  <table>
+    <tr><th>指标</th><th>修复前</th><th>修复后</th><th>修复后、不用先验</th></tr>
+    <tr><td>场景拟合 3D macro</td><td>0.458</td><td>0.459</td><td>0.468</td></tr>
+    <tr><td>完整 harness 总分</td><td>0.639</td><td>0.639</td><td>—</td></tr>
+  </table>
+  <p>完整 harness 没有变化：这些修复影响的都是 S3 题，而 harness 里 S3 走几何流水线。</p>
+  <p>测试集补跑的 29 个视频全部有了结果，但不带先验的拟合结果不采用：唯一的 D3 例子把人拟合成了 0.30 m，明显错误。</p>
+  <h4>实验室焦距回退值修正</h4>
+  <ul>
+    <li>实验室视频的焦距回退值（650 px，合理范围 450–950 px）是在验证集 854×480 上定的绝对像素。测试集是同一批视频，但分辨率是 1280×720，回退值因此小了 1.5 倍，影响测试集约 325 个 D3 几何提示。</li>
+    <li>现在按帧宽缩放。验证集结果完全不变。</li>
+    <li>对应提交文件：<b><code>outputs/submission_v5.csv</code></b>。和 v4 相比只有实验室视频的 D3 题变了：273 题变化超过 1%，几何提示缩小到原来的 2/3（854/1280），Qwen 最终答案的变化中位数是 0.84 倍；其余类别和来源完全不变。核对方法：把测试集帧缩小到 854×480，和验证集同一视频的帧逐像素比较，相关系数 0.999，说明是同一视野、等比放大，焦距的像素值应该乘 1.5，所以尺寸的旧值高估了 1.5 倍。</li>
+  </ul>
+    </div>
+  </details>
+
+  <details class="iter" id="cad-template">
+    <summary><span class="d">10-22</span>参数化 CAD 模板（借鉴 SPARK2 Procedura）· 验证集 0.635–0.638 <span class="no">未采用</span></summary>
+    <div class="iter-body">
+  <p>动机：Meshy 额度已用完。用户提出用 CAD 生成物体，这样长宽高可以在场景拟合时直接优化。代码：<code>pipeline/procmesh.py</code>、<code>scene_fit.py</code>。</p>
+
+  <h4>做法</h4>
+  <ul>
+    <li>先照搬 Procedura 的做法，让本地 Qwen 写 OpenSCAD：8 个物体全部能编译，每个耗时 15–20 s，但其中 2 个比例明显不对（白车宽 2.8 m，黄车长 2.8 m）。</li>
+    <li>场景拟合只用到形状的投影包围盒，也就是凸包，不需要精细几何，所以改用手写的部件化模板：12 类、约 40 个子类型（轿车 / SUV / 卡车 / 公交 / 自行车 / 摩托 / 人 / 船 / 飞机 / 鸟 / 鱼 / 四足动物）。</li>
+    <li>长宽高作为拟合参数，并加类别比例先验，防止被压扁。Qwen 看裁剪图选子类型并给出初始尺寸。生成一个物体约 1 s，不花 credits。</li>
+  </ul>
+
+  <h4>场景拟合本身（验证集 3D 共 90 题，未答计 0）</h4>
+  <table>
+    <tr><th>版本</th><th>3D macro</th><th>S3</th><th>D3</th><th>网格类物体（34 题）</th><th>其中尺寸题（17 题）</th></tr>
+    <tr><td>Meshy 网格（基线）</td><td>0.458</td><td>0.356</td><td><b>0.560</b></td><td>0.624</td><td>0.641</td></tr>
+    <tr><td>基本几何体</td><td>0.455</td><td>0.372</td><td>0.538</td><td>0.618</td><td>0.647</td></tr>
+    <tr><td>CAD 固定尺寸（Qwen 估计）</td><td><b>0.484</b></td><td><b>0.440</b></td><td>0.528</td><td>0.644</td><td>0.665</td></tr>
+    <tr><td>CAD 参数化，只补没有 Meshy 的物体</td><td>0.463</td><td>0.374</td><td>0.551</td><td>0.624</td><td>0.653</td></tr>
+    <tr><td>CAD 参数化，全部替换（Qwen 先验）</td><td>0.474</td><td>0.407</td><td>0.540</td><td>0.635</td><td>0.653</td></tr>
+    <tr><td>CAD 参数化，类别默认尺寸</td><td>0.483</td><td>0.414</td><td>0.551</td><td><b>0.653</b></td><td><b>0.712</b></td></tr>
+  </table>
+
+  <h4>完整 harness（验证集）</h4>
+  <table>
+    <tr><th>版本</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td><b>当前最好（Meshy 网格作提示）</b></td><td><b>0.639</b></td><td>0.594</td><td>0.581</td><td>0.707</td><td><b>0.674</b></td></tr>
+    <tr><td>CAD 只补没有 Meshy 的物体</td><td>0.638</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.668</td></tr>
+    <tr><td>CAD 参数化，类别默认尺寸</td><td>0.636</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.662</td></tr>
+    <tr><td>CAD 固定尺寸 / 参数化（Qwen 先验）</td><td>0.635</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.657</td></tr>
+  </table>
+
+  <h4>结论与未采用的原因</h4>
+  <ul>
+    <li>CAD 明显改善了场景拟合本身（3D macro 0.45 → 0.48，尺寸题 0.64 → 0.71），主要是修好了 Meshy 没有网格或朝向错误的物体（老鹰、鸟、simulation_0034 的船）。</li>
+    <li>但在 harness 里，S3 走几何流水线，这些题上几何结果已有 0.84，用不上场景拟合；D3 上 Qwen 已接近满分，换提示反而略降。所以总分变化在噪声内且偏负，未采用，没有对应的提交文件。</li>
+    <li>顺带发现：Meshy 的人和船网格有坐标轴推断错误（身高方向被当成了车头方向），留作后续修复。</li>
+  </ul>
+    </div>
+  </details>
+
+  <details class="iter" id="scene-mesh">
+    <summary><span class="d">10-22</span>场景拟合 + Meshy 网格库，网格物体的提示改用场景拟合 · 0.636 → 0.639 <span class="yes">采用，提交 v4</span></summary>
+    <div class="iter-body">
+  <p>目标：所有 3D 视频都跑场景拟合（深度 + 地面 + 形状），需要网格的物体用 Meshy，但每个物体只生成一次。代码：<code>pipeline/meshlib.py</code>、<code>scene_fit.py --meshlib</code>、<code>vlm_hint.py --mesh-hint</code>。</p>
+
+  <h4>网格库</h4>
+  <ul>
+    <li>按"场景 + 物体名的词集合"存放在 <code>outputs/meshy/lib/&lt;scene&gt;/&lt;slug&gt;/</code>：同一场景的各个变体共用；"the white car"和"white car"命中同一个网格；已有网格直接复用，不再重复生成。</li>
+    <li>只给基本几何体描述不了的物体生成网格：车、人、动物、船、飞机等；球、盒子、圆柱仍用解析几何体。</li>
+    <li><b>付费前的检查：</b>物体短边要至少 48 px，而且要由 Qwen 确认裁剪图里确实是这个物体。没通过就不调用 Meshy，记为 rejected，以后也不重试。早期有 4 个网格是用错误裁剪生成的（裁到地板、空白，或者跟错了物体，生成出一串文字），已标记为不可用。</li>
+    <li>花费：一共生成 27 个网格，810 credits（验证集 8 个，测试集 19 个）；检查拒掉 54 个裁剪，没有花费。之后 Meshy 返回 402：API 只扣月度 credits（剩 20），永久 credits（9747）不能通过 API 使用，月度额度 11 月中才重置。所以测试集 3D 场景目前可用的网格是 26 个。</li>
+  </ul>
+
+  <h4>验证集 3D 题（场景拟合本身，未答计 0）</h4>
+  <table>
+    <tr><th>版本</th><th>已答</th><th>3D macro</th><th>S3</th><th>D3</th></tr>
+    <tr><td>场景拟合 + 深度</td><td>84/90</td><td>0.455</td><td>0.372</td><td>0.538</td></tr>
+    <tr><td>+ 网格库</td><td>76/90</td><td>0.412</td><td>0.267</td><td>0.557</td></tr>
+    <tr><td>+ 网格库，网格拟合失败时退回基本几何体</td><td>84/90</td><td>0.458</td><td>0.356</td><td><b>0.560</b></td></tr>
+  </table>
+  <p>用网格拟合的物体平均 MRA 0.72（15 题），基本几何体只有 0.42–0.48。车辆场景提升最明显：simulation_0060 从 0.70 升到 0.77。但在这 15 题上，"Qwen + 几何提示"已经有 0.84，所以场景拟合更适合用来给 Qwen 当提示，而不是直接作答。</p>
+
+  <h4>接入 harness</h4>
+  <table>
+    <tr><th>做法（验证集）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td>v3：两种几何提示 + 路由</td><td>0.636</td><td>0.597</td><td>0.581</td><td>0.707</td><td>0.660</td></tr>
+    <tr><td><b>v4：网格物体的提示改用场景拟合的结果</b></td><td><b>0.639</b></td><td>0.594</td><td>0.581</td><td>0.707</td><td><b>0.674</b></td></tr>
+    <tr><td>同时给几何和场景拟合两个数</td><td>0.611</td><td>0.594</td><td>0.530</td><td>0.707</td><td>0.613</td></tr>
+    <tr><td>几何与场景拟合一致时取二者平均</td><td>0.630–0.638</td><td colspan="4">没有收益</td></tr>
+    <tr><td>再给 Qwen 一张画了跟踪框的图</td><td>0.589</td><td>0.494</td><td>0.527</td><td>0.707</td><td>0.628</td></tr>
+    <tr><td>场景拟合加焦距先验 / 带宽、最薄边约束</td><td colspan="5">场景拟合本身变化只有零点零几，在噪声内，不采用</td></tr>
+  </table>
+
+  <h4>这一轮修的问题</h4>
+  <ul>
+    <li><b>验证集和测试集共用 24 个 video_id：</b>是同样的视频，测试集的分辨率更高。缓存原来只按 video_id 存，两边互相覆盖了跟踪和深度结果。现在按数据集分目录存（<code>tracks/</code>、<code>tracks_test/</code>，<code>depth/</code>、<code>depth_test/</code>），受影响的视频已重新跟踪、重新作答，得到 v3。</li>
+    <li><b>验证集 159 题里有 124 题原样出现在测试集中。</b>我们没有使用这些题的验证集答案。</li>
+    <li>SAM 2 单帧分割在新版 transformers 下接口变了，给出的掩码也不可靠，所以网格裁剪不再用掩码，Meshy 会自己去背景。</li>
+    <li>场景拟合找不到某个变体的跟踪时，改用同场景其他变体的跟踪（<code>pipeline.run</code> 本来就是一个场景共用一份掩码变体的跟踪）。</li>
+    <li>测试集：场景拟合（深度 + 网格库）跑完 235 个 3D 视频中的 211 个，得到 1342 个答案，其中 80 个是用网格拟合的物体，这些题的提示换成了场景拟合的结果，得到 <b><code>outputs/submission_v4.csv</code></b>，和 v3 相比有 43 题的数值变化超过 1%。另外 24 个视频拟合失败，保留原来的答案。</li>
+    <li>/data 被其他用户写满后，把数据、深度和网格搬到了 <code>/nas/yumenghe/QuantiPhy-data</code>，在 repo 里用软链接指过去。HF 缓存依赖软链接，而 NAS 不支持软链接，所以 HF 缓存仍留在 /data。</li>
+  </ul>
+    </div>
+  </details>
+
+  <details class="iter" id="vlm-hint">
+    <summary><span class="d">10-22</span>Qwen 带几何提示直接作答 + 按题型路由 · 0.497 → 0.616（v1）/ 0.636（v2）<span class="yes">采用，提交 v1、v2</span></summary>
+    <div class="iter-body">
+  <p>全部使用开源权重（Qwen3.8-27B、Grounding DINO、SAM 2），符合 Track B。Qwen 在本地起了 4 个 vLLM 服务（GPU 0、1、2、6），请求轮流分配。代码：<code>pipeline/vlm_hint.py</code>、<code>pipeline/route.py</code>。</p>
+  <h4>做法</h4>
+  <ol>
+    <li>用几何流水线（<code>pipeline.run</code>）得到每道题的估计值。</li>
+    <li>给 Qwen 均匀采样 16 帧（再加上题目和 depth_info 里提到的时刻），长边缩到 768 px，每帧标上时间戳。同时给出 prior、depth_info、fps、分辨率，以及几何流水线的估计值，并说明这个值"通常接近，但跟踪失败时会错"。</li>
+    <li>要求 Qwen 不写推理过程，直接输出 <code>{"answer": 数字}</code>（最多 200 token）。</li>
+    <li>按题型路由：S3 用几何结果，S2、D2、D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何结果。</li>
+  </ol>
+  <h4>验证集结果（159 题，macro MRA）</h4>
+  <table>
+    <tr><th>方法</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td>几何流水线 <code>pipeline.run</code></td><td>0.497</td><td>0.462</td><td>0.341</td><td>0.707</td><td>0.477</td></tr>
+    <tr><td>Qwen 先推理再作答（4000 token）</td><td>0.211</td><td>0.144</td><td>0.214</td><td>0.272</td><td>0.213</td></tr>
+    <tr><td>Qwen 开思考模式（12000 token）</td><td>0.369</td><td>0.328</td><td>0.249</td><td>0.509</td><td>0.389</td></tr>
+    <tr><td>Qwen 直接作答，无提示</td><td>0.452</td><td>0.325</td><td>0.459</td><td>0.421</td><td>0.602</td></tr>
+    <tr><td>Qwen 直接作答 + 几何提示</td><td>0.591</td><td>0.594</td><td>0.508</td><td>0.623</td><td>0.638</td></tr>
+    <tr><td><b>路由：S3 用几何，其余用"Qwen + 几何提示"（提交 v1）</b></td><td><b>0.616</b></td><td>0.594</td><td>0.508</td><td><b>0.707</b></td><td><b>0.655</b></td></tr>
+    <tr><td>同上，但提示来自"Qwen 检查过提示框"的跟踪</td><td>0.629</td><td>0.603</td><td>0.541</td><td>0.707</td><td>0.664</td></tr>
+    <tr><td><b>两种提示各跑一次，Qwen 答案取几何平均（提交 v2）</b></td><td><b>0.636</b></td><td>0.597</td><td><b>0.581</b></td><td>0.707</td><td>0.660</td></tr>
+    <tr><td><small>参考：Gemini 3 Flash 直接作答（闭源）</small></td><td><small>0.582</small></td><td></td><td></td><td></td><td></td></tr>
+  </table>
+  <p><small>同一配置重跑一次，单个类别会有 ±0.03 的波动，所以 v1 和 v2 的差距（0.02）在噪声范围内。v2 的好处是两种提示各跑一次再取平均，方差更小。</small></p>
+  <h4>试过但没有采用的</h4>
+  <table>
+    <tr><th>尝试</th><th>验证集</th><th>结论</th></tr>
+    <tr><td>32 帧代替 16 帧（无提示）</td><td>0.437</td><td>比 16 帧低</td></tr>
+    <tr><td>12 / 24 帧（带提示）</td><td>0.592 / 0.579</td><td>和 16 帧差不多</td></tr>
+    <tr><td>12/16/24 帧三次结果取中位数</td><td>0.594</td><td>只高 0.003，在噪声内</td></tr>
+    <tr><td>同一配置重跑一次</td><td>0.589</td><td>说明单类别有 ±0.03 的运行间波动</td></tr>
+    <tr><td>兜底常数题不给提示</td><td>0.568</td><td>更低；兜底常数是验证集中位数，在验证集上有泄漏，测试集上是合理的先验</td></tr>
+    <tr><td>D3 题改用场景拟合 + 深度的结果当提示</td><td>0.569–0.601</td><td>和普通几何提示差不多，测试集上不再跑场景拟合</td></tr>
+    <tr><td>提示里加上流水线日志（方法名、像素量）</td><td>0.546</td><td>S2 掉到 0.51，信息太多反而干扰</td></tr>
+    <tr><td>Qwen 检查 DINO 的 SAM 2 提示框（不一致就换成 Qwen 的框）</td><td>几何 0.501</td><td>S2、D2、D3 各升约 0.03，S3 降 0.08（captured_0034as 等）；用它做提示时路由后约 0.62，差别在噪声内</td></tr>
+    <tr><td>全局乘一个尺度修正（1.03–1.1）</td><td>≤ 0.618</td><td>收益可以忽略</td></tr>
+  </table>
+  <h4>观察</h4>
+  <ul>
+    <li><b>Qwen 让它写推理反而更差。</b>它会在帧上"量像素"，但数不准，而且常常写到 token 上限也没给出答案。直接给数字时，它更像是在凭常识估计，再结合 prior 的量级。</li>
+    <li><b>几何提示的作用是纠错。</b>几何结果合理时 Qwen 基本照抄；几何结果差几十倍时（比如把整条路当成"车道"），Qwen 会改成常识范围内的值。也有少数情况 Qwen 把正确的几何结果改错了（simulation_0171 的加速度和速度）。</li>
+    <li><b>S3 仍然是几何最好。</b>静态 3D 尺寸有 depth_info 和焦距约束，几何测得准，Qwen 改动后反而变差。</li>
+    <li><b>剩下的错误多是题目本身难：</b>同类的多个实例（"两个病毒之间的距离"）、文字、管子内径、非常小或非常大的量（0.0019 m 的字宽、8.6 m 的桌宽）。</li>
+  </ul>
+  <h4>测试集提交文件</h4>
+  <ul>
+    <li><code>outputs/submission_v1.csv</code>：3289 行，没有空值。S3 的 578 题来自几何；其余 2674 题来自 Qwen；Qwen 无效的 37 题退回几何。</li>
+    <li><b><code>outputs/submission_v2.csv</code>（推荐先交）：</b>和 v1 一样路由，只是 Qwen 答案换成两次运行的几何平均：一次用普通跟踪做提示，一次用 Qwen 检查过提示框的跟踪（<code>outputs/tracks_qwen/</code>）做提示。和 v1 相比有 637 题的数值变化超过 1%。</li>
+    <li>测试集的跟踪用 6 张 GPU 并行，约 15 分钟（<code>pipeline.run --shard k/6</code>）；Qwen 作答 3289 题约 16 分钟。</li>
+  </ul>
+<pre><code>python -m pipeline.run --split test --shard k/6                    # 6 个进程并行跟踪，结果缓存在 outputs/tracks/
+python -m pipeline.run --split test --no-gdino --out outputs/test_geo.csv
+QWEN_URLS=http://localhost:8001/v1/chat/completions,... \
+python -m pipeline.vlm_hint --split test --tag qwen16hint --hint outputs/test_geo_detailed.csv --direct --max-tokens 200 --workers 64
+python -m pipeline.route --split test --geo outputs/test_geo_detailed.csv --vlm outputs/vlm/test_qwen16hint_pred.csv --out outputs/submission_v1.csv</code></pre>
+    </div>
+  </details>
+
+  <details class="iter" id="depth-guidance">
+    <summary><span class="d">10-13</span>单目深度（Depth Anything V2）引导场景拟合 · D3 路由后 0.517（几何 0.497）<span class="yes">采用，场景拟合默认带深度</span></summary>
+    <div class="iter-body">
+  <p>用 Depth Anything V2 预测每帧的相对逆深度，再用题目给的 depth_info 解出尺度和偏移，得到逐帧米制深度，作为场景拟合的引导。锚点物体先按同义词匹配已有跟踪，跟踪里没有的（码头、楼梯等）由本地 Qwen3.8-27B 指认位置。代码：<code>pipeline/depth.py</code>、<code>scene_depth.py</code>、<code>qwen.py</code>，开关 <code>scene_fit --depth</code>。</p>
+  <h4>深度本身有多准</h4>
+  <p>12 个带锚点的 3D 验证视频、共 48 个锚点，留一法：用其余锚点对齐，预测被留出的那个。</p>
+  <table>
+    <tr><th>方法</th><th>相对误差中位数</th><th>误差 &lt; 10% 的比例</th></tr>
+    <tr><td>Depth Pro 原始米制深度</td><td>62%</td><td>9%</td></tr>
+    <tr><td>Depth Pro + 一个尺度</td><td>17%</td><td>23%</td></tr>
+    <tr><td><b>Depth Anything V2 + 尺度和偏移</b></td><td><b>7.4%</b></td><td><b>74%</b></td></tr>
+  </table>
+  <p>Depth Pro 在仿真画面上的米制深度和焦距都不可靠（焦距估计从 401 到 7620 px）。误差大的主要是"桌子左端、斜坡远端"这类边缘锚点，Qwen 给的点常落在背景上；captured_0027s 是简化背景变体，锚点物体被抠掉了，无法使用。</p>
+  <h4>接入场景拟合</h4>
+  <ul>
+    <li>每个被跟踪的物体每隔 4 帧得到一个深度观测，作为比真实锚点弱的约束。</li>
+    <li>每帧先用静止背景把逆深度对齐到参考帧，消除模型逐帧的尺度漂移，再统一换算为米。</li>
+    <li>框底中心的深度可以当作地面接触点，但它混合了物体和地面像素，近处偏深 13% 到 17%；所以只在检测不到地平线时才用它定地面。</li>
+  </ul>
+  <table>
+    <tr><th>验证集 macro MRA</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td>场景拟合，无深度（未答计 0）</td><td>0.329</td><td>0.319</td><td>0.189</td><td>0.349</td><td>0.457</td></tr>
+    <tr><td>场景拟合 + 深度（未答计 0）</td><td>0.355</td><td>0.319</td><td>0.189</td><td>0.374</td><td>0.536</td></tr>
+    <tr><td><code>pipeline.run</code></td><td>0.497</td><td>0.462</td><td>0.341</td><td>0.707</td><td>0.477</td></tr>
+    <tr><td><b>路由：3D 视频的 D3 题用场景拟合 + 深度，其余用 <code>pipeline.run</code></b></td><td><b>0.517</b></td><td>0.462</td><td>0.341</td><td>0.707</td><td><b>0.557</b></td></tr>
+    <tr><td>同样路由但不加深度</td><td>0.497</td><td>0.462</td><td>0.341</td><td>0.707</td><td>0.479</td></tr>
+  </table>
+  <p>深度带来的提升集中在 3D 视频的动态题。逐视频看，captured_0021x 从 0.02 到 0.54，simulation_0009 从 0.04 到 0.41；退步的是 captured_0034as 和 captured_0061，原因是这些实验室视频里物体在桌上或在空中，"所有物体贴着一个地面"的假设不成立，平面被拟合到 30° 以上的倾斜。去掉平面、让物体在三维自由运动（<code>--free3d</code>）后，空中和水上的物体变好、桌面物体变差，12 个视频平均 0.44，低于带平面的 0.46，所以默认仍带平面。</p>
+  <p><b>下一步：</b>把单一地面推广成支撑关系图（物体在桌上、桌在地上、球在空中），每个物体按它实际的支撑面放置，主攻实验室视频；2D 视频没有 depth_info，需要用 prior 给深度定尺度。</p>
+    </div>
+  </details>
+
+  <details class="iter" id="scene-fit">
+    <summary><span class="d">10-10</span>场景拟合首次全量跑验证集 · 0.315（未答计 0），几何 0.502 <span class="no">不直接作答，保留为 3D 分支</span></summary>
+    <div class="iter-body">
+  <p><code>pipeline/scene_fit.py</code>（相机 + 地面平面 + 物体尺寸 + 匀速/匀加速运动的整体拟合，即 <a href="case/simulation_0060.html">simulation_0060</a> 案例里的方法）第一次在全部 24 个验证视频上运行。代码为 <code>QuantiPhy</code> 仓库 commit <code>8ca9124</code>，未改动；跟踪结果复用 Colab T4 上 <code>pipeline.run</code> 生成的 <code>outputs/tracks/</code>；没有 Meshy 网格，所有物体都用基元（长方体、圆柱、球）。2026-10-10。</p>
+  <h4 id="sf-score">总分</h4>
+  <table>
+    <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td><b>场景拟合</b>（答出 139/158 题，未答计 0）</td><td><b>0.315</b></td><td>0.303</td><td>0.195</td><td>0.333</td><td>0.430</td></tr>
+    <tr><td>场景拟合，未答的题改用 <code>pipeline.run</code></td><td><b>0.372</b></td><td>0.303</td><td>0.357</td><td>0.376</td><td>0.451</td></tr>
+    <tr><td><code>pipeline.run</code>（同一 commit，Colab 重跑）</td><td><b>0.502</b></td><td>0.491</td><td>0.335</td><td>0.707</td><td>0.477</td></tr>
+    <tr><td>Gemini 3 Flash 直接作答（8 帧，零样本）</td><td><b>0.582</b></td><td>0.463</td><td>0.592</td><td>0.614</td><td>0.657</td></tr>
+  </table>
+  <p>按视频来源（场景拟合 / <code>pipeline.run</code>）：分割掩码 0.61 / 0.87，实验室 0.28 / 0.62，仿真 0.33 / 0.41，互联网 0.17 / 0.37。</p>
+  <div class="callout"><b>结论：</b>场景拟合只在满足它前提的视频上胜出：物体站在一个可拟合的地面上、画面里有路面线条可以求地平线（simulation_0060、simulation_0300 等）。实验室桌面、俯拍、2D 视频不满足这些前提，大多比 <code>pipeline.run</code> 差，地平线检测在大部分视频上都失败。更适合把它当作“地面上的物体、三维视频”分支，满足条件时启用，其余交给 <code>pipeline.run</code>。</div>
+  <h4 id="sf-gallery">逐视频结果与三维查看器</h4>
+  <p>每行可打开三维查看器（拟合出的地面、相机视锥、每个物体的尺寸盒与轨迹，和视频同步播放，可拖动旋转），或直接看叠加视频（拟合结果投影回画面）与原视频。查看器里的偏差就是拟合误差。</p>
+  <table>
+    <tr><th>视频</th><th>题数</th><th>场景拟合</th><th><code>pipeline.run</code></th><th>Gemini</th><th>查看</th></tr>
+    <tr><td><code>captured_0013</code><br><small>lab · D3</small></td><td>7/8</td><td>0.15</td><td>0.40</td><td><b>0.65</b></td><td><a href="case/scene3d.html?scene=scene_fit/captured_0013/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0013/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0013/original.mp4">原视频</a></td></tr>
+    <tr><td><code>captured_0021x</code><br><small>lab · S3</small></td><td>5/5</td><td>0.02</td><td>0.74</td><td><b>0.78</b></td><td><a href="case/scene3d.html?scene=scene_fit/captured_0021x/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0021x/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0021x/original.mp4">原视频</a></td></tr>
+    <tr><td><code>captured_0027s</code><br><small>lab · S3</small></td><td>3/3</td><td>0.13</td><td><b>0.53</b></td><td>0.27</td><td><a href="case/scene3d.html?scene=scene_fit/captured_0027s/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0027s/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0027s/original.mp4">原视频</a></td></tr>
+    <tr><td><code>captured_0034as</code><br><small>lab · S3</small></td><td>7/9</td><td>0.43</td><td><b>0.78</b></td><td>0.52</td><td><a href="case/scene3d.html?scene=scene_fit/captured_0034as/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0034as/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0034as/original.mp4">原视频</a></td></tr>
+    <tr><td><code>captured_0041x</code><br><small>lab · D3</small></td><td>3/3</td><td>0.33</td><td>0.50</td><td><b>0.73</b></td><td><a href="case/scene3d.html?scene=scene_fit/captured_0041x/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0041x/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0041x/original.mp4">原视频</a></td></tr>
+    <tr><td><code>captured_0061</code><br><small>lab · D3</small></td><td>8/9</td><td>0.43</td><td><b>0.67</b></td><td>0.44</td><td><a href="case/scene3d.html?scene=scene_fit/captured_0061/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0061/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0061/original.mp4">原视频</a></td></tr>
+    <tr><td><code>internet_0001</code><br><small>internet · S2</small></td><td>3/3</td><td>0.30</td><td>0.10</td><td><b>0.77</b></td><td><a href="case/scene3d.html?scene=scene_fit/internet_0001/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0001/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0001/original.mp4">原视频</a></td></tr>
+    <tr><td><code>internet_0004</code><br><small>internet · S2</small></td><td>4/4</td><td>0.20</td><td>0.03</td><td><b>0.45</b></td><td><a href="case/scene3d.html?scene=scene_fit/internet_0004/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0004/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0004/original.mp4">原视频</a></td></tr>
+    <tr><td><code>internet_0005</code><br><small>internet · D2</small></td><td>3/4</td><td>0.28</td><td>0.10</td><td><b>0.88</b></td><td><a href="case/scene3d.html?scene=scene_fit/internet_0005/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0005/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0005/original.mp4">原视频</a></td></tr>
+    <tr><td><code>internet_0013</code><br><small>internet · D2</small></td><td>3/6</td><td>0.20</td><td>0.18</td><td><b>0.72</b></td><td><a href="case/scene3d.html?scene=scene_fit/internet_0013/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0013/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0013/original.mp4">原视频</a></td></tr>
+    <tr><td><code>internet_0019</code><br><small>internet · D2</small></td><td>0/7</td><td>0.00</td><td>0.71</td><td><b>0.79</b></td><td><span style="color:var(--muted)">拟合失败：prior 里没有解析出物体，第一阶段无法定相机和地面</span></td></tr>
+    <tr><td><code>internet_0027</code><br><small>internet · S2</small></td><td>5/5</td><td>0.20</td><td><b>0.78</b></td><td>0.56</td><td><a href="case/scene3d.html?scene=scene_fit/internet_0027/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0027/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0027/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0009</code><br><small>simulation · D3</small></td><td>8/9</td><td>0.04</td><td>0.50</td><td><b>0.64</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0009/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0009/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0009/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0015</code><br><small>simulation · S3</small></td><td>11/11</td><td>0.23</td><td>0.49</td><td><b>0.75</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0015/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0015/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0015/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0034_segmented</code><br><small>segmentation · S3</small></td><td>6/6</td><td>0.57</td><td><b>0.87</b></td><td>0.85</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0034_segmented/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0034_segmented/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0034_segmented/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0060</code><br><small>simulation · D3</small></td><td>12/13</td><td><b>0.70</b></td><td>0.28</td><td>0.69</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0060/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0060/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0060/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0089</code><br><small>simulation · S2</small></td><td>6/6</td><td>0.17</td><td><b>0.48</b></td><td>0.42</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0089/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0089/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0089/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0098_segmented</code><br><small>segmentation · D2</small></td><td>4/4</td><td><b>0.95</b></td><td>0.93</td><td>0.75</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0098_segmented/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0098_segmented/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0098_segmented/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0163</code><br><small>simulation · S2</small></td><td>6/6</td><td>0.43</td><td><b>0.55</b></td><td>0.13</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0163/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0163/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0163/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0170_segmented</code><br><small>segmentation · S3</small></td><td>8/8</td><td>0.46</td><td><b>0.85</b></td><td>0.39</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0170_segmented/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0170_segmented/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0170_segmented/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0171</code><br><small>simulation · S2</small></td><td>8/8</td><td>0.42</td><td><b>0.65</b></td><td>0.57</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0171/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0171/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0171/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0193</code><br><small>simulation · D2</small></td><td>11/12</td><td>0.09</td><td>0.18</td><td><b>0.44</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0193/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0193/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0193/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0196</code><br><small>simulation · D2</small></td><td>3/4</td><td>0.00</td><td>0.00</td><td><b>0.07</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0196/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0196/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0196/original.mp4">原视频</a></td></tr>
+    <tr><td><code>simulation_0300</code><br><small>simulation · D3</small></td><td>5/5</td><td>0.92</td><td>0.70</td><td><b>0.94</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0300/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0300/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0300/original.mp4">原视频</a></td></tr>
+  </table>
+  <p><small>每格是该视频所有题的平均 MRA，场景拟合未答的题计 0；粗体为该视频最好的方法。运行方式：<code>python -m pipeline.scene_fit --split val --video &lt;id&gt; --scene3d &lt;dir&gt; --render &lt;dir&gt;/scene_fit.mp4</code>。</small></p>
+    </div>
+  </details>
+
+  <details class="iter" id="physmind">
+    <summary><span class="d">10-09 至 10-11</span>测试 PhysMind（SAM 3 + SAM 3D + FoundationPose）· 实测 17 题 0.25，VLM 0.55 <span class="no">未采用</span></summary>
+    <div class="iter-body">
+  <p><a href="https://github.com/ccyydd/PhysMind">PhysMind</a>（world-model agent：SAM 3 跟踪 → SAM 3D Objects 网格 → 单目度量深度定尺度 → FoundationPose 逐帧 6D 位姿 → 仿真/作答）与我们的思路相近，所以在实现自己的方法前先在验证集上测了它。运行环境 RunPod A40 48 GB，VLM 为 Gemini 3 Flash（OpenRouter）。QuantiPhy 适配是我们自己做的，不是官方结果。2026-10-09 至 10-11。</p>
+  <h4 id="pm-result">结果</h4>
+  <ul>
+    <li><b>原版路线跑不通：</b>抽样 8 个验证视频，第 2 阶段全部失败。QuantiPhy 没有专属路线，走的是 CLEVRER 路线：SAM 3 的文本提示固定为 "all visible objects"，普通视频里什么都检测不到；分割视频能检测和跟踪，但网格换算到米制尺度（mesh conditioning）全部失败。</li>
+    <li><b>改造后（变体 B）：</b>用题目里的物体名做 SAM 3 概念提示，并且每个概念单独开一个 SAM 3 会话（同一会话只保留最后一个文本提示，已验证）。5 个视频完整重建，35 题中 PhysMind 实际测量了 17 题，其余回退到 VLM。</li>
+    <li>这 17 题上 PhysMind 的平均 MRA 为 <b>0.25</b>，同一 VLM 直接作答为 0.55，我们更简单的 v1（SAM 3 掩码中心 + 度量深度）为 0.44。</li>
+  </ul>
+  <p><b>交互查看：</b><a href="case/physmind/index.html">PhysMind 三维场景查看器</a>，5 个视频，左边是视频叠加按位姿投影的网格，右边是相机坐标系下的三维场景，可拖动旋转、逐帧播放。</p>
+  <h4 id="pm-d1">诊断 1：深度（尺度）</h4>
+  <p>PhysMind 用单目度量深度（Video Depth Anything）决定物体离相机多远，进而决定所有长度和速度的尺度。QuantiPhy 的 3D 题在 depth_info 里直接给了真实距离，可以逐个核对：</p>
+  <table><tr><th>视频</th><th>物体</th><th>t</th><th>真实距离</th><th>PhysMind</th><th>PhysMind ÷ 真实</th></tr>
+    <tr><td><code>captured_0013</code></td><td>cup</td><td>0 s</td><td>1.21 m</td><td>1.96 m</td><td><b>1.62×</b></td></tr>
+    <tr><td><code>captured_0013</code></td><td>pen</td><td>0 s</td><td>1.18 m</td><td>1.63 m</td><td><b>1.39×</b></td></tr>
+    <tr><td><code>captured_0013</code></td><td>desk left</td><td>0 s</td><td>0.87 m</td><td>1.49 m</td><td><b>1.72×</b></td></tr>
+    <tr><td><code>captured_0013</code></td><td>desk right</td><td>0 s</td><td>0.85 m</td><td>1.49 m</td><td><b>1.75×</b></td></tr>
+    <tr><td><code>simulation_0015</code></td><td>human</td><td>0 s</td><td>12.26 m</td><td>12.80 m</td><td><b>1.04×</b></td></tr>
+    <tr><td><code>simulation_0015</code></td><td>human</td><td>1 s</td><td>10.97 m</td><td>11.18 m</td><td><b>1.02×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>boat</td><td>1 s</td><td>96.90 m</td><td>15.33 m</td><td><b>0.16×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>boat</td><td>2 s</td><td>92.85 m</td><td>14.51 m</td><td><b>0.16×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>human</td><td>1 s</td><td>92.19 m</td><td>16.75 m</td><td><b>0.18×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>human</td><td>2 s</td><td>92.20 m</td><td>16.63 m</td><td><b>0.18×</b></td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>eagle</td><td>2 s</td><td>103.43 m</td><td>15.37 m</td><td><b>0.15×</b></td></tr>
+  </table>
+  <p>误差两个方向都有：实验室桌面（约 1 m）远了 1.4 到 1.7 倍，海滩分割视频（约 95 m）近了 5.5 到 6.7 倍，只有美术馆场景基本准。分割视频背景是纯色，深度模型几乎没有线索。PhysMind 完全不使用题目给的 prior 和 depth_info，这正是 QuantiPhy 提供尺度的地方。</p>
+  <h4 id="pm-d2">诊断 2：位姿跟踪</h4>
+  <p>把 FoundationPose 的位姿投影回画面，和同一物体的 SAM 3 掩码中心比较（只看 2D，与深度无关）。掩码移动了而位姿没动，说明位姿跟丢了：</p>
+  <table><tr><th>视频</th><th>物体</th><th>掩码净位移</th><th>位姿投影净位移</th><th>比值</th><th>重投影误差中位数</th></tr>
+    <tr><td><code>simulation_0163</code></td><td>dark blue marble sphere</td><td>693 px</td><td>20 px</td><td><b>0.03</b></td><td>439 px</td></tr>
+    <tr><td><code>captured_0013</code></td><td>small pink sphere</td><td>212 px</td><td>8 px</td><td><b>0.04</b></td><td>36 px</td></tr>
+    <tr><td><code>internet_0004</code></td><td>a long, rectangular light-colore</td><td>77 px</td><td>210 px</td><td><b>2.72</b></td><td>191 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>76 px</td><td>13 px</td><td><b>0.17</b></td><td>10 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>72 px</td><td>6 px</td><td><b>0.08</b></td><td>19 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>70 px</td><td>18 px</td><td><b>0.26</b></td><td>4 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>68 px</td><td>20 px</td><td><b>0.30</b></td><td>7 px</td></tr>
+    <tr><td><code>simulation_0034_segmented</code></td><td>a person walking on the beach</td><td>63 px</td><td>63 px</td><td><b>1.01</b></td><td>2 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>top portion of a white bowling p</td><td>47 px</td><td>4 px</td><td><b>0.09</b></td><td>7 px</td></tr>
+    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>46 px</td><td>7 px</td><td><b>0.15</b></td><td>18 px</td></tr>
+  </table>
+  <p>SAM 3 对运动物体的跟踪是对的，FoundationPose 却几乎停在原地：simulation_0163 的蓝球掩码走了约 700 px，位姿只动了 20 px，所以测出的速度是 0.03 到 0.06 m/s，真值约 3 m/s。慢速行走的人跟得上（比值约 1.0），互联网特写视频里位姿反而乱跳（比值 2.7 到 5.2）。</p>
+  <h4 id="pm-d3">诊断 3：逐项消融</h4>
+  <p>在同一组题上每次只去掉一个原因，重新计分（平均 MRA；未测量的题保持 VLM 回退答案）：</p>
+  <table><tr><th>变体</th><th>全部 35 题</th><th>PhysMind 测量的 17 题</th><th>其中运动题 8 题</th></tr>
+    <tr><td>PhysMind 变体 B（原样）</td><td>0.460</td><td>0.253</td><td>0.212</td></tr>
+    <tr><td>+ 用 depth_info 校正尺度（只用题目给的信息）</td><td>0.489</td><td>0.312</td><td>0.162</td></tr>
+    <tr><td>+ 理想尺度（按其余题的真值，分尺寸 / 运动分别校准，留一法）</td><td>0.486</td><td>0.306</td><td>0.213</td></tr>
+    <tr><td>+ 轨迹按匀加速拟合后再求导</td><td>0.437</td><td>0.206</td><td>0.112</td></tr>
+    <tr><td>换掉 FoundationPose：v1（SAM 3 掩码中心 + 深度）</td><td>0.483</td><td>0.441</td><td>0.338</td></tr>
+    <tr><td>Gemini 3 Flash 直接作答</td><td>0.603</td><td>0.547</td><td>0.512</td></tr>
+  </table>
+  <ul>
+    <li><b>尺寸题的误差基本是一个整体尺度。</b>captured_0013 里杯子、笔都大了 1.75 倍，笔记本 1.30 倍；校正尺度后尺寸题从 0.29 升到 0.40。</li>
+    <li><b>运动题无法靠尺度修复。</b>速度只有真值的 0.01 到 0.67，同一视频内没有共同倍数，理想尺度下仍是 0.21。</li>
+    <li><b>平滑反而更差。</b>匀加速拟合去掉了抖动，但跟丢的轨迹仍是平的，碰撞前后也不是一条抛物线。抖动不是主因。</li>
+    <li><b>只把 FoundationPose 换成掩码中心，测量题就从 0.25 升到 0.44</b>，是所有单项改动里最大的。</li>
+  </ul>
+  <h4 id="pm-why">结论</h4>
+  <div class="callout">每个组件在自己的任务上都很强，但假设和 QuantiPhy 不匹配：<b>SAM 3</b> 只做 2D 分割和跟踪，这一步是对的；<b>SAM 3D</b> 给出的形状对但没有真实尺寸；<b>单目深度</b>负责猜尺度，这里偏差 0.6 到 6.7 倍，而题目明明给了尺度；<b>FoundationPose</b> 假设物体慢、近、有纹理并且有真实深度传感器，QuantiPhy 里的物体快、远、深度是预测的，于是跟丢。PhysMind 原本面向 CLEVRER / Physion 这类定性题（会不会碰撞），2 倍误差无所谓；QuantiPhy 要求 5% 到 50% 以内的数值精度，各环节误差相乘。干净背景帮不上忙：分割视频正是深度误差最大（6 倍）、原版网格尺度化全部失败的那一类。</div>
+  <p>对我们方法的启发：尺度要从题目给的 prior / depth_info 来，不要靠单目深度猜；运动要用 2D 掩码轨迹加运动模型，而不是逐帧 6D 位姿。这两点正是 <a href="#scene-fit">场景拟合</a> 的做法，它的瓶颈在“物体站在地面上”这个假设，与 PhysMind 的问题不同。</p>
+  <p><small>样本小：5 个视频、35 题、17 题实际测量，数字只代表方向。诊断脚本 <code>diagnose_physmind.py</code>，用保存下来的中间结果在 CPU 上复现。</small></p>
+    </div>
+  </details>
+
+  <details class="iter" id="approach">
+    <summary><span class="d">10-04</span>几何流水线 v0 / v1（Grounding DINO + SAM 2 + 标定 + 物理拟合）· 0.436 / 0.514 <span class="yes">采用，至今是提示来源</span></summary>
+    <div class="iter-body">
+  <p><b>思路：</b>QuantiPhy 本质上是测量问题，题目都是“已知一个物理量，求另一个”。我们把像素轨迹换算成物理量：静态量靠比例尺，动态量靠对轨迹平滑和微分。物理模型（匀速、匀加速、抛体）只作为拟合约束，不做前向仿真。VLM 只负责理解问题和指认物体；模型只用 Grounding DINO 和 SAM 2，两者都开源，Track B 可用。</p>
+
+  <h4 id="五个阶段">流水线</h4>
+  <table>
+    <tr><th>阶段</th><th>做法</th><th>状态</th></tr>
+    <tr><td>0 问题解析</td><td>规则解析器抽出目标量、物体、时刻、单位和 prior（<code>parse.py</code>）</td><td>✅ 覆盖全部 233 种 prior 写法</td></tr>
+    <tr><td>1 感知</td><td>Grounding DINO 找物体，SAM 2 传播掩码，掩码质心作轨迹；有分割变体的直接用掩码（<code>perceive.py</code>）</td><td>✅ 指认能力不足</td></tr>
+    <tr><td>2 尺度标定</td><td>2D 用 prior 得到 m/px；3D 用 depth_info 反推焦距，再用针孔关系换算（<code>calibrate.py</code>）</td><td>✅</td></tr>
+    <tr><td>3 物理拟合</td><td>Savitzky-Golay 平滑加局部二次拟合求速度和加速度；重力题拟合抛物线（<code>physics.py</code>、<code>solve.py</code>）</td><td>✅</td></tr>
+    <tr><td>4 校验 / agent</td><td>合理范围检查、同组变体取中位数、兜底常数（<code>verify.py</code>）</td><td>🚧 agent 重试和 VLM 回退未做</td></tr>
+  </table>
+  <p><small>每个阶段的设计目标与实现细节见附录。</small></p>
+
+  <h4 id="首次结果">验证集结果（2026-10-04）</h4>
+  <table>
+    <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>无效答案</th></tr>
+    <tr><td>官方 GPT-5.1 基线</td><td>0.486</td><td>0.569</td><td>0.354</td><td>0.456</td><td>0.564</td><td>6.3%</td></tr>
+    <tr><td>流水线 v0（Grounding DINO 逐帧检测）</td><td>0.436</td><td>0.413</td><td>0.368</td><td>0.651</td><td>0.311</td><td>0%</td></tr>
+    <tr><td><b>流水线 v1（SAM 2 跟踪 + 度量三维）</b></td><td><b>0.514</b></td><td>0.463</td><td>0.341</td><td>0.707</td><td>0.545</td><td>0%</td></tr>
+  </table>
+  <p>v1 按视频来源：分割掩码视频 0.87，实验室 0.62，仿真 0.46，互联网 0.35。v0 到 v1 的提升主要来自三处：SAM 2 跟踪、度量三维运动、实验室相机焦距先验（细节见附录）。</p>
+
+  <h4 id="已知失败模式">失败模式与下一步</h4>
+  <ul>
+    <li><b>语义指认不足（最大剩余瓶颈）。</b>Grounding DINO 无法定位 "the model of Io"、"the pencil tip"、"lane"（整条路被当成车道）、"floor tiles" 等；互联网视频 0.35 基本都是这个原因。下一步：用 VLM（Qwen2.5-VL）在采样帧上指认物体并输出点或框，再交给 SAM 2，即上表阶段 4 预留的 agent 层。</li>
+    <li><b>无深度锚点的三维动态 prior。</b><code>captured_0013</code> 的小球沿斜坡滚向相机，但 depth_info 没有小球的距离，像素加速度混入透视效应，整场 0.40。下一步：用场景中其他有深度的静态物体（斜坡远端、近端）约束小球的深度范围。</li>
+    <li><b>"平均速度"的真值定义是净位移除以时间</b>，不是路径长度（验证集弹跳球题目可验证），代码已按此实现。但对圆周运动（木星卫星模型）净位移接近零，真值却是轨道线速度，这类题需要专门识别。</li>
+    <li><b>静态尺寸题 0.41 到 0.46。</b>框包含阴影、物体被截断、"长度"与"宽度"在透视下对应的方向不明确。下一步：用掩码的主轴长度代替框，按物体朝向决定长宽。</li>
+    <li><b>两个物体间的距离</b>常因第二个物体没被跟踪而兜底。</li>
+  </ul>
+
+  <h4 id="运行">运行与案例</h4>
+<pre><code>conda activate quantiphy
+python -m pipeline.run --split val            # 验证集，打印分类别 MRA
+python -m pipeline.run --split val --debug    # 另存带框的调试帧到 outputs/debug/
+python -m pipeline.run --split test --out outputs/submission.csv   # 填好官方模板</code></pre>
+  <p><b>完整案例演示：</b><a href="case/simulation_0300.html">simulation_0300</a>，从输入到答案逐阶段展示每个中间结果，并记录了 v1 到 v7 的迭代；<a href="case/simulation_0060.html">simulation_0060</a>，把 v7 模型推广到 13 题、多物体路口场景的第一次测试（0.28 → 0.78），含可交互的三维重建场景。</p>
+    </div>
+  </details>
+</section>
+</div>
+
+<div class="group" data-group="2D">
+<p class="group-label">2D</p>
+
+<section id="track2d">
+  <h2>2D 方案：几何测量 + VLM 兜底（2026-10-18）</h2>
+  <p>只针对 2D 题（S2、D2），所有模型都是开源模型，满足 Track B 的要求。验证集共 69 道 2D 题（S2 32 道，D2 37 道），测试集共 1741 道。</p>
+
+  <h3 id="t2-pipeline">当前流水线</h3>
+  <table>
+    <tr><th>阶段</th><th>做法</th></tr>
+    <tr><td>1 问题解析</td><td>规则解析器，同前（<code>parse.py</code>）</td></tr>
+    <tr><td>2 指认与跟踪</td><td>Grounding DINO 找物体；DINO 找不到的物体由 Qwen3-VL-8B 给框（vLLM 本地服务）；SAM 2 做视频跟踪（<code>perceive.py</code>）</td></tr>
+    <tr><td>3 像素测量</td><td>用框和轨迹量像素长度、速度和加速度（<code>physics.py</code>）；关闭掩码尺寸和动态 prior 检查，因为消融显示这两项没有帮助（<code>--disable mask,dyncheck</code>）</td></tr>
+    <tr><td>4 标定与求解</td><td>m/px = prior 的物理量 ÷ prior 的像素量，再换算成目标量（<code>calibrate.py</code>、<code>solve.py</code>）</td></tr>
+    <tr><td>5 校验</td><td>做合理范围检查；测不出来或结果不合理时，先填验证集中位数常数（<code>verify.py</code>）</td></tr>
+    <tr><td><b>6 VLM 兜底（新）</b></td><td>第 5 步填了常数的题，改用 <a href="https://huggingface.co/MirroS-Lab/Code-as-World-VL-9B">Code-as-World-VL-9B</a>（基于 Qwen3.5-9B，Apache 2.0）直接看视频作答：输入 16 帧，长边缩到 854 px。VLM 的答案同样要通过合理范围检查，不通过就保留常数（<code>vlm.py</code>、<code>mix.py</code>）</td></tr>
+  </table>
+<pre><code>python -m pipeline.run --split test --dim 2 --disable mask,dyncheck --out outputs/test_2d.csv
+python -m pipeline.vlm --split test --dim 2 --engine server --tag caw_test_2d     # 需要 vLLM 运行 Code-as-World-VL-9B
+python -m pipeline.mix --geo test_2d.csv --vlm caw_test_2d.csv --out test_2d_mix.csv</code></pre>
+
+  <h3 id="t2-versions">重要版本（验证集 2D）</h3>
+  <table>
+    <tr><th>版本</th><th>S2</th><th>D2</th><th>说明</th></tr>
+    <tr><td>流水线 v1（10-04）</td><td>0.463</td><td>0.341</td><td>Grounding DINO + SAM 2</td></tr>
+    <tr><td>几何 + Qwen 指认</td><td>0.478</td><td>0.376</td><td>所有功能都打开；去掉 Qwen 后 D2 降到 0.368</td></tr>
+    <tr><td>几何 + Qwen 指认，关闭 mask/dyncheck</td><td>0.487</td><td>0.386</td><td>纯几何方案里最好的一版，测试集用的就是这个配置</td></tr>
+    <tr><td>Qwen3-VL-8B 直接作答</td><td>0.331</td><td>0.378</td><td></td></tr>
+    <tr><td>Code-as-World-VL-9B 直接作答</td><td>0.391</td><td><b>0.457</b></td><td>D2 明显好于几何，S2 不如几何</td></tr>
+    <tr><td>Agent：Qwen 选框并校验跟踪</td><td>0.456</td><td>0.332</td><td>没有采用：Qwen 8B 的 yes/no 校验误删了正确的轨迹（误删 19 题，只救回 7 题）</td></tr>
+    <tr><td><b>几何 + Code-as-World 兜底（当前）</b></td><td><b>0.503</b></td><td><b>0.508</b></td><td>只替换几何方法测不出来的题</td></tr>
+    <tr><td><small>参考：Gemini 3 Flash 直接作答</small></td><td><small>0.463</small></td><td><small>0.592</small></td><td><small>闭源模型，不能用于 Track B</small></td></tr>
+  </table>
+  <p><small>"当前"这一行是用 <code>mix.py</code> 的规则在"所有功能都打开"的几何结果上算出来的。合并方式稍有不同时，分数在 0.50 到 0.53 之间。</small></p>
+
+  <h3 id="t2-notes">观察与下一步</h3>
+  <ul>
+    <li><b>几何适合 S2，VLM 适合 D2。</b>S2 题全部交给 Code-as-World 时，S2 会掉到 0.375。D2 题全部交给它时，在两份几何结果上分别得到 +0.05 和 −0.05。验证集只有 37 道 D2 题，噪声太大，准备用两次测试集提交来比较。</li>
+    <li><b>测试集和验证集的分布不同：</b>测试集的视频大多是 1080p 到 4K（验证集是 854×480）；加速度 prior 占 28%（验证集 10%）；D2 题占 67%。</li>
+    <li><b>测试集状态：</b>1741 道 2D 题里，有 202 道几何方法测不出来或是手填的，其中 171 道换成了 Code-as-World 的答案。3D 部分合并后再提交。</li>
+  </ul>
+</section>
+</div>
+
+<section id="background">
+  <details class="appx">
+  <summary><h2 class="bg-title">比赛与数据背景</h2></summary>
   <h2>比赛与数据</h2>
   <div class="callout"><b>队伍注册截止：2026 年 10 月 9 日 23:59 AoE</b>（之后不能新建或修改队伍）<br><b>最终提交截止：2026 年 10 月 23 日 23:59 AoE</b></div>
   <ul>
@@ -241,10 +690,7 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
     <tr><td>规模：题 / 视频 / 编号组 / 相机视角</td><td>1,742 / 333 / 276 / 276</td><td>1,547 / 235 / 132 / 135</td></tr>
   </table>
   <p><small>相机视角 = 编号组 + 机位：只换背景的变体与原视频共用同一视角，<code>a</code> / <code>b</code> 两个机位算两个。</small></p>
-</section>
-
-<section id="findings">
-  <h2>关键发现</h2>
+  <h3 id="findings">关键发现</h3>
   <p>基于 <code>test_dataset.parquet</code> 与 <code>validation_dataset.parquet</code> 的统计（2026-10-04），只列对解题有影响的几条，明细见附录。</p>
   <ol>
     <li><b>验证集是测试集的子集。</b>验证集 24 个视频全部出现在测试集中，159 道题里 124 道的题目文本与测试集完全一致，其余 35 道仅措辞略有差异。这 159 道题的答案我们实际上已经有了，约占测试集的 4.8%。</li>
@@ -253,7 +699,7 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
     <li><b>3D 只有 31 个环境，只有 69 个编号组需要补深度。</b>2D 不需要重建；3D 题有 73% 问的是运动物体，背景只需要建出地面、相机和被问到的几个静止物体。</li>
   </ol>
 
-  <h3 id="数据坑">数据坑</h3>
+  <h4 id="数据坑">数据坑</h4>
   <ul>
     <li>47 道题的单位写在句中（如 "What is the height, in meters, of ..."），解析单位时不能只看句尾。</li>
     <li>1,000 道题指定了时刻，要用表格的 <code>fps</code> 列换算成帧号（共 9 种帧率）。</li>
@@ -265,404 +711,6 @@ distance_the_nearest_freestanding_art_display_panel = 11.874 m</code></pre>
     <li><code>depth_info</code> 有 19 行格式不规范（14 个视频）：缺 <code>_camera</code>（如 <code>simulation_0017</code> 的 <code>distance_the_freestanding_art_display_panel = 4.223m</code>）、名字里有空格（<code>0015</code>、<code>0017</code>、<code>0188</code>）、单位写成 <code>s</code>（<code>captured_0029</code>、<code>0030</code>）。主仓库 <code>pipeline/data.py</code> 的 <code>parse_depth_info</code> 会静默丢掉这些行。</li>
     <li>答案为 0 或非数值会被判无效，必须兜底。</li>
   </ul>
-</section>
-
-<section id="approach">
-  <h2>方法与进展</h2>
-  <p><b>思路：</b>QuantiPhy 本质上是测量问题，题目都是“已知一个物理量，求另一个”。我们把像素轨迹换算成物理量：静态量靠比例尺，动态量靠对轨迹平滑和微分。物理模型（匀速、匀加速、抛体）只作为拟合约束，不做前向仿真。VLM 只负责理解问题和指认物体；模型只用 Grounding DINO 和 SAM 2，两者都开源，Track B 可用。</p>
-
-  <h3 id="五个阶段">流水线</h3>
-  <table>
-    <tr><th>阶段</th><th>做法</th><th>状态</th></tr>
-    <tr><td>0 问题解析</td><td>规则解析器抽出目标量、物体、时刻、单位和 prior（<code>parse.py</code>）</td><td>✅ 覆盖全部 233 种 prior 写法</td></tr>
-    <tr><td>1 感知</td><td>Grounding DINO 找物体，SAM 2 传播掩码，掩码质心作轨迹；有分割变体的直接用掩码（<code>perceive.py</code>）</td><td>✅ 指认能力不足</td></tr>
-    <tr><td>2 尺度标定</td><td>2D 用 prior 得到 m/px；3D 用 depth_info 反推焦距，再用针孔关系换算（<code>calibrate.py</code>）</td><td>✅</td></tr>
-    <tr><td>3 物理拟合</td><td>Savitzky-Golay 平滑加局部二次拟合求速度和加速度；重力题拟合抛物线（<code>physics.py</code>、<code>solve.py</code>）</td><td>✅</td></tr>
-    <tr><td>4 校验 / agent</td><td>合理范围检查、同组变体取中位数、兜底常数（<code>verify.py</code>）</td><td>🚧 agent 重试和 VLM 回退未做</td></tr>
-  </table>
-  <p><small>每个阶段的设计目标与实现细节见附录。</small></p>
-
-  <h3 id="首次结果">验证集结果（2026-10-04）</h3>
-  <table>
-    <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>无效答案</th></tr>
-    <tr><td>官方 GPT-5.1 基线</td><td>0.486</td><td>0.569</td><td>0.354</td><td>0.456</td><td>0.564</td><td>6.3%</td></tr>
-    <tr><td>流水线 v0（Grounding DINO 逐帧检测）</td><td>0.436</td><td>0.413</td><td>0.368</td><td>0.651</td><td>0.311</td><td>0%</td></tr>
-    <tr><td><b>流水线 v1（SAM 2 跟踪 + 度量三维）</b></td><td><b>0.514</b></td><td>0.463</td><td>0.341</td><td>0.707</td><td>0.545</td><td>0%</td></tr>
-  </table>
-  <p>v1 按视频来源：分割掩码视频 0.87，实验室 0.62，仿真 0.46，互联网 0.35。v0 到 v1 的提升主要来自三处：SAM 2 跟踪、度量三维运动、实验室相机焦距先验（细节见附录）。</p>
-
-  <h3 id="已知失败模式">失败模式与下一步</h3>
-  <ul>
-    <li><b>语义指认不足（最大剩余瓶颈）。</b>Grounding DINO 无法定位 "the model of Io"、"the pencil tip"、"lane"（整条路被当成车道）、"floor tiles" 等；互联网视频 0.35 基本都是这个原因。下一步：用 VLM（Qwen2.5-VL）在采样帧上指认物体并输出点或框，再交给 SAM 2，即上表阶段 4 预留的 agent 层。</li>
-    <li><b>无深度锚点的三维动态 prior。</b><code>captured_0013</code> 的小球沿斜坡滚向相机，但 depth_info 没有小球的距离，像素加速度混入透视效应，整场 0.40。下一步：用场景中其他有深度的静态物体（斜坡远端、近端）约束小球的深度范围。</li>
-    <li><b>"平均速度"的真值定义是净位移除以时间</b>，不是路径长度（验证集弹跳球题目可验证），代码已按此实现。但对圆周运动（木星卫星模型）净位移接近零，真值却是轨道线速度，这类题需要专门识别。</li>
-    <li><b>静态尺寸题 0.41 到 0.46。</b>框包含阴影、物体被截断、"长度"与"宽度"在透视下对应的方向不明确。下一步：用掩码的主轴长度代替框，按物体朝向决定长宽。</li>
-    <li><b>两个物体间的距离</b>常因第二个物体没被跟踪而兜底。</li>
-  </ul>
-
-  <h3 id="运行">运行与案例</h3>
-<pre><code>conda activate quantiphy
-python -m pipeline.run --split val            # 验证集，打印分类别 MRA
-python -m pipeline.run --split val --debug    # 另存带框的调试帧到 outputs/debug/
-python -m pipeline.run --split test --out outputs/submission.csv   # 填好官方模板</code></pre>
-  <p><b>完整案例演示：</b><a href="case/simulation_0300.html">simulation_0300</a>，从输入到答案逐阶段展示每个中间结果，并记录了 v1 到 v7 的迭代；<a href="case/simulation_0060.html">simulation_0060</a>，把 v7 模型推广到 13 题、多物体路口场景的第一次测试（0.28 → 0.78），含可交互的三维重建场景。</p>
-</section>
-
-<section id="scene-fit">
-  <h2>场景拟合：验证集全量结果</h2>
-  <p><code>pipeline/scene_fit.py</code>（相机 + 地面平面 + 物体尺寸 + 匀速/匀加速运动的整体拟合，即 <a href="case/simulation_0060.html">simulation_0060</a> 案例里的方法）第一次在全部 24 个验证视频上运行。代码为 <code>QuantiPhy</code> 仓库 commit <code>8ca9124</code>，未改动；跟踪结果复用 Colab T4 上 <code>pipeline.run</code> 生成的 <code>outputs/tracks/</code>；没有 Meshy 网格，所有物体都用基元（长方体、圆柱、球）。2026-10-10。</p>
-  <h3 id="sf-score">总分</h3>
-  <table>
-    <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td><b>场景拟合</b>（答出 139/158 题，未答计 0）</td><td><b>0.315</b></td><td>0.303</td><td>0.195</td><td>0.333</td><td>0.430</td></tr>
-    <tr><td>场景拟合，未答的题改用 <code>pipeline.run</code></td><td><b>0.372</b></td><td>0.303</td><td>0.357</td><td>0.376</td><td>0.451</td></tr>
-    <tr><td><code>pipeline.run</code>（同一 commit，Colab 重跑）</td><td><b>0.502</b></td><td>0.491</td><td>0.335</td><td>0.707</td><td>0.477</td></tr>
-    <tr><td>Gemini 3 Flash 直接作答（8 帧，零样本）</td><td><b>0.582</b></td><td>0.463</td><td>0.592</td><td>0.614</td><td>0.657</td></tr>
-  </table>
-  <p>按视频来源（场景拟合 / <code>pipeline.run</code>）：分割掩码 0.61 / 0.87，实验室 0.28 / 0.62，仿真 0.33 / 0.41，互联网 0.17 / 0.37。</p>
-  <div class="callout"><b>结论：</b>场景拟合只在满足它前提的视频上胜出：物体站在一个可拟合的地面上、画面里有路面线条可以求地平线（simulation_0060、simulation_0300 等）。实验室桌面、俯拍、2D 视频不满足这些前提，大多比 <code>pipeline.run</code> 差，地平线检测在大部分视频上都失败。更适合把它当作“地面上的物体、三维视频”分支，满足条件时启用，其余交给 <code>pipeline.run</code>。</div>
-  <h3 id="sf-gallery">逐视频结果与三维查看器</h3>
-  <p>每行可打开三维查看器（拟合出的地面、相机视锥、每个物体的尺寸盒与轨迹，和视频同步播放，可拖动旋转），或直接看叠加视频（拟合结果投影回画面）与原视频。查看器里的偏差就是拟合误差。</p>
-  <table>
-    <tr><th>视频</th><th>题数</th><th>场景拟合</th><th><code>pipeline.run</code></th><th>Gemini</th><th>查看</th></tr>
-    <tr><td><code>captured_0013</code><br><small>lab · D3</small></td><td>7/8</td><td>0.15</td><td>0.40</td><td><b>0.65</b></td><td><a href="case/scene3d.html?scene=scene_fit/captured_0013/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0013/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0013/original.mp4">原视频</a></td></tr>
-    <tr><td><code>captured_0021x</code><br><small>lab · S3</small></td><td>5/5</td><td>0.02</td><td>0.74</td><td><b>0.78</b></td><td><a href="case/scene3d.html?scene=scene_fit/captured_0021x/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0021x/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0021x/original.mp4">原视频</a></td></tr>
-    <tr><td><code>captured_0027s</code><br><small>lab · S3</small></td><td>3/3</td><td>0.13</td><td><b>0.53</b></td><td>0.27</td><td><a href="case/scene3d.html?scene=scene_fit/captured_0027s/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0027s/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0027s/original.mp4">原视频</a></td></tr>
-    <tr><td><code>captured_0034as</code><br><small>lab · S3</small></td><td>7/9</td><td>0.43</td><td><b>0.78</b></td><td>0.52</td><td><a href="case/scene3d.html?scene=scene_fit/captured_0034as/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0034as/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0034as/original.mp4">原视频</a></td></tr>
-    <tr><td><code>captured_0041x</code><br><small>lab · D3</small></td><td>3/3</td><td>0.33</td><td>0.50</td><td><b>0.73</b></td><td><a href="case/scene3d.html?scene=scene_fit/captured_0041x/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0041x/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0041x/original.mp4">原视频</a></td></tr>
-    <tr><td><code>captured_0061</code><br><small>lab · D3</small></td><td>8/9</td><td>0.43</td><td><b>0.67</b></td><td>0.44</td><td><a href="case/scene3d.html?scene=scene_fit/captured_0061/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/captured_0061/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/captured_0061/original.mp4">原视频</a></td></tr>
-    <tr><td><code>internet_0001</code><br><small>internet · S2</small></td><td>3/3</td><td>0.30</td><td>0.10</td><td><b>0.77</b></td><td><a href="case/scene3d.html?scene=scene_fit/internet_0001/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0001/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0001/original.mp4">原视频</a></td></tr>
-    <tr><td><code>internet_0004</code><br><small>internet · S2</small></td><td>4/4</td><td>0.20</td><td>0.03</td><td><b>0.45</b></td><td><a href="case/scene3d.html?scene=scene_fit/internet_0004/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0004/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0004/original.mp4">原视频</a></td></tr>
-    <tr><td><code>internet_0005</code><br><small>internet · D2</small></td><td>3/4</td><td>0.28</td><td>0.10</td><td><b>0.88</b></td><td><a href="case/scene3d.html?scene=scene_fit/internet_0005/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0005/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0005/original.mp4">原视频</a></td></tr>
-    <tr><td><code>internet_0013</code><br><small>internet · D2</small></td><td>3/6</td><td>0.20</td><td>0.18</td><td><b>0.72</b></td><td><a href="case/scene3d.html?scene=scene_fit/internet_0013/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0013/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0013/original.mp4">原视频</a></td></tr>
-    <tr><td><code>internet_0019</code><br><small>internet · D2</small></td><td>0/7</td><td>0.00</td><td>0.71</td><td><b>0.79</b></td><td><span style="color:var(--muted)">拟合失败：prior 里没有解析出物体，第一阶段无法定相机和地面</span></td></tr>
-    <tr><td><code>internet_0027</code><br><small>internet · S2</small></td><td>5/5</td><td>0.20</td><td><b>0.78</b></td><td>0.56</td><td><a href="case/scene3d.html?scene=scene_fit/internet_0027/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/internet_0027/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/internet_0027/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0009</code><br><small>simulation · D3</small></td><td>8/9</td><td>0.04</td><td>0.50</td><td><b>0.64</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0009/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0009/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0009/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0015</code><br><small>simulation · S3</small></td><td>11/11</td><td>0.23</td><td>0.49</td><td><b>0.75</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0015/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0015/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0015/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0034_segmented</code><br><small>segmentation · S3</small></td><td>6/6</td><td>0.57</td><td><b>0.87</b></td><td>0.85</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0034_segmented/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0034_segmented/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0034_segmented/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0060</code><br><small>simulation · D3</small></td><td>12/13</td><td><b>0.70</b></td><td>0.28</td><td>0.69</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0060/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0060/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0060/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0089</code><br><small>simulation · S2</small></td><td>6/6</td><td>0.17</td><td><b>0.48</b></td><td>0.42</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0089/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0089/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0089/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0098_segmented</code><br><small>segmentation · D2</small></td><td>4/4</td><td><b>0.95</b></td><td>0.93</td><td>0.75</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0098_segmented/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0098_segmented/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0098_segmented/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0163</code><br><small>simulation · S2</small></td><td>6/6</td><td>0.43</td><td><b>0.55</b></td><td>0.13</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0163/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0163/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0163/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0170_segmented</code><br><small>segmentation · S3</small></td><td>8/8</td><td>0.46</td><td><b>0.85</b></td><td>0.39</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0170_segmented/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0170_segmented/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0170_segmented/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0171</code><br><small>simulation · S2</small></td><td>8/8</td><td>0.42</td><td><b>0.65</b></td><td>0.57</td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0171/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0171/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0171/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0193</code><br><small>simulation · D2</small></td><td>11/12</td><td>0.09</td><td>0.18</td><td><b>0.44</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0193/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0193/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0193/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0196</code><br><small>simulation · D2</small></td><td>3/4</td><td>0.00</td><td>0.00</td><td><b>0.07</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0196/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0196/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0196/original.mp4">原视频</a></td></tr>
-    <tr><td><code>simulation_0300</code><br><small>simulation · D3</small></td><td>5/5</td><td>0.92</td><td>0.70</td><td><b>0.94</b></td><td><a href="case/scene3d.html?scene=scene_fit/simulation_0300/scene3d.json&amp;back=../index.html%23sf-gallery">三维查看器</a> · <a href="case/scene_fit/simulation_0300/scene_fit.mp4">叠加视频</a> · <a href="case/scene_fit/simulation_0300/original.mp4">原视频</a></td></tr>
-  </table>
-  <p><small>每格是该视频所有题的平均 MRA，场景拟合未答的题计 0；粗体为该视频最好的方法。运行方式：<code>python -m pipeline.scene_fit --split val --video &lt;id&gt; --scene3d &lt;dir&gt; --render &lt;dir&gt;/scene_fit.mp4</code>。</small></p>
-</section>
-
-<section id="depth-guidance">
-  <h2>单目深度作为引导（2026-10-13）</h2>
-  <p>用 Depth Anything V2 预测每帧的相对逆深度，再用题目给的 depth_info 解出尺度和偏移，得到逐帧米制深度，作为场景拟合的引导。锚点物体先按同义词匹配已有跟踪，跟踪里没有的（码头、楼梯等）由本地 Qwen3.8-27B 指认位置。代码：<code>pipeline/depth.py</code>、<code>scene_depth.py</code>、<code>qwen.py</code>，开关 <code>scene_fit --depth</code>。</p>
-  <h3>深度本身有多准</h3>
-  <p>12 个带锚点的 3D 验证视频、共 48 个锚点，留一法：用其余锚点对齐，预测被留出的那个。</p>
-  <table>
-    <tr><th>方法</th><th>相对误差中位数</th><th>误差 &lt; 10% 的比例</th></tr>
-    <tr><td>Depth Pro 原始米制深度</td><td>62%</td><td>9%</td></tr>
-    <tr><td>Depth Pro + 一个尺度</td><td>17%</td><td>23%</td></tr>
-    <tr><td><b>Depth Anything V2 + 尺度和偏移</b></td><td><b>7.4%</b></td><td><b>74%</b></td></tr>
-  </table>
-  <p>Depth Pro 在仿真画面上的米制深度和焦距都不可靠（焦距估计从 401 到 7620 px）。误差大的主要是"桌子左端、斜坡远端"这类边缘锚点，Qwen 给的点常落在背景上；captured_0027s 是简化背景变体，锚点物体被抠掉了，无法使用。</p>
-  <h3>接入场景拟合</h3>
-  <ul>
-    <li>每个被跟踪的物体每隔 4 帧得到一个深度观测，作为比真实锚点弱的约束。</li>
-    <li>每帧先用静止背景把逆深度对齐到参考帧，消除模型逐帧的尺度漂移，再统一换算为米。</li>
-    <li>框底中心的深度可以当作地面接触点，但它混合了物体和地面像素，近处偏深 13% 到 17%；所以只在检测不到地平线时才用它定地面。</li>
-  </ul>
-  <table>
-    <tr><th>验证集 macro MRA</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td>场景拟合，无深度（未答计 0）</td><td>0.329</td><td>0.319</td><td>0.189</td><td>0.349</td><td>0.457</td></tr>
-    <tr><td>场景拟合 + 深度（未答计 0）</td><td>0.355</td><td>0.319</td><td>0.189</td><td>0.374</td><td>0.536</td></tr>
-    <tr><td><code>pipeline.run</code></td><td>0.497</td><td>0.462</td><td>0.341</td><td>0.707</td><td>0.477</td></tr>
-    <tr><td><b>路由：3D 视频的 D3 题用场景拟合 + 深度，其余用 <code>pipeline.run</code></b></td><td><b>0.517</b></td><td>0.462</td><td>0.341</td><td>0.707</td><td><b>0.557</b></td></tr>
-    <tr><td>同样路由但不加深度</td><td>0.497</td><td>0.462</td><td>0.341</td><td>0.707</td><td>0.479</td></tr>
-  </table>
-  <p>深度带来的提升集中在 3D 视频的动态题。逐视频看，captured_0021x 从 0.02 到 0.54，simulation_0009 从 0.04 到 0.41；退步的是 captured_0034as 和 captured_0061，原因是这些实验室视频里物体在桌上或在空中，"所有物体贴着一个地面"的假设不成立，平面被拟合到 30° 以上的倾斜。去掉平面、让物体在三维自由运动（<code>--free3d</code>）后，空中和水上的物体变好、桌面物体变差，12 个视频平均 0.44，低于带平面的 0.46，所以默认仍带平面。</p>
-  <p><b>下一步：</b>把单一地面推广成支撑关系图（物体在桌上、桌在地上、球在空中），每个物体按它实际的支撑面放置，主攻实验室视频；2D 视频没有 depth_info，需要用 prior 给深度定尺度。</p>
-</section>
-
-<section id="track2d">
-  <h2>2D 方案：几何测量 + VLM 兜底（2026-10-18）</h2>
-  <p>只针对 2D 题（S2、D2），所有模型都是开源模型，满足 Track B 的要求。验证集共 69 道 2D 题（S2 32 道，D2 37 道），测试集共 1741 道。</p>
-
-  <h3 id="t2-pipeline">当前流水线</h3>
-  <table>
-    <tr><th>阶段</th><th>做法</th></tr>
-    <tr><td>1 问题解析</td><td>规则解析器，同前（<code>parse.py</code>）</td></tr>
-    <tr><td>2 指认与跟踪</td><td>Grounding DINO 找物体；DINO 找不到的物体由 Qwen3-VL-8B 给框（vLLM 本地服务）；SAM 2 做视频跟踪（<code>perceive.py</code>）</td></tr>
-    <tr><td>3 像素测量</td><td>用框和轨迹量像素长度、速度和加速度（<code>physics.py</code>）；关闭掩码尺寸和动态 prior 检查，因为消融显示这两项没有帮助（<code>--disable mask,dyncheck</code>）</td></tr>
-    <tr><td>4 标定与求解</td><td>m/px = prior 的物理量 ÷ prior 的像素量，再换算成目标量（<code>calibrate.py</code>、<code>solve.py</code>）</td></tr>
-    <tr><td>5 校验</td><td>做合理范围检查；测不出来或结果不合理时，先填验证集中位数常数（<code>verify.py</code>）</td></tr>
-    <tr><td><b>6 VLM 兜底（新）</b></td><td>第 5 步填了常数的题，改用 <a href="https://huggingface.co/MirroS-Lab/Code-as-World-VL-9B">Code-as-World-VL-9B</a>（基于 Qwen3.5-9B，Apache 2.0）直接看视频作答：输入 16 帧，长边缩到 854 px。VLM 的答案同样要通过合理范围检查，不通过就保留常数（<code>vlm.py</code>、<code>mix.py</code>）</td></tr>
-  </table>
-<pre><code>python -m pipeline.run --split test --dim 2 --disable mask,dyncheck --out outputs/test_2d.csv
-python -m pipeline.vlm --split test --dim 2 --engine server --tag caw_test_2d     # 需要 vLLM 运行 Code-as-World-VL-9B
-python -m pipeline.mix --geo test_2d.csv --vlm caw_test_2d.csv --out test_2d_mix.csv</code></pre>
-
-  <h3 id="t2-versions">重要版本（验证集 2D）</h3>
-  <table>
-    <tr><th>版本</th><th>S2</th><th>D2</th><th>说明</th></tr>
-    <tr><td>流水线 v1（10-04）</td><td>0.463</td><td>0.341</td><td>Grounding DINO + SAM 2</td></tr>
-    <tr><td>几何 + Qwen 指认</td><td>0.478</td><td>0.376</td><td>所有功能都打开；去掉 Qwen 后 D2 降到 0.368</td></tr>
-    <tr><td>几何 + Qwen 指认，关闭 mask/dyncheck</td><td>0.487</td><td>0.386</td><td>纯几何方案里最好的一版，测试集用的就是这个配置</td></tr>
-    <tr><td>Qwen3-VL-8B 直接作答</td><td>0.331</td><td>0.378</td><td></td></tr>
-    <tr><td>Code-as-World-VL-9B 直接作答</td><td>0.391</td><td><b>0.457</b></td><td>D2 明显好于几何，S2 不如几何</td></tr>
-    <tr><td>Agent：Qwen 选框并校验跟踪</td><td>0.456</td><td>0.332</td><td>没有采用：Qwen 8B 的 yes/no 校验误删了正确的轨迹（误删 19 题，只救回 7 题）</td></tr>
-    <tr><td><b>几何 + Code-as-World 兜底（当前）</b></td><td><b>0.503</b></td><td><b>0.508</b></td><td>只替换几何方法测不出来的题</td></tr>
-    <tr><td><small>参考：Gemini 3 Flash 直接作答</small></td><td><small>0.463</small></td><td><small>0.592</small></td><td><small>闭源模型，不能用于 Track B</small></td></tr>
-  </table>
-  <p><small>"当前"这一行是用 <code>mix.py</code> 的规则在"所有功能都打开"的几何结果上算出来的。合并方式稍有不同时，分数在 0.50 到 0.53 之间。</small></p>
-
-  <h3 id="t2-notes">观察与下一步</h3>
-  <ul>
-    <li><b>几何适合 S2，VLM 适合 D2。</b>S2 题全部交给 Code-as-World 时，S2 会掉到 0.375。D2 题全部交给它时，在两份几何结果上分别得到 +0.05 和 −0.05。验证集只有 37 道 D2 题，噪声太大，准备用两次测试集提交来比较。</li>
-    <li><b>测试集和验证集的分布不同：</b>测试集的视频大多是 1080p 到 4K（验证集是 854×480）；加速度 prior 占 28%（验证集 10%）；D2 题占 67%。</li>
-    <li><b>测试集状态：</b>1741 道 2D 题里，有 202 道几何方法测不出来或是手填的，其中 171 道换成了 Code-as-World 的答案。3D 部分合并后再提交。</li>
-  </ul>
-</section>
-
-<section id="vlm-hint">
-  <h2>Qwen 带几何提示直接作答 + 按题型路由（2026-10-22）</h2>
-  <p>全部使用开源权重（Qwen3.8-27B、Grounding DINO、SAM 2），符合 Track B。Qwen 在本地起了 4 个 vLLM 服务（GPU 0、1、2、6），请求轮流分配。代码：<code>pipeline/vlm_hint.py</code>、<code>pipeline/route.py</code>。</p>
-  <h3>做法</h3>
-  <ol>
-    <li>用几何流水线（<code>pipeline.run</code>）得到每道题的估计值。</li>
-    <li>给 Qwen 均匀采样 16 帧（再加上题目和 depth_info 里提到的时刻），长边缩到 768 px，每帧标上时间戳。同时给出 prior、depth_info、fps、分辨率，以及几何流水线的估计值，并说明这个值"通常接近，但跟踪失败时会错"。</li>
-    <li>要求 Qwen 不写推理过程，直接输出 <code>{"answer": 数字}</code>（最多 200 token）。</li>
-    <li>按题型路由：S3 用几何结果，S2、D2、D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何结果。</li>
-  </ol>
-  <h3>验证集结果（159 题，macro MRA）</h3>
-  <table>
-    <tr><th>方法</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td>几何流水线 <code>pipeline.run</code></td><td>0.497</td><td>0.462</td><td>0.341</td><td>0.707</td><td>0.477</td></tr>
-    <tr><td>Qwen 先推理再作答（4000 token）</td><td>0.211</td><td>0.144</td><td>0.214</td><td>0.272</td><td>0.213</td></tr>
-    <tr><td>Qwen 开思考模式（12000 token）</td><td>0.369</td><td>0.328</td><td>0.249</td><td>0.509</td><td>0.389</td></tr>
-    <tr><td>Qwen 直接作答，无提示</td><td>0.452</td><td>0.325</td><td>0.459</td><td>0.421</td><td>0.602</td></tr>
-    <tr><td>Qwen 直接作答 + 几何提示</td><td>0.591</td><td>0.594</td><td>0.508</td><td>0.623</td><td>0.638</td></tr>
-    <tr><td><b>路由：S3 用几何，其余用"Qwen + 几何提示"（提交 v1）</b></td><td><b>0.616</b></td><td>0.594</td><td>0.508</td><td><b>0.707</b></td><td><b>0.655</b></td></tr>
-    <tr><td>同上，但提示来自"Qwen 检查过提示框"的跟踪</td><td>0.629</td><td>0.603</td><td>0.541</td><td>0.707</td><td>0.664</td></tr>
-    <tr><td><b>两种提示各跑一次，Qwen 答案取几何平均（提交 v2）</b></td><td><b>0.636</b></td><td>0.597</td><td><b>0.581</b></td><td>0.707</td><td>0.660</td></tr>
-    <tr><td><small>参考：Gemini 3 Flash 直接作答（闭源）</small></td><td><small>0.582</small></td><td></td><td></td><td></td><td></td></tr>
-  </table>
-  <p><small>同一配置重跑一次，单个类别会有 ±0.03 的波动，所以 v1 和 v2 的差距（0.02）在噪声范围内。v2 的好处是两种提示各跑一次再取平均，方差更小。</small></p>
-  <h3>试过但没有采用的</h3>
-  <table>
-    <tr><th>尝试</th><th>验证集</th><th>结论</th></tr>
-    <tr><td>32 帧代替 16 帧（无提示）</td><td>0.437</td><td>比 16 帧低</td></tr>
-    <tr><td>12 / 24 帧（带提示）</td><td>0.592 / 0.579</td><td>和 16 帧差不多</td></tr>
-    <tr><td>12/16/24 帧三次结果取中位数</td><td>0.594</td><td>只高 0.003，在噪声内</td></tr>
-    <tr><td>同一配置重跑一次</td><td>0.589</td><td>说明单类别有 ±0.03 的运行间波动</td></tr>
-    <tr><td>兜底常数题不给提示</td><td>0.568</td><td>更低；兜底常数是验证集中位数，在验证集上有泄漏，测试集上是合理的先验</td></tr>
-    <tr><td>D3 题改用场景拟合 + 深度的结果当提示</td><td>0.569–0.601</td><td>和普通几何提示差不多，测试集上不再跑场景拟合</td></tr>
-    <tr><td>提示里加上流水线日志（方法名、像素量）</td><td>0.546</td><td>S2 掉到 0.51，信息太多反而干扰</td></tr>
-    <tr><td>Qwen 检查 DINO 的 SAM 2 提示框（不一致就换成 Qwen 的框）</td><td>几何 0.501</td><td>S2、D2、D3 各升约 0.03，S3 降 0.08（captured_0034as 等）；用它做提示时路由后约 0.62，差别在噪声内</td></tr>
-    <tr><td>全局乘一个尺度修正（1.03–1.1）</td><td>≤ 0.618</td><td>收益可以忽略</td></tr>
-  </table>
-  <h3>观察</h3>
-  <ul>
-    <li><b>Qwen 让它写推理反而更差。</b>它会在帧上"量像素"，但数不准，而且常常写到 token 上限也没给出答案。直接给数字时，它更像是在凭常识估计，再结合 prior 的量级。</li>
-    <li><b>几何提示的作用是纠错。</b>几何结果合理时 Qwen 基本照抄；几何结果差几十倍时（比如把整条路当成"车道"），Qwen 会改成常识范围内的值。也有少数情况 Qwen 把正确的几何结果改错了（simulation_0171 的加速度和速度）。</li>
-    <li><b>S3 仍然是几何最好。</b>静态 3D 尺寸有 depth_info 和焦距约束，几何测得准，Qwen 改动后反而变差。</li>
-    <li><b>剩下的错误多是题目本身难：</b>同类的多个实例（"两个病毒之间的距离"）、文字、管子内径、非常小或非常大的量（0.0019 m 的字宽、8.6 m 的桌宽）。</li>
-  </ul>
-  <h3>测试集提交文件</h3>
-  <ul>
-    <li><code>outputs/submission_v1.csv</code>：3289 行，没有空值。S3 的 578 题来自几何；其余 2674 题来自 Qwen；Qwen 无效的 37 题退回几何。</li>
-    <li><b><code>outputs/submission_v2.csv</code>（推荐先交）：</b>和 v1 一样路由，只是 Qwen 答案换成两次运行的几何平均：一次用普通跟踪做提示，一次用 Qwen 检查过提示框的跟踪（<code>outputs/tracks_qwen/</code>）做提示。和 v1 相比有 637 题的数值变化超过 1%。</li>
-    <li>测试集的跟踪用 6 张 GPU 并行，约 15 分钟（<code>pipeline.run --shard k/6</code>）；Qwen 作答 3289 题约 16 分钟。</li>
-  </ul>
-<pre><code>python -m pipeline.run --split test --shard k/6                    # 6 个进程并行跟踪，结果缓存在 outputs/tracks/
-python -m pipeline.run --split test --no-gdino --out outputs/test_geo.csv
-QWEN_URLS=http://localhost:8001/v1/chat/completions,... \
-python -m pipeline.vlm_hint --split test --tag qwen16hint --hint outputs/test_geo_detailed.csv --direct --max-tokens 200 --workers 64
-python -m pipeline.route --split test --geo outputs/test_geo_detailed.csv --vlm outputs/vlm/test_qwen16hint_pred.csv --out outputs/submission_v1.csv</code></pre>
-</section>
-
-<section id="scene-mesh">
-  <h2>3D 场景拟合 + Meshy 网格库进入 harness（2026-10-22）</h2>
-  <p>目标：所有 3D 视频都跑场景拟合（深度 + 地面 + 形状），需要网格的物体用 Meshy，但每个物体只生成一次。代码：<code>pipeline/meshlib.py</code>、<code>scene_fit.py --meshlib</code>、<code>vlm_hint.py --mesh-hint</code>。</p>
-
-  <h3>网格库</h3>
-  <ul>
-    <li>按"场景 + 物体名的词集合"存放在 <code>outputs/meshy/lib/&lt;scene&gt;/&lt;slug&gt;/</code>：同一场景的各个变体共用；"the white car"和"white car"命中同一个网格；已有网格直接复用，不再重复生成。</li>
-    <li>只给基本几何体描述不了的物体生成网格：车、人、动物、船、飞机等；球、盒子、圆柱仍用解析几何体。</li>
-    <li><b>付费前的检查：</b>物体短边要至少 48 px，而且要由 Qwen 确认裁剪图里确实是这个物体。没通过就不调用 Meshy，记为 rejected，以后也不重试。早期有 4 个网格是用错误裁剪生成的（裁到地板、空白，或者跟错了物体，生成出一串文字），已标记为不可用。</li>
-    <li>花费：一共生成 27 个网格，810 credits（验证集 8 个，测试集 19 个）；检查拒掉 54 个裁剪，没有花费。之后 Meshy 返回 402：API 只扣月度 credits（剩 20），永久 credits（9747）不能通过 API 使用，月度额度 11 月中才重置。所以测试集 3D 场景目前可用的网格是 26 个。</li>
-  </ul>
-
-  <h3>验证集 3D 题（场景拟合本身，未答计 0）</h3>
-  <table>
-    <tr><th>版本</th><th>已答</th><th>3D macro</th><th>S3</th><th>D3</th></tr>
-    <tr><td>场景拟合 + 深度</td><td>84/90</td><td>0.455</td><td>0.372</td><td>0.538</td></tr>
-    <tr><td>+ 网格库</td><td>76/90</td><td>0.412</td><td>0.267</td><td>0.557</td></tr>
-    <tr><td>+ 网格库，网格拟合失败时退回基本几何体</td><td>84/90</td><td>0.458</td><td>0.356</td><td><b>0.560</b></td></tr>
-  </table>
-  <p>用网格拟合的物体平均 MRA 0.72（15 题），基本几何体只有 0.42–0.48。车辆场景提升最明显：simulation_0060 从 0.70 升到 0.77。但在这 15 题上，"Qwen + 几何提示"已经有 0.84，所以场景拟合更适合用来给 Qwen 当提示，而不是直接作答。</p>
-
-  <h3>接入 harness</h3>
-  <table>
-    <tr><th>做法（验证集）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td>v3：两种几何提示 + 路由</td><td>0.636</td><td>0.597</td><td>0.581</td><td>0.707</td><td>0.660</td></tr>
-    <tr><td><b>v4：网格物体的提示改用场景拟合的结果</b></td><td><b>0.639</b></td><td>0.594</td><td>0.581</td><td>0.707</td><td><b>0.674</b></td></tr>
-    <tr><td>同时给几何和场景拟合两个数</td><td>0.611</td><td>0.594</td><td>0.530</td><td>0.707</td><td>0.613</td></tr>
-    <tr><td>几何与场景拟合一致时取二者平均</td><td>0.630–0.638</td><td colspan="4">没有收益</td></tr>
-    <tr><td>再给 Qwen 一张画了跟踪框的图</td><td>0.589</td><td>0.494</td><td>0.527</td><td>0.707</td><td>0.628</td></tr>
-    <tr><td>场景拟合加焦距先验 / 带宽、最薄边约束</td><td colspan="5">场景拟合本身变化只有零点零几，在噪声内，不采用</td></tr>
-  </table>
-
-  <h3>这一轮修的问题</h3>
-  <ul>
-    <li><b>验证集和测试集共用 24 个 video_id：</b>是同样的视频，测试集的分辨率更高。缓存原来只按 video_id 存，两边互相覆盖了跟踪和深度结果。现在按数据集分目录存（<code>tracks/</code>、<code>tracks_test/</code>，<code>depth/</code>、<code>depth_test/</code>），受影响的视频已重新跟踪、重新作答，得到 v3。</li>
-    <li><b>验证集 159 题里有 124 题原样出现在测试集中。</b>我们没有使用这些题的验证集答案。</li>
-    <li>SAM 2 单帧分割在新版 transformers 下接口变了，给出的掩码也不可靠，所以网格裁剪不再用掩码，Meshy 会自己去背景。</li>
-    <li>场景拟合找不到某个变体的跟踪时，改用同场景其他变体的跟踪（<code>pipeline.run</code> 本来就是一个场景共用一份掩码变体的跟踪）。</li>
-    <li>测试集：场景拟合（深度 + 网格库）跑完 235 个 3D 视频中的 211 个，得到 1342 个答案，其中 80 个是用网格拟合的物体，这些题的提示换成了场景拟合的结果，得到 <b><code>outputs/submission_v4.csv</code></b>，和 v3 相比有 43 题的数值变化超过 1%。另外 24 个视频拟合失败，保留原来的答案。</li>
-    <li>/data 被其他用户写满后，把数据、深度和网格搬到了 <code>/nas/yumenghe/QuantiPhy-data</code>，在 repo 里用软链接指过去。HF 缓存依赖软链接，而 NAS 不支持软链接，所以 HF 缓存仍留在 /data。</li>
-  </ul>
-</section>
-
-<section id="cad-template">
-  <h2>参数化 CAD 模板（借鉴 SPARK2 Procedura）（2026-10-22，未采用）</h2>
-  <p>动机：Meshy 额度已用完。用户提出用 CAD 生成物体，这样长宽高可以在场景拟合时直接优化。代码：<code>pipeline/procmesh.py</code>、<code>scene_fit.py</code>。</p>
-
-  <h3>做法</h3>
-  <ul>
-    <li>先照搬 Procedura 的做法，让本地 Qwen 写 OpenSCAD：8 个物体全部能编译，每个耗时 15–20 s，但其中 2 个比例明显不对（白车宽 2.8 m，黄车长 2.8 m）。</li>
-    <li>场景拟合只用到形状的投影包围盒，也就是凸包，不需要精细几何，所以改用手写的部件化模板：12 类、约 40 个子类型（轿车 / SUV / 卡车 / 公交 / 自行车 / 摩托 / 人 / 船 / 飞机 / 鸟 / 鱼 / 四足动物）。</li>
-    <li>长宽高作为拟合参数，并加类别比例先验，防止被压扁。Qwen 看裁剪图选子类型并给出初始尺寸。生成一个物体约 1 s，不花 credits。</li>
-  </ul>
-
-  <h3>场景拟合本身（验证集 3D 共 90 题，未答计 0）</h3>
-  <table>
-    <tr><th>版本</th><th>3D macro</th><th>S3</th><th>D3</th><th>网格类物体（34 题）</th><th>其中尺寸题（17 题）</th></tr>
-    <tr><td>Meshy 网格（基线）</td><td>0.458</td><td>0.356</td><td><b>0.560</b></td><td>0.624</td><td>0.641</td></tr>
-    <tr><td>基本几何体</td><td>0.455</td><td>0.372</td><td>0.538</td><td>0.618</td><td>0.647</td></tr>
-    <tr><td>CAD 固定尺寸（Qwen 估计）</td><td><b>0.484</b></td><td><b>0.440</b></td><td>0.528</td><td>0.644</td><td>0.665</td></tr>
-    <tr><td>CAD 参数化，只补没有 Meshy 的物体</td><td>0.463</td><td>0.374</td><td>0.551</td><td>0.624</td><td>0.653</td></tr>
-    <tr><td>CAD 参数化，全部替换（Qwen 先验）</td><td>0.474</td><td>0.407</td><td>0.540</td><td>0.635</td><td>0.653</td></tr>
-    <tr><td>CAD 参数化，类别默认尺寸</td><td>0.483</td><td>0.414</td><td>0.551</td><td><b>0.653</b></td><td><b>0.712</b></td></tr>
-  </table>
-
-  <h3>完整 harness（验证集）</h3>
-  <table>
-    <tr><th>版本</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td><b>当前最好（Meshy 网格作提示）</b></td><td><b>0.639</b></td><td>0.594</td><td>0.581</td><td>0.707</td><td><b>0.674</b></td></tr>
-    <tr><td>CAD 只补没有 Meshy 的物体</td><td>0.638</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.668</td></tr>
-    <tr><td>CAD 参数化，类别默认尺寸</td><td>0.636</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.662</td></tr>
-    <tr><td>CAD 固定尺寸 / 参数化（Qwen 先验）</td><td>0.635</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.657</td></tr>
-  </table>
-
-  <h3>结论与未采用的原因</h3>
-  <ul>
-    <li>CAD 明显改善了场景拟合本身（3D macro 0.45 → 0.48，尺寸题 0.64 → 0.71），主要是修好了 Meshy 没有网格或朝向错误的物体（老鹰、鸟、simulation_0034 的船）。</li>
-    <li>但在 harness 里，S3 走几何流水线，这些题上几何结果已有 0.84，用不上场景拟合；D3 上 Qwen 已接近满分，换提示反而略降。所以总分变化在噪声内且偏负，未采用，没有对应的提交文件。</li>
-    <li>顺带发现：Meshy 的人和船网格有坐标轴推断错误（身高方向被当成了车头方向），留作后续修复。</li>
-  </ul>
-</section>
-
-<section id="sf-fixes">
-  <h2>场景拟合失败排查 + 实验室焦距修正（2026-10-22）</h2>
-  <p>逐个检查场景拟合在验证集和测试集上失败或退回的视频，按原因归类并修复能修的部分；排查中顺带发现实验室视频的焦距回退值没有按分辨率换算。</p>
-
-  <h3>失败原因分类</h3>
-  <table>
-    <tr><th>原因</th><th>测试集</th><th>验证集</th><th>处理</th></tr>
-    <tr><td>先验是重力加速度（"acceleration = 9.8"），解析不出物体，整个视频失败</td><td>24 个视频</td><td>0</td><td>已修：自动选一个被问到的物体，不用先验，靠深度定尺度</td></tr>
-    <tr><td>网格物体带高度或宽度先验时崩溃，退回基本几何体</td><td>5 个视频</td><td>1 个视频</td><td>已修</td></tr>
-    <tr><td>人和宇航员的网格被放倒（把身高方向当成车头方向）</td><td>所有 Meshy 的人</td><td>同左</td><td>已修：竖直放置。验证集宇航员从 5.15×3.11×2.18 m 变成 1.32×0.93×2.19 m</td></tr>
-    <tr><td>跟踪框几乎占满画面，物体被跳过</td><td>18 个物体</td><td>4 个物体</td><td>未修，需要重新跟踪</td></tr>
-    <tr><td>问的是场景结构（车道、坡、地砖、路程），单物体模型答不了</td><td>34 题</td><td>6 题</td><td>按设计退回几何</td></tr>
-  </table>
-
-  <h3>验证集结果</h3>
-  <table>
-    <tr><th>指标</th><th>修复前</th><th>修复后</th><th>修复后、不用先验</th></tr>
-    <tr><td>场景拟合 3D macro</td><td>0.458</td><td>0.459</td><td>0.468</td></tr>
-    <tr><td>完整 harness 总分</td><td>0.639</td><td>0.639</td><td>—</td></tr>
-  </table>
-  <p>完整 harness 没有变化：这些修复影响的都是 S3 题，而 harness 里 S3 走几何流水线。</p>
-  <p>测试集补跑的 29 个视频全部有了结果，但不带先验的拟合结果不采用：唯一的 D3 例子把人拟合成了 0.30 m，明显错误。</p>
-
-  <h3>实验室焦距回退值修正</h3>
-  <ul>
-    <li>实验室视频的焦距回退值（650 px，合理范围 450–950 px）是在验证集 854×480 上定的绝对像素。测试集是同一批视频，但分辨率是 1280×720，回退值因此小了 1.5 倍，影响测试集约 325 个 D3 几何提示。</li>
-    <li>现在按帧宽缩放。验证集结果完全不变。</li>
-    <li>对应提交文件：<b><code>outputs/submission_v5.csv</code></b>。和 v4 相比只有实验室视频的 D3 题变了：273 题变化超过 1%，几何提示缩小到原来的 2/3（854/1280），Qwen 最终答案的变化中位数是 0.84 倍；其余类别和来源完全不变。核对方法：把测试集帧缩小到 854×480，和验证集同一视频的帧逐像素比较，相关系数 0.999，说明是同一视野、等比放大，焦距的像素值应该乘 1.5，所以尺寸的旧值高估了 1.5 倍。</li>
-  </ul>
-
-  <h3>经验</h3>
-  <p>像素单位的常数必须按帧宽换算。</p>
-</section>
-
-<section id="physmind">
-  <h2>PhysMind 在 QuantiPhy 上为什么失败</h2>
-  <p><a href="https://github.com/ccyydd/PhysMind">PhysMind</a>（world-model agent：SAM 3 跟踪 → SAM 3D Objects 网格 → 单目度量深度定尺度 → FoundationPose 逐帧 6D 位姿 → 仿真/作答）与我们的思路相近，所以在实现自己的方法前先在验证集上测了它。运行环境 RunPod A40 48 GB，VLM 为 Gemini 3 Flash（OpenRouter）。QuantiPhy 适配是我们自己做的，不是官方结果。2026-10-09 至 10-11。</p>
-  <h3 id="pm-result">结果</h3>
-  <ul>
-    <li><b>原版路线跑不通：</b>抽样 8 个验证视频，第 2 阶段全部失败。QuantiPhy 没有专属路线，走的是 CLEVRER 路线：SAM 3 的文本提示固定为 "all visible objects"，普通视频里什么都检测不到；分割视频能检测和跟踪，但网格换算到米制尺度（mesh conditioning）全部失败。</li>
-    <li><b>改造后（变体 B）：</b>用题目里的物体名做 SAM 3 概念提示，并且每个概念单独开一个 SAM 3 会话（同一会话只保留最后一个文本提示，已验证）。5 个视频完整重建，35 题中 PhysMind 实际测量了 17 题，其余回退到 VLM。</li>
-    <li>这 17 题上 PhysMind 的平均 MRA 为 <b>0.25</b>，同一 VLM 直接作答为 0.55，我们更简单的 v1（SAM 3 掩码中心 + 度量深度）为 0.44。</li>
-  </ul>
-  <p><b>交互查看：</b><a href="case/physmind/index.html">PhysMind 三维场景查看器</a>，5 个视频，左边是视频叠加按位姿投影的网格，右边是相机坐标系下的三维场景，可拖动旋转、逐帧播放。</p>
-  <h3 id="pm-d1">诊断 1：深度（尺度）</h3>
-  <p>PhysMind 用单目度量深度（Video Depth Anything）决定物体离相机多远，进而决定所有长度和速度的尺度。QuantiPhy 的 3D 题在 depth_info 里直接给了真实距离，可以逐个核对：</p>
-  <table><tr><th>视频</th><th>物体</th><th>t</th><th>真实距离</th><th>PhysMind</th><th>PhysMind ÷ 真实</th></tr>
-    <tr><td><code>captured_0013</code></td><td>cup</td><td>0 s</td><td>1.21 m</td><td>1.96 m</td><td><b>1.62×</b></td></tr>
-    <tr><td><code>captured_0013</code></td><td>pen</td><td>0 s</td><td>1.18 m</td><td>1.63 m</td><td><b>1.39×</b></td></tr>
-    <tr><td><code>captured_0013</code></td><td>desk left</td><td>0 s</td><td>0.87 m</td><td>1.49 m</td><td><b>1.72×</b></td></tr>
-    <tr><td><code>captured_0013</code></td><td>desk right</td><td>0 s</td><td>0.85 m</td><td>1.49 m</td><td><b>1.75×</b></td></tr>
-    <tr><td><code>simulation_0015</code></td><td>human</td><td>0 s</td><td>12.26 m</td><td>12.80 m</td><td><b>1.04×</b></td></tr>
-    <tr><td><code>simulation_0015</code></td><td>human</td><td>1 s</td><td>10.97 m</td><td>11.18 m</td><td><b>1.02×</b></td></tr>
-    <tr><td><code>simulation_0034_segmented</code></td><td>boat</td><td>1 s</td><td>96.90 m</td><td>15.33 m</td><td><b>0.16×</b></td></tr>
-    <tr><td><code>simulation_0034_segmented</code></td><td>boat</td><td>2 s</td><td>92.85 m</td><td>14.51 m</td><td><b>0.16×</b></td></tr>
-    <tr><td><code>simulation_0034_segmented</code></td><td>human</td><td>1 s</td><td>92.19 m</td><td>16.75 m</td><td><b>0.18×</b></td></tr>
-    <tr><td><code>simulation_0034_segmented</code></td><td>human</td><td>2 s</td><td>92.20 m</td><td>16.63 m</td><td><b>0.18×</b></td></tr>
-    <tr><td><code>simulation_0034_segmented</code></td><td>eagle</td><td>2 s</td><td>103.43 m</td><td>15.37 m</td><td><b>0.15×</b></td></tr>
-  </table>
-  <p>误差两个方向都有：实验室桌面（约 1 m）远了 1.4 到 1.7 倍，海滩分割视频（约 95 m）近了 5.5 到 6.7 倍，只有美术馆场景基本准。分割视频背景是纯色，深度模型几乎没有线索。PhysMind 完全不使用题目给的 prior 和 depth_info，这正是 QuantiPhy 提供尺度的地方。</p>
-  <h3 id="pm-d2">诊断 2：位姿跟踪</h3>
-  <p>把 FoundationPose 的位姿投影回画面，和同一物体的 SAM 3 掩码中心比较（只看 2D，与深度无关）。掩码移动了而位姿没动，说明位姿跟丢了：</p>
-  <table><tr><th>视频</th><th>物体</th><th>掩码净位移</th><th>位姿投影净位移</th><th>比值</th><th>重投影误差中位数</th></tr>
-    <tr><td><code>simulation_0163</code></td><td>dark blue marble sphere</td><td>693 px</td><td>20 px</td><td><b>0.03</b></td><td>439 px</td></tr>
-    <tr><td><code>captured_0013</code></td><td>small pink sphere</td><td>212 px</td><td>8 px</td><td><b>0.04</b></td><td>36 px</td></tr>
-    <tr><td><code>internet_0004</code></td><td>a long, rectangular light-colore</td><td>77 px</td><td>210 px</td><td><b>2.72</b></td><td>191 px</td></tr>
-    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>76 px</td><td>13 px</td><td><b>0.17</b></td><td>10 px</td></tr>
-    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>72 px</td><td>6 px</td><td><b>0.08</b></td><td>19 px</td></tr>
-    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>70 px</td><td>18 px</td><td><b>0.26</b></td><td>4 px</td></tr>
-    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>68 px</td><td>20 px</td><td><b>0.30</b></td><td>7 px</td></tr>
-    <tr><td><code>simulation_0034_segmented</code></td><td>a person walking on the beach</td><td>63 px</td><td>63 px</td><td><b>1.01</b></td><td>2 px</td></tr>
-    <tr><td><code>simulation_0163</code></td><td>top portion of a white bowling p</td><td>47 px</td><td>4 px</td><td><b>0.09</b></td><td>7 px</td></tr>
-    <tr><td><code>simulation_0163</code></td><td>white bowling pin with red strip</td><td>46 px</td><td>7 px</td><td><b>0.15</b></td><td>18 px</td></tr>
-  </table>
-  <p>SAM 3 对运动物体的跟踪是对的，FoundationPose 却几乎停在原地：simulation_0163 的蓝球掩码走了约 700 px，位姿只动了 20 px，所以测出的速度是 0.03 到 0.06 m/s，真值约 3 m/s。慢速行走的人跟得上（比值约 1.0），互联网特写视频里位姿反而乱跳（比值 2.7 到 5.2）。</p>
-  <h3 id="pm-d3">诊断 3：逐项消融</h3>
-  <p>在同一组题上每次只去掉一个原因，重新计分（平均 MRA；未测量的题保持 VLM 回退答案）：</p>
-  <table><tr><th>变体</th><th>全部 35 题</th><th>PhysMind 测量的 17 题</th><th>其中运动题 8 题</th></tr>
-    <tr><td>PhysMind 变体 B（原样）</td><td>0.460</td><td>0.253</td><td>0.212</td></tr>
-    <tr><td>+ 用 depth_info 校正尺度（只用题目给的信息）</td><td>0.489</td><td>0.312</td><td>0.162</td></tr>
-    <tr><td>+ 理想尺度（按其余题的真值，分尺寸 / 运动分别校准，留一法）</td><td>0.486</td><td>0.306</td><td>0.213</td></tr>
-    <tr><td>+ 轨迹按匀加速拟合后再求导</td><td>0.437</td><td>0.206</td><td>0.112</td></tr>
-    <tr><td>换掉 FoundationPose：v1（SAM 3 掩码中心 + 深度）</td><td>0.483</td><td>0.441</td><td>0.338</td></tr>
-    <tr><td>Gemini 3 Flash 直接作答</td><td>0.603</td><td>0.547</td><td>0.512</td></tr>
-  </table>
-  <ul>
-    <li><b>尺寸题的误差基本是一个整体尺度。</b>captured_0013 里杯子、笔都大了 1.75 倍，笔记本 1.30 倍；校正尺度后尺寸题从 0.29 升到 0.40。</li>
-    <li><b>运动题无法靠尺度修复。</b>速度只有真值的 0.01 到 0.67，同一视频内没有共同倍数，理想尺度下仍是 0.21。</li>
-    <li><b>平滑反而更差。</b>匀加速拟合去掉了抖动，但跟丢的轨迹仍是平的，碰撞前后也不是一条抛物线。抖动不是主因。</li>
-    <li><b>只把 FoundationPose 换成掩码中心，测量题就从 0.25 升到 0.44</b>，是所有单项改动里最大的。</li>
-  </ul>
-  <h3 id="pm-why">结论</h3>
-  <div class="callout">每个组件在自己的任务上都很强，但假设和 QuantiPhy 不匹配：<b>SAM 3</b> 只做 2D 分割和跟踪，这一步是对的；<b>SAM 3D</b> 给出的形状对但没有真实尺寸；<b>单目深度</b>负责猜尺度，这里偏差 0.6 到 6.7 倍，而题目明明给了尺度；<b>FoundationPose</b> 假设物体慢、近、有纹理并且有真实深度传感器，QuantiPhy 里的物体快、远、深度是预测的，于是跟丢。PhysMind 原本面向 CLEVRER / Physion 这类定性题（会不会碰撞），2 倍误差无所谓；QuantiPhy 要求 5% 到 50% 以内的数值精度，各环节误差相乘。干净背景帮不上忙：分割视频正是深度误差最大（6 倍）、原版网格尺度化全部失败的那一类。</div>
-  <p>对我们方法的启发：尺度要从题目给的 prior / depth_info 来，不要靠单目深度猜；运动要用 2D 掩码轨迹加运动模型，而不是逐帧 6D 位姿。这两点正是 <a href="#scene-fit">场景拟合</a> 的做法，它的瓶颈在“物体站在地面上”这个假设，与 PhysMind 的问题不同。</p>
-  <p><small>样本小：5 个视频、35 题、17 题实际测量，数字只代表方向。诊断脚本 <code>diagnose_physmind.py</code>，用保存下来的中间结果在 CPU 上复现。</small></p>
-</section>
-
-<section id="appendix">
-  <h2>附录</h2>
-  <p>查数据和查细节时用，默认收起，点标题展开。</p>
-
   <details class="appx">
   <summary><h3 id="appx-提交">提交细节</h3></summary>
   <p>Mean Relative Accuracy。官方实现在 <code>evaluator.py</code>，用 <code>evaluate.sh</code> 启动。大致思路是对每个预测在一组相对误差阈值 θ 上判断是否命中，再对阈值取平均，最后按类别（S2、D2、S3、D3）汇总。</p>
@@ -1654,76 +1702,57 @@ diameter of the tire of the blue car = 0.369m</td></tr>
   </table>
   </details>
 
+  </details>
 </section>
 
-
-<footer>最后更新 2026-10-08</footer>
+<footer>最后更新 2026-10-22</footer>
 </div>
 </div>
 <script>
 (function(){
+  // TOC: one top-level entry per .group (3D, 2D); its sections (h2) are the sub-entries.
   const list=document.getElementById('toc-list');
-  const heads=[...document.querySelectorAll('.wrap h2')];
-  const links=new Map(), items=new Map(), subLinks=new Map();
-  // user-toggled state per section: true = forced open, false = forced closed, absent = follow scroll
-  const manual=new Map();
-  heads.forEach(h=>{
-    const sec=h.closest('section');
-    if(!sec.id) sec.id='s-'+Math.random().toString(36).slice(2,7);
-    const a=document.createElement('a'); a.href='#'+sec.id; a.textContent=h.textContent.trim();
+  const groups=[...document.querySelectorAll('.wrap .group')];
+  const top=new Map(), items=new Map(), subLinks=new Map();
+  const manual=new Map(); // user-toggled state per group: true open, false closed, absent = follow scroll
+  groups.forEach((g,gi)=>{
+    const secs=[...g.querySelectorAll(':scope > section')];
+    if(!secs.length) return;
+    const name=g.dataset.group||('组 '+(gi+1));
     const li=document.createElement('li');
     const row=document.createElement('div'); row.className='toc-row';
-    const subs=[...sec.querySelectorAll('h3')];
-    if(subs.length){
-      const caret=document.createElement('button');
-      caret.className='toc-caret'; caret.type='button'; caret.textContent='▶';
-      caret.setAttribute('aria-label','展开 / 收起 '+a.textContent);
-      caret.addEventListener('click',()=>{ manual.set(sec.id,!li.classList.contains('open')); update(); });
-      row.appendChild(caret);
-    } else {
-      // spacer so labels without a caret line up with those that have one
-      const pad=document.createElement('span'); pad.className='toc-caret'; pad.setAttribute('aria-hidden','true');
-      row.appendChild(pad);
-    }
-    row.appendChild(a); li.appendChild(row);
-    if(subs.length){
-      const ul=document.createElement('ul'); ul.className='toc-sub';
-      subs.forEach(h3=>{
-        if(!h3.id) h3.id=sec.id+'-'+Math.random().toString(36).slice(2,7);
-        const sa=document.createElement('a'); sa.href='#'+h3.id; sa.textContent=h3.textContent.trim();
-        const sli=document.createElement('li'); sli.appendChild(sa); ul.appendChild(sli);
-        subLinks.set(h3,sa);
-      });
-      li.appendChild(ul);
-    }
-    list.appendChild(li); links.set(sec.id,a); items.set(sec.id,li);
-  });
-  const sections=[...document.querySelectorAll('.wrap section')];
-  const allSubs=[...subLinks.keys()];
-  function update(){
-    let cur=sections[0];
-    for(const sec of sections){ if(sec.getBoundingClientRect().top<=120) cur=sec; }
-    links.forEach(a=>a.classList.remove('active'));
-    if(cur&&links.get(cur.id)) links.get(cur.id).classList.add('active');
-    // the current section opens automatically unless the user closed it; others open only if the user opened them
-    items.forEach((li,id)=>{
-      const m=manual.get(id);
-      li.classList.toggle('open', m===undefined ? (cur&&id===cur.id) : m);
+    const caret=document.createElement('button'); caret.className='toc-caret'; caret.type='button'; caret.textContent='▶';
+    caret.setAttribute('aria-label','展开 / 收起 '+name);
+    caret.addEventListener('click',()=>{ manual.set(g,!li.classList.contains('open')); update(); });
+    const a=document.createElement('a'); a.href='#'+secs[0].id; a.textContent=name;
+    row.appendChild(caret); row.appendChild(a); li.appendChild(row);
+    const ul=document.createElement('ul'); ul.className='toc-sub';
+    secs.forEach(sec=>{
+      const h=sec.querySelector('h2'); if(!h) return;
+      const sa=document.createElement('a'); sa.href='#'+sec.id; sa.textContent=h.textContent.trim();
+      const sli=document.createElement('li'); sli.appendChild(sa); ul.appendChild(sli);
+      subLinks.set(sec,sa);
     });
-    // highlight the last h3 of the current section that has scrolled past the top
-    let curSub=null;
-    for(const h3 of allSubs){ if(cur&&cur.contains(h3)&&h3.getBoundingClientRect().top<=120) curSub=h3; }
-    subLinks.forEach((sa,h3)=>sa.classList.toggle('active',h3===curSub));
-    // keep the active entry visible inside the sidebar without scrolling the page itself
-    const toc=list.closest('.toc'), act=curSub ? subLinks.get(curSub) : (cur&&links.get(cur.id));
-    if(act&&act.offsetParent){
-      const r=act.getBoundingClientRect(), tr=toc.getBoundingClientRect();
-      if(r.bottom>tr.bottom) toc.scrollTop+=r.bottom-tr.bottom+8;
-      else if(r.top<tr.top) toc.scrollTop-=tr.top-r.top+8;
-    }
+    li.appendChild(ul); list.appendChild(li); top.set(g,a); items.set(g,li);
+  });
+  const secs=[...subLinks.keys()];
+  function update(){
+    let cur=null;
+    for(const sec of secs){ if(sec.getBoundingClientRect().top<=120) cur=sec; }
+    if(!cur) cur=secs[0];
+    const curG=cur&&cur.closest('.group');
+    top.forEach((a,g)=>a.classList.toggle('active',g===curG));
+    items.forEach((li,g)=>{ const m=manual.get(g); li.classList.toggle('open', m===undefined ? true : m); });
+    subLinks.forEach((sa,sec)=>sa.classList.toggle('active',sec===cur));
   }
-  // a TOC link into a collapsed appendix block opens that block first
-  function openTarget(){ const t=document.getElementById(decodeURIComponent(location.hash.slice(1))); const d=t&&t.closest('details'); if(d&&!d.open){ d.open=true; t.scrollIntoView(); } }
+  // a link into a collapsed block opens that block first
+  function openTarget(){
+    const t=document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if(!t) return;
+    let d=t.closest('details'), opened=false;
+    while(d){ if(!d.open){ d.open=true; opened=true; } d=d.parentElement&&d.parentElement.closest('details'); }
+    if(opened) t.scrollIntoView();
+  }
   addEventListener('hashchange',openTarget); openTarget();
   addEventListener('scroll',update,{passive:true}); addEventListener('resize',update); update();
 })();

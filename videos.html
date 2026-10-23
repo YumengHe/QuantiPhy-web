@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>视频与问题</title>
+<meta name="robots" content="noindex, nofollow">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --text: #1f2328; --muted: #656d76; --border: #d9dde2;
+    --accent: #3b5bdb; --accent-soft: #e7ecfb; --code-bg: #f0f1f3;
+    --m4: #d3f0dc; --m4t: #14532d; --m3: #e8f3c8; --m3t: #3f5212;
+    --m2: #fdebc8; --m2t: #7a4a06; --m1: #fbd5d0; --m1t: #8a1c12; --m0: #ecd3e6; --m0t: #6b1450;
+    --scene-bg: #f2f3f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1115; --panel: #171a21; --text: #e6e8ec; --muted: #9aa3ad; --border: #2b3038;
+      --accent: #7a93ff; --accent-soft: #1d2440; --code-bg: #1f232b;
+      --m4: #173d26; --m4t: #a7e8bd; --m3: #2c3a14; --m3t: #d4e9a0; --m2: #3d2e10; --m2t: #f3cf8a;
+      --m1: #45201b; --m1t: #f6b3aa; --m0: #3a1932; --m0t: #eeb0dd; --scene-bg: #12151b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1115; --panel: #171a21; --text: #e6e8ec; --muted: #9aa3ad; --border: #2b3038;
+    --accent: #7a93ff; --accent-soft: #1d2440; --code-bg: #1f232b;
+    --m4: #173d26; --m4t: #a7e8bd; --m3: #2c3a14; --m3t: #d4e9a0; --m2: #3d2e10; --m2t: #f3cf8a;
+    --m1: #45201b; --m1t: #f6b3aa; --m0: #3a1932; --m0t: #eeb0dd; --scene-bg: #12151b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.6 -apple-system, "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 28px 32px 80px; }
+  header { margin-bottom: 18px; }
+  header h1 { margin: 0 0 4px; font-size: 26px; }
+  header p { margin: 4px 0; color: var(--muted); }
+  a { color: var(--accent); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .9em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin: 18px 0 16px; }
+  .tabs button { font: inherit; padding: 8px 16px; border: 1px solid transparent; border-bottom: 0; border-radius: 8px 8px 0 0;
+    background: none; color: var(--muted); cursor: pointer; margin-bottom: -1px; }
+  .tabs button[aria-selected="true"] { background: var(--panel); border-color: var(--border); color: var(--text); font-weight: 600; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: var(--accent-soft); font-weight: 600; white-space: nowrap; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .summary-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 4px; font-size: 14px; }
+  .controls label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .controls select, .controls input { font: inherit; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
+  .controls input[type="search"] { width: 200px; }
+  .status { color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
+  details.vid { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; }
+  details.vid > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 8px 12px; }
+  details.vid > summary::-webkit-details-marker { display: none; }
+  details.vid > summary::before { content: "▶"; font-size: 10px; color: var(--muted); transition: transform .15s; }
+  details.vid[open] > summary::before { transform: rotate(90deg); }
+  details.vid[open] > summary { border-bottom: 1px solid var(--border); }
+  .thumb { width: 96px; height: 54px; object-fit: cover; border-radius: 5px; background: var(--code-bg); flex: 0 0 96px; }
+  .vmeta { flex: 1 1 auto; min-width: 0; }
+  .vmeta .vid-id { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; }
+  .vmeta .sub { color: var(--muted); font-size: 13px; }
+  .tag { display: inline-block; font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-right: 4px; }
+  .mra { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px; border-radius: 6px; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .m4 { background: var(--m4); color: var(--m4t); } .m3 { background: var(--m3); color: var(--m3t); }
+  .m2 { background: var(--m2); color: var(--m2t); } .m1 { background: var(--m1); color: var(--m1t); }
+  .m0 { background: var(--m0); color: var(--m0t); }
+  .legend { font-size: 13px; color: var(--muted); }
+  .legend .mra { min-width: 0; font-weight: 500; margin-right: 4px; }
+  .vbody { padding: 12px 14px 16px; }
+  .vbody h4 { margin: 14px 0 6px; font-size: 15px; }
+  .vbody h4:first-child { margin-top: 0; }
+  .qtable td.q { min-width: 260px; }
+  .qtable .known { color: var(--muted); font-size: 12.5px; white-space: pre-wrap; margin-top: 3px; }
+  .known-shared { white-space: pre-wrap; font-size: 13px; color: var(--muted); background: var(--code-bg); border-radius: 6px; padding: 8px 10px; margin: 0 0 8px; }
+  .qtable td.pred { font-weight: 600; }
+  .scene { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .viewer { position: relative; width: 100%; height: 340px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--scene-bg); }
+  .viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .viewer .msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; padding: 12px; text-align: center; }
+  .timebar { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+  .timebar input[type="range"] { flex: 1 1 auto; }
+  .timebar button { font: inherit; padding: 2px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); cursor: pointer; }
+  .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; }
+  .muted { color: var(--muted); }
+  .noscene { color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 10px 12px; }
+  .sfres { margin-top: 10px; }
+  .sfres summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+  .scroll-x { overflow-x: auto; }
+  @media (max-width: 860px) {
+    .wrap { padding: 18px 16px 60px; }
+    .summary-grid, .scene { grid-template-columns: 1fr; }
+    .thumb { width: 72px; height: 40px; flex-basis: 72px; }
+    .qtable td.q { min-width: 200px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>视频与问题</h1>
+  <p>验证集逐题看当前最好 harness 的预测和准确度，测试集看最新提交的预测值；3D 视频展开后有场景拟合的三维视图。<a href="index.html">返回文档主页</a></p>
+  <p id="gen" class="muted"></p>
+</header>
+
+<div class="tabs" role="tablist">
+  <button role="tab" id="tab-val" aria-selected="true" data-tab="val">验证集（有准确度）</button>
+  <button role="tab" id="tab-test" aria-selected="false" data-tab="test">测试集（只有预测）</button>
+</div>
+
+<div id="pane-val" role="tabpanel">
+  <div class="panel">
+    <div class="summary-grid">
+      <div>
+        <div class="muted">macro MRA（四类各自平均后再平均）</div>
+        <div class="big" id="val-macro">…</div>
+        <div class="muted" id="val-src-file"></div>
+        <p class="legend">MRA 着色：
+          <span class="mra m4">≥ 0.8</span><span class="mra m3">0.6–0.8</span><span class="mra m2">0.4–0.6</span><span class="mra m1">0.2–0.4</span><span class="mra m0">&lt; 0.2</span></p>
+      </div>
+      <div class="scroll-x"><table id="val-sum"></table></div>
+    </div>
+  </div>
+  <div class="controls">
+    <label>类别 <select id="v-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
+    <label>答案来源 <select id="v-src"><option value="">全部</option><option value="geo">几何</option><option value="vlm">Qwen</option></select></label>
+    <label>视频来源 <select id="v-vsrc"><option value="">全部</option></select></label>
+    <label>题目 MRA <select id="v-mra"><option value="">全部</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
+    <label>排序 <select id="v-sort"><option value="id">视频名</option><option value="mra-asc">平均 MRA 从低到高</option><option value="mra-desc">平均 MRA 从高到低</option><option value="n-desc">题数从多到少</option></select></label>
+    <label><input type="search" id="v-q" placeholder="搜索视频名或问题"></label>
+  </div>
+  <div class="status" id="v-status"></div>
+  <div id="val-list"></div>
+</div>
+
+<div id="pane-test" role="tabpanel" hidden>
+  <div class="panel">
+    <div class="muted" id="test-src-file"></div>
+    <div class="scroll-x"><table id="test-sum"></table></div>
+  </div>
+  <div class="controls">
+    <label>类别 <select id="t-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
+    <label>视频来源 <select id="t-vsrc"><option value="">全部</option></select></label>
+    <label>场景拟合 <select id="t-fit"><option value="">全部</option><option value="yes">有</option><option value="no">3D 但没有</option></select></label>
+    <label>排序 <select id="t-sort"><option value="id">视频名</option><option value="n-desc">题数从多到少</option></select></label>
+    <label><input type="search" id="t-q" placeholder="搜索视频名或问题"></label>
+  </div>
+  <div class="status" id="t-status"></div>
+  <div id="test-list"></div>
+</div>
+</div>
+<script src="videos.js"></script>
+</body>
+</html>
