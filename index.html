@@ -181,9 +181,9 @@
   <h1>QuantiPhy 文档</h1>
   <p class="lede">NeurIPS 2026 QuantiPhy 挑战赛：给一段视频和一个已知物理量（prior），求另一个物理量（尺寸、速度、加速度）。指标是 S2 / D2 / S3 / D3 四类 MRA 的平均（macro），只用开源权重（Track B）。最终提交截止 <b>2026-10-23 23:59 AoE</b>。</p>
   <div class="stats">
-    <div class="stat hi"><div class="num">0.639</div><div class="lbl">当前最好，验证集 macro MRA</div></div>
-    <div class="stat"><div class="num">0.594 / 0.581</div><div class="lbl">S2 / D2</div></div>
-    <div class="stat"><div class="num">0.707 / 0.674</div><div class="lbl">S3 / D3</div></div>
+    <div class="stat hi"><div class="num">0.620</div><div class="lbl">当前最好，验证集 macro MRA（去掉回退常数泄漏后）</div></div>
+    <div class="stat"><div class="num">0.594 / 0.551</div><div class="lbl">S2 / D2</div></div>
+    <div class="stat"><div class="num">0.686 / 0.647</div><div class="lbl">S3 / D3</div></div>
     <div class="stat"><div class="num">0.486</div><div class="lbl">官方 GPT-5.1 基线</div></div>
   </div>
   <p class="links-inline"><a class="cta" href="videos.html">逐视频浏览：问题、预测、准确度、3D 场景 →</a></p>
@@ -206,10 +206,11 @@
   <h2>当前最好方案</h2>
   <table>
     <tr><th>验证集（159 题）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td><b>当前最好 harness</b></td><td><b>0.639</b></td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.674</td></tr>
+    <tr><td><b>当前最好 harness</b></td><td><b>0.620</b></td><td>0.594</td><td>0.551</td><td>0.686</td><td>0.647</td></tr>
     <tr><td><small>参考：几何流水线 <code>pipeline.run</code></small></td><td><small>0.497</small></td><td><small>0.462</small></td><td><small>0.341</small></td><td><small>0.707</small></td><td><small>0.477</small></td></tr>
     <tr><td><small>参考：官方 GPT-5.1 基线</small></td><td><small>0.486</small></td><td><small>0.569</small></td><td><small>0.354</small></td><td><small>0.456</small></td><td><small>0.564</small></td></tr>
   </table>
+  <p><small>去掉回退常数泄漏后的分数；旧的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
   <h3 id="pipe3d">3D 流程（S3、D3）</h3>
   <ol class="flow" aria-label="3D 流程">
     <li><div class="step"><b><span class="n">1</span>解析</b>规则解析器提取物理量、物体、时间、单位<div class="m">parse.py</div></div></li>
@@ -223,19 +224,59 @@
     <tr><th>步骤</th><th>做法</th><th>代码</th></tr>
     <tr><td>1 解析</td><td>规则解析器从问题和已知条件里提取物理量、物体名、时间、单位。</td><td><code>parse.py</code></td></tr>
     <tr><td>2 跟踪</td><td>Grounding DINO 找物体，Qwen 检查提示框，SAM 2 做视频跟踪；验证集和测试集的缓存分开存。</td><td><code>perceive.py</code></td></tr>
-    <tr><td>3 几何测量</td><td>根据 depth_info 给的物体到相机距离和物体的视大小，估计焦距和逐帧深度；实验室视频估计失败时，用按帧宽缩放的焦距先验。得到每题的"几何值"。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
+    <tr><td>3 几何测量</td><td>根据 depth_info 给的物体到相机距离和物体的视大小，估计焦距和逐帧深度；实验室视频估计失败时，用按帧宽缩放的焦距先验。得到每题的"几何值"。测不出来时用手写常识值兜底，交给 Qwen 作答。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
     <tr><td>4 3D 场景拟合</td><td>Depth Anything 给出稠密深度；拟合地面平面和相机；把每个物体拟合成解析几何体（盒子、球、圆柱），或网格库里的 Meshy 网格（车、人、船、动物等，每个"场景 + 物体"只生成一次）；拟合尺寸、位置和匀加速轨迹。得到每题的"场景拟合值"。</td><td><code>scene_fit.py</code> <code>fit3d.py</code> <code>meshlib.py</code></td></tr>
     <tr><td>5 Qwen 作答</td><td>本地 Qwen3.8-27B 看 16 帧，加上提示值作答。提示值一般用几何值，网格拟合的物体改用场景拟合值。两种跟踪（普通、Qwen 检查过提示框）各问一次，取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
     <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
   </table>
-  <p>验证集结果：S3 <b>0.707</b>、D3 <b>0.674</b>。S2、D2 的流程见 <a href="#pipe2d">2D 流程</a>。</p>
-  <p><b>最新测试集提交：</b><code>outputs/submission_v5.csv</code>（v4 加上实验室焦距按帧宽缩放的修正）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_best_routed.csv</code>）。</p>
+  <p>验证集结果：S3 <b>0.686</b>、D3 <b>0.647</b>。S2、D2 的流程见 <a href="#pipe2d">2D 流程</a>。</p>
+  <p><b>最新测试集提交：</b><code>outputs/submission_v6.csv</code>（生成中；v5 加上解析和场景拟合修复、回退常数去泄漏）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_best_routed.csv</code>）。</p>
   <p><small>同一配置重跑一次，单个类别会波动 ±0.03，所以差距不到约 0.01 的改动不算结论。</small></p>
 </section>
 
 <section id="iter3d">
   <h2>迭代记录</h2>
   <p>按时间倒序，点开看细节。早期影响所有类别的改动（几何流水线、Qwen 路由）也记在这里；只针对 2D 的迭代见 2D 组。</p>
+
+  <details class="iter" id="sf-zero">
+    <summary><span class="d">10-22</span>场景拟合 0 分题排查 + 解析修复 + 回退常数去泄漏 · 0 分题 21→14，3D 场景拟合 0.460→0.513；harness 0.639→0.620（去掉验证集答案泄漏）<span class="yes">采用，提交 v6（生成中）</span></summary>
+    <div class="iter-body">
+  <h4>0 分题根因</h4>
+  <table>
+    <tr><th>问题</th><th>根因</th><th>修复</th></tr>
+    <tr><td>尺寸塌缩到 0.001（底座、长椅、码头）</td><td>静止长方体沿视线方向那条边从 2D 框里看不出来，优化把它压到下界；防塌缩的 minratio 在运行命令里被设成了 0</td><td>恢复 <code>--minratio 0.15</code></td></tr>
+    <tr><td>船宽 6.39（答案 3.27）</td><td>Meshy 网格是 Y 朝上的，带桅杆的船比船身长还高，被旧规则放倒</td><td><code>--mesh-up yup</code></td></tr>
+    <tr><td>老鹰翼展 0.001</td><td>翼展被当成沿飞行方向的长度</td><td>翼展改取横向尺寸</td></tr>
+    <tr><td>整句问话被当成物体名</td><td>解析器不认识 "distance traveled by X"</td><td>修解析器；同时把 "the truck's tire" 改为跟踪 "truck tire"，原来跟踪的是整车</td></tr>
+    <tr><td>疑似单位错误</td><td>不是单位问题：平面运动模型把抛出、弹跳的球钉在地上；实验室场景焦距和相机高度不稳</td><td>球和飞行物改为在 3D 里自由运动，效果大体持平</td></tr>
+    <tr><td>未修</td><td colspan="2">场景结构题（坡、车道、离水面高度）、自行车轮的跟踪框是整辆车、实验室场景地面估计（captured_0013 的地面斜穿墙面）</td></tr>
+  </table>
+
+  <h4>场景拟合消融（验证集 3D 90 题）</h4>
+  <table>
+    <tr><th>配置</th><th>3D macro</th><th>S3</th><th>D3</th></tr>
+    <tr><td>基线</td><td>0.460</td><td>0.365</td><td>0.555</td></tr>
+    <tr><td>+ mesh-up yup</td><td>0.491</td><td>0.430</td><td>0.551</td></tr>
+    <tr><td>+ minratio 0.15</td><td>0.492</td><td>0.428</td><td>0.555</td></tr>
+    <tr><td>+ 翼展 / 自由运动</td><td>0.484</td><td>0.421</td><td>0.547</td></tr>
+    <tr><td><b>全部</b></td><td><b>0.513</b></td><td><b>0.479</b></td><td>0.547</td></tr>
+  </table>
+  <p>路由上限：每题都选对几何或 Qwen（oracle）能到 0.684；所有简单规则在按场景留一法下都不超过现行路由，所以路由不改。</p>
+
+  <h4>合规修正：回退常数去泄漏</h4>
+  <p>以前流水线测不出来时，回退常数取的是验证集答案按"物理量 + 单位"的中位数，题少时就等于某道题的答案。现在改为手写的常识值（如重力 9.8 m/s²、人身高 170 cm），回退行不再作为提示给 Qwen，而由 Qwen 作答。v5 里有 18 题的常数直接进了提交，242 题把常数作为提示给了 Qwen。</p>
+
+  <h4>完整 harness（验证集）</h4>
+  <table>
+    <tr><th>版本</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
+    <tr><td>v5 配置</td><td>0.639</td><td>0.594</td><td>0.581</td><td>0.707</td><td>0.674</td></tr>
+    <tr><td>+ 解析和场景修复</td><td>0.634</td><td>0.594</td><td>0.581</td><td>0.686</td><td>0.674</td></tr>
+    <tr><td><b>+ 回退常数去泄漏（当前）</b></td><td><b>0.620</b></td><td>0.594</td><td>0.551</td><td>0.686</td><td>0.647</td></tr>
+  </table>
+  <p>两次下降都来自去掉样本内泄漏。第二行 S3 下降的 2 题（captured_0034as 的"总路程"）以前因为解析失败，拿到的回退常数恰好等于自身答案；解析修好后改为真实测量，所以分数回落。第三行 D2、D3 下降，是因为旧回退常数在验证集上就是验证集自己的答案，旧分数虚高。</p>
+  <p>对应提交文件：<b><code>outputs/submission_v6.csv</code></b>（生成中）。</p>
+    </div>
+  </details>
 
   <details class="iter" id="sf-fixes">
     <summary><span class="d">10-22</span>场景拟合失败排查 + 实验室焦距按帧宽缩放 · 验证集 0.639 不变 <span class="yes">采用，提交 v5</span></summary>
