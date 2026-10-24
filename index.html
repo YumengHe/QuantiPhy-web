@@ -1263,7 +1263,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
   <h4>存疑真值</h4>
   <ul>
     <li><b>simulation_0163</b>：回球口的真值 10 m 对应的是球瓶后面的大门框。我们找的是另一个物体，是我们认错了，不是标注错。</li>
-    <li><b>simulation_0089</b>：几道题的真值和 2D 假设（两只鸟在同一平面、同一尺度）彼此不自洽。</li>
+    <li><small class="muted">（2026-10-24 更正：评估员逐帧核查后，两鸟在同一像面尺度、大鸟符合常规语义，只有小鸟的 prior/width 与画面不符，见 <a href="data/eval/simulation_0089.html">simulation_0089 报告</a>）</small><br><b>simulation_0089</b>：几道题的真值和 2D 假设（两只鸟在同一平面、同一尺度）彼此不自洽。</li>
     <li><b>simulation_0171</b>：宇航员的加速度随时间变化，分段匀加速只能近似。</li>
   </ul>
 
