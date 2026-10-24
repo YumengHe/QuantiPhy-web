@@ -5,7 +5,7 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_mh3_valcur3_routed.csv             validation predictions shown (0.7211, current defaults, whole chain rerun;
+  outputs/val_mh3_valcur7_routed.csv             validation predictions shown (0.7218, all current defaults, whole chain;
                                                  s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
                                                  scene-fit value and its confidence; source geo / vlm / s2d / fit)
   outputs/submission_v7.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
@@ -44,7 +44,7 @@ import pandas as pd  # noqa: E402
 from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_mh3_valcur3_routed.csv"
+VAL_CSV = ROOT / "outputs" / "val_mh3_valcur7_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8e",
               "test": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7_test"}   # the run behind submission_v7
