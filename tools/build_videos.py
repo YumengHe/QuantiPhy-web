@@ -5,12 +5,14 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_v7_routed.csv                      validation predictions shown (0.666, harness with the 3D scene fit v7; column s2d =
+  outputs/val_s2d_v3_routed.csv                  validation predictions shown (0.681, current best; column s2d =
                                                  2D-scene value given to Qwen as a second hint)
   outputs/submission_v6.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
   outputs/scene_fit_eval/c_support_v7/<video>.json  validation scene fits (scene graph, supports, dimension sources)
-  outputs/scene2d_eval/s2d_v2/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
+  outputs/scene2d_eval/s2d_v3/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
                                                  object inventory, scene graph, rejected layers, constraints, mask hulls
+  outputs/tracks[_test]/<video>.json             per-object visible intervals for the 3D viewer
+  outputs/eval/overview_*.md, <video>.md         evaluator verdicts (summary table row; per-video report copied to data/eval/)
   outputs/scene_fit_eval/test_mesh/<video>.json  test scene fits
   data/QuantiPhy*/...mp4                         only to grab the first frame and duration
 
@@ -37,11 +39,13 @@ import pandas as pd  # noqa: E402
 from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_v7_routed.csv"
+VAL_CSV = ROOT / "outputs" / "val_s2d_v3_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v6.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7",
               "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
-SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v2"}   # the test tab stays on the submitted predictions
+SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v3"}   # the test tab stays on the submitted predictions
+EVAL_DIR = ROOT / "outputs" / "eval"
+EVAL_WEB = WEB / "data" / "eval"
 SCENE2D_WEB = WEB / "data" / "scene2d"
 OUT = WEB / "data" / "videos.json"
 THUMBS = WEB / "data" / "thumbs"
@@ -119,6 +123,50 @@ def hulls(L, fps):
         t = t_of.get(int(f), int(f) / fps if fps else None)
         out.append([num(t, 6), [[round(float(x), 1), round(float(y), 1)] for x, y in poly]])
     return out
+
+
+def eval_overview(video_ids) -> tuple[dict, str | None]:
+    """Evaluator verdicts from the newest outputs/eval/overview_<n>.md: its markdown summary table
+    (| video | MRA (n, 0分) | 主因层 | 根因 | 进行中 |) -> {video_id: {...}}. A row may name several videos
+    ("a / b / c") and may drop a "_segmented" suffix, so names are matched to video ids by prefix."""
+    files = sorted(EVAL_DIR.glob("overview_*.md"), key=lambda p: int(p.stem.split("_")[-1]) if p.stem.split("_")[-1].isdigit() else -1)
+    if not files:
+        return {}, None
+    src = files[-1]
+    out = {}
+    header = None
+    for line in src.read_text().splitlines():
+        if not line.startswith("|"):
+            header = None if not line.strip() else header
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if header is None:
+            header = cells
+            continue
+        if set("".join(cells)) <= set("-: "):
+            continue
+        if len(header) < 5 or "主因层" not in header:
+            continue
+        row = dict(zip(header, cells))
+        for name in row[header[0]].split("/"):
+            name = name.strip()
+            vid = next((v for v in video_ids if v == name), None) or next((v for v in video_ids if v.startswith(name + "_")), None)
+            if vid:
+                out[vid] = {"mra": row.get(header[1], ""), "layer": row.get("主因层", ""), "cause": row.get("根因", ""),
+                            "progress": row.get("进行中", ""), "source": str(src.relative_to(ROOT))}
+    return out, str(src.relative_to(ROOT))
+
+
+def eval_report(vid: str):
+    """Per-video evaluator report outputs/eval/<video>.md, copied to data/eval/ for the page; returns (path, excerpt)."""
+    p = EVAL_DIR / f"{vid}.md"
+    if not p.exists():
+        return None
+    EVAL_WEB.mkdir(parents=True, exist_ok=True)
+    txt = p.read_text()
+    (EVAL_WEB / p.name).write_text(txt)
+    lines = [l.strip() for l in txt.splitlines() if l.strip() and not l.startswith("#")]
+    return {"file": str((EVAL_WEB / p.name).relative_to(WEB)), "excerpt": " ".join(lines)[:400]}
 
 
 def track_intervals(split: str, vid: str) -> dict:
@@ -316,8 +364,11 @@ def build_val(make_thumb: bool):
     ev = evaluate(df)
     print(f"val: n={ev['n']} macro={ev['average']:.4f} " + " ".join(f"{c}={ev[c]:.4f}" for c in CATEGORIES))
     videos = []
+    verdicts, eval_src = eval_overview(sorted(df["video_id"].unique()))
     for vid, g in df.groupby("video_id", sort=True):
         dur, w, h, thumb = video_meta("val", vid, make_thumb)
+        rep = eval_report(vid)
+        ev_v = (verdicts.get(vid) or {}) | ({"report": rep} if rep else {})
         first = g.iloc[0]
         qs = [{"cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
                "depth": text(r.depth_info), "answer": num(r.answer), "geo": num(r.geo), "vlm": num(r.vlm),
@@ -328,10 +379,11 @@ def build_val(make_thumb: bool):
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("val", vid),
                        "scene": scene_fit("val", vid) if is3d else None, "scene2d": None if is3d else scene2d("val", vid),
-                       **run_at("val", vid, VAL_CSV),
+                       **run_at("val", vid, VAL_CSV), "eval": ev_v or None,
                        "questions": qs})
+    print(f"eval: {len(verdicts)} videos with a verdict from {eval_src}")
     return {"file": str(VAL_CSV.relative_to(ROOT)), "macro": num(ev["average"], 6),
-            "per_cat": {c: num(ev[c], 6) for c in CATEGORIES}, "videos": videos}
+            "per_cat": {c: num(ev[c], 6) for c in CATEGORIES}, "eval_source": eval_src, "videos": videos}
 
 
 def build_test(make_thumb: bool):

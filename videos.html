@@ -119,6 +119,11 @@
   .dim-bound sup, .dim-prior { font-size: 10px; margin-left: 2px; color: var(--muted); }
   .vcount { position: absolute; left: 8px; top: 8px; z-index: 2; font: 600 12px system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.62); padding: 2px 7px; border-radius: 4px; pointer-events: none; }
   .vcount.bad { color: #ff8a80; }
+  .vright-row { display: flex; align-items: center; gap: 6px; }
+  .evtag { font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--code-bg); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
+  .evbox { margin: 12px 0 4px; padding: 8px 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; font-size: 13.5px; line-height: 1.6; }
+  .evbox h4 { margin: 0 0 4px; }
+  .ev-rep { margin-top: 4px; }
   .vright { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: none; }
   .runat { font-size: 11.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .sg-list { margin: 0 0 6px; padding-left: 20px; font-size: 13.5px; line-height: 1.6; }
@@ -137,7 +142,7 @@
 <div class="wrap">
 <header>
   <h1>视频与问题</h1>
-  <p>验证集逐题看 v7 的预测和准确度（0.666；当前最好 0.668 是 s2d_v2，两者差在重跑噪声内，这里展示 v7 是因为它的 3D 场景来自新的场景拟合 harness），测试集看最新提交的预测值；展开视频可以看原视频，3D 视频还有场景拟合的三维视图，验证集的 2D 视频还有图层场景（都和视频时间联动）。<a href="index.html">返回文档主页</a></p>
+  <p>验证集逐题看当前最好 harness 的预测和准确度（s2d_v3，0.681；3D 视频的三维视图来自场景拟合 v7），每个视频带评估员的结论（主因层、根因），测试集看最新提交的预测值；展开视频可以看原视频，3D 视频还有场景拟合的三维视图，验证集的 2D 视频还有图层场景（都和视频时间联动）。<a href="index.html">返回文档主页</a></p>
   <p id="gen" class="muted"></p>
 </header>
 

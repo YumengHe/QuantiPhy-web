@@ -82,7 +82,9 @@
     d.innerHTML = `<summary>${thumb}<div class="vmeta"><div class="vid-id">${esc(v.id)}</div>` +
       `<div class="sub">${esc(v.source)} · ${esc(v.video_type)} · ${v.fps} fps${v.duration ? ' · ' + fmt(v.duration, 1) + ' s' : ''} · ${qs.length} 题 ` +
       v.cats.map((c) => `<span class="tag">${c}</span>`).join('') + sceneTag + '</div></div>' +
-      '<div class="vright">' + (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') +
+      '<div class="vright"><span class="vright-row">' +
+      (v.eval && v.eval.layer && v.eval.layer !== '—' ? `<span class="evtag" title="评估员判断的主因层：${esc(v.eval.cause)}">${esc(v.eval.layer)}</span>` : '') +
+      (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') + '</span>' +
       (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</div></summary>';
     let built = false, viewer = null, video = null;
     d.addEventListener('toggle', () => {
@@ -90,7 +92,7 @@
         built = true;
         const body = document.createElement('div');
         body.className = 'vbody';
-        body.innerHTML = mediaBlock(v, split) + questionTable(qs, split, v.dim === 2 && !!v.scene2d) +
+        body.innerHTML = mediaBlock(v, split) + evalBlock(v) + questionTable(qs, split, v.dim === 2 && !!v.scene2d) +
           (v.dim === 3 ? sceneTables(v, split) : v.scene2d ? layerTables(v) : '');
         d.appendChild(body);
         video = body.querySelector('video');
@@ -115,6 +117,17 @@
       }
     });
     return d;
+  }
+
+  // evaluator verdict (outputs/eval/overview_<n>.md row, plus outputs/eval/<video>.md when it exists)
+  function evalBlock(v) {
+    const e = v.eval;
+    if (!e) return '';
+    const prog = e.progress && e.progress !== '—' ? `<span class="muted">修复进行中：${esc(e.progress)}</span>` : '';
+    const rep = e.report ? `<div class="ev-rep">${esc(e.report.excerpt)}${e.report.excerpt.length >= 400 ? '…' : ''} <a href="${esc(e.report.file)}">逐视频报告</a></div>` : '';
+    return `<div class="evbox"><h4>评估</h4><div><b>主因层：</b>${esc(e.layer || '—')}　${prog}</div>` +
+      (e.cause && e.cause !== '—' ? `<div><b>根因：</b>${esc(e.cause)}</div>` : '') + rep +
+      `<div class="muted" style="font-size:12px">来源 <code>${esc(e.source || '')}</code>（评估员的视频平均 MRA ${esc(e.mra || '')}）</div></div>`;
   }
 
   function questionTable(qs, split, s2d) {
