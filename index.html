@@ -181,9 +181,9 @@
   <h1>QuantiPhy 文档</h1>
   <p class="lede">NeurIPS 2026 QuantiPhy 挑战赛：给一段视频和一个已知物理量（prior），求另一个物理量（尺寸、速度、加速度）。指标是 S2 / D2 / S3 / D3 四类 MRA 的平均（macro），只用开源权重（Track B）。最终提交截止 <b>2026-10-23 23:59 AoE</b>。</p>
   <div class="stats">
-    <div class="stat hi"><div class="num">0.7173</div><div class="lbl">当前配置，验证集 macro MRA（valfinal：pfc2_fr 配置，测试集 v8 的参照）</div></div>
-    <div class="stat"><div class="num">0.684 / 0.816</div><div class="lbl">S2 / D2</div></div>
-    <div class="stat"><div class="num">0.707 / 0.662</div><div class="lbl">S3 / D3</div></div>
+    <div class="stat hi"><div class="num">0.7196</div><div class="lbl">当前默认，验证集 macro MRA（valcur9 + fr2）</div></div>
+    <div class="stat"><div class="num">0.681 / 0.819</div><div class="lbl">S2 / D2</div></div>
+    <div class="stat"><div class="num">0.719 / 0.660</div><div class="lbl">S3 / D3</div></div>
     <div class="stat"><div class="num">0.486</div><div class="lbl">官方 GPT-5.1 基线</div></div>
   </div>
   <p class="links-inline"><a class="cta" href="videos.html">逐视频浏览：问题、预测、准确度、3D 场景 →</a></p>
@@ -275,7 +275,7 @@
   <p>2D、3D 都调用的共享工具（解析、物体清单、场景图、跟踪候选、参考测量、在场性、评审、路由）的迭代。</p>
 
   <details class="iter" id="tools-1023">
-    <summary><span class="d">10-23</span>工具层：候选选择跟踪、清单 part_of、逐帧场景图、在场性、refmeasure、critic + 置信度路由门控 · 验证集 0.6811→0.6885→0.6996→0.7008；默认全开含退化保护 0.6983；v9 补位 0.7078 / 3 路中位数 0.7230（早期实验）；mh3 三路 0.7162 + D3 拟合路由 0.7210 / 0.7211（valcur3） <span class="yes">采用（验证集）</span></summary>
+    <summary><span class="d">10-23</span>工具层：候选选择跟踪、清单 part_of、逐帧场景图、在场性、refmeasure、critic + 置信度路由门控 · 验证集 0.6811→0.6885→0.6996→0.7008；默认全开含退化保护 0.6983；v9 补位 0.7078 / 3 路中位数 0.7230（早期实验）；mh3 三路 0.7162 + D3 拟合路由 0.7210 / 0.7211（valcur3）；当前默认 0.7196（valcur9 + fr2） <span class="yes">采用（验证集）</span></summary>
     <div class="iter-body">
   <h4>路由（前四行 Qwen 的答案不变，只改路由；最后一行改了默认开关，提示重算后重问了部分题）</h4>
   <table>
@@ -445,6 +445,22 @@
     <li>物体出画后不再报"可见"。</li>
   </ul>
 
+  <h4>第 18 轮</h4>
+  <ul>
+    <li><b>ground.py：</b>地面掩码 + 墙脚 / 墙顶点。simulation_0015 地面占画面 37%，墙脚 [79, 265]、墙顶 [79, 30]。</li>
+    <li>depth_info 端点名的更多变体能解析。</li>
+    <li><b>全帧框替换：</b>跟踪框几乎占满画面时换掉。captured_0013 斜坡长 174.9 → 21.9 cm。</li>
+    <li>几何速度标记 depth-unanchored（14 题）：conf ≤ 0.3，但仍作为提示给 Qwen。</li>
+    <li>场景图的支撑节点统一用物体清单里的名字，并新增 support_objects。</li>
+    <li>shape_hint 新增 rod（杆状）。</li>
+    <li>"斜放结构"标记只用于远处的结构。</li>
+  </ul>
+  <table>
+    <tr><th>配置</th><th>总分</th></tr>
+    <tr><td>valcur8 + fr2</td><td>0.7193</td></tr>
+    <tr><td><b>valcur9 + fr2（当前默认）</b></td><td><b>0.7196</b></td></tr>
+  </table>
+
   <h4>文件</h4>
   <p>主 repo commit ceb82e3、34255a6、24a9d0e、85aabfd（<code>pipeline/route.py</code>、<code>perceive.py</code>、<code>objects.py</code>、<code>scenegraph.py</code>、<code>presence.py</code>、<code>refmeasure.py</code>、<code>critic.py</code>、<code>parse.py</code> 等）。没有新的测试集提交文件，最新提交仍是 <code>outputs/submission_v6.csv</code>。</p>
     </div>
@@ -458,7 +474,8 @@
   <h2>当前最好方案</h2>
   <table>
     <tr><th>验证集（159 题）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td><b>当前配置：valfinal（pfc2_fr 配置，测试集 v8 的参照）</b></td><td><b>0.7173</b></td><td>0.684</td><td>0.816</td><td>0.707</td><td>0.662</td></tr>
+    <tr><td><b>当前默认：valcur9 + fr2</b></td><td><b>0.7196</b></td><td>0.681</td><td>0.819</td><td>0.719</td><td>0.660</td></tr>
+    <tr><td><small>参考：valfinal（pfc2_fr 配置，测试集 v8 的参照）</small></td><td><small>0.7173</small></td><td><small>0.684</small></td><td><small>0.816</small></td><td><small>0.707</small></td><td><small>0.662</small></td></tr>
     <tr><td><small>参考：valcur7（所有新默认全开，3D 用另一份场景拟合；和 valfinal 差 3 题，在噪声内）</small></td><td><small>0.7218</small></td><td><small>0.684</small></td><td><small>0.816</small></td><td><small>0.716</small></td><td><small>0.670</small></td></tr>
     <tr><td><small>参考：valcur3（mh3 三路流程 + D3 按拟合置信度路由，conf ≥ 0.3）</small></td><td><small>0.7211</small></td><td><small>0.700</small></td><td><small>0.816</small></td><td><small>0.702</small></td><td><small>0.666</small></td></tr>
     <tr><td><small>参考：valcur3 同配置前一次</small></td><td><small>0.7210</small></td><td>0.697</td><td>0.819</td><td>0.702</td><td>0.666</td></tr>
@@ -477,13 +494,14 @@
     <tr><td><small>参考：几何流水线 <code>pipeline.run</code></small></td><td><small>0.497</small></td><td><small>0.462</small></td><td><small>0.341</small></td><td><small>0.707</small></td><td><small>0.477</small></td></tr>
     <tr><td><small>参考：官方 GPT-5.1 基线</small></td><td><small>0.486</small></td><td><small>0.569</small></td><td><small>0.354</small></td><td><small>0.456</small></td><td><small>0.564</small></td></tr>
   </table>
-  <p><b>当前配置 0.7173（valfinal）：</b>3D 场景拟合用 pfc2_fr 配置（<code>c_v8g_pfc2_fr2</code>），作为测试集 v8 的参照。和 valcur7 的 0.7218 只差 3 题，在噪声内；差异来自 3D 场景拟合配置不同（S3 0.716 → 0.707，D3 0.670 → 0.662，2D 两类不变）。视频页的逐题结果来自 <code>outputs/val_mh3_valfinal_routed.csv</code>。</p>
+  <p><b>当前默认 0.7196（valcur9 + fr2）：</b>和 0.7173（valfinal）、0.7218（valcur7）的差异都在噪声内，来源分别是场景拟合目录 fr → fr2、全帧框替换、首帧平移等（见 <a href="#tools-1023">工具层迭代</a> 第 18 轮）。视频页的逐题结果来自 <code>outputs/val_mh3_valcur9_fr2_routed.csv</code>。</p>
+  <p><b>0.7173（valfinal）：</b>3D 场景拟合用 pfc2_fr 配置（<code>c_v8g_pfc2_fr2</code>），作为测试集 v8 的参照。和 valcur7 的 0.7218 只差 3 题，在噪声内；差异来自 3D 场景拟合配置不同（S3 0.716 → 0.707，D3 0.670 → 0.662，2D 两类不变）。当时视频页用的是 <code>outputs/val_mh3_valfinal_routed.csv</code>。</p>
   <p><b>0.7218（valcur7）：</b>所有新默认全开（见各条目）后整条链重跑，和 0.7211 在噪声内。</p>
   <p><b>0.7211（valcur3，整条链重跑；同配置前一次 0.7210）：</b>mh3 三路流程（a / b 两组提示 + v9 几何补位取中位数，整条链重跑，Qwen 重问）得 0.7162；再让 D3 题在场景拟合置信度 ≥ 0.3 时用拟合值，得 0.7210。早先的 0.7230 是旧 VLM 文件上的早期实验，降为参考。当时视频页用的是 <code>outputs/val_mh3_valcur3_routed.csv</code>。见 <a href="#tools-1023">工具层迭代</a> 第 12 轮。</p>
   <p><b>0.6983 → 0.7078 / 0.7230：</b>几何流水线 v9 的值只用来补几何走了回退常数的题（0.7078，D2 0.741）；再对 a / b 两组提示和 v9 补位取 3 路中位数得到 0.7230（D2 0.803）。0.7230 的提升集中在 simulation_0196 三题，样本小，需要谨慎，所以 2 路 0.7078 作为更稳的并列方案。见 <a href="#tools-1023">工具层迭代</a> 第 6–8 轮。</p>
   <p><b>0.7008 → 0.6983：</b>默认开关全开后加了运动退化保护（prior 物体不动时不从它定尺度），D2 −0.016。撤掉的是错误轨迹给出的提示，这是正确行为，所以保留；数字略低于 0.7008 在噪声内。</p>
   <p>0.681 → 0.6885：Qwen 的答案和 s2d_v3 完全相同，提升全部来自路由门控（2D 场景值置信度 ≥ 0.85 时直接用；S3 按场景拟合置信度 ≥ 0.6 在几何值和拟合值之间选）。0.6885 → 0.6996：门控路由和 refmeasure 标定改为默认，几何流水线 0.481 → 0.502，提示值随之重算，Qwen 两次作答分别重问了 20 题和 31 题。见 <a href="#tools-1023">工具层迭代</a>。</p>
-  <p>0.668（s2d_v2）和 0.666（v7）差 0.002，在重跑噪声内（单个类别 ±0.03）；v7 的提升在 3D 场景拟合本身（见 <a href="#sf-v7">10-23 迭代</a>），还没传到最终答案。<a href="videos.html">视频与问题</a> 页的逐题结果来自当前配置（<code>outputs/val_mh3_valfinal_routed.csv</code>），3D 视频的三维视图来自场景拟合 v7。</p>
+  <p>0.668（s2d_v2）和 0.666（v7）差 0.002，在重跑噪声内（单个类别 ±0.03）；v7 的提升在 3D 场景拟合本身（见 <a href="#sf-v7">10-23 迭代</a>），还没传到最终答案。<a href="videos.html">视频与问题</a> 页的逐题结果来自当前默认（<code>outputs/val_mh3_valcur9_fr2_routed.csv</code>），3D 视频的三维视图来自场景拟合 v7。</p>
   <p><small>0.620 → 0.656 → 0.668 → 0.681 来自 2D 图层场景 v1、v2、v3（只影响 S2、D2，见 <a href="#s2d-layers">v1</a>、<a href="#s2d-v2">v2</a>、<a href="#s2d-v3">v3</a>）；更早的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
   <h3 id="pipe3d">3D 流程（S3、D3）</h3>
   <ol class="flow" aria-label="3D 流程">
@@ -505,8 +523,8 @@
     <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
     <tr><td>7 置信度路由</td><td>S3 题如果场景拟合给出的逐题置信度 ≥ 0.6，用拟合值代替几何值（默认开启）。</td><td><code>route.py --fit --fit-conf</code></td></tr>
   </table>
-  <p>验证集结果（当前配置 valfinal 0.7173）：S3 <b>0.707</b>、D3 <b>0.662</b>。S2、D2 的流程见 <a href="#pipe2d">2D 流程</a>。</p>
-  <p><b>最新测试集提交：</b><code>outputs/submission_v7.csv</code>（见 <a href="#submissions">提交记录</a>）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_mh3_valfinal_routed.csv</code>）。</p>
+  <p>验证集结果（当前默认 0.7196）：S3 <b>0.719</b>、D3 <b>0.660</b>。S2、D2 的流程见 <a href="#pipe2d">2D 流程</a>。</p>
+  <p><b>最新测试集提交：</b><code>outputs/submission_v7.csv</code>（见 <a href="#submissions">提交记录</a>）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_mh3_valcur9_fr2_routed.csv</code>）。</p>
   <p><small>同一配置重跑一次，单个类别会波动 ±0.03，所以差距不到约 0.01 的改动不算结论。</small></p>
 </section>
 
@@ -1141,7 +1159,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
     --scene2d outputs/scene2d_eval/s2d_v5/val_pred.csv --scene2d-column \
     --fit outputs/scene_fit_eval/c_support_v8b --out outputs/val_defaults_routed.csv   # → 0.6983</code></pre>
   <p><small>命令照 <code>docs/WORKING_RULES.md</code> 的复现一节（<code>pipeline/scene2d.py</code> 的 docstring 还没有 v5 这一段）。注意 Qwen 的第二个提示仍用 s2d_v3 的场景值，路由时的场景值和置信度用 s2d_v5；route 必须带 <code>--fit &lt;目录&gt;</code> 或 <code>--no-fit</code>。</small></p>
-  <p>验证集结果（当前配置 valfinal 0.7173）：S2 <b>0.684</b>、D2 <b>0.816</b>。每个 2D 视频的图层（掩码凸包、运动模型轨迹、比例尺、prior 标注）以及物体清单和场景图，可以在 <a href="videos.html">视频与问题</a> 里和原视频联动查看。测试集提交 v7 已包含这一步。</p>
+  <p>验证集结果（当前默认 0.7196）：S2 <b>0.681</b>、D2 <b>0.819</b>。每个 2D 视频的图层（掩码凸包、运动模型轨迹、比例尺、prior 标注）以及物体清单和场景图，可以在 <a href="videos.html">视频与问题</a> 里和原视频联动查看。测试集提交 v7 已包含这一步。</p>
   <h3 id="pipe2d-track2d">队友的 2D 方案</h3>
   <p>同样先做几何测量，几何测不出来的题由 Code-as-World-VL-9B 直接看视频兜底。验证集 S2 0.503、D2 0.508，详见 <a href="#track2d">2D 方案：几何测量 + VLM 兜底</a>。</p>
 </section>

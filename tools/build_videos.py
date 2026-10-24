@@ -5,7 +5,7 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_mh3_valfinal_routed.csv            validation predictions shown (0.7173, valfinal: the pfc2_fr configuration;
+  outputs/val_mh3_valcur9_fr2_routed.csv         validation predictions shown (0.7196, current defaults: valcur9 + fr2;
                                                  s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
                                                  scene-fit value and its confidence; source geo / vlm / s2d / fit)
   outputs/submission_v7.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
@@ -45,7 +45,7 @@ from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 from pipeline.parse import parse_question  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_mh3_valfinal_routed.csv"
+VAL_CSV = ROOT / "outputs" / "val_mh3_valcur9_fr2_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_v8g_pfc2_fr2",   # the mh3 run: align_tq + conf signals
               "test": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7_test"}   # the run behind submission_v7
