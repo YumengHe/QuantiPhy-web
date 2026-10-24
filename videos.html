@@ -80,6 +80,15 @@
   .qtable .known { color: var(--muted); font-size: 12.5px; white-space: pre-wrap; margin-top: 3px; }
   .known-shared { white-space: pre-wrap; font-size: 13px; color: var(--muted); background: var(--code-bg); border-radius: 6px; padding: 8px 10px; margin: 0 0 8px; }
   .qtable td.pred { font-weight: 600; }
+  /* the value column the final prediction came from: geometry = blue, 2D scene = green, Qwen = orange */
+  .qtable td.picked { font-weight: 600; border-radius: 4px; }
+  .qtable td.picked.src-geo { background: rgba(59, 130, 246, .18); }
+  .qtable td.picked.src-s2d { background: rgba(34, 197, 94, .18); }
+  .qtable td.picked.src-vlm { background: rgba(249, 115, 22, .18); }
+  .srcdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+  .srcdot.src-geo { background: rgb(59, 130, 246); }
+  .srcdot.src-s2d { background: rgb(34, 197, 94); }
+  .srcdot.src-vlm { background: rgb(249, 115, 22); }
   .media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 4px; }
   video.orig { display: block; width: 100%; height: 340px; background: #000; border: 1px solid var(--border); border-radius: 8px; object-fit: contain; }
   .vnote { font-size: 12.5px; margin: 6px 0 0; }
@@ -145,7 +154,8 @@
         <div class="big" id="val-macro">…</div>
         <div class="muted" id="val-src-file"></div>
         <p class="legend">MRA 着色：
-          <span class="mra m4">≥ 0.8</span><span class="mra m3">0.6–0.8</span><span class="mra m2">0.4–0.6</span><span class="mra m1">0.2–0.4</span><span class="mra m0">&lt; 0.2</span></p>
+          <span class="mra m4">≥ 0.8</span><span class="mra m3">0.6–0.8</span><span class="mra m2">0.4–0.6</span><span class="mra m1">0.2–0.4</span><span class="mra m0">&lt; 0.2</span>
+          　最终预测取自哪一列：<span class="srcdot src-geo"></span>几何值　<span class="srcdot src-s2d"></span>2D 场景值　<span class="srcdot src-vlm"></span>Qwen 值（该列着同色底）</p>
       </div>
       <div class="scroll-x"><table id="val-sum"></table></div>
     </div>

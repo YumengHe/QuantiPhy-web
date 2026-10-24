@@ -131,9 +131,10 @@
       qs.forEach((q) => {
         h += `<tr><td><span class="tag">${q.cat}</span><span class="muted">${esc(q.type)}</span></td>` +
           `<td class="q">${esc(q.q)}<div class="known">${known(q)}</div></td>` +
-          `<td class="n">${fmtNum(q.answer)}</td><td class="n pred">${fmtNum(q.pred)}</td><td>${SRC_LABEL[q.src] || esc(q.src)}</td>` +
-          `<td class="n">${fmtNum(q.geo)}</td>` + (s2d ? `<td class="n">${fmtNum(q.s2d)}</td>` : '') +
-          `<td class="n">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td></tr>`;
+          // the column the final prediction was taken from is tinted (geo / s2d / vlm), so the route is visible at a glance
+          `<td class="n">${fmtNum(q.answer)}</td><td class="n pred">${fmtNum(q.pred)}</td><td><span class="srcdot src-${esc(q.src)}"></span>${SRC_LABEL[q.src] || esc(q.src)}</td>` +
+          `<td class="n${q.src === 'geo' ? ' picked src-geo' : ''}">${fmtNum(q.geo)}</td>` + (s2d ? `<td class="n${q.src === 's2d' ? ' picked src-s2d' : ''}">${fmtNum(q.s2d)}</td>` : '') +
+          `<td class="n${q.src === 'vlm' ? ' picked src-vlm' : ''}">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td></tr>`;
       });
     } else {
       h += '<th class="n">行号</th><th class="n">预测值</th></tr>';
