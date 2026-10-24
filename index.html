@@ -226,6 +226,7 @@
     <li>simulation_0163：回球口 10 m（画面里 48 px）。</li>
     <li>captured_0027s：肩宽 47.39，但这个视频里人被抠掉了，画面上无像素可测，无法核对。</li>
     <li>captured_0027s（中度存疑）：红球 0.2 s 速度 201.73 cm/s、加速度 1086.09 cm/s²，两者彼此自洽（a = v²/L），但对应的摆幅约是画面的 1.45 倍；画面上的上升量 0.10–0.12 m，三种估计都给出 1.3–1.5 m/s。</li>
+    <li>simulation_0009（轻度存疑）：码头长 6.17 m。按画面几何推算码头两端深度差只有约 2 m，长度约 4.0–4.4 m；可能岸端有一段被草挡住。</li>
     <li>simulation_0089：length / width 的语义和常规相反。</li>
     <li>simulation_0171：加速度序列和速度序列不自洽。</li>
     <li>simulation_0060：车道宽 11.8 m。</li>
@@ -242,6 +243,7 @@
     <li><b>simulation_0015</b>（<a href="data/eval/simulation_0015.html">全文</a>）：主因 解析 + 深度尺度 + 平面 + 置信度。depth_info 的 5 行里丢了 3 行，底座、雕塑、展板三个距离锚点都没用上；地平线用了线段检测的 y = 268，而行人脚底回归给出 240.8（相机高 1.37 m，f ≈ 394）；远处深度只靠两个近距离锚点仿射外推，被压缩，屋顶净高低了约 3.7 m。鸟速一题真值存疑（已加入上方清单）。</li>
     <li><b>internet_0004</b>（<a href="data/eval/internet_0004.html">全文</a>）：主因 尺度（refmeasure 的刻度测量），其次是跟踪（锯、铅笔身份切换）和 2D 求值（平均速度取段、厚度和长度的取法）。画面里能测出尺度：毫米刻度周期 4.70 px、厘米长刻度约 47 px，1 cm = 47 px；但 <code>refmeasure.periodic()</code> 量到的是视频编码的 8 px 块网格，不是刻度。真值自洽。</li>
     <li><b>captured_0027s</b>（<a href="data/eval/captured_0027s.html">全文</a>）：主因 拟合 / 运动模型 + 路由。3D 没有摆模型，挂着摆动的球被当成 held，整段 2 s 只拟合一条匀加速曲线（rms 15.6 px，0.2 s 加速度只有 1.66 m/s²）；摆模型原型给出摆长 L ≈ 0.34–0.375 m，和周期自洽。肩宽题在抠掉人的 s 变体上无像素可测，而物体不在场时 S3 仍取几何值。0.2 s 两题真值中度存疑（已加入上方清单）。</li>
+    <li><b>simulation_0009</b>（<a href="data/eval/simulation_0009.html">全文</a>）：主因 跟踪 / 清单 + 拟合。焦距 600 是对的（船宽、高 MRA 1.0），丢分集中在码头和木屋的部位题：三个部位物体跟错（outer end → 木屋门廊，pier deck → 整幅画面，cabin floor → 整座木屋）；静止结构的长宽塌缩，clearance 同义反复，水面和岸地混成了一个平面。staticanchor 开关变差的原因：不带时刻的锚点被当成框底接地点进了平面锚点，又绑到了框错的子物体上。码头长轻度存疑（已加入上方清单）。</li>
   </ul>
   <p><small>来源 <code>outputs/eval/overview_1.md</code>、<code>outputs/eval/&lt;video&gt;.md</code>；进行中的修复见 <code>outputs/eval/in_progress.md</code>。</small></p>
 </section>
@@ -412,6 +414,15 @@
     <li>毫米级的提示值按题目要求的单位写。</li>
   </ul>
 
+  <h4>第 14 轮</h4>
+  <ul>
+    <li><b>不在场物体的路由设为默认：</b>物体判为不在场时 S3 不再取几何值。captured_0027s 肩宽 MRA 0.5 → 0.9，整套 0.7229。</li>
+    <li>depth_info 按时刻绑定物体（captured_0027s 的 "book" 绑到红球），并解析 <code>X_left</code> / <code>X_right</code> 这类端点名。</li>
+    <li>场景图 pfc4：attached_to 保留目标、记录摆动周期 period_t、平滑孤立帧、绳子不再生成 contact。</li>
+    <li>在场区间喂给 SAM 2 作为提示帧；锯仍框不出刀身。</li>
+    <li>valcur4 整条链 0.7206：毫米级提示格式有副作用，错的提示写成 mm 后反而被 Qwen 照抄，改为只有 conf ≥ 0.5 才给。</li>
+  </ul>
+
   <h4>文件</h4>
   <p>主 repo commit ceb82e3、34255a6、24a9d0e、85aabfd（<code>pipeline/route.py</code>、<code>perceive.py</code>、<code>objects.py</code>、<code>scenegraph.py</code>、<code>presence.py</code>、<code>refmeasure.py</code>、<code>critic.py</code>、<code>parse.py</code> 等）。没有新的测试集提交文件，最新提交仍是 <code>outputs/submission_v6.csv</code>。</p>
     </div>
@@ -570,6 +581,13 @@
     <li>三条收窄版开关不进默认。</li>
     <li>新增离线稳定性 conf_stab（同一题在参数扰动下拟合值是否稳定）。</li>
     <li><b>depth_info 解析找回的 3 个锚点反而让 simulation_0015 的深度对齐变差：</b>v8e 同参数 0.613 → 0.597。稳健的深度对齐还在做。</li>
+  </ul>
+
+  <h4>第 7–8 轮</h4>
+  <ul>
+    <li><b>稳健深度对齐：</b>simulation_0015 的问题不是离群锚点，而是线性对齐模型在远处不准；12 个视频都选了"光轴 Z"的深度解释。</li>
+    <li><b><code>--motion pendulum</code>（单摆模型）：</b>非线性单摆，RK4 积分。captured_0027s 摆长 L = 0.339 m，三个不同的焦距起点都收敛到 531，速度离散 1.1%。测试集 captured_0010 的三个变体绳长一致到 4%，原来的匀加速模型答 175–206 cm。3D 场景拟合 0.5957 → 0.5980，已设为推荐默认。</li>
+    <li>pfc2 场景图在 3D 上的阻碍：阶段 A 选了滚动的瑜伽球来定地面平面。</li>
   </ul>
 
   <h4>可见性</h4>
@@ -1106,6 +1124,13 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
     <li>静止物体的长度按掩码主轴量。</li>
   </ul>
   <p>internet_0004：木块长 10.42、厚 2.10、笔尖 13.5。tracks_v9pc 两路：0.6955 → 0.7011。</p>
+  <h4>后续：事件窗口与在场区间</h4>
+  <ul>
+    <li>事件窗口和在场区间接入 2D 求值（题目问的时段只用物体在场、对应事件的那段轨迹）。</li>
+    <li>internet_0004 四题的场景值：10.40 / 2.10 / 13.18，视频平均 MRA 0.50 → 0.775。</li>
+    <li>轨迹校验只信 absent：not-verified 会误杀正确的轨迹（三类情况），所以只有判为 absent 才丢掉轨迹。</li>
+    <li>有场景值的题 69/69，场景值 MRA 0.772。</li>
+  </ul>
   <p>逐帧场景图（pfc）对 2D 不比 grid 差（pfc ≥ grid），和 3D 相反（见 <a href="#sf-v8">v8e</a>）。</p>
     </div>
   </details>
