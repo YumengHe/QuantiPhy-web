@@ -179,7 +179,7 @@
 
 <header>
   <h1>QuantiPhy 文档</h1>
-  <p class="lede">NeurIPS 2026 QuantiPhy 挑战赛：给一段视频和一个已知物理量（prior），求另一个物理量（尺寸、速度、加速度）。指标是 S2 / D2 / S3 / D3 四类 MRA 的平均（macro），只用开源权重（Track B）。最终提交截止 <b>2026-10-23 23:59 AoE</b>。</p>
+  <p class="lede">NeurIPS 2026 QuantiPhy 挑战赛：给一段视频和一个已知物理量（prior），求另一个物理量（尺寸、速度、加速度）。指标是 S2 / D2 / S3 / D3 四类 MRA 的平均（macro），只用开源权重（Track B）。最终提交截止 <b>2026-10-25 23:59 AoE</b>（原为 10-23，已延期，见下方公告）。</p>
   <div class="stats">
     <div class="stat hi"><div class="num">0.7237</div><div class="lbl">当前默认，验证集 macro MRA（valcur10）</div></div>
     <div class="stat"><div class="num">0.681 / 0.827</div><div class="lbl">S2 / D2</div></div>
@@ -197,6 +197,15 @@
     <a href="https://docs.google.com/spreadsheets/d/1sX-I8rJ29uVSGej3MeLYaypRPPBK42d3KrWGub9MwrA/edit?usp=sharing">完整数据表</a>
     <a href="#background">比赛与数据背景</a>
   </p>
+  <div class="callout" id="notice"><b>赛事公告</b>（<a href="https://quantiphy.stanford.edu/competition/">比赛页面</a>）
+    <ul style="margin:6px 0 0">
+      <li>截止时间延至 <b>2026-10-25 23:59 AoE</b>。</li>
+      <li>与验证集重叠的测试题（约 140 题）不计入最终分数，但提交文件仍须包含完整的 3289 行。</li>
+      <li>每题须独立作答，不能用同一视频其他题的 prior。</li>
+      <li>每个 UTC 日最多提交 5 次。</li>
+      <li>验证集 159 题中有 115 题与测试集精确重叠；之后的评估会另外列出"非重叠子集"的分数。</li>
+    </ul>
+  </div>
 </header>
 
 <section id="eval">
@@ -228,7 +237,7 @@
     <li>captured_0027s（中度存疑）：红球 0.2 s 速度 201.73 cm/s、加速度 1086.09 cm/s²，两者彼此自洽（a = v²/L），但对应的摆幅约是画面的 1.45 倍；画面上的上升量 0.10–0.12 m，三种估计都给出 1.3–1.5 m/s。</li>
     <li>simulation_0009（轻度存疑）：码头长 6.17 m。按画面几何推算码头两端深度差只有约 2 m，长度约 4.0–4.4 m；可能岸端有一段被草挡住。</li>
     <li>simulation_0089：小鸟的 prior（长 0.94 m）和小鸟 width 真值 1.30 m 与画面尺度不符；大鸟按常规语义（length = 体长、width = 翼展）成立。（更正：撤回此前"两鸟不在同一深度""length / width 对调"的判断。）</li>
-    <li>simulation_0171：加速度序列和速度序列不自洽。</li>
+    <li>simulation_0171：<b>不存疑</b>（动画瞬时量）。评估员核查后确认，真值是动画根节点的瞬时量，和画面自洽；是画面本身不符合物理（等效 g ≈ 2.7 m/s²），不是标注错。</li>
     <li>simulation_0060：车道宽 11.8 m。</li>
     <li>captured_0041x：1.5–1.6 s 位移 0.6116 m、1.5 s 球到人距离 0.198 m，和数据集自己的 prior（5.21 m/s）、depth_info（径向 0.47 m）以及画面都对不上，像是比 depth_info 的时刻早约 1 帧取的值。</li>
     <li>captured_0061：篮球 1.1 s 速度 9.32 m/s，画面上的像素速度上限约 4.5–4.9 m/s（和焦距无关），真值约为画面的 2 倍。</li>
@@ -247,12 +256,15 @@
     <li><b>simulation_0089</b>（<a href="data/eval/simulation_0089.html">全文</a>）：主因 真值存疑 + 2D 尺寸语义 + 2D 外推。两只鸟在同一像面尺度上平飞（翼展沿图像竖直、体长沿飞行方向）；小鸟的 prior 和小鸟 width 与画面尺度不自洽（已更新上方清单）。另外：翼展取了中位数而不是完全展开时的最大值；仿真视频首帧重复；鸟出画后的距离题没有外推。撤回此前"两鸟不同深度 / length-width 对调"的说法。</li>
     <li><b>captured_0013</b>（<a href="data/eval/captured_0013.html">全文</a>）：主因 拟合与尺度 + 斜面段缺失 + 坏提示。焦距只来自实验室先验 650（证据指向约 480–560），桌子两端的深度锚点没用上；斜坡被全画面框跳过，球的斜坡段没有斜面模型；球沿视线运动，像面上只看得到竖直分量，几何速度 32.65 cm/s 却带 conf 1.0，作为提示被 Qwen 照抄。桌宽 857.9 cm 真值存疑（见上方清单）。</li>
     <li><b>simulation_0193</b>（<a href="data/eval/simulation_0193.html">全文</a>）：主因 跟踪 → 尺度，其次是小物体的尺寸量法。复核重跟时 Qwen 在第 50 帧框中了 Io，Callisto 的轨迹在 f50–f68 跳到 Io 上；scene2d 把这段也算进 prior 的像素速度，尺度偏小 26%。共心圆模型本身很好。真值无存疑。</li>
+    <li><b>simulation_0171</b>（<a href="data/eval/simulation_0171.html">全文</a>）：主因 拟合（2D 分段运动模型的加速度作答：分段常量模型在 t_q 给出的是整段平均，不是瞬时值）；速度题基本无误。宇航员是关键帧 / 动捕动画，不是弹道运动（等效 g ≈ 2.7 m/s²）；真值是动画根节点的瞬时量，与画面自洽，不存疑（已更新上方清单）。次要问题：逐帧场景图的 airborne 标签错；三路 Qwen 都照抄了 2D 提示。</li>
   </ul>
   <p><small>来源 <code>outputs/eval/overview_1.md</code>、<code>outputs/eval/&lt;video&gt;.md</code>；进行中的修复见 <code>outputs/eval/in_progress.md</code>。</small></p>
 </section>
 
 <section id="submissions">
   <h2>提交记录</h2>
+  <h3 id="sub-v8">submission_v8（运行中）</h3>
+  <p>commit e4b00b4，2026-10-24 11:26 PDT 开跑。</p>
   <h3 id="sub-v7">submission_v7（2026-10-24）</h3>
   <p>文件 <code>outputs/submission_v7.csv</code>，测试集 3289 题；代码 commit 05bf3fd，同一代码在验证集上的回归分数 0.6656。逐题预测见 <a href="videos.html">视频与问题</a> 的测试集页；那里的 3D 视图和 2D 图层就是这次提交用的场景（<code>scene_fit_eval/c_support_v7_test/</code> 233/235 个 3D 视频，<code>scene2d_eval/s2d_v7_test/</code> 333/333 个 2D 视频）。</p>
   <table>
@@ -677,6 +689,14 @@
     <li>simulation_0009 并行运行时结果跳动，待查。</li>
   </ul>
   <p>视频页的 3D 视图已切到 <code>c_v8g_pfc2_fr3</code>。</p>
+
+  <h4>第 15 轮</h4>
+  <ul>
+    <li><b>端点锚点量长度：</b>depth_info 给了物体两端的距离时，直接用两个端点量长度。captured_0013 斜坡长 MRA 0 → 0.7，3D 场景拟合 0.6160。</li>
+    <li>from_walls（由墙脚 / 墙顶推出的量）带 conf。</li>
+    <li>缓存加哈希。</li>
+    <li>默认用按帧场景图。</li>
+  </ul>
 
   <h4>可见性</h4>
   <p>场景 json 新增每个物体的 <code>visible</code> / <code>out_of_frame</code> 区间和 <code>visibility</code>（拟合位置是否在画内，和跟踪是否可见的一致度）。12 个视频的一致度都 ≥ 0.96；captured_0041x 的球用 ballistic 后 41/41 帧在画内（之前出画后仍投影在画内）；simulation_0015 现在 6/6。视频页的 3D 视图按这些区间显示物体，弹跳的球按 ballistic 轨迹采样播放。</p>
@@ -1240,6 +1260,14 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
     <li><b>有阴影的球体用等效直径：</b>四颗卫星 5.84–6.25 px（真值 5.91）；光度法直径 conf 0.65。</li>
   </ul>
   <p>simulation_0193 视频平均 MRA 0.60 → 0.917；D2 0.703 → 0.805（2 路）。另修了 <code>--base-hint2d</code> 门控的一个 bug。</p>
+  <h4>scene2d v7：每题必答</h4>
+  <div class="callout"><b>中心思想：</b>一个场景拟合视频和问题，几何测量都进场景，Qwen 是先验 / 评审 / 回退。</div>
+  <ul>
+    <li>每题必答：69 / 69 题都有场景值，场景值 MRA 0.799。</li>
+    <li>把几何流水线赢的 9 题的做法并进场景：框和凸包的尺寸合并取用；检查 prior 的约定是否有歧义。</li>
+    <li>模拟"场景值直接作答，只有 conf &lt; 0.1 才问 Qwen"：2D 0.800，总分约 0.743。</li>
+    <li>simulation_0171 的加速度改法用到全部 2D 加速度题：7 道题的 MRA 合计 3.9 → 4.5，2 路 0.7282。</li>
+  </ul>
   <p>逐帧场景图（pfc）对 2D 不比 grid 差（pfc ≥ grid），和 3D 相反（见 <a href="#sf-v8">v8e</a>）。</p>
     </div>
   </details>
