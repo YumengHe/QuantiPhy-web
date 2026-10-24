@@ -54,6 +54,8 @@ SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v8",         # s
 SCENES_TEST = WEB / "data" / "scenes" / "test"   # one json per test video, fetched by the page when a card opens
 BG_MAX_W = 960                                   # background images wider than this are shrunk (test is up to 2560 px)
 EVAL_DIR = ROOT / "outputs" / "eval"
+COUNT_CHECK_VAL = ROOT / "outputs" / "eval" / "count_check_val.json"   # per-frame visible-count check (qp-tools)
+COUNT_CHECK: dict = {}    # video -> count_check, for scenes whose json has no "count_check" field
 EVAL_WEB = WEB / "data" / "eval"
 SCENE2D_WEB = WEB / "data" / "scene2d"
 OUT = WEB / "data" / "videos.json"
@@ -549,7 +551,7 @@ def scene_fit(split: str, vid: str):
         o["visible"] = [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None
     return {"file": str(p.relative_to(ROOT)), "f": num(j.get("f"), 5), "plane": plane, "objects": objs, "results": res,
             "main_support": j.get("main_support"), "inventory": inv, "scene_graph": graph(sg), "q_meta": q_meta,
-            "count_check": j.get("count_check"),
+            "count_check": j.get("count_check") or (COUNT_CHECK.get(vid) if split == "val" else None),
             "f_source": text(j.get("f_source")) or None, "f_first": j.get("f_first"),
             "focal_votes": [{"source": text(x.get("source")), "value": num(x.get("value"), 4), "weight": num(x.get("weight"), 3)}
                             for x in j.get("focal_votes") or []] or None}
@@ -650,7 +652,7 @@ def scene2d(split: str, vid: str):
             "gravity_dir": vec(j.get("gravity_dir")), "gravity_source": text(j.get("gravity_source")),
             "inventory": inventory(j.get("objects")), "scene_graph": graph(j.get("scene_graph")),
             "rejected": {text(k): text(v) for k, v in (j.get("rejected_layers") or {}).items()}, "layers": layers,
-            "count_check": j.get("count_check"),
+            "count_check": j.get("count_check") or (COUNT_CHECK.get(vid) if split == "val" else None),
             "q_meta": {r.get("question"): {"obj": r.get("layer"), "align": align(r.get("align_tq"))}
                        for r in j.get("results") or [] if r.get("question")},
             **scene2d_checks(j)}
@@ -830,7 +832,13 @@ def build_test(make_thumb: bool):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rethumb", action="store_true", help="regenerate thumbnails that already exist")
+    ap.add_argument("--count-check", type=Path, default=COUNT_CHECK_VAL,
+                    help="validation count_check results {video: {frames: [{t, n_video, n_scene, ...}], ...}} merged into "
+                         "scenes that do not carry the field themselves (default: %(default)s when it exists)")
     args = ap.parse_args()
+    if args.count_check and args.count_check.exists():
+        COUNT_CHECK.update(json.load(open(args.count_check)))
+        print(f"count_check: {len(COUNT_CHECK)} videos from {args.count_check}")
     THUMBS.mkdir(parents=True, exist_ok=True)
     data = {"generated": date.today().isoformat(), "val": build_val(args.rethumb), "test": build_test(args.rethumb)}
     OUT.parent.mkdir(parents=True, exist_ok=True)

@@ -57,7 +57,7 @@
     const all = test.videos.flatMap((v) => v.questions);
     const v3 = test.videos.filter((v) => v.dim === 3);
     const fit = v3.filter(hasScene).length;
-    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频，预测来自 submission_v7（<code>${esc(test.file)}</code>，按行号和 <code>load_split('test')</code> 对齐）；v8 运行中（commit e4b00b4）。测试集没有答案，不显示准确度。3D 视频 ${v3.length} 个，其中 ${fit} 个有场景拟合结果。`;
+    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频，预测来自 submission_v7（<code>${esc(test.file)}</code>，按行号和 <code>load_split('test')</code> 对齐）；v8 运行中（切换到 commit 874b7d6 从清单步重跑）。测试集没有答案，不显示准确度。3D 视频 ${v3.length} 个，其中 ${fit} 个有场景拟合结果。`;
     let h = '<tr><th>类别</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '<th class="n">合计</th></tr>';
     h += '<tr><td>题数</td>' + CATS.map((c) => `<td class="n">${all.filter((q) => q.cat === c).length}</td>`).join('') + `<td class="n">${all.length}</td></tr>`;
     h += '<tr><td>视频数</td>' + CATS.map((c) => `<td class="n">${test.videos.filter((v) => v.cats.includes(c)).length}</td>`).join('') + `<td class="n">${test.videos.length}</td></tr>`;
@@ -78,11 +78,12 @@
     let rows = [];
     if (Array.isArray(cc)) rows = cc.map((x) => (Array.isArray(x) ? { t: x[0], nv: x[1], ns: x[2] } : { t: x.t, nv: x.n_video, ns: x.n_scene }));
     else if (cc.t && cc.n_video && cc.n_scene) rows = cc.t.map((t, i) => ({ t, nv: cc.n_video[i], ns: cc.n_scene[i] }));
-    else if (Array.isArray(cc.frames)) rows = cc.frames.map((x) => ({ t: x.t, nv: x.n_video, ns: x.n_scene }));
+    else if (Array.isArray(cc.frames)) rows = cc.frames.map((x) => ({ t: x.t, nv: x.n_video, ns: x.n_scene, vo: x.video_only, so: x.scene_only }));
     if (!rows.length) return '';
     const bad = rows.filter((r) => r.nv !== r.ns).length;
     return `<div class="cstrip-wrap"><b>可见数量一致</b> <span class="muted">${rows.length - bad}/${rows.length} 帧一致</span><div class="cstrip">` +
-      rows.map((r) => `<span class="${r.nv === r.ns ? 'ok' : 'bad'}" title="t = ${fmt(r.t, 2)} s：视频 ${r.nv} / 场景 ${r.ns}"></span>`).join('') + '</div></div>';
+      rows.map((r) => `<span class="${r.nv === r.ns ? 'ok' : 'bad'}" title="${esc(`t = ${fmt(r.t, 2)} s：视频 ${r.nv} / 场景 ${r.ns}` +
+        (r.vo && r.vo.length ? `\n只在视频里：${r.vo.join('、')}` : '') + (r.so && r.so.length ? `\n只在场景里：${r.so.join('、')}` : ''))}"></span>`).join('') + '</div></div>';
   }
   function videoCard(v, qs, split) {
     const d = document.createElement('details');

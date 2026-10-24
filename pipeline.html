@@ -8,20 +8,23 @@
 <style>
   :root {
     --bg: #f7f7f5; --panel: #ffffff; --text: #1f2328; --muted: #656d76; --border: #d9dde2;
-    --accent: #3b5bdb; --accent-soft: #e7ecfb; --warn: #b7791f; --warn-soft: #fff4dc; --code-bg: #f0f1f3;
-    --c2d: #2f9e44; --c2d-soft: #e6f4ea; --c3d: #1971c2; --c3d-soft: #e3effb; --cq: #e8590c; --cq-soft: #fff0e6;
+    --accent: #3b5bdb; --accent-soft: #e7ecfb; --code-bg: #f0f1f3;
+    --sh: #868e96; --sh-soft: #f1f3f5; --c2d: #2f9e44; --c2d-soft: #e9f6ec; --c3d: #1971c2; --c3d-soft: #e7f1fb;
+    --st-done: #2b8a3e; --st-wip: #e67700; --st-del: #c92a2a;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #0f1115; --panel: #171a21; --text: #e6e8ec; --muted: #9aa3ad; --border: #2b3038;
-      --accent: #7a93ff; --accent-soft: #1d2440; --warn: #e0b35a; --warn-soft: #2d2616; --code-bg: #1f232b;
-      --c2d: #69db7c; --c2d-soft: #17291c; --c3d: #74c0fc; --c3d-soft: #142433; --cq: #ffa94d; --cq-soft: #2d2014;
+      --accent: #7a93ff; --accent-soft: #1d2440; --code-bg: #1f232b;
+      --sh: #9aa3ad; --sh-soft: #1c2027; --c2d: #69db7c; --c2d-soft: #142519; --c3d: #74c0fc; --c3d-soft: #122130;
+      --st-done: #69db7c; --st-wip: #ffc078; --st-del: #ff8787;
     }
   }
   :root[data-theme="dark"] {
     --bg: #0f1115; --panel: #171a21; --text: #e6e8ec; --muted: #9aa3ad; --border: #2b3038;
-    --accent: #7a93ff; --accent-soft: #1d2440; --warn: #e0b35a; --warn-soft: #2d2616; --code-bg: #1f232b;
-    --c2d: #69db7c; --c2d-soft: #17291c; --c3d: #74c0fc; --c3d-soft: #142433; --cq: #ffa94d; --cq-soft: #2d2014;
+    --accent: #7a93ff; --accent-soft: #1d2440; --code-bg: #1f232b;
+    --sh: #9aa3ad; --sh-soft: #1c2027; --c2d: #69db7c; --c2d-soft: #142519; --c3d: #74c0fc; --c3d-soft: #122130;
+    --st-done: #69db7c; --st-wip: #ffc078; --st-del: #ff8787;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
@@ -38,150 +41,168 @@
   table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--panel); }
   th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
   th { background: var(--accent-soft); white-space: nowrap; }
+  tr.grp td { background: var(--sh-soft); font-weight: 600; }
+  tr.grp.g2d td { background: var(--c2d-soft); color: var(--c2d); }
+  tr.grp.g3d td { background: var(--c3d-soft); color: var(--c3d); }
   .muted { color: var(--muted); }
   .callout { border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; background: var(--panel); padding: 10px 14px; margin: 12px 0; }
+  details.fold { margin: 14px 0; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); padding: 8px 12px; }
+  details.fold summary { cursor: pointer; font-weight: 600; }
+
+  /* ---- legend + status tags ---- */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13.5px; margin: 0 0 14px; align-items: center; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; border: 2px solid; }
+  .sw.sh { background: var(--sh-soft); border-color: var(--sh); }
+  .sw.d2 { background: var(--c2d-soft); border-color: var(--c2d); }
+  .sw.d3 { background: var(--c3d-soft); border-color: var(--c3d); }
+  .st { font-size: 11.5px; font-weight: 600; padding: 0 7px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; background: var(--panel); }
+  .st.done { color: var(--st-done); } .st.wip { color: var(--st-wip); } .st.del { color: var(--st-del); }
 
   /* ---- flow ---- */
-  .flow { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
-  .node { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
-  .node b { display: block; font-size: 15px; }
-  .node .m { font-size: 12.5px; color: var(--muted); }
-  .node .m code { font-size: 12px; }
-  .node.in { border-style: dashed; }
-  .node.q { border-color: var(--cq); background: var(--cq-soft); }
-  .node.out { border-color: var(--accent); background: var(--accent-soft); }
-  .arrow { align-self: center; width: 2px; height: 18px; background: var(--muted); position: relative; margin: 2px 0 8px; }
+  .flow { display: flex; flex-direction: column; }
+  .node { position: relative; border-radius: 8px; padding: 8px 12px; border: 2px solid var(--sh); background: var(--sh-soft); }
+  .node.d2 { border-color: var(--c2d); background: var(--c2d-soft); }
+  .node.d3 { border-color: var(--c3d); background: var(--c3d-soft); }
+  .node .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .node .hd b { font-size: 15px; }
+  .node .m { display: block; font-size: 12.5px; color: var(--muted); }
+  .arrow { align-self: center; width: 2px; height: 16px; background: var(--muted); position: relative; margin: 2px 0 9px; }
   .arrow::after { content: ""; position: absolute; left: -5px; bottom: -8px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid var(--muted); }
-  .row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-  .branch { border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-  .branch.d2 { background: var(--c2d-soft); border: 1px solid var(--c2d); }
-  .branch.d3 { background: var(--c3d-soft); border: 1px solid var(--c3d); }
-  .branch .tag { font-size: 12.5px; font-weight: 600; }
-  .branch.d2 .tag { color: var(--c2d); } .branch.d3 .tag { color: var(--c3d); }
-  .stage { display: grid; gap: 12px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: stretch; }
-  @media (max-width: 760px) { .stage { grid-template-columns: minmax(0, 1fr); } }
-  .loop { border: 2px dashed var(--warn); border-radius: 12px; background: var(--warn-soft); padding: 10px 12px; font-size: 14px; }
-  .loop h3 { margin: 0 0 6px; font-size: 15px; color: var(--warn); }
-  .loop ol { margin: 4px 0 6px; padding-left: 20px; }
-  .loop .ret { font-size: 13px; }
-  .loop .ret td, .loop .ret th { padding: 3px 6px; font-size: 12.5px; }
-  .label { font-size: 12.5px; color: var(--muted); text-align: center; margin: -4px 0 6px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .col { display: flex; flex-direction: column; }
+  .colhd { font-size: 13px; font-weight: 700; margin: 0 0 6px; }
+  .col.c2 .colhd { color: var(--c2d); } .col.c3 .colhd { color: var(--c3d); }
+  @media (max-width: 720px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+  .loop { border: 2px dashed var(--sh); border-radius: 14px; padding: 10px 12px; background: var(--panel); }
+  .loop .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .loop .hd b { font-size: 16px; }
+  .lgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 8px; }
+  .lbox { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13px; background: var(--sh-soft); }
+  .lbox b { display: block; font-size: 13.5px; }
+  .cycle { font-size: 13px; margin: 8px 0 0; text-align: center; color: var(--muted); }
+  .back td, .back th { font-size: 12.5px; padding: 4px 6px; }
 </style>
 </head>
 <body>
 <div class="wrap">
 <p class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#answers">答案从哪来</a><a href="#outputs">产物目录</a></p>
 <h1>完整流程</h1>
-<p class="lede">从一段视频和一道题到提交文件的每一步。内容取自代码：<code>pipeline/mh3.py</code>（步骤与命令）、<code>pipeline/route.py</code>、<code>pipeline/scene_agent.py</code>、<code>pipeline/critic_loop.py</code>、<code>docs/WORKING_RULES.md</code>、<code>docs/TEST_RUN_v8.md</code>。驱动是 <code>python -m pipeline.mh3 --split val|test --tag &lt;tag&gt;</code>：每步写 <code>outputs/logs/mh3_&lt;tag&gt;_&lt;split&gt;/&lt;step&gt;.log</code> 和 <code>.done</code>，崩了原命令再跑即可续跑。</p>
+<p class="lede">主图始终画<b>已批准的目标流水线</b>：一条流水线、一个 agent harness（<code>pipeline/harness.py</code>，实现中），每个方框右上角标状态。流水线每改一次，这张图跟着改一次。</p>
+<div class="callout">现状：v8 测试集提交和当前验证集最好 0.7489 都是用<b>旧链</b>（<code>pipeline/mh3.py</code>：三路几何 + 三路 Qwen + route）跑的，v8 没有带场景 agent 回路（时间不够）。旧链的步骤只在下面步骤表的"v8 用的旧步骤"一列和折叠块里列出；新 harness 在验证集达到 ≥ 0.7489 后替换旧链并删除旧代码。内容取自代码：<code>pipeline/mh3.py</code>、<code>pipeline/route.py</code>、<code>pipeline/scene_agent.py</code>、<code>pipeline/critic_loop.py</code>、<code>docs/WORKING_RULES.md</code>、<code>docs/TEST_RUN_v8.md</code>。</div>
 
-<h2 id="flow">流程图</h2>
+<h2 id="flow">流程图（目标：harness.py）</h2>
+<div class="legend">
+  <span><span class="sw sh"></span>共享（2D、3D 都走）</span>
+  <span><span class="sw d2"></span>2D 视频（S2 / D2）</span>
+  <span><span class="sw d3"></span>3D 视频（S3 / D3）</span>
+  <span>状态：<span class="st done">已实现</span> <span class="st wip">实现中</span> <span class="st del">待删</span></span>
+</div>
 <div class="flow">
-  <div class="node in"><b>输入</b><span class="m">视频（验证集 854 px 宽，测试集分辨率更高）、题目、prior（已知量）、depth_info（部分 3D 题给物体到相机的距离）</span></div>
+  <div class="node"><div class="hd"><b>输入</b><span class="st done">已实现</span></div><span class="m">视频、题目、prior（已知量）、depth_info（部分 3D 题给物体到相机的距离）。每题独立作答，不用同视频其他题的 prior。</span></div>
   <div class="arrow"></div>
-  <div class="node q"><b>1 物体清单 objects</b><span class="m">Qwen 从题目和 prior 里列出被问到的物体、别名、角色（object / structure / class）、数量、形状提示、part_of。<code>pipeline.objects</code></span></div>
+  <div class="node"><div class="hd"><b>物体清单 objects</b><span class="st done">已实现</span></div><span class="m">Qwen 从题目和 prior 列出被问到的物体、别名、角色（object / structure / class）、数量、形状提示、part_of。<code>pipeline.objects</code></span></div>
   <div class="arrow"></div>
-  <div class="node"><b>2 清单复核 objects_check</b><span class="m">验证集与测试集共用视频的清单对照，只列差异不中断。<code>pipeline.objects --check-splits</code></span></div>
+  <div class="node"><div class="hd"><b>场景图（grid）scenegraph</b><span class="st done">已实现</span></div><span class="m">Qwen 给 on / in / attached_to / airborne / above 关系和同一实例判断。<code>pipeline.scenegraph</code>（<code>scenegraph_v3grid</code>）</span></div>
   <div class="arrow"></div>
-  <div class="node q"><b>3 场景图 scenegraph（grid）</b><span class="m">Qwen 给出 on / in / attached_to / airborne / above 关系，判断同一实例。<code>QP_SCENEGRAPH=scenegraph_v3grid pipeline.scenegraph --grid-same-instance</code></span></div>
+  <div class="node"><div class="hd"><b>跟踪（一条）</b><span class="st wip">实现中</span></div><span class="m">GDINO + SAM 2；候选选择、Qwen 复核运动的 prior 物体、在场性分段核对，合成一个跟踪步（旧链里是 verify / track_v8 / track_rc / merge_v9 / verify_v9 五步，各部分已实现，合并实现中）。</span></div>
   <div class="arrow"></div>
-  <div class="node q"><b>4 在场性 verify</b><span class="m">对默认跟踪做分段核对，得到每个物体的在场区间（present / partial / absent）。<code>QP_TRACKS=tracks pipeline.presence</code></span></div>
+  <div class="node"><div class="hd"><b>按帧场景图 scenegraph_pfc</b><span class="st done">已实现</span></div><span class="m">在 grid 图上按帧问关系、合并成段、边界吸附到轨迹事件。<code>pipeline.scenegraph --per-frame</code></span></div>
   <div class="arrow"></div>
-  <div class="row">
-    <div class="node"><b>5a 跟踪 track_v8</b><span class="m">GDINO + SAM 2；<code>--choose</code> 候选选择 + <code>--recheck-prior</code>（Qwen 复核运动的 prior 物体）；提示帧限在在场段。写 <code>tracks_v8p</code></span></div>
-    <div class="node"><b>5b 跟踪 track_rc</b><span class="m">GDINO + SAM 2；只做 <code>--recheck-prior</code>。写 <code>tracks_rcp</code></span></div>
-  </div>
-  <div class="arrow"></div>
-  <div class="node"><b>6 合并 merge_v9</b><span class="m">2D 视频取 v8、3D 视频取 rc；速度 prior 物体的轨迹取尺度和已知尺寸物体一致的那份缓存；细长工具回退默认缓存；全帧框换成 tracks_qwen 的。写 <code>tracks_v9p</code></span></div>
-  <div class="arrow"></div>
-  <div class="node q"><b>7 verify_v9</b><span class="m">对合并后的轨迹再做分段核对（2D 场景用这些在场区间）。<code>QP_TRACKS=tracks_v9p pipeline.presence</code></span></div>
-  <div class="arrow"></div>
-  <div class="node q"><b>8 按帧场景图 scenegraph_pfc</b><span class="m">在 grid 图上按帧问关系、合并成段、边界吸附到轨迹事件；2D / 3D 的默认图。<code>QP_SCENEGRAPH=scenegraph_pfc pipeline.scenegraph --per-frame --grid-from scenegraph_v3grid</code></span></div>
-  <div class="arrow"></div>
-  <div class="node"><b>9 几何三路 geo_a / geo_b / geo_v9</b><span class="m">几何流水线分别用 tracks / tracks_qwen / tracks_v9p 测出逐题几何值（只作 Qwen 的提示，不直接作答）。<code>pipeline.run --no-gdino</code></span></div>
-  <div class="arrow"></div>
-  <div class="stage">
-    <div class="row">
-      <div class="branch d2"><span class="tag">2D 视频（S2 / D2）</span>
-        <div class="node"><b>10 extents2d</b><span class="m">SAM 2 图像模型提取每层的掩码凸包。<code>pipeline.extents2d --caches tracks_v9p</code></span></div>
-        <div class="node"><b>11 scene2d（图层场景）</b><span class="m">每个物体一层，prior 标定统一 m/px（refmeasure 量车道、刻度等参考），分段运动模型，逐题给场景值和 conf。<code>QP_TRACKS=tracks_v9p pipeline.scene2d --scenegraph scenegraph_pfc</code></span></div>
-      </div>
-      <div class="branch d3"><span class="tag">3D 视频（S3 / D3）</span>
-        <div class="node"><b>10′ ground</b><span class="m">GDINO + SAM 2：地面掩码、墙脚 / 墙顶点（有顶部结构时问 Qwen）。<code>pipeline.ground</code></span></div>
-        <div class="node"><b>11′ scene_fit（场景拟合，v9b 参数）</b><span class="m">Depth Anything 深度 + 地面与相机 + 几何体 / Meshy 网格 + 运动模型（匀加速、单摆等），每道 3D 题在拟合内作答并给 conf。<code>pipeline.eval_scene_fit --dim3 --two-pass</code></span></div>
-      </div>
+  <div class="cols">
+    <div class="col c2"><p class="colhd">左列 · 2D 视频</p>
+      <div class="node d2"><div class="hd"><b>refmeasure 结构测量</b><span class="st done">已实现</span></div><span class="m">帧级参考测量：车道宽（沿法向剖面）、刻度周期、地砖边长。<code>pipeline.refmeasure</code>（<code>refmeasure_v8</code>）</span></div>
+      <div class="arrow"></div>
+      <div class="node d2"><div class="hd"><b>extents2d 掩码凸包</b><span class="st done">已实现</span></div><span class="m">SAM 2 图像模型取每层的掩码凸包。<code>pipeline.extents2d</code></span></div>
+      <div class="arrow"></div>
+      <div class="node d2"><div class="hd"><b>scene2d 图层场景</b><span class="st done">已实现</span></div><span class="m">每个物体一层，prior 标定统一 m/px，分段运动模型，几何测量作为场景里的观测项，逐题给场景值和 conf。<code>pipeline.scene2d</code>（v8）</span></div>
+      <div class="arrow"></div>
+      <div class="node d2"><div class="hd"><b>2D 工具</b><span class="st done">已实现</span></div><span class="m">回路可调的 2D 场景动作：rescale、set_extent、drop_frames 等（<code>scene2d.apply_critique</code>）。</span></div>
     </div>
-    <div class="loop" id="agent">
-      <h3>场景 agent 回路（<code>--critic</code>，默认关闭；验证集在跑）</h3>
-      <ol>
-        <li><b>观察工具</b>：frames、crop、overlay、tracks_summary、depth_at、scene_json、self_check、question_values、visible_count、reference_measure（每轮最多 6 次）</li>
-        <li><b>诊断</b>：Qwen 看证据包（关键帧 / 问到帧的叠加图、物体、关系、带 conf 的答案、自检指标）</li>
-        <li><b>动作工具</b>：改清单、改关系、重选跟踪、拆第二实例，或场景内动作</li>
-        <li><b>只重跑受影响的步骤</b>（从最上游的那步起）</li>
-        <li><b>自检</b>：没有指标变差且至少一项变好才采纳，否则回滚</li>
-      </ol>
-      <p class="muted" style="margin:4px 0">每个视频 2–10 轮；在自己的缓存（objects_crit、scenegraph_crit、tracks_crit）和输出目录里工作，不改主流程缓存。模型没调工具时退回 <code>critic_loop</code> 的写死表。</p>
-      <div class="scroll-x"><table class="ret">
-        <tr><th>动作</th><th>回到哪一步</th></tr>
-        <tr><td>objects_set_count、objects_set_track</td><td>track（跟踪，之后 scene）</td></tr>
-        <tr><td>track_reselect、track_split_instance</td><td>track</td></tr>
-        <tr><td>scenegraph_set_relation、set_main_support</td><td>scene</td></tr>
-        <tr><td>2D：rescale、set_extent、drop_frames 等；3D：scene_fit 的 apply_critique 动作</td><td>scene</td></tr>
-      </table></div>
+    <div class="col c3"><p class="colhd">右列 · 3D 视频</p>
+      <div class="node d3"><div class="hd"><b>depth / ground 地面与墙</b><span class="st done">已实现</span></div><span class="m">Depth Anything 深度（缓存 <code>depth</code>）；地面掩码、墙脚 / 墙顶点（<code>pipeline.ground</code>）。</span></div>
+      <div class="arrow"></div>
+      <div class="node d3"><div class="hd"><b>scene_fit 场景拟合</b><span class="st done">已实现（v9b）</span></div><span class="m">地面与相机 + 几何体 / Meshy 网格 + 运动模型（匀加速、单摆等），每道 3D 题在拟合内作答并给 conf。<code>pipeline.eval_scene_fit</code></span>
+        <span class="m" style="margin-top:4px"><span class="st wip">实现中</span> 联合估计 c_v10：7 项残差、σ 取自观测误差，收掉 direct / directkin / focalfirst 等开关。</span></div>
+      <div class="arrow"></div>
+      <div class="node d3"><div class="hd"><b>3D 工具</b><span class="st done">已实现</span></div><span class="m">回路可调的 3D 场景动作：fix_extent、set_plane、set_focal 等（<code>scene_fit.apply_critique</code>）。</span></div>
     </div>
   </div>
   <div class="arrow"></div>
-  <div class="row">
-    <div class="node q"><b>12 Qwen 三路 vlm_a / vlm_b / vlm_v9</b><span class="m">Qwen3.8-27B 看 16 帧作答；第一个提示是对应那路的几何值，第二个提示是 2D 场景值（conf ≥ 0.5 才给）。<code>pipeline.vlm_hint --direct --hint2d-mode second</code></span></div>
+  <div class="loop" id="agent">
+    <div class="hd"><b>场景 agent 回路（2D、3D 共享）</b><span class="st done">已实现（第一版）· 默认开启 · 2–10 轮</span></div>
+    <p class="cycle">观察 → 诊断 → 动作 → 只重跑受影响的步骤 → 自检采纳 / 回滚 → 下一轮</p>
+    <div class="lgrid">
+      <div class="lbox"><b>观察工具</b>frames、crop、overlay、tracks_summary、depth_at、scene_json、self_check、question_values、visible_count、reference_measure（每轮最多 6 次）</div>
+      <div class="lbox"><b>动作工具</b>objects_set_count、objects_set_track、track_reselect、track_split_instance、scenegraph_set_relation、set_main_support，以及左右两列的 2D / 3D 工具</div>
+      <div class="lbox"><b>Qwen 两个工具 <span class="st wip">实现中</span></b><code>qwen_review</code>：看叠加图找问题；<code>qwen_prior</code>：给常识先验（取代旧链的三路 Qwen 作答）</div>
+      <div class="lbox"><b>自检采纳 / 回滚</b>没有指标变差且至少一项变好才保留：问到帧对齐 IoU、可见性一致（count_check）、支撑一致、拟合残差、作答比例</div>
+    </div>
+    <div class="scroll-x" style="margin-top:8px"><table class="back">
+      <tr><th>动作</th><th>↩ 回到哪一步重跑</th></tr>
+      <tr><td>objects_set_count、objects_set_track</td><td>↩ 跟踪（之后重搭场景）</td></tr>
+      <tr><td>track_reselect、track_split_instance</td><td>↩ 跟踪</td></tr>
+      <tr><td>scenegraph_set_relation、set_main_support</td><td>↩ 搭场景（scene2d / scene_fit）</td></tr>
+      <tr><td>2D / 3D 场景动作</td><td>↩ 搭场景</td></tr>
+    </table></div>
+    <p class="muted" style="font-size:13px;margin:6px 0 0">在自己的缓存（objects_crit、scenegraph_crit、tracks_crit）里工作，不改主缓存。v8 测试集提交没有带回路（时间不够）。</p>
   </div>
   <div class="arrow"></div>
-  <div class="node out"><b>13 route（<code>--no-geo</code>，默认）</b><span class="m">2D 题：场景值 conf ≥ 0.1 直接作答；3D 题：拟合值按 conf 门控（S3 ≥ 0.6，D3 ≥ 0.3；D3 只来自直接测量的值只作提示）；其余用 Qwen 三路的对数中位数；被问物体判为不在场时用 Qwen。几何值不作答案。<code>pipeline.route</code></span></div>
-  <div class="arrow"></div>
-  <div class="node out"><b>输出</b><span class="m">验证集：<code>outputs/val_mh3_&lt;tag&gt;_routed.csv</code>（打印 MRA）；测试集：<code>outputs/submission_vN.csv</code>（按官方模板 3289 行）。另写 <code>outputs/eval/disputed_&lt;split&gt;_&lt;tag&gt;.csv</code>（场景值和 Qwen 不一致的题）。</span></div>
+  <div class="node"><div class="hd"><b>答案输出</b><span class="st wip">实现中</span></div><span class="m">答案只从场景出（source = scene / prior），没有三路中位数、没有 route 多路选择、没有回退链。验证集：<code>outputs/val_&lt;tag&gt;_routed.csv</code>；测试集：<code>outputs/submission_vN.csv</code>（3289 行）。</span></div>
 </div>
 
 <h2 id="steps">步骤表</h2>
-<p class="muted">缓存目录在 <code>outputs/</code> 下；测试集的目录名加 <code>_test</code>。测试集耗时取 v8 运行（<code>outputs/logs/mh3_v8_test/</code>）里已经跑完的步骤，其余等 v8 跑完补；验证集耗时来自 <code>docs/TEST_RUN_v8.md</code> 和模块文档，没有记录的写"—"。</p>
+<p class="muted">缓存目录在 <code>outputs/</code> 下，测试集加 <code>_test</code>。测试集耗时取 v8 运行（<code>outputs/logs/mh3_v8_test/</code>）已跑完的步骤，其余待 v8 跑完补；验证集耗时来自 <code>docs/TEST_RUN_v8.md</code> 和模块文档，没有记录的写"—"。</p>
 <div class="scroll-x"><table>
-  <tr><th>步骤</th><th>模块与命令</th><th>读</th><th>写</th><th>做什么</th><th>模型</th><th>验证集耗时</th><th>测试集耗时</th></tr>
-  <tr><td>objects</td><td><code>pipeline.objects</code>（测试集 <code>--redo</code>）</td><td>题目、prior</td><td><code>objects</code></td><td>物体清单</td><td>Qwen</td><td>—</td><td>6 min</td></tr>
-  <tr><td>objects_check</td><td><code>pipeline.objects --check-splits</code></td><td><code>objects</code></td><td>日志</td><td>验证集 / 测试集清单对照</td><td>—</td><td>&lt; 1 min</td><td>&lt; 1 min</td></tr>
-  <tr><td>scenegraph</td><td><code>pipeline.scenegraph --grid-same-instance</code></td><td><code>objects</code></td><td><code>scenegraph_v3grid</code></td><td>grid 场景图</td><td>Qwen</td><td>—</td><td>418 s</td></tr>
-  <tr><td>verify</td><td><code>QP_TRACKS=tracks pipeline.presence</code></td><td><code>tracks</code>、<code>objects</code></td><td><code>trackcheck</code>、在场性</td><td>默认跟踪的分段在场核对</td><td>Qwen</td><td>41 s</td><td>1056 s</td></tr>
-  <tr><td>track_v8</td><td><code>QP_TRACKS=tracks_v8p pipeline.run --choose --recheck-prior --presence-from tracks</code></td><td><code>objects</code>、<code>scenegraph_v3grid</code>、在场区间</td><td><code>tracks_v8p</code>、<code>refmeasure_v8</code></td><td>候选选择 + prior 复核跟踪（2D 用）</td><td>GDINO、SAM 2、Qwen</td><td>569 s</td><td>待 v8 跑完补</td></tr>
-  <tr><td>track_rc</td><td><code>QP_TRACKS=tracks_rcp pipeline.run --recheck-prior --presence-from tracks</code></td><td>同上</td><td><code>tracks_rcp</code></td><td>prior 复核跟踪（3D 用）</td><td>GDINO、SAM 2、Qwen</td><td>453 s</td><td>待 v8 跑完补</td></tr>
-  <tr><td>merge_v9</td><td><code>pipeline.presence --merge-by-dim 2=tracks_v8p 3=tracks_rcp --into tracks_v9p --prior-check tracks tracks_qwen --thin-tool-from tracks --full-frame-from tracks_qwen</code></td><td><code>tracks_v8p</code>、<code>tracks_rcp</code>、<code>tracks</code>、<code>tracks_qwen</code></td><td><code>tracks_v9p</code></td><td>按维度合并跟踪</td><td>—</td><td>—</td><td>待 v8 跑完补</td></tr>
-  <tr><td>verify_v9</td><td><code>QP_TRACKS=tracks_v9p pipeline.presence</code></td><td><code>tracks_v9p</code></td><td><code>trackcheck</code></td><td>合并后跟踪的在场核对</td><td>Qwen</td><td>—</td><td>待 v8 跑完补</td></tr>
-  <tr><td>scenegraph_pf</td><td><code>QP_SCENEGRAPH=scenegraph_pfc pipeline.scenegraph --per-frame --grid-from scenegraph_v3grid</code></td><td><code>scenegraph_v3grid</code>、<code>tracks</code></td><td><code>scenegraph_pfc</code></td><td>按帧场景图（默认图）</td><td>Qwen</td><td>—</td><td>待 v8 跑完补</td></tr>
-  <tr><td>geo_a / geo_b / geo_v9</td><td><code>pipeline.run --no-gdino</code>，<code>QP_TRACKS</code> = tracks / tracks_qwen / tracks_v9p</td><td>三份跟踪、<code>refmeasure_v8</code>、<code>depth</code></td><td><code>&lt;split&gt;_geo_mh3_&lt;tag&gt;_{a,b,v9}.csv</code></td><td>几何值（提示）</td><td>—</td><td>—</td><td>待 v8 跑完补</td></tr>
-  <tr><td>extents2d</td><td><code>pipeline.extents2d --caches tracks_v9p</code></td><td><code>tracks_v9p</code></td><td><code>extents2d</code></td><td>2D 掩码凸包</td><td>SAM 2</td><td>约 80 s / 缓存</td><td>待 v8 跑完补</td></tr>
-  <tr><td>scene2d</td><td><code>QP_TRACKS=tracks_v9p pipeline.scene2d --run &lt;run&gt; --scenegraph scenegraph_pfc</code></td><td><code>tracks_v9p</code>、<code>extents2d</code>、<code>scenegraph_pfc</code>、<code>refmeasure_v8</code></td><td><code>scene2d_eval/s2d_v8</code>（本次运行为 <code>s2d_mh3_&lt;tag&gt;</code>）</td><td>2D 图层场景与场景值</td><td>—</td><td>约 15 s</td><td>待 v8 跑完补</td></tr>
-  <tr><td>ground</td><td><code>pipeline.ground</code>（只 3D 视频，在 scene_fit 前）</td><td>视频</td><td><code>ground</code></td><td>地面掩码、墙脚 / 墙顶点</td><td>GDINO、SAM 2（顶部结构时 Qwen）</td><td>—</td><td>待 v8 跑完补</td></tr>
-  <tr><td>scene_fit</td><td><code>pipeline.eval_scene_fit --dim3 --two-pass -- &lt;v9b 参数&gt;</code></td><td><code>depth</code>、<code>meshy</code>（只读，不生成）、<code>ground</code>、<code>scenegraph_pfc</code>、跟踪</td><td><code>scene_fit_eval/c_v9b</code>（测试集为 <code>fit_mh3_&lt;tag&gt;_test</code>）</td><td>3D 场景拟合与拟合值</td><td>Depth Anything（深度缓存）</td><td>—</td><td>待 v8 跑完补</td></tr>
-  <tr><td>critic（可选）</td><td><code>pipeline.scene_agent --min-iter 2 --max-iter 10</code></td><td>场景目录、各缓存（复制进 *_crit）</td><td><code>s2d_critic_&lt;tag&gt;</code>、<code>c_critic_&lt;tag&gt;</code></td><td>场景 agent 回路</td><td>Qwen</td><td>—</td><td>默认不跑</td></tr>
-  <tr><td>vlm_a / vlm_b / vlm_v9</td><td><code>pipeline.vlm_hint --direct --hint2d-mode second --hint2d-min-conf 0.5</code></td><td>几何 csv、场景值 csv</td><td><code>vlm/&lt;split&gt;_mh3_&lt;tag&gt;_{a,b,v9}_pred.csv</code></td><td>Qwen 带提示作答</td><td>Qwen</td><td>—</td><td>待 v8 跑完补</td></tr>
-  <tr><td>route</td><td><code>pipeline.route --no-geo --scene2d-direct-conf 0.1 --fit &lt;拟合目录&gt;</code></td><td>Qwen 三路、场景值、拟合目录、在场性</td><td><code>*_routed.csv</code> / <code>submission_vN.csv</code></td><td>每题选答案</td><td>—</td><td>&lt; 1 min</td><td>待 v8 跑完补</td></tr>
+  <tr><th>步骤</th><th>状态</th><th>模块与命令</th><th>读</th><th>写</th><th>做什么</th><th>模型</th><th>验证集耗时</th><th>测试集耗时</th><th>v8 用的旧步骤（mh3）</th></tr>
+  <tr class="grp"><td colspan="10">共享</td></tr>
+  <tr><td>物体清单</td><td><span class="st done">已实现</span></td><td><code>pipeline.objects</code></td><td>题目、prior</td><td><code>objects</code></td><td>物体清单</td><td>Qwen</td><td>—</td><td>6 min</td><td>objects；objects_check（只作诊断）</td></tr>
+  <tr><td>场景图（grid）</td><td><span class="st done">已实现</span></td><td><code>QP_SCENEGRAPH=scenegraph_v3grid pipeline.scenegraph --grid-same-instance</code></td><td><code>objects</code></td><td><code>scenegraph_v3grid</code></td><td>关系与同一实例</td><td>Qwen</td><td>—</td><td>418 s</td><td>scenegraph</td></tr>
+  <tr><td>跟踪（一条）</td><td><span class="st wip">实现中</span></td><td>合并 <code>pipeline.presence</code> + <code>pipeline.run --choose --recheck-prior --presence-from tracks</code> + <code>presence --merge-by-dim</code></td><td><code>objects</code>、<code>scenegraph_v3grid</code>、<code>tracks</code>、<code>tracks_qwen</code></td><td><code>tracks_v8p</code>、<code>tracks_rcp</code>、<code>tracks_v9p</code>、<code>trackcheck</code>、在场性</td><td>候选选择、prior 复核、在场性分段核对</td><td>GDINO、SAM 2、Qwen</td><td>verify 41 s；track_v8 569 s；track_rc 453 s</td><td>verify 1056 s；其余待 v8 跑完补</td><td>verify、track_v8、track_rc、merge_v9、verify_v9</td></tr>
+  <tr><td>按帧场景图</td><td><span class="st done">已实现</span></td><td><code>QP_SCENEGRAPH=scenegraph_pfc pipeline.scenegraph --per-frame --grid-from scenegraph_v3grid</code></td><td><code>scenegraph_v3grid</code>、跟踪</td><td><code>scenegraph_pfc</code></td><td>按帧关系（默认图）</td><td>Qwen</td><td>—</td><td>待 v8 跑完补</td><td>scenegraph_pf</td></tr>
+  <tr><td>场景 agent 回路</td><td><span class="st done">已实现（第一版）· 默认开启</span></td><td><code>pipeline.scene_agent --min-iter 2 --max-iter 10</code></td><td>场景目录、各缓存（复制进 *_crit）</td><td><code>s2d_critic_&lt;tag&gt;</code>、<code>c_critic_&lt;tag&gt;</code></td><td>观察 → 动作 → 重跑 → 自检</td><td>Qwen（qwen_review / qwen_prior 实现中）</td><td>—</td><td>v8 没带回路（时间不够）</td><td>critic（v8 未跑）</td></tr>
+  <tr><td>答案输出</td><td><span class="st wip">实现中</span></td><td>harness.py（答案只从场景出）</td><td>场景、Qwen 先验</td><td><code>*_routed.csv</code> / <code>submission_vN.csv</code></td><td>每题的答案与来源</td><td>—</td><td>—</td><td>—</td><td>vlm_a / vlm_b / vlm_v9、route（待删，见下）</td></tr>
+  <tr class="grp g2d"><td colspan="10">2D</td></tr>
+  <tr><td>refmeasure</td><td><span class="st done">已实现</span></td><td><code>pipeline.refmeasure</code>（跟踪步里首次生成）</td><td>视频、跟踪</td><td><code>refmeasure_v8</code></td><td>车道宽、刻度、地砖等参考长度</td><td>—</td><td>—</td><td>待 v8 跑完补</td><td>track_v8 内</td></tr>
+  <tr><td>extents2d</td><td><span class="st done">已实现</span></td><td><code>pipeline.extents2d --caches tracks_v9p</code></td><td><code>tracks_v9p</code></td><td><code>extents2d</code></td><td>掩码凸包</td><td>SAM 2</td><td>约 80 s / 缓存</td><td>待 v8 跑完补</td><td>extents2d</td></tr>
+  <tr><td>scene2d</td><td><span class="st done">已实现</span></td><td><code>QP_TRACKS=tracks_v9p pipeline.scene2d --scenegraph scenegraph_pfc</code></td><td><code>tracks_v9p</code>、<code>extents2d</code>、<code>scenegraph_pfc</code>、<code>refmeasure_v8</code></td><td><code>scene2d_eval/s2d_v8</code></td><td>图层场景与场景值</td><td>—</td><td>约 15 s</td><td>待 v8 跑完补</td><td>scene2d</td></tr>
+  <tr class="grp g3d"><td colspan="10">3D</td></tr>
+  <tr><td>depth / ground</td><td><span class="st done">已实现</span></td><td>深度缓存；<code>pipeline.ground</code></td><td>视频</td><td><code>depth</code>、<code>ground</code></td><td>深度、地面掩码、墙脚 / 墙顶</td><td>Depth Anything、GDINO、SAM 2（顶部结构时 Qwen）</td><td>—</td><td>待 v8 跑完补</td><td>ground</td></tr>
+  <tr><td>scene_fit</td><td><span class="st done">已实现（v9b）</span>；联合估计 c_v10 <span class="st wip">实现中</span></td><td><code>pipeline.eval_scene_fit --dim3 --two-pass -- &lt;v9b 参数&gt;</code></td><td><code>depth</code>、<code>meshy</code>（只读）、<code>ground</code>、<code>scenegraph_pfc</code>、跟踪</td><td><code>scene_fit_eval/c_v9b</code></td><td>3D 场景拟合与拟合值</td><td>—</td><td>—</td><td>待 v8 跑完补</td><td>scene_fit</td></tr>
 </table></div>
 
+<details class="fold"><summary>旧链（mh3）独有、待删的步骤 <span class="st del">待删</span></summary>
+<div class="scroll-x" style="margin-top:8px"><table>
+  <tr><th>旧步骤</th><th>做什么</th><th>在新 harness 里</th></tr>
+  <tr><td>geo_a / geo_b / geo_v9（<code>pipeline.run --no-gdino</code>，三份跟踪）</td><td>三路几何值，作为 Qwen 的提示</td><td>删除：几何测量变成场景里的观测项</td></tr>
+  <tr><td>vlm_a / vlm_b / vlm_v9（<code>pipeline.vlm_hint --direct</code>）</td><td>Qwen 带提示作答三次</td><td>回路里的 <code>qwen_prior</code> 工具</td></tr>
+  <tr><td>route（<code>pipeline.route --no-geo</code>）</td><td>2D 场景值 conf ≥ 0.1 直用，3D 拟合值按 conf 门控（S3 ≥ 0.6，D3 ≥ 0.3），否则 Qwen 三路对数中位数，不在场物体用 Qwen</td><td>删除：答案只从场景出</td></tr>
+  <tr><td>objects_check（<code>pipeline.objects --check-splits</code>）</td><td>验证集 / 测试集清单对照</td><td>只作诊断</td></tr>
+</table></div>
+</details>
+
 <h2 id="answers">每道题的答案从哪来</h2>
-<div class="row">
-  <div class="node"><b>2D 题（S2 / D2）</b><span class="m" style="font-size:14px">① 图层场景的场景值，conf ≥ 0.1 就直接作答；② 没有可用场景值时用 Qwen 三路的对数中位数；③ Qwen 也没给数字时用任意 conf 的场景值，再没有就用常识典型值。</span></div>
-  <div class="node"><b>3D 题（S3 / D3）</b><span class="m" style="font-size:14px">① 场景拟合值按 conf 门控（S3 ≥ 0.6，D3 ≥ 0.3；D3 里只来自直接测量的值只作提示）；② 否则 Qwen 三路的对数中位数；③ Qwen 没给数字时用任意 conf 的拟合值，再没有就用常识典型值。被问物体判为不在场（conf ≥ 0.9）时不用几何 / 场景值。</span></div>
+<h3>目标 harness</h3>
+<p>答案只从场景出：source = scene（场景值 / 拟合值）或 prior（<code>qwen_prior</code> 给的常识先验）。不再有三路中位数和回退链。</p>
+<h3>当前旧链（v8 提交、验证集 0.7489）</h3>
+<div class="cols">
+  <div class="node d2"><div class="hd"><b>2D 题（S2 / D2）</b></div><span class="m" style="font-size:14px">① 场景值 conf ≥ 0.1 直接作答；② 否则 Qwen 三路对数中位数；③ Qwen 也没数字时用任意 conf 的场景值，再没有用常识典型值。</span></div>
+  <div class="node d3"><div class="hd"><b>3D 题（S3 / D3）</b></div><span class="m" style="font-size:14px">① 拟合值按 conf 门控（S3 ≥ 0.6，D3 ≥ 0.3；D3 只来自直接测量的值只作提示）；② 否则 Qwen 三路对数中位数；③ Qwen 没数字时用任意 conf 的拟合值，再没有用常识典型值。被问物体判为不在场（conf ≥ 0.9）时不用几何 / 场景值。</span></div>
 </div>
-<div class="callout"><b>绝对不用验证集答案。</b>回退常数、合理范围、先验都是手写常识，不从验证集的 answer 列计算；验证集 159 题里有题和测试集重叠，任何间接使用都会泄漏（<code>docs/WORKING_RULES.md</code>）。</div>
-<p><b>当前最好 0.7489</b>（S2 0.719 / D2 0.892 / S3 0.721 / D3 0.664；no-geo 路由（几何 csv 只作提示）；旧路由（几何直接作答）0.7500，在噪声内）：Qwen 三路沿用 valcur11 的答案，2D 场景值用重算后的 scene2d v8（<code>scene2d_eval/s2d_v8</code>），3D 拟合用 <code>scene_fit_eval/c_v9b</code>，路由为 <code>--no-geo</code>（mh3 的默认）。逐题结果 <code>outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv</code>。</p>
+<div class="callout"><b>绝对不用验证集答案。</b>回退常数、合理范围、先验都是手写常识，不从验证集的 answer 列计算（<code>docs/WORKING_RULES.md</code>）。</div>
+<p><b>当前最好 0.7489</b>（S2 0.719 / D2 0.892 / S3 0.721 / D3 0.664；no-geo 路由（几何 csv 只作提示）；旧路由（几何直接作答）0.7500，在噪声内）：Qwen 三路沿用 valcur11 的答案，2D 场景值用重算后的 scene2d v8（<code>scene2d_eval/s2d_v8</code>），3D 拟合用 <code>scene_fit_eval/c_v9b</code>。逐题结果 <code>outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv</code>。</p>
 
 <h2 id="outputs">产物目录</h2>
 <p>保留的最新结果就是下面这些目录（都在 <code>outputs/</code> 下，测试集加 <code>_test</code>）；更早的版本目录会清理，只在 <a href="index.html">迭代记录</a> 里保留文字。</p>
 <div class="scroll-x"><table>
   <tr><th>类别</th><th>目录</th></tr>
-  <tr><td>物体清单</td><td><code>objects</code>、<code>objects_check</code>（日志）</td></tr>
+  <tr><td>物体清单</td><td><code>objects</code></td></tr>
   <tr><td>场景图</td><td><code>scenegraph_v3grid</code>、<code>scenegraph_pfc</code></td></tr>
   <tr><td>跟踪</td><td><code>tracks</code>、<code>tracks_qwen</code>、<code>tracks_v8(p)</code>、<code>tracks_rc(p)</code>、<code>tracks_v9(p)</code>、<code>trackcheck</code></td></tr>
   <tr><td>2D 中间量</td><td><code>extents2d</code>、<code>refmeasure_v8</code></td></tr>
   <tr><td>3D 中间量</td><td><code>ground</code>、<code>depth</code>、<code>meshy</code></td></tr>
   <tr><td>场景</td><td><code>scene2d_eval/s2d_v8</code>、<code>scene_fit_eval/c_v9b</code></td></tr>
-  <tr><td>Qwen 作答</td><td><code>vlm/</code></td></tr>
-  <tr><td>路由结果</td><td><code>*_routed.csv</code>（验证集）、<code>submission_vN.csv</code>（测试集）</td></tr>
+  <tr><td>旧链的 Qwen 作答</td><td><code>vlm/</code></td></tr>
+  <tr><td>结果</td><td><code>*_routed.csv</code>（验证集）、<code>submission_vN.csv</code>（测试集）</td></tr>
 </table></div>
 </div>
 </body>

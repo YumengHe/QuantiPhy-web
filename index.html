@@ -207,6 +207,9 @@
       <li>验证集 159 题中有 115 题与测试集精确重叠；之后的评估会另外列出"非重叠子集"的分数。</li>
     </ul>
   </div>
+  <div class="callout" id="direction"><b>方向变更（用户 10-24 决定）：只有一条流水线、一个 agent harness。</b>
+    清单 → 场景图 → 跟踪（一条）→ 搭场景（几何测量是场景里的观测项）→ 场景 agent 回路（2–10 轮）→ 答案只从场景出（source = scene / prior）。Qwen 变成回路里的两个工具 <code>qwen_review</code> / <code>qwen_prior</code>；不再有三路中位数、route 多路选择和回退链。
+    过渡期 v8 提交仍用旧流水线；新 harness 在验证集达到 ≥ 0.7489 后替换旧流程并删掉旧代码。流程图（目标流水线，每步标状态）见 <a href="pipeline.html#flow">完整流程</a>。</div>
 </header>
 
 <section id="eval">
@@ -271,7 +274,7 @@
   <h2>提交记录</h2>
   <table>
     <tr><th>版本</th><th>状态</th><th class="n">验证集回归</th><th class="n">官方分（测试集）</th><th>官方分四类（S2 / D2 / S3 / D3）</th></tr>
-    <tr><td>submission_v8</td><td>运行中（commit e4b00b4）</td><td class="n">—</td><td class="n">—</td><td>—</td></tr>
+    <tr><td>submission_v8</td><td>运行中（切换到 commit 874b7d6，从清单步重跑）</td><td class="n">—</td><td class="n">—</td><td>—</td></tr>
     <tr><td><b>submission_v7</b></td><td>2026-10-24 11:28 上传；Invalid 0%，3010 题计分 / 0 缺失</td><td class="n">0.6656</td><td class="n"><b>0.630</b></td><td>0.632 / 0.718 / 0.563 / 0.606</td></tr>
     <tr><td>submission_v6</td><td>2026-10-23 20:07 上传；3010 题计分；文件已清理，只留记录</td><td class="n">0.620</td><td class="n">0.603</td><td>0.588 / 0.681 / 0.535 / 0.608</td></tr>
     <tr><td>submission_v5</td><td>文件已清理，只留记录</td><td class="n">0.639</td><td class="n">—</td><td>—</td></tr>
@@ -279,7 +282,7 @@
   </table>
   <p>测试集 3289 题里有 279 题和验证集重叠，不计分，所以计分的是 3010 题。v7 验证集 0.6656 → 测试集 0.630，差 0.036；分类看 3D 最弱（测试集 S3 0.563，而验证集当时 S3 约 0.70），D2 最强（0.718）。v6 → v7 官方分 +0.027。v5 的 0.639 含样本内泄漏（见 <a href="#sf-zero">10-22 迭代</a>）。</p>
   <h3 id="sub-v8">submission_v8（运行中）</h3>
-  <p>commit e4b00b4，2026-10-24 11:26 PDT 开跑。</p>
+  <p>切换到 commit 874b7d6 从清单步重跑（含 scene_fit v9b、scene2d v8、refmeasure v8、no-geo 默认、方位词修复）。最初在 commit e4b00b4 上于 2026-10-24 11:26 PDT 开跑。</p>
   <h3 id="sub-v7">submission_v7（2026-10-24）</h3>
   <p>文件 <code>outputs/submission_v7.csv</code>，测试集 3289 题；代码 commit 05bf3fd，同一代码在验证集上的回归分数 0.6656。逐题预测见 <a href="videos.html">视频与问题</a> 的测试集页；那里的 3D 视图和 2D 图层就是这次提交用的场景（<code>scene_fit_eval/c_support_v7_test/</code> 233/235 个 3D 视频，<code>scene2d_eval/s2d_v7_test/</code> 333/333 个 2D 视频）。</p>
   <table>
@@ -521,8 +524,18 @@
     <li><b>act：</b>物体清单增删、场景图关系、重选跟踪、拆出第二个实例、refmeasure、平面 / 焦距来源、重拟合，以及 2D 的 rescale / set_extent / drop_frames 等。</li>
   </ul>
 
+  <h4>第 22 轮（commit 874b7d6）</h4>
+  <ul>
+    <li><b>方位词跟踪 bug 修复</b>，三处根因：名字归一化 <code>_norm</code> 删掉了方位词（left / right）；GDINO 候选打平时全给了第一个名字；模糊查找跨方位词匹配。修后 captured_0034as 左右两颗球分开（右球 0.96 s、左球 1.04 s 起动）；internet_0019 两个人分开，距离的几何值 0.04 → 4.17 m（真值 4.52）。测试集有 34 个视频含这类同名词对，11 个缓存会变。</li>
+    <li><b>解析修正：</b>把整句问话当成物体名的 16 题；"between X s to Y s" 时间窗 13 题。</li>
+    <li><b>"total distance traveled" 按路径长度算：</b>captured_0034as 两球路径 252 / 295 px，净位移只有 160 / 241 px。</li>
+    <li>场景 json 加版本字段。</li>
+    <li><b>count_check 硬性可见性检查：</b>逐帧比较视频里跟踪到的物体数和场景投影在画面内的物体数。验证集不匹配的帧：captured_0061 12/13、internet_0004 11/69、simulation_0193 8/14、captured_0041x 3/10、simulation_0163 3/9，其余 ≤ 3，14 个视频为 0（captured_0021x 0/21）。视频页卡片里有逐帧条带。</li>
+    <li><b>场景 agent 第一版，验证集全量：</b>23 个视频跑 2 轮、1 个跑 3 轮；观察 18 次、动作 19 次，保留 1 轮；路由 0.7380 → 0.7374（噪声内）。回滚原因：无改善 6、重建出错 4、重跟 OOM 2、变差 1。</li>
+  </ul>
+
   <h4>文件</h4>
-  <p>主 repo commit ceb82e3、34255a6、24a9d0e、85aabfd、1e92899、47c1ecf（<code>pipeline/route.py</code>、<code>perceive.py</code>、<code>objects.py</code>、<code>scenegraph.py</code>、<code>presence.py</code>、<code>refmeasure.py</code>、<code>critic.py</code>、<code>parse.py</code> 等）。没有新的测试集提交文件，最新提交仍是 <code>outputs/submission_v6.csv</code>。</p>
+  <p>主 repo commit ceb82e3、34255a6、24a9d0e、85aabfd、1e92899、47c1ecf、874b7d6（<code>pipeline/route.py</code>、<code>perceive.py</code>、<code>objects.py</code>、<code>scenegraph.py</code>、<code>presence.py</code>、<code>refmeasure.py</code>、<code>critic.py</code>、<code>parse.py</code> 等）。没有新的测试集提交文件，最新提交仍是 <code>outputs/submission_v6.csv</code>。</p>
     </div>
   </details>
 </section>
@@ -587,7 +600,7 @@
   <p>0.668（s2d_v2）和 0.666（v7）差 0.002，在重跑噪声内（单个类别 ±0.03）；v7 的提升在 3D 场景拟合本身（见 <a href="#sf-v7">10-23 迭代</a>），还没传到最终答案。<a href="videos.html">视频与问题</a> 页的逐题结果来自当前最好（<code>outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv</code>），3D 视频的三维视图来自场景拟合 v7。</p>
   <p><small>0.620 → 0.656 → 0.668 → 0.681 来自 2D 图层场景 v1、v2、v3（只影响 S2、D2，见 <a href="#s2d-layers">v1</a>、<a href="#s2d-v2">v2</a>、<a href="#s2d-v3">v3</a>）；更早的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
   <h3 id="pipe3d">流程</h3>
-  <p>一段视频和一道题经过：物体清单 → 场景图 → 在场性 → 两路跟踪并合并 → 按帧场景图 → 几何三路（只作提示）→ 2D 图层场景 / 3D 场景拟合（可选场景 agent 回路）→ Qwen 三路带提示作答 → 路由（2D 场景值 conf ≥ 0.1 直接作答，3D 拟合值按 conf 门控，否则 Qwen 三路中位数）→ 提交文件。每一步的模块、命令、缓存和耗时见 <b><a href="pipeline.html">完整流程</a></b>。</p>
+  <p>一段视频和一道题经过：物体清单 → 场景图 → 在场性 → 两路跟踪并合并 → 按帧场景图 → 几何三路（只作提示）→ 2D 图层场景 / 3D 场景拟合 → 场景 agent 回路（默认开启，v8 未带）→ Qwen 三路带提示作答 → 路由（2D 场景值 conf ≥ 0.1 直接作答，3D 拟合值按 conf 门控，否则 Qwen 三路中位数）→ 提交文件。每一步的模块、命令、缓存和耗时见 <b><a href="pipeline.html">完整流程</a></b>。</p>
   <details><summary class="muted">旧的分步说明（历史记录，以完整流程页为准）</summary>
   <h4>3D 流程（S3、D3）</h4>
   <ol class="flow" aria-label="3D 流程">
@@ -816,6 +829,16 @@
     <tr><td>2</td><td>桌宽</td><td class="n">53.7</td><td class="n">60.0</td><td class="n">0.8</td></tr>
     <tr><td>2</td><td>桌长</td><td class="n">91.0</td><td class="n">75.0</td><td class="n">0.7</td></tr>
   </table>
+
+  <h4>第 18 轮（commit c6613b6）</h4>
+  <ul>
+    <li>评审工具注册表 19 个；新增评审动作 fix_extent / set_plane / set_focal。</li>
+    <li><b>in_view 逐帧核对 captured_0021x：</b>只有 1.79–1.83 s 两帧不一致，原因是贴地匀加速编出了"先远后近"的运动。contactonset 修法全量 −0.018，不采用；真正的修法是 phases 链：桌面滚动 → 越过桌沿后抛体。</li>
+    <li>全量逐帧审计：2877 个物体-帧里 37 个不一致（simulation_0060 自行车 13、captured_0061 瑜伽球滚入 6）。</li>
+    <li>scalecheck / kinagree 不采用：验证集没有视频触发 scalecheck；kinagree 会压掉 captured_0034as 本来对的题。</li>
+    <li><b>simulation_0009 非确定性的根因：</b>运行时 Qwen 定位 "stairs" 锚点的框每次略有不同 → 加 qwen_ground 缓存后，两次全量逐题 0 差异。</li>
+    <li><b>联合估计设计稿（已批准，实现中，c_v10）：</b>7 项残差，σ 取自观测误差；收掉 direct / directkin / focalfirst / kinagree / scalecheck / tqweight 这些开关。</li>
+  </ul>
 
   <h4>可见性</h4>
   <p>场景 json 新增每个物体的 <code>visible</code> / <code>out_of_frame</code> 区间和 <code>visibility</code>（拟合位置是否在画内，和跟踪是否可见的一致度）。12 个视频的一致度都 ≥ 0.96；captured_0041x 的球用 ballistic 后 41/41 帧在画内（之前出画后仍投影在画内）；simulation_0015 现在 6/6。视频页的 3D 视图按这些区间显示物体，弹跳的球按 ballistic 轨迹采样播放。</p>
