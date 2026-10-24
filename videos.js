@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
-  const SRC_LABEL = { geo: '几何', vlm: 'Qwen' };
+  const SRC_LABEL = { geo: '几何', vlm: 'Qwen', s2d: '场景值（Qwen 无数字）' };
   const SHAPE_LABEL = { box: '长方体', sphere: '球', cylinder: '圆柱', prism: '三棱柱', mesh: '网格（画包围盒）' };
   const PALETTE = ['#3b6fd8', '#d9622b', '#2e9b5f', '#b03fa8', '#c79a12', '#1b9aaa', '#d6455d', '#6d5bd0', '#7a8b2a', '#8a5a3c'];
   let DATA = null;
@@ -50,7 +50,8 @@
         `<td class="n">${v.length}</td><td class="n">${v.length ? fmt(mean(v.map((q) => q.mra))) : '—'}</td></tr>`;
     };
     CATS.forEach((c) => { h += row(c, all.filter((q) => q.cat === c)); });
-    h += `<tr><td><b>macro</b></td><td class="n">${all.length}</td><td class="n"><b>${fmt(m.macro)}</b></td><td colspan="4" class="muted">四类 MRA 的平均</td></tr>`;
+    h += `<tr><td><b>macro</b></td><td class="n">${all.length}</td><td class="n"><b>${fmt(m.macro)}</b></td><td colspan="4" class="muted">四类 MRA 的平均` +
+      (all.some((q) => q.src === 's2d') ? `；另有 ${all.filter((q) => q.src === 's2d').length} 题 Qwen 没给数字，用的是 2D 场景值（不在几何 / Qwen 两列里）` : '') + '</td></tr>';
     $('val-sum').innerHTML = h;
   }
   function testSummary(test) {
@@ -181,9 +182,10 @@
         (s.scale.degenerate ? '<span class="fwarn">尺度退化：prior 量不出像素长度</span>' : '') + '</div>' +
         '<div class="viewer cam l2d"><canvas></canvas></div>' +
         '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
-        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层，颜色和下方图层表对应。实线框 = 当前帧的掩码包围框；实心点 = 运动模型在当前时刻的位置；' +
+        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层，颜色和下方图层表对应。半透明填充 = 掩码凸包（取最近的关键帧，随跟踪质心平移），细虚线框 = 掩码包围框；实心点 = 运动模型在当前时刻的位置；' +
         '粗虚线 = 各分段运动模型的轨迹（圆周模型画圆弧，＋ 为圆心），空心方块 = 分段的起止点；小点 = 跟踪到的逐帧质心。左下角比例尺按 prior 标定的 m/px 画' +
-        (s.scale.model === 'loglinear_y' ? '（透视模型，不同高度的比例尺长度不同）' : '') + (s.gravity_dir ? '；右上角箭头是重力方向' : '') + '。' +
+        (s.scale.model === 'loglinear_y' ? '（透视模型，取画面底部的 m/px）' : '') + '；黄线白底标签 = prior 本身（尺寸画成带端线的标注线，速度画成 1 s 位移的箭头）' +
+        (s.gravity_dir ? '；右上角箭头是重力方向' : '') + '。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
     }
     return `<div class="media"><div>${vid}</div>${scene}</div>`;
@@ -208,7 +210,7 @@
       });
       res += '</table></div></details>';
     }
-    return `<h4>场景拟合的物体</h4><div><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th><th class="n">残差 (px)</th></tr>${rows}</table></div>` +
+    return graphBlocks(s.inventory, s.scene_graph, null, null) + `<h4>场景拟合的物体</h4><div><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th><th class="n">残差 (px)</th></tr>${rows}</table></div>` +
       `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px。残差是拟合框与跟踪框的均方根误差。</p>${res}</div>`;
   }
 
@@ -278,6 +280,13 @@
     const e = Math.pow(10, Math.floor(Math.log10(x))), m = x / e;
     return (m >= 5 ? 5 : m >= 2 ? 2 : 1) * e;
   }
+  const PRIOR_COL = '#ffd400';
+  function noScaleReason(sc) {
+    const n = (sc.notes || []).join(' ');
+    if (/calibre|graduation/.test(n)) return '刻度不可跟踪';
+    if (/scene structure/.test(n)) return 'prior 物体是场景结构，图层尺寸不是它说的那个尺寸';
+    return n || '量不出像素长度';
+  }
   function fmtLen(m) { return m >= 1 ? `${fmtNum(m)} m` : m >= 0.01 ? `${fmtNum(m * 100)} cm` : `${fmtNum(m * 1000)} mm`; }
 
   function startLayers(box, bar, v, video) {
@@ -302,16 +311,26 @@
       draw(tCur);
     }
     let placed = [];   // label boxes already drawn this frame: a new label moves down until it does not overlap
-    function label(x, y, txt, col, fixed) {
+    // light = true: white box with black text (prior annotations, so they stand apart from the layer colours)
+    function label(x, y, txt, col, fixed, light) {
       ctx.font = '600 11.5px system-ui, sans-serif';
       const w = ctx.measureText(txt).width + 8;
-      x = Math.max(0, Math.min(x, W * k - w)); y = Math.max(15, y);
+      x = Math.max(0, Math.min(x, W * k - w)); y = Math.max(15, Math.min(y, H * k));
       if (!fixed) {
         for (let n = 0; n < 30 && placed.some((r) => x < r[0] + r[2] && r[0] < x + w && y - 15 < r[1] && r[1] - 15 < y); n++) y += 16;
-        placed.push([x, y, w]);
       }
-      ctx.fillStyle = 'rgba(0,0,0,.62)'; ctx.fillRect(x, y - 15, w, 16);
-      ctx.fillStyle = col; ctx.fillText(txt, x + 4, y - 3);
+      placed.push([x, y, w]);
+      ctx.fillStyle = light ? 'rgba(255,255,255,.92)' : 'rgba(0,0,0,.62)'; ctx.fillRect(x, y - 15, w, 16);
+      if (light) { ctx.strokeStyle = PRIOR_COL; ctx.lineWidth = 1.5; ctx.strokeRect(x, y - 15, w, 16); }
+      ctx.fillStyle = light ? '#111' : col; ctx.fillText(txt, x + 4, y - 3);
+    }
+    // a dimension line from p0 to p1 (canvas px) with short end bars
+    function dimLine(p0, p1, col) {
+      const dx = p1[0] - p0[0], dy = p1[1] - p0[1], n = Math.hypot(dx, dy) || 1, nx = -dy / n * 6, ny = dx / n * 6;
+      ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]);
+      ctx.moveTo(p0[0] - nx, p0[1] - ny); ctx.lineTo(p0[0] + nx, p0[1] + ny);
+      ctx.moveTo(p1[0] - nx, p1[1] - ny); ctx.lineTo(p1[0] + nx, p1[1] + ny); ctx.stroke();
     }
     function arrow(x0, y0, x1, y1, col) {
       const a = Math.atan2(y1 - y0, x1 - x0);
@@ -323,6 +342,7 @@
     }
     function draw(t) {
       tCur = t; placed = [];
+      let priorPose = null;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const cw = W * k, ch = H * k;
       ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cw, ch);
@@ -371,36 +391,106 @@
         L.t.forEach((tt, j) => { const d = Math.abs(tt - t); if (d < bd) { bd = d; bi = j; } });
         const sg = L.segments.find((x) => t >= x.t0 - half && t <= x.t1 + half);
         const tag = `${L.name} · ` + (sg ? `${sg.model}, rms ${fmt(sg.rms, 1)} px` : '不可见');
+        let cur = null;   // where the layer is now (image px): centre and, if tracked this frame, box and hull
         if (bi >= 0 && bd <= half) {
           const b = L.box[bi];
-          ctx.strokeStyle = col; ctx.lineWidth = 2;
-          ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k);
+          cur = { c: L.c[bi], box: b, hull: hullAt(L, bi) };
+          if (cur.hull) {
+            // mask convex hull of the nearest key frame, moved with the tracked centroid
+            ctx.fillStyle = col; ctx.globalAlpha = 0.3;
+            ctx.beginPath(); cur.hull.forEach((q, j) => (j ? ctx.lineTo(X(q), Y(q)) : ctx.moveTo(X(q), Y(q)))); ctx.closePath(); ctx.fill();
+            ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
+            ctx.globalAlpha = 0.55; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+            ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k);
+            ctx.setLineDash([]); ctx.globalAlpha = 1;
+          } else {
+            ctx.strokeStyle = col; ctx.lineWidth = 2;
+            ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k);
+          }
           label(b[0] * k, b[1] * k - 2, tag, col);
+          const ex = L.extent || {}, mpp = s.scale.degenerate ? NaN : mPerPx(s.scale, L.c[bi][1]);
+          if (cur.hull && ex.along != null && isFinite(mpp)) label(b[0] * k, b[3] * k + 17, `length ${fmtLen(ex.along * mpp)} · width ${fmtLen(ex.across * mpp)}`, col);
         } else if (sg) {
-          const p = segPos(sg, t); label(X(p) + 6, Y(p) - 6, tag, col);
+          const p = segPos(sg, t); cur = { c: p }; label(X(p) + 6, Y(p) - 6, tag, col);
         }
+        if (L.name === s.prior.layer) priorPose = { L, cur, sg, col };
         if (sg) {
           const p = segPos(sg, Math.min(Math.max(t, sg.t0), sg.t1));
           ctx.fillStyle = col; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.arc(X(p), Y(p), 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
         }
       });
-      // scale bar(s): one metric length, drawn at several image heights when the scale depends on y
-      const sc = s.scale;
-      if (isFinite(mPerPx(sc, H / 2))) {
-        const ys = sc.model === 'loglinear_y' ? [0.3, 0.6, 0.9].map((f) => f * H) : [0.93 * H];
-        const len = niceLen(Math.min(...ys.map((y) => 0.22 * W * mPerPx(sc, y))));
-        ys.forEach((y) => {
-          const px = (len / mPerPx(sc, y)) * k, x0 = 10, yy = y * k;
-          ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x0 + px, yy); ctx.moveTo(x0, yy - 5); ctx.lineTo(x0, yy + 5); ctx.moveTo(x0 + px, yy - 5); ctx.lineTo(x0 + px, yy + 5); ctx.stroke();
-          label(x0, yy - 7, fmtLen(len), '#fff', true);
-        });
+      drawPrior(priorPose, t);
+      // one scale bar at the bottom left (the uniform m/px; with the perspective model the m/px at that height)
+      const sc = s.scale, pr = s.prior;
+      const yb = 0.93 * H, mpp = mPerPx(sc, yb);
+      if (isFinite(mpp) && !sc.degenerate) {
+        const len = niceLen(0.22 * W * mpp), px = (len / mpp) * k, x0 = 10, yy = yb * k;
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x0 + px, yy); ctx.moveTo(x0, yy - 5); ctx.lineTo(x0, yy + 5); ctx.moveTo(x0 + px, yy - 5); ctx.lineTo(x0 + px, yy + 5); ctx.stroke();
+        label(x0, yy - 7, fmtLen(len), '#fff', true);
+        if (pr.how) label(x0 + px + 10, yy + 5, `尺度来自 prior：${pr.how}`, '#fff', true);
+      } else {
+        label(10, H * k - 8, `prior 不能定尺度（${noScaleReason(sc)}）`, '#ff8a80', true);
       }
       if (s.gravity_dir) {
         const g = s.gravity_dir, cx = W * k - 40, cy = 40;
         arrow(cx - g[0] * 22, cy - g[1] * 22, cx + g[0] * 22, cy + g[1] * 22, '#ffd43b');
-        label(cx + 8, cy - 20, 'g', '#ffd43b', true);
+        if (pr.quantity === 'gravity') {
+          ctx.font = '600 11.5px system-ui, sans-serif';
+          const txt = `prior: g = ${fmtNum(pr.value_si)} m/s²`;
+          label(cx - 30 - ctx.measureText(txt).width, cy + 4, txt, '#111', true, true);
+        } else label(cx + 8, cy - 20, 'g', '#ffd43b', true);
+      }
+    }
+    // hull of the key frame nearest to tracked frame bi, shifted by the centroid motion between the two frames
+    function hullAt(L, bi) {
+      if (!L.hulls || !L.hulls.length) return null;
+      const t = L.t[bi];
+      let h = L.hulls[0];
+      L.hulls.forEach((x) => { if (Math.abs(x[0] - t) < Math.abs(h[0] - t)) h = x; });
+      let hj = 0;
+      L.t.forEach((tt, j) => { if (Math.abs(tt - h[0]) < Math.abs(L.t[hj] - h[0])) hj = j; });
+      const dx = L.c[bi][0] - L.c[hj][0], dy = L.c[bi][1] - L.c[hj][1];
+      return h[1].map((q) => [q[0] + dx, q[1] + dy]);
+    }
+    // the prior drawn on its own layer: a dimension line for sizes, a 1 s displacement arrow for speeds
+    function drawPrior(pp, t) {
+      const pr = s.prior;
+      if (!pp || !pp.cur || !pr.px || pr.quantity === 'gravity') return;
+      const { L, cur, sg } = pp, c = cur.c, ext = L.extent || {};
+      const o = L.orient && Math.hypot(L.orient[0], L.orient[1]) > 0 ? L.orient : [1, 0], perp = [-o[1], o[0]];
+      const P = (q) => [q[0] * k, q[1] * k];
+      const val = pr.value_si;
+      if (['height', 'length', 'width', 'diameter'].includes(pr.quantity)) {
+        // direction the prior is measured along, and an offset that moves the line just outside the object
+        let d, off;
+        if (pr.quantity === 'height') { d = [0, 1]; off = [(ext.w || 0) / 2 + 12, 0]; }
+        else if (pr.quantity === 'length') { d = o; off = perp.map((v) => v * ((ext.across || ext.h || 0) / 2 + 12)); }
+        else if (pr.quantity === 'width') { d = perp; off = o.map((v) => v * ((ext.along || ext.w || 0) / 2 + 12)); }
+        else { d = [1, 0]; off = [0, -((ext.h || 0) / 2 + 12)]; }
+        if (off[1] > 0 || (off[1] === 0 && off[0] < 0)) off = off.map((v) => -v);   // keep it above / to the right
+        if (pr.quantity === 'height') off = [Math.abs(off[0]), 0];
+        const m = [c[0] + off[0], c[1] + off[1]], h = pr.px / 2;
+        const p0 = P([m[0] - d[0] * h, m[1] - d[1] * h]), p1 = P([m[0] + d[0] * h, m[1] + d[1] * h]);
+        dimLine(p0, p1, PRIOR_COL);
+        const lx = Math.max(p0[0], p1[0]) + 6, ly = (p0[1] + p1[1]) / 2 + 6;
+        label(lx, ly, `prior: ${pr.quantity} = ${fmtLen(val)} (${fmt(pr.px, 0)} px)`, '#111', false, true);
+        return;
+      }
+      if (pr.quantity === 'speed' || pr.quantity === 'velocity') {
+        let dir = o;
+        if (sg && sg.model !== 'static') {
+          const a = segPos(sg, Math.max(sg.t0, t - 0.02)), b = segPos(sg, Math.min(sg.t1, t + 0.02)), n = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          if (n > 1e-6) dir = [(b[0] - a[0]) / n, (b[1] - a[1]) / n];
+        }
+        const mt = /at\s*t\s*=\s*([\d.]+)/i.exec(pr.text), tp = mt ? parseFloat(mt[1]) : NaN;
+        const on = !isFinite(tp) || Math.abs(t - tp) < 0.15;
+        ctx.globalAlpha = on ? 1 : 0.35;
+        const p0 = P(c), p1 = P([c[0] + dir[0] * pr.px, c[1] + dir[1] * pr.px]);
+        arrow(p0[0], p0[1], p1[0], p1[1], PRIOR_COL);
+        label(p1[0] + 6, p1[1] + 4, `prior: v = ${fmtNum(val)} m/s` + (isFinite(tp) ? ` @${fmtNum(tp)}s` : '') + ` (1 s = ${fmt(pr.px, 0)} px)`, '#111', false, true);
+        ctx.globalAlpha = 1;
       }
     }
     function setMode(m) {
@@ -426,26 +516,78 @@
     };
   }
 
+  // ---------- object inventory + scene graph (2D scenes now; 3D scene fits once they carry them) ----------
+  function noteZh(n) {
+    const m = /(\d+) of (\d+) segment\(s\) leave the surface line/.exec(n || '');
+    if (m) return `${m[2]} 段里有 ${m[1]} 段离开支撑面那条线，自由模型拟合更好`;
+    if (/track is not along one line/.test(n || '')) return '轨迹不在一条直线上';
+    return n || '';
+  }
+  function rejectZh(r) {
+    const m = /duplicate track of '(.*)'/.exec(r || '');
+    return m ? `和 "${esc(m[1])}" 用的是同一条跟踪，而场景图判断两者不是同一个物体，所以拒绝较弱的这一层` : esc(r);
+  }
+  function graphBlocks(inv, sg, rejected, layers) {
+    let out = '';
+    if (inv && inv.length) {
+      const o2 = (sg && sg.objects_2d) || {};
+      let rows = '';
+      inv.forEach((o) => {
+        const al = o.aliases.filter((a) => a !== o.name);
+        const role = [o.track === false ? '不跟踪（场景结构）' : '跟踪', o.dyn ? '动态' : (o.dyn === false ? '静态' : ''), o.role || ''].filter(Boolean).join(' · ');
+        const mp = o2[o.name] ? [o2[o.name].motion_plane, o2[o.name].surface].filter(Boolean).join(' / ') : '';
+        rows += `<tr><td>${esc(o.name)}${rejected && rejected[o.name] ? ' <span class="fwarn">（层被拒绝）</span>' : ''}</td><td>${al.length ? al.map(esc).join('；') : '<span class="muted">—</span>'}</td>` +
+          `<td>${esc(o.where.join(', '))}</td><td>${esc(role)}</td><td>${esc(mp)}</td></tr>`;
+      });
+      out += '<h4>物体清单</h4><div class="scroll-x"><table><tr><th>物体（canonical 名）</th><th>别名</th><th>出现在</th><th>角色</th><th>运动平面 / 支撑面</th></tr>' + rows + '</table></div>';
+    }
+    if (sg || (rejected && Object.keys(rejected).length)) {
+      const items = [];
+      ((sg && sg.edges) || []).forEach((e) => {
+        const tr = e.t0 != null && e.t1 != null ? ` <span class="muted">${fmt(e.t0, 2)}–${fmt(e.t1, 2)} s</span>` : '';
+        const cf = e.conf != null ? ` <span class="muted">(conf ${fmt(e.conf, 2)})</span>` : '';
+        items.push(e.to ? `${esc(e.from)} <b>${esc(e.rel)}</b> ${esc(e.to)}${cf}${tr}` : `${esc(e.from)} — <b>${esc(e.rel)}</b>${cf}${tr}`);
+      });
+      ((sg && sg.same) || []).forEach((x) => items.push(`${esc(x.a)} <b>${x.same ? '=' : '≠'}</b> ${esc(x.b)}` + (x.conf != null ? ` <span class="muted">(conf ${fmt(x.conf, 2)})</span>` : '')));
+      Object.entries(rejected || {}).forEach(([k, r]) => items.push(`<span class="fwarn">拒绝的层</span> ${esc(k)}：${rejectZh(r)}`));
+      (layers || []).forEach((L) => {
+        const c = L.constraint || {};
+        if (!c.mode) return;
+        const rel = c.mode === 'surface' ? `on ${c.surface || '支撑面'}` : c.mode;
+        if (c.applied === false) items.push(`<span class="fwarn">约束被轨迹否决</span> ${esc(L.name)} ${esc(rel)}：${esc(noteZh(c.note))}`);
+        else if (c.applied === true) items.push(`约束已用于拟合：${esc(L.name)} ${esc(rel)}`);
+      });
+      if (sg && sg.support && sg.support.length) items.push(`<span class="muted">支撑面节点：${sg.support.map(esc).join('、')}</span>`);
+      out += `<h4>场景图${sg && sg.source ? `<span class="muted" style="font-weight:400">（来源 ${esc(sg.source)}）</span>` : ''}</h4>` +
+        (items.length ? `<ul class="sg-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>` : '<p class="muted">没有边。</p>');
+    }
+    return out;
+  }
+
   function layerTables(v) {
     const s = v.scene2d, sc = s.scale, pr = s.prior;
     let rows = '';
     s.layers.forEach((L, i) => {
       const segs = L.segments.map((g) => `${MODEL_LABEL[g.model] || esc(g.model)} <span class="muted">${fmt(g.t0, 2)}–${fmt(g.t1, 2)} s · rms ${fmt(g.rms, 1)}</span>`).join('<br>');
-      const ext = L.extent || {};
+      const ext = L.extent || {}, mpp = sc.degenerate ? NaN : sc.m_per_px_ref;
+      const ext_m = ext.along != null && isFinite(mpp) ? `<div class="muted">${fmtLen(ext.along * mpp)} × ${fmtLen(ext.across * mpp)}</div>` : '';
       rows += `<tr><td><span class="swatch" style="background:${PALETTE[i % PALETTE.length]}"></span></td><td>${esc(L.name)}` +
         (L.flags.length ? `<div class="known">${L.flags.map(esc).join('；')}</div>` : '') + '</td>' +
         `<td>${L.visible.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ')} s</td><td>${segs}</td>` +
-        `<td class="n">${fmtNum(ext.w)} × ${fmtNum(ext.h)}</td><td class="n">${fmt(L.rms, 2)}</td></tr>`;
+        `<td class="n">${fmtNum(ext.along)} × ${fmtNum(ext.across)}${ext_m}</td><td class="n">${fmtNum(ext.h)}</td><td>${esc(ext.src || '')}</td><td class="n">${fmt(L.rms, 2)}</td></tr>`;
     });
-    const scaleTxt = !sc.m_per_px_ref ? '没有可用的尺度' : sc.model === 'loglinear_y'
+    const scaleTxt = !sc.m_per_px_ref || sc.degenerate ? `没有可用的尺度（${noScaleReason(sc)}）` : sc.model === 'loglinear_y'
       ? `透视模型 m/px(y) = ${fmtNum(sc.m_per_px_ref)} · exp(−${fmtNum(sc.k_per_px)} · (y − ${fmtNum(sc.y_ref)}))`
       : `均匀 ${fmtNum(sc.m_per_px_ref)} m/px`;
-    return '<h4>图层</h4><div class="scroll-x"><table><tr><th></th><th>图层（物体）</th><th>可见时段</th><th>分段运动模型</th><th class="n">尺寸 w × h (px)</th><th class="n">残差 (px)</th></tr>' +
+    return graphBlocks(s.inventory, s.scene_graph, s.rejected, s.layers) +
+      '<h4>图层</h4><div class="scroll-x"><table><tr><th></th><th>图层（物体）</th><th>可见时段</th><th>分段运动模型</th>' +
+      '<th class="n" title="length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向">length × width (px)</th><th class="n">竖直高度 (px)</th><th>尺寸来源</th><th class="n">残差 (px)</th></tr>' +
       rows + '</table></div>' +
-      `<p class="muted" style="font-size:12.5px">尺度：${scaleTxt}（${s.width}×${s.height} px 坐标）；来自 prior "${esc(pr.text)}"，在图层 "${esc(pr.layer)}" 上量得 ${fmtNum(pr.px)} px（${esc(pr.how)}）。` +
+      `<p class="muted" style="font-size:12.5px">尺度：${scaleTxt}（${s.width}×${s.height} px 坐标）；` +
+      (pr.layer ? `来自 prior "${esc(pr.text)}"，在图层 "${esc(pr.layer)}" 上量得 ${fmtNum(pr.px)} ${pr.quantity === 'speed' ? 'px/s' : pr.quantity === 'gravity' ? 'px/s²' : 'px'}（${esc(pr.how)}）。` : `prior "${esc(pr.text)}"。`) +
       (sc.model !== 'loglinear_y' && sc.persp_reason ? `没用透视模型：${esc(sc.persp_reason)}。` : '') +
       (sc.notes.length ? sc.notes.map(esc).join('；') + '。' : '') +
-      (s.gravity_dir ? `重力方向（图像坐标）(${fmt(s.gravity_dir[0], 3)}, ${fmt(s.gravity_dir[1], 3)})。` : '') +
+      (s.gravity_dir ? `重力方向（图像坐标）(${fmt(s.gravity_dir[0], 3)}, ${fmt(s.gravity_dir[1], 3)})${s.gravity_source ? `，来自 ${esc(s.gravity_source)}` : ''}。` : '') +
       '残差是该段模型位置与跟踪质心的均方根误差。</p>';
   }
 

@@ -206,12 +206,13 @@
   <h2>当前最好方案</h2>
   <table>
     <tr><th>验证集（159 题）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td><b>当前最好 harness</b></td><td><b>0.656</b></td><td>0.609</td><td>0.681</td><td>0.686</td><td>0.647</td></tr>
+    <tr><td><b>当前最好 harness</b></td><td><b>0.668</b></td><td>0.669</td><td>0.670</td><td>0.686</td><td>0.647</td></tr>
+    <tr><td><small>参考：2D 图层场景 v1</small></td><td><small>0.656</small></td><td><small>0.609</small></td><td><small>0.681</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：上一版（没有 2D 图层场景）</small></td><td><small>0.620</small></td><td><small>0.594</small></td><td><small>0.551</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：几何流水线 <code>pipeline.run</code></small></td><td><small>0.497</small></td><td><small>0.462</small></td><td><small>0.341</small></td><td><small>0.707</small></td><td><small>0.477</small></td></tr>
     <tr><td><small>参考：官方 GPT-5.1 基线</small></td><td><small>0.486</small></td><td><small>0.569</small></td><td><small>0.354</small></td><td><small>0.456</small></td><td><small>0.564</small></td></tr>
   </table>
-  <p><small>0.620 → 0.656 来自 2D 图层场景（只影响 S2、D2，见 <a href="#s2d-layers">10-23 迭代</a>）；更早的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
+  <p><small>0.620 → 0.656 → 0.668 来自 2D 图层场景 v1 和 v2（只影响 S2、D2，见 <a href="#s2d-layers">v1</a>、<a href="#s2d-v2">v2</a>）；更早的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
   <h3 id="pipe3d">3D 流程（S3、D3）</h3>
   <ol class="flow" aria-label="3D 流程">
     <li><div class="step"><b><span class="n">1</span>解析</b>规则解析器提取物理量、物体、时间、单位<div class="m">parse.py</div></div></li>
@@ -231,7 +232,7 @@
     <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
   </table>
   <p>验证集结果：S3 <b>0.686</b>、D3 <b>0.647</b>。S2、D2 的流程见 <a href="#pipe2d">2D 流程</a>。</p>
-  <p><b>最新测试集提交：</b><code>outputs/submission_v6.csv</code>（v5 加上解析和场景拟合修复、回退常数去泄漏；还没有 2D 图层场景，测试集现阶段不跑）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_s2d_v1_routed.csv</code>）。</p>
+  <p><b>最新测试集提交：</b><code>outputs/submission_v6.csv</code>（v5 加上解析和场景拟合修复、回退常数去泄漏；还没有 2D 图层场景，测试集现阶段不跑）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_s2d_v2_routed.csv</code>）。</p>
   <p><small>同一配置重跑一次，单个类别会波动 ±0.03，所以差距不到约 0.01 的改动不算结论。</small></p>
 </section>
 
@@ -654,25 +655,27 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
   <ol class="flow" aria-label="2D 流程">
     <li><div class="step"><b><span class="n">1</span>解析、跟踪</b>规则解析器 + Grounding DINO / Qwen 查框 / SAM 2<div class="m">parse.py / perceive.py</div></div></li>
     <li><div class="step"><b><span class="n">2</span>几何测量</b>由已知条件标定 m/px，换算出几何值（第一个提示）<div class="m">calibrate / physics / solve</div></div></li>
-    <li><div class="step hl"><b><span class="n">3</span>图层场景</b>背景层 + 每个物体一层，分段运动模型 → 场景值（第二个提示）<div class="m">scene2d.py</div></div></li>
+    <li><div class="step hl"><b><span class="n">3</span>图层场景</b>物体清单 + 场景图 → 每个物体一层，掩码主轴尺寸，分段运动模型 → 场景值（第二个提示）<div class="m">scene2d.py</div></div></li>
     <li><div class="step"><b><span class="n">4</span>Qwen 作答</b>Qwen3.8-27B 看 16 帧，带两个提示值直接给数字<div class="m">vlm_hint.py --direct --hint2d-mode second</div></div></li>
-    <li><div class="step"><b><span class="n">5</span>路由</b>S2、D2 都用 Qwen 的答案<div class="m">route.py --fallback-vlm</div></div></li>
+    <li><div class="step"><b><span class="n">5</span>路由</b>S2、D2 用 Qwen 的答案；Qwen 没给数字时先用场景值<div class="m">route.py --fallback-vlm --scene2d-column</div></div></li>
   </ol>
   <table class="steps">
     <tr><th>步骤</th><th>做法</th><th>代码</th></tr>
     <tr><td>1 解析、跟踪</td><td>和 <a href="#pipe3d">3D 流程</a>的第 1、2 步相同。</td><td><code>parse.py</code> <code>perceive.py</code></td></tr>
     <tr><td>2 几何测量</td><td>m/px = 已知量 ÷ 它的像素量，再换算成目标量，得到几何值。几何走回退常数的题不给这个提示。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
-    <tr><td>3 图层场景</td><td>把视频拆成背景层（采样帧的中位数）和每个物体一层（从两份 SAM 2 跟踪缓存里选匹配最好、不退化的那条）。用 prior 在对应图层上量出像素量，标定一个 m/px；运动图层的视大小随 y 一致变化（斜地面）时，m/px 改成随 y 对数线性变化。每层按时间分段（碰撞、停下处切开），每段用 BIC 在静止、匀速、匀加速、匀速圆周里自动选模型；圆心一致的圆周共用一个圆心。逐题从模型算出"场景值"。验证集 12 个 2D 视频约 10 秒。</td><td><code>scene2d.py</code></td></tr>
+    <tr><td>3 图层场景</td><td><b>物体清单</b>（<code>objects.py</code>）把题目和 prior 里提到的物体合并别名，得到 canonical 名，每个一层；<b>场景图</b>（<code>scenegraph.py --dim2</code>）给出 on / airborne / held 关系，并判断两个名字是否同一实例：不同实例却共用一条跟踪的，拒绝较弱的那一层。背景层是采样帧的中位数，每层从两份 SAM 2 跟踪缓存里选匹配最好、不退化的那条。尺寸在<b>掩码凸包</b>（<code>extents2d.py</code>）上量：length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向。用 prior 在对应图层上量出像素量，标定一个统一的 m/px（透视模型默认关）。每层按时间分段（碰撞、停下处切开），每段用 BIC 在静止、匀速、匀加速、匀速圆周里自动选模型；场景图说放在支撑面上的，先试约束到支撑线上的模型，轨迹不符时否决约束。逐题从模型算出"场景值"，两物体距离也直接从两层算。验证集 12 个 2D 视频约 10 秒。</td><td><code>scene2d.py</code> <code>extents2d.py</code> <code>objects.py</code> <code>scenegraph.py</code></td></tr>
     <tr><td>4 Qwen 作答</td><td>Qwen3.8-27B 看 16 帧作答，提示里同时给几何值和场景值（<code>--hint2d &lt;run&gt;/val_pred.csv --hint2d-mode second</code>），并说明场景值在图层跟错物体时会错。两种跟踪各问一次，取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
-    <tr><td>5 路由</td><td>S2、D2 都用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
+    <tr><td>5 路由</td><td>S2、D2 都用 Qwen 的答案；Qwen 没给出有效数字时先用场景值，再退回几何值。</td><td><code>route.py</code></td></tr>
   </table>
-<pre><code>python -m pipeline.scene2d --split val --run s2d_v1
-python -m pipeline.vlm_hint --split val --tag s2d_v1_sec_a --hint outputs/val_pred_newfb.csv --no-fallback-hint --direct \
-    --max-tokens 200 --hint2d outputs/scene2d_eval/s2d_v1/val_pred.csv --hint2d-mode second \
+<pre><code>python -m pipeline.extents2d --split val                     # 掩码凸包，每份跟踪缓存一次（约 80 秒）
+python -m pipeline.scene2d --split val --run s2d_v2
+python -m pipeline.vlm_hint --split val --tag s2d_v2_sec_a --hint outputs/val_pred_newfb.csv --no-fallback-hint --direct \
+    --max-tokens 200 --hint2d outputs/scene2d_eval/s2d_v2/val_pred.csv --hint2d-mode second \
     --base outputs/vlm/val_fbn_a_pred.csv --base-hint outputs/val_pred_newfb.csv      # _b 用 tracks_qwen 的提示再跑一次
 python -m pipeline.route --split val --geo outputs/val_pred_newfb.csv --fallback-vlm \
-    --vlm outputs/vlm/val_s2d_v1_sec_a_pred.csv outputs/vlm/val_s2d_v1_sec_b_pred.csv</code></pre>
-  <p>验证集结果：S2 <b>0.609</b>、D2 <b>0.681</b>。每个 2D 视频的图层（包围框、运动模型轨迹、比例尺）可以在 <a href="videos.html">视频与问题</a> 里和原视频联动查看。测试集提交 v6 还没有第 3 步（测试集现阶段不跑）。</p>
+    --vlm outputs/vlm/val_s2d_v2_sec_a_pred.csv outputs/vlm/val_s2d_v2_sec_b_pred.csv \
+    --scene2d outputs/scene2d_eval/s2d_v2/val_pred.csv --scene2d-column --out outputs/val_s2d_v2_routed.csv</code></pre>
+  <p>验证集结果：S2 <b>0.669</b>、D2 <b>0.670</b>。每个 2D 视频的图层（掩码凸包、运动模型轨迹、比例尺、prior 标注）以及物体清单和场景图，可以在 <a href="videos.html">视频与问题</a> 里和原视频联动查看。测试集提交 v6 还没有第 3 步（测试集现阶段不跑）。</p>
   <h3 id="pipe2d-track2d">队友的 2D 方案</h3>
   <p>同样先做几何测量，几何测不出来的题由 Code-as-World-VL-9B 直接看视频兜底。验证集 S2 0.503、D2 0.508，详见 <a href="#track2d">2D 方案：几何测量 + VLM 兜底</a>。</p>
 </section>
@@ -680,6 +683,80 @@ python -m pipeline.route --split val --geo outputs/val_pred_newfb.csv --fallback
 <section id="iter2d">
   <h2>2D 迭代记录</h2>
   <p>只针对 2D 题（S2、D2）的迭代，按时间倒序。</p>
+
+  <details class="iter" id="s2d-v2">
+    <summary><span class="d">10-23</span>2D 图层场景 v2：物体清单 + 场景图 + 掩码主轴尺寸，Qwen 无数字时回退到场景值 · 验证集 0.656→0.668，S2 0.609→0.669 <span class="yes">采用（验证集）</span></summary>
+    <div class="iter-body">
+  <h4>做法</h4>
+  <ul>
+    <li><b>图层来自物体清单：</b>题目和 prior 里提到的物体先合并别名（例如 "the balck ball" 和 "the black ball"），每个 canonical 名一层；标为场景结构的（车道、地砖等）只量尺寸，不当运动物体。</li>
+    <li><b>场景图：</b>给出 on（支撑面）、airborne、held 关系，以及两个名字是否同一实例。不同实例却共用同一条跟踪的，拒绝较弱的那一层（internet_0027：orange ball 和 yellow ball 被判为不同的球，但跟踪是同一条，orange ball 层被拒绝）。放在支撑面上的物体先试约束在支撑线上的运动模型，轨迹不符时否决约束（simulation_0171 宇航员 "on floor" 被否决：4 段都离开地面线，在跳）。侧视且有 airborne 物体时，重力方向取图像向下。</li>
+    <li><b>掩码主轴尺寸：</b>在每个关键帧的掩码凸包上量尺寸：length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向，height = 竖直方向。v1 用的是包围框的宽和高。</li>
+    <li><b>尺度：</b>透视模型默认关，所有视频都用统一的 m/px（v1 的对数线性透视模型在退化跟踪上会误触发）。</li>
+    <li><b>两物体距离：</b>直接从两层在该时刻的位置算。</li>
+    <li><b>路由：</b>Qwen 没给数字时，先用场景值，再退回几何值（<code>route --scene2d ... --scene2d-column</code>）。</li>
+  </ul>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:10px 0">
+    <figure style="margin:0"><img src="case/scene2d/simulation_0089_v2.jpg" alt="simulation_0089 图层：两只鸟的掩码凸包和 length、width 标注" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>simulation_0089：半透明填充是掩码凸包；每层标出 length（沿飞行方向）和 width（垂直方向）；黄线是 prior（小鸟长 0.94 m）。</small></figcaption></figure>
+    <figure style="margin:0"><img src="case/scene2d/internet_0027_v2.jpg" alt="internet_0027 图层：台球的掩码凸包，orange ball 层被拒绝" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>internet_0027：orange ball 和 yellow ball 共用一条跟踪，orange ball 层被拒绝，图上没有它。</small></figcaption></figure>
+  </div>
+
+  <h4>验证集结果（159 题）</h4>
+  <table>
+    <tr><th>配置</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>2D 题 MRA=0</th></tr>
+    <tr><td>基线：不用场景值</td><td>0.6195</td><td>0.594</td><td>0.551</td><td>0.686</td><td>0.647</td><td>12</td></tr>
+    <tr><td>v1（场景值作为第二个提示）</td><td>0.6558</td><td>0.609</td><td>0.681</td><td>0.686</td><td>0.647</td><td>8</td></tr>
+    <tr><td>v1 + Qwen 无数字时回退到场景值</td><td>0.6636</td><td>0.641</td><td>0.681</td><td>0.686</td><td>0.647</td><td>7</td></tr>
+    <tr><td><b>v2（采用）</b></td><td><b>0.6680</b></td><td><b>0.669</b></td><td>0.670</td><td>0.686</td><td>0.647</td><td>8</td></tr>
+    <tr><td>v2 直接用场景值作答（<code>route --scene2d</code>）</td><td>0.6515</td><td>0.622</td><td>0.651</td><td>0.686</td><td>0.647</td><td>13</td></tr>
+  </table>
+  <p>v1 → v1 + 回退的 +0.008 全部来自 simulation_0163（Qwen 对"1 s 时球的加速度"没给数字，v1 场景值 0.337，真值 0.339；v2 的场景值是 0.388，所以这个视频在 v2 里低了 0.033）。v2 再 +0.004；S2 +0.028，D2 −0.011 在噪声范围内（单个类别重跑一次会波动 ±0.03）。直接用场景值作答 S2、D2 都更低，2D 题 MRA=0 多 5 题，没采用。</p>
+
+  <h4>逐视频变化（视频内 2D 题的平均 MRA，v1 + 回退 → v2）</h4>
+  <table>
+    <tr><th>视频</th><th class="n">题数</th><th class="n">v1 + 回退</th><th class="n">v2</th><th class="n">变化</th><th>说明</th></tr>
+    <tr><td>simulation_0089</td><td class="n">6</td><td class="n">0.467</td><td class="n">0.633</td><td class="n">+0.167</td><td>length / width 语义修正，见下</td></tr>
+    <tr><td>internet_0004</td><td class="n">4</td><td class="n">0.375</td><td class="n">0.500</td><td class="n">+0.125</td><td>prior 是尺子刻度，v2 不再用它定尺度，场景值不再误导 Qwen</td></tr>
+    <tr><td>internet_0019</td><td class="n">7</td><td class="n">0.843</td><td class="n">0.914</td><td class="n">+0.071</td><td>—</td></tr>
+    <tr><td>internet_0013</td><td class="n">6</td><td class="n">0.717</td><td class="n">0.717</td><td class="n">0</td><td>—</td></tr>
+    <tr><td>simulation_0098_segmented</td><td class="n">4</td><td class="n">0.925</td><td class="n">0.925</td><td class="n">0</td><td>—</td></tr>
+    <tr><td>simulation_0196</td><td class="n">4</td><td class="n">0.000</td><td class="n">0.000</td><td class="n">0</td><td>气泡只动几个像素，尺度不可靠</td></tr>
+    <tr><td>simulation_0171</td><td class="n">8</td><td class="n">0.675</td><td class="n">0.662</td><td class="n">−0.013</td><td>—</td></tr>
+    <tr><td>simulation_0163</td><td class="n">6</td><td class="n">0.783</td><td class="n">0.750</td><td class="n">−0.033</td><td>Qwen 无数字回退的那题，v2 场景值 0.388（真值 0.339，v1 为 0.337）</td></tr>
+    <tr><td>internet_0001</td><td class="n">3</td><td class="n">0.667</td><td class="n">0.633</td><td class="n">−0.033</td><td>—</td></tr>
+    <tr><td>internet_0027</td><td class="n">5</td><td class="n">0.820</td><td class="n">0.780</td><td class="n">−0.040</td><td>—</td></tr>
+    <tr><td>internet_0005</td><td class="n">4</td><td class="n">0.700</td><td class="n">0.650</td><td class="n">−0.050</td><td>—</td></tr>
+    <tr><td>simulation_0193</td><td class="n">12</td><td class="n">0.708</td><td class="n">0.650</td><td class="n">−0.058</td><td>木星直径一题，Qwen 两次作答的噪声</td></tr>
+  </table>
+
+  <h4>length / width 语义修正（simulation_0089）</h4>
+  <p>v1 把包围框的宽当 length、高当 width。鸟水平飞、翅膀上下展开，所以"宽"（翼展）其实在竖直方向。v2 按朝向量：length 沿飞行方向，width 垂直于它。</p>
+  <table>
+    <tr><th>题目</th><th class="n">v1 场景值</th><th class="n">v2 场景值</th><th class="n">真值</th></tr>
+    <tr><td>大鸟的宽 (m)</td><td class="n">0.97</td><td class="n">2.38</td><td class="n">2.04</td></tr>
+    <tr><td>小鸟的宽 (m)</td><td class="n">0.60</td><td class="n">1.51</td><td class="n">1.30</td></tr>
+  </table>
+  <p>小鸟这题 Qwen 仍然答了 0.597（没采信场景值）。</p>
+
+  <h4>存疑真值</h4>
+  <ul>
+    <li><b>simulation_0163</b>：回球口的真值 10 m 对应的是球瓶后面的大门框。我们找的是另一个物体，是我们认错了，不是标注错。</li>
+    <li><b>simulation_0089</b>：几道题的真值和 2D 假设（两只鸟在同一平面、同一尺度）彼此不自洽。</li>
+    <li><b>simulation_0171</b>：宇航员的加速度随时间变化，分段匀加速只能近似。</li>
+  </ul>
+
+  <h4>未解决的问题</h4>
+  <ul>
+    <li>prior 是刻度类（calibre，例如尺子 1 cm 刻度）时没有尺度：刻度不是可跟踪的物体。</li>
+    <li>"两个 X"（例如两块路牌、两辆黑车）需要清单里 count = 2、各一层，现在只有一层。</li>
+    <li>碰撞分段最多 4 段，碰撞多的视频分不开。</li>
+    <li>simulation_0196（气泡）和 Callisto 模型像素太少，尺寸和速度量不准。</li>
+  </ul>
+
+  <h4>文件</h4>
+  <p>代码 <code>pipeline/scene2d.py</code>、<code>pipeline/extents2d.py</code>、<code>pipeline/objects.py</code>、<code>pipeline/scenegraph.py</code>、<code>pipeline/route.py</code>（主 repo commit 323cfa0）；场景 json 和背景图 <code>outputs/scene2d_eval/s2d_v2/</code>；验证集逐题结果 <code>outputs/val_s2d_v2_routed.csv</code>。没有新的测试集提交文件（测试集现阶段不跑），最新提交仍是 <code>outputs/submission_v6.csv</code>。</p>
+    </div>
+  </details>
 
   <details class="iter" id="s2d-layers">
     <summary><span class="d">10-23</span>2D 图层式重建（scene2d），场景值作为 Qwen 的第二个提示 · 验证集 0.620→0.656，D2 0.551→0.681，2D 题 MRA=0 从 12 题降到 8 题 <span class="yes">采用（验证集）</span></summary>
@@ -711,9 +788,9 @@ python -m pipeline.route --split val --geo outputs/val_pred_newfb.csv --fallback
   <table>
     <tr><th>视频</th><th class="n">题数</th><th class="n">基线</th><th class="n">采用后</th><th class="n">变化</th><th>说明</th></tr>
     <tr><td>simulation_0193</td><td class="n">12</td><td class="n">0.383</td><td class="n">0.708</td><td class="n">+0.325</td><td>卫星轨道题：轨道直径和线速度来自共心圆周模型</td></tr>
-    <tr><td>internet_0013</td><td class="n">6</td><td class="n">0.517</td><td class="n">0.717</td><td class="n">+0.200</td><td>—</td></tr>
-    <tr><td>simulation_0171</td><td class="n">8</td><td class="n">0.562</td><td class="n">0.675</td><td class="n">+0.113</td><td>—</td></tr>
-    <tr><td>simulation_0098_segmented</td><td class="n">4</td><td class="n">0.825</td><td class="n">0.925</td><td class="n">+0.100</td><td>—</td></tr>
+    <tr><td>internet_0013</td><td class="n">6</td><td class="n">0.517</td><td class="n">0.717</td><td class="n">+0.200</td><td>白车速度 5.55（真值 5.79）、花坛直径 19.7（真值 20.4）；尺度来自行人步速 prior</td></tr>
+    <tr><td>simulation_0171</td><td class="n">8</td><td class="n">0.562</td><td class="n">0.675</td><td class="n">+0.113</td><td>宇航员 1 s 时速度 5.05（真值 4.89）；尺度来自身高 prior</td></tr>
+    <tr><td>simulation_0098_segmented</td><td class="n">4</td><td class="n">0.825</td><td class="n">0.925</td><td class="n">+0.100</td><td>鲨鱼长 3.25（真值 3.26）；尺度来自鲨鱼速度 prior</td></tr>
     <tr><td>simulation_0163</td><td class="n">6</td><td class="n">0.550</td><td class="n">0.617</td><td class="n">+0.067</td><td>保龄球分三段匀加速</td></tr>
     <tr><td>internet_0001</td><td class="n">3</td><td class="n">0.633</td><td class="n">0.667</td><td class="n">+0.033</td><td>—</td></tr>
     <tr><td>internet_0005</td><td class="n">4</td><td class="n">0.675</td><td class="n">0.700</td><td class="n">+0.025</td><td>—</td></tr>

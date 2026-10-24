@@ -5,11 +5,12 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_s2d_v1_routed.csv                  validation predictions of the current best harness (0.656; column s2d =
+  outputs/val_s2d_v2_routed.csv                  validation predictions of the current best harness (0.668; column s2d =
                                                  2D-scene value given to Qwen as a second hint)
   outputs/submission_v6.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
   outputs/scene_fit_eval/c_mesh2/<video>.json    validation scene fits
-  outputs/scene2d_eval/s2d_v1/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/)
+  outputs/scene2d_eval/s2d_v2/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
+                                                 object inventory, scene graph, rejected layers, constraints, mask hulls
   outputs/scene_fit_eval/test_mesh/<video>.json  test scene fits
   data/QuantiPhy*/...mp4                         only to grab the first frame and duration
 
@@ -35,16 +36,18 @@ import pandas as pd  # noqa: E402
 from pipeline.data import load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_s2d_v1_routed.csv"
+VAL_CSV = ROOT / "outputs" / "val_s2d_v2_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v6.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_mesh2",
               "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
-SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v1"}   # the test tab stays on the submitted predictions
+SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v2"}   # the test tab stays on the submitted predictions
 SCENE2D_WEB = WEB / "data" / "scene2d"
 OUT = WEB / "data" / "videos.json"
 THUMBS = WEB / "data" / "thumbs"
 THUMB_W = 240
 THUMB_MAX_BYTES = 30_000
+HULL_KEYS = 12        # mask hulls kept per layer (evenly over its key frames), to bound videos.json
+HULL_EPS = 1.0        # polygon simplification tolerance (px, cv2.approxPolyDP)
 
 
 def num(x, sig=4):
@@ -70,6 +73,53 @@ def vec(v):
     return [num(a, 5) for a in v] if v is not None else None
 
 
+def inventory(inv):
+    """Object inventory (pipeline.objects) as shown on the page: canonical name, aliases, where it is mentioned."""
+    if not inv:
+        return None
+    out = []
+    for o in inv.get("objects") or []:
+        where = []
+        for m in o.get("mentions") or []:
+            w = text(m.get("where")) if isinstance(m, dict) else ""
+            if w and w not in where:
+                where.append(w)
+        out.append({"name": text(o.get("name")), "aliases": [text(a) for a in o.get("aliases") or []],
+                    "track": o.get("track"), "dyn": o.get("dyn"), "role": o.get("role"), "where": where})
+    return out
+
+
+def graph(sg):
+    """Scene graph (pipeline.scenegraph) without the raw LLM text: support nodes, edges, per-object 2D info, same-instance checks."""
+    if not sg:
+        return None
+    edges = [{"from": text(e.get("from")), "to": e.get("to"), "rel": text(e.get("rel")), "conf": num(e.get("conf"), 3),
+              "t0": num(e.get("t_start"), 4), "t1": num(e.get("t_end"), 4)} for e in sg.get("edges") or []]
+    support = [text(n.get("id")) for n in sg.get("nodes") or [] if n.get("type") == "support"]
+    same = [{"a": text(x.get("a")), "b": text(x.get("b")), "same": x.get("same"), "conf": num(x.get("conf"), 3)}
+            for x in sg.get("same_instance") or []]
+    return {"source": text(sg.get("source")), "support": support, "edges": edges, "same": same,
+            "objects_2d": sg.get("objects_2d") or None}
+
+
+def hulls(L, fps):
+    """At most HULL_KEYS mask hulls per layer as [[t, [[x, y], ...]], ...], simplified to HULL_EPS px."""
+    H = L.get("hulls") or {}
+    keys = sorted(H, key=lambda f: int(f))
+    if len(keys) > HULL_KEYS:
+        keys = [keys[round(i * (len(keys) - 1) / (HULL_KEYS - 1))] for i in range(HULL_KEYS)]
+    t_of = dict(zip(L.get("frames") or [], L.get("t") or []))
+    out = []
+    for f in keys:
+        poly = np.asarray(H[f].get("hull") or [], dtype=np.float32)
+        if len(poly) < 3:
+            continue
+        poly = cv2.approxPolyDP(poly.reshape(-1, 1, 2), HULL_EPS, True).reshape(-1, 2)
+        t = t_of.get(int(f), int(f) / fps if fps else None)
+        out.append([num(t, 6), [[round(float(x), 1), round(float(y), 1)] for x, y in poly]])
+    return out
+
+
 def scene_fit(split: str, vid: str):
     p = SCENE_DIRS[split] / f"{vid}.json"
     if not p.exists():
@@ -90,7 +140,10 @@ def scene_fit(split: str, vid: str):
         res.append({"q": r.get("question"), "obj": r.get("object"), "pred": num(r.get("pred")),
                     "method": r.get("method"), "answer": num(r.get("answer")) if split == "val" else None,
                     "mra": num(r.get("mra"), 3) if split == "val" else None})
-    return {"file": str(p.relative_to(ROOT)), "f": num(j.get("f"), 5), "plane": plane, "objects": objs, "results": res}
+    # 3D scene fits do not carry an inventory / scene graph yet; shown on the page once they do
+    return {"file": str(p.relative_to(ROOT)), "f": num(j.get("f"), 5), "plane": plane, "objects": objs, "results": res,
+            "inventory": inventory(j.get("inventory") or (j.get("objects_inventory"))),
+            "scene_graph": graph(j.get("scene_graph"))}
 
 
 def scene2d(split: str, vid: str):
@@ -117,7 +170,8 @@ def scene2d(split: str, vid: str):
              "persp_accepted": bool(persp.get("accepted")), "persp_reason": text(persp.get("reason")),
              "notes": [text(x) for x in sc.get("notes") or []]}
     pr = j.get("prior") or {}
-    prior = {k: text(pr.get(k)) for k in ("text", "layer", "how")} | {"value_si": num(pr.get("value_si")), "px": num(pr.get("px"))}
+    prior = {k: text(pr.get(k)) for k in ("text", "quantity", "object", "layer", "how")} | {"value_si": num(pr.get("value_si")),
+                                                                                         "px": num(pr.get("px"))}
 
     def par(v):
         if isinstance(v, (list, tuple)):
@@ -134,11 +188,15 @@ def scene2d(split: str, vid: str):
                        "box": [[round(float(a), 1) for a in b] for b in L.get("box_px") or []],
                        "c": [[round(float(a), 1) for a in c] for c in L.get("center_px") or []],
                        "visible": [[num(a, 5) for a in iv] for iv in L.get("visible") or []],
-                       "extent": {k: num(v, 4) for k, v in (L.get("extent_px") or {}).items()},
-                       "rms": num(L.get("rms_px"), 3), "flags": [text(f) for f in L.get("flags") or []], "segments": segs})
+                       "extent": {k: (text(v) if k == "src" else num(v, 4)) for k, v in (L.get("extent_px") or {}).items()},
+                       "rms": num(L.get("rms_px"), 3), "flags": [text(f) for f in L.get("flags") or []], "segments": segs,
+                       "orient": vec(L.get("orientation")), "hulls": hulls(L, j.get("fps")),
+                       "constraint": {k: (L.get("constraint") or {}).get(k) for k in ("mode", "surface", "motion_plane", "applied", "note")}})
     return {"file": str(p.relative_to(ROOT)), "fps": num(j.get("fps")), "width": j.get("width"), "height": j.get("height"),
             "n_frames": j.get("n_frames"), "bg": bg, "prior": prior, "scale": scale,
-            "gravity_dir": vec(j.get("gravity_dir")), "layers": layers}
+            "gravity_dir": vec(j.get("gravity_dir")), "gravity_source": text(j.get("gravity_source")),
+            "inventory": inventory(j.get("objects")), "scene_graph": graph(j.get("scene_graph")),
+            "rejected": {text(k): text(v) for k, v in (j.get("rejected_layers") or {}).items()}, "layers": layers}
 
 
 def video_meta(split: str, vid: str, make_thumb: bool):
