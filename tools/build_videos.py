@@ -22,7 +22,8 @@ import argparse
 import json
 import math
 import sys
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 WEB = Path(__file__).resolve().parents[1]
@@ -178,6 +179,14 @@ def scene2d(split: str, vid: str):
             return [num(a, 6) for a in v]
         return v if isinstance(v, bool) else num(v, 6)
 
+    # size quantities the questions ask of each layer, so the page labels a layer with those sizes only
+    size_q = {}
+    for r in j.get("results") or []:
+        q = r.get("quantity")
+        if q in ("length", "width", "height", "diameter") and r.get("layer"):
+            size_q.setdefault(r["layer"], [])
+            if q not in size_q[r["layer"]]:
+                size_q[r["layer"]].append(q)
     layers = []
     for L in j.get("layers") or []:
         segs = [{"t0": num(s.get("t0"), 6), "t1": num(s.get("t1"), 6), "model": s.get("model"),
@@ -190,13 +199,25 @@ def scene2d(split: str, vid: str):
                        "visible": [[num(a, 5) for a in iv] for iv in L.get("visible") or []],
                        "extent": {k: (text(v) if k == "src" else num(v, 4)) for k, v in (L.get("extent_px") or {}).items()},
                        "rms": num(L.get("rms_px"), 3), "flags": [text(f) for f in L.get("flags") or []], "segments": segs,
-                       "orient": vec(L.get("orientation")), "hulls": hulls(L, j.get("fps")),
+                       "size_q": size_q.get(L.get("name"), []), "orient": vec(L.get("orientation")), "hulls": hulls(L, j.get("fps")),
                        "constraint": {k: (L.get("constraint") or {}).get(k) for k in ("mode", "surface", "motion_plane", "applied", "note")}})
     return {"file": str(p.relative_to(ROOT)), "fps": num(j.get("fps")), "width": j.get("width"), "height": j.get("height"),
             "n_frames": j.get("n_frames"), "bg": bg, "prior": prior, "scale": scale,
             "gravity_dir": vec(j.get("gravity_dir")), "gravity_source": text(j.get("gravity_source")),
             "inventory": inventory(j.get("objects")), "scene_graph": graph(j.get("scene_graph")),
             "rejected": {text(k): text(v) for k, v in (j.get("rejected_layers") or {}).items()}, "layers": layers}
+
+
+LA = ZoneInfo("America/Los_Angeles")
+
+
+def run_at(split: str, vid: str, csv: Path) -> dict:
+    """Last time this video was run: newest mtime of its scene json (3D scene fit / 2D layered scene) and the
+    per-question csv, shown in Los Angeles time."""
+    paths = [csv] + [d / f"{vid}.json" for d in (SCENE_DIRS.get(split), SCENE2D_DIRS.get(split)) if d]
+    ts = max(p.stat().st_mtime for p in paths if p.exists())
+    t = datetime.fromtimestamp(ts, LA)
+    return {"run_at": t.strftime("%Y-%m-%d %H:%M %Z"), "run_at_iso": t.isoformat(timespec="seconds")}
 
 
 def video_meta(split: str, vid: str, make_thumb: bool):
@@ -267,6 +288,7 @@ def build_val(make_thumb: bool):
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("val", vid),
                        "scene": scene_fit("val", vid) if is3d else None, "scene2d": None if is3d else scene2d("val", vid),
+                       **run_at("val", vid, VAL_CSV),
                        "questions": qs})
     return {"file": str(VAL_CSV.relative_to(ROOT)), "macro": num(ev["average"], 6),
             "per_cat": {c: num(ev[c], 6) for c in CATEGORIES}, "videos": videos}
@@ -293,7 +315,7 @@ def build_test(make_thumb: bool):
                "depth": text(r.depth_info), "pred": num(r.pred)} for i, r in zip(g.index, g.itertuples())]
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
-                       "thumb": thumb, **video_info("test", vid), "scene": sc, "questions": qs})
+                       "thumb": thumb, **video_info("test", vid), "scene": sc, **run_at("test", vid, TEST_CSV), "questions": qs})
     n3d = sum(v["dim"] == 3 for v in videos)
     print(f"test: {len(ref)} questions, {len(videos)} videos, scene fit {n_fit}/{n3d} 3D videos")
     return {"file": str(TEST_CSV.relative_to(ROOT)), "videos": videos}

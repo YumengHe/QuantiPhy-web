@@ -697,7 +697,7 @@ python -m pipeline.route --split val --geo outputs/val_pred_newfb.csv --fallback
     <li><b>路由：</b>Qwen 没给数字时，先用场景值，再退回几何值（<code>route --scene2d ... --scene2d-column</code>）。</li>
   </ul>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:10px 0">
-    <figure style="margin:0"><img src="case/scene2d/simulation_0089_v2.jpg" alt="simulation_0089 图层：两只鸟的掩码凸包和 length、width 标注" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>simulation_0089：半透明填充是掩码凸包；每层标出 length（沿飞行方向）和 width（垂直方向）；黄线是 prior（小鸟长 0.94 m）。</small></figcaption></figure>
+    <figure style="margin:0"><img src="case/scene2d/simulation_0089_v2.jpg" alt="simulation_0089 图层：两只鸟的掩码凸包和 length、width 标注" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>simulation_0089：半透明填充是掩码凸包；标签里 L 沿飞行方向、W 垂直于它（只列题目问到的尺寸）；黄线是 prior（小鸟长 0.94 m）。</small></figcaption></figure>
     <figure style="margin:0"><img src="case/scene2d/internet_0027_v2.jpg" alt="internet_0027 图层：台球的掩码凸包，orange ball 层被拒绝" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>internet_0027：orange ball 和 yellow ball 共用一条跟踪，orange ball 层被拒绝，图上没有它。</small></figcaption></figure>
   </div>
 

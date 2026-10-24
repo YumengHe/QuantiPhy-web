@@ -82,7 +82,8 @@
     d.innerHTML = `<summary>${thumb}<div class="vmeta"><div class="vid-id">${esc(v.id)}</div>` +
       `<div class="sub">${esc(v.source)} · ${esc(v.video_type)} · ${v.fps} fps${v.duration ? ' · ' + fmt(v.duration, 1) + ' s' : ''} · ${qs.length} 题 ` +
       v.cats.map((c) => `<span class="tag">${c}</span>`).join('') + sceneTag + '</div></div>' +
-      (split === 'val' ? `<div title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</div>` : '') + '</summary>';
+      '<div class="vright">' + (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') +
+      (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</div></summary>';
     let built = false, viewer = null, video = null;
     d.addEventListener('toggle', () => {
       if (d.open && !built) {
@@ -178,14 +179,13 @@
         '<div class="viewbar"><span class="seg" role="group" aria-label="背景">' +
         `<button type="button" data-bg="video" aria-pressed="${v.video ? 'true' : 'false'}"${v.video ? '' : ' disabled'} title="把原视频当前帧垫在图层下面">叠加原视频</button>` +
         `<button type="button" data-bg="layers" aria-pressed="${v.video ? 'false' : 'true'}" title="背景换成静态背景层（采样帧的中位数）">只看图层</button></span>` +
-        '<label><input type="checkbox" class="raw" checked> 跟踪质心</label>' +
+        '<label><input type="checkbox" class="raw"> 跟踪质心</label>' +
         (s.scale.degenerate ? '<span class="fwarn">尺度退化：prior 量不出像素长度</span>' : '') + '</div>' +
         '<div class="viewer cam l2d"><canvas></canvas></div>' +
         '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
-        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层，颜色和下方图层表对应。半透明填充 = 掩码凸包（取最近的关键帧，随跟踪质心平移），细虚线框 = 掩码包围框；实心点 = 运动模型在当前时刻的位置；' +
-        '粗虚线 = 各分段运动模型的轨迹（圆周模型画圆弧，＋ 为圆心），空心方块 = 分段的起止点；小点 = 跟踪到的逐帧质心。左下角比例尺按 prior 标定的 m/px 画' +
-        (s.scale.model === 'loglinear_y' ? '（透视模型，取画面底部的 m/px）' : '') + '；黄线白底标签 = prior 本身（尺寸画成带端线的标注线，速度画成 1 s 位移的箭头）' +
-        (s.gravity_dir ? '；右上角箭头是重力方向' : '') + '。' +
+        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层、一个标签，颜色和下方图层表对应；标签写物体名，有尺寸题时加上题目问的尺寸（L 沿朝向、W 垂直朝向、H 竖直、D 直径），prior 所在的层加上 prior（白底黄框）。' +
+        '半透明填充 = 掩码凸包；运动的层另画粗虚线轨迹（各分段运动模型，空心方块 = 分段起止点）和实心点（当前时刻的模型位置）。黄线 = prior 本身（尺寸画成带端线的标注线，速度画成 1 s 位移的箭头）。' +
+        '模型类型和残差见下方图层表。左下角是比例尺和尺度来源' + (s.gravity_dir ? '，右上角箭头是重力方向' : '') + '。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
     }
     return `<div class="media"><div>${vid}</div>${scene}</div>`;
@@ -340,6 +340,63 @@
       ctx.lineTo(x1 - 9 * Math.cos(a - 0.45), y1 - 9 * Math.sin(a - 0.45)); ctx.lineTo(x1 - 9 * Math.cos(a + 0.45), y1 - 9 * Math.sin(a + 0.45));
       ctx.closePath(); ctx.fill();
     }
+    // one label per layer: "name · asked sizes · prior"; placed above the hull (else below / right / left) at the
+    // first free spot, pushed down only as a last resort, with a thin leader to the hull when it ends up far away
+    function placeLabel(txt, col, anchor, bb, light) {
+      ctx.font = '600 11.5px system-ui, sans-serif';
+      const cw = W * k, ch = H * k;
+      // too wide for the canvas: shorten the object name, keep the sizes and the prior
+      const cut = txt.indexOf(' · ');
+      if (cut > 0) {
+        let name = txt.slice(0, cut);
+        const rest = txt.slice(cut);
+        while (name.length > 6 && ctx.measureText(name + '…' + rest).width + 8 > cw) name = name.slice(0, -1);
+        if (name !== txt.slice(0, cut)) txt = name + '…' + rest;
+      }
+      const w = ctx.measureText(txt).width + 8;
+      const free = (x, y) => !placed.some((r) => x < r[0] + r[2] && r[0] < x + w && y - 15 < r[1] && r[1] - 15 < y);
+      const clampX = (x) => Math.max(0, Math.min(x, cw - w)), clampY = (y) => Math.max(15, Math.min(y, ch));
+      const cx = (bb[0] + bb[2]) / 2;
+      const cands = [[cx - w / 2, bb[1] - 4], [cx - w / 2, bb[3] + 17], [bb[2] + 6, (bb[1] + bb[3]) / 2 + 6], [bb[0] - w - 6, (bb[1] + bb[3]) / 2 + 6]]
+        .map(([x, y]) => [clampX(x), clampY(y)]);
+      let pos = cands.find(([x, y]) => free(x, y));
+      if (!pos) {
+        let [x, y] = cands[0];
+        for (let n = 0; n < 40 && !free(x, y); n++) y = clampY(y + 16);
+        pos = [x, y];
+      }
+      const [x, y] = pos;
+      placed.push([x, y, w]);
+      const lx = Math.max(x, Math.min(anchor[0], x + w)), ly = Math.max(y - 15, Math.min(anchor[1], y + 1));
+      if (Math.hypot(lx - anchor[0], ly - anchor[1]) > 20 + Math.max(bb[2] - bb[0], bb[3] - bb[1]) / 2) {
+        ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
+        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(anchor[0], anchor[1]); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = light ? 'rgba(255,255,255,.92)' : 'rgba(0,0,0,.66)'; ctx.fillRect(x, y - 15, w, 16);
+      if (light) { ctx.strokeStyle = PRIOR_COL; ctx.lineWidth = 1.5; ctx.strokeRect(x, y - 15, w, 16); }
+      ctx.fillStyle = light ? '#111' : col; ctx.fillText(txt, x + 4, y - 3);
+    }
+    const SIZE_KEY = { length: ['L', 'along'], width: ['W', 'across'], height: ['H', 'h'], diameter: ['D', 'diam'] };
+    function priorText(pr) {
+      if (pr.quantity === 'speed' || pr.quantity === 'velocity') {
+        const mt = /at\s*t\s*=\s*([\d.]+)/i.exec(pr.text);
+        return `prior v = ${fmtNum(pr.value_si)} m/s` + (mt ? ` @${mt[1]}s` : '');
+      }
+      if (pr.quantity === 'gravity') return `prior g = ${fmtNum(pr.value_si)} m/s²`;
+      if (SIZE_KEY[pr.quantity]) return `prior ${pr.quantity} = ${fmtLen(pr.value_si)}`;
+      return `prior ${pr.text}`;
+    }
+    function layerText(L, mpp) {
+      const parts = [L.name];
+      const ext = L.extent || {};
+      if (isFinite(mpp)) {
+        const sz = (L.size_q || []).filter((q) => SIZE_KEY[q] && ext[SIZE_KEY[q][1]] != null)
+          .map((q) => `${SIZE_KEY[q][0]} ${fmtLen(ext[SIZE_KEY[q][1]] * mpp)}`);
+        if (sz.length) parts.push(sz.join(' × '));
+      }
+      if (L.name === s.prior.layer && s.prior.value_si != null) parts.push(priorText(s.prior));
+      return parts.join(' · ');
+    }
     function draw(t) {
       tCur = t; placed = [];
       let priorPose = null;
@@ -351,97 +408,87 @@
       ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(0, 0, cw, ch);
       const X = (p) => p[0] * k, Y = (p) => p[1] * k;
       const half = 0.5 / fps + 1e-6;
+      const sc = s.scale, pr = s.prior;
+      const pending = [];   // labels are placed after all shapes, so the scale bar / g box can reserve their spots first
       s.layers.forEach((L, i) => {
         const col = PALETTE[i % PALETTE.length];
-        // tracked centroids
+        const still = !L.moving || L.segments.every((g) => g.model === 'static');
         if (rawBox.checked) {
           ctx.fillStyle = col; ctx.globalAlpha = 0.45;
           L.c.forEach((c) => { ctx.beginPath(); ctx.arc(X(c), Y(c), 1.6, 0, 2 * Math.PI); ctx.fill(); });
           ctx.globalAlpha = 1;
         }
-        // model trajectories per segment
-        ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.setLineDash([7, 4]);
-        L.segments.forEach((sg) => {
-          if (sg.model === 'static') {
-            const p = sg.p.p; ctx.setLineDash([]); ctx.lineWidth = 1.6;
-            ctx.beginPath(); ctx.moveTo(X(p) - 5, Y(p) - 5); ctx.lineTo(X(p) + 5, Y(p) + 5); ctx.moveTo(X(p) + 5, Y(p) - 5); ctx.lineTo(X(p) - 5, Y(p) + 5); ctx.stroke();
+        // model trajectories per segment (moving layers only)
+        if (!still) {
+          ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.setLineDash([7, 4]);
+          L.segments.forEach((sg) => {
+            if (sg.model === 'static') return;
+            ctx.beginPath();
+            const nS = 80;
+            for (let j = 0; j <= nS; j++) {
+              const p = segPos(sg, sg.t0 + ((sg.t1 - sg.t0) * j) / nS);
+              if (j) ctx.lineTo(X(p), Y(p)); else ctx.moveTo(X(p), Y(p));
+            }
+            ctx.stroke();
+            ctx.setLineDash([]); ctx.lineWidth = 1.5;
+            [sg.t0, sg.t1].forEach((tb) => { const q = segPos(sg, tb); ctx.strokeRect(X(q) - 3.5, Y(q) - 3.5, 7, 7); });
+            if (sg.model === 'circle') {
+              const c = sg.p.center; ctx.lineWidth = 1.4;
+              ctx.beginPath(); ctx.moveTo(X(c) - 6, Y(c)); ctx.lineTo(X(c) + 6, Y(c)); ctx.moveTo(X(c), Y(c) - 6); ctx.lineTo(X(c), Y(c) + 6); ctx.stroke();
+            }
             ctx.setLineDash([7, 4]); ctx.lineWidth = 2.2;
-            return;
-          }
-          ctx.beginPath();
-          const nS = 80;
-          for (let j = 0; j <= nS; j++) {
-            const p = segPos(sg, sg.t0 + ((sg.t1 - sg.t0) * j) / nS);
-            if (j) ctx.lineTo(X(p), Y(p)); else ctx.moveTo(X(p), Y(p));
-          }
-          ctx.stroke();
-          // segment ends: hollow squares, so splits (collisions, stops) are visible on a straight path
-          ctx.setLineDash([]); ctx.lineWidth = 1.5;
-          [sg.t0, sg.t1].forEach((tb) => { const q = segPos(sg, tb); ctx.strokeRect(X(q) - 3.5, Y(q) - 3.5, 7, 7); });
-          ctx.setLineDash([7, 4]); ctx.lineWidth = 2.2;
-          if (sg.model === 'circle') {
-            const c = sg.p.center; ctx.setLineDash([]); ctx.lineWidth = 1.4;
-            ctx.beginPath(); ctx.moveTo(X(c) - 6, Y(c)); ctx.lineTo(X(c) + 6, Y(c)); ctx.moveTo(X(c), Y(c) - 6); ctx.lineTo(X(c), Y(c) + 6); ctx.stroke();
-            ctx.setLineDash([7, 4]); ctx.lineWidth = 2.2;
-          }
-        });
-        ctx.setLineDash([]);
-        // current box (nearest tracked frame within half a frame)
+          });
+          ctx.setLineDash([]);
+        }
         let bi = -1, bd = Infinity;
         L.t.forEach((tt, j) => { const d = Math.abs(tt - t); if (d < bd) { bd = d; bi = j; } });
         const sg = L.segments.find((x) => t >= x.t0 - half && t <= x.t1 + half);
-        const tag = `${L.name} · ` + (sg ? `${sg.model}, rms ${fmt(sg.rms, 1)} px` : '不可见');
-        let cur = null;   // where the layer is now (image px): centre and, if tracked this frame, box and hull
+        let cur = null, bb = null, anchor = null;
         if (bi >= 0 && bd <= half) {
           const b = L.box[bi];
           cur = { c: L.c[bi], box: b, hull: hullAt(L, bi) };
           if (cur.hull) {
-            // mask convex hull of the nearest key frame, moved with the tracked centroid
             ctx.fillStyle = col; ctx.globalAlpha = 0.3;
             ctx.beginPath(); cur.hull.forEach((q, j) => (j ? ctx.lineTo(X(q), Y(q)) : ctx.moveTo(X(q), Y(q)))); ctx.closePath(); ctx.fill();
             ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
-            ctx.globalAlpha = 0.55; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
-            ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k);
-            ctx.setLineDash([]); ctx.globalAlpha = 1;
+            const xs = cur.hull.map((q) => q[0] * k), ys = cur.hull.map((q) => q[1] * k);
+            bb = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+            anchor = [xs.reduce((a, x) => a + x, 0) / xs.length, ys.reduce((a, y) => a + y, 0) / ys.length];
           } else {
             ctx.strokeStyle = col; ctx.lineWidth = 2;
             ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k);
+            bb = [b[0] * k, b[1] * k, b[2] * k, b[3] * k]; anchor = [X(cur.c), Y(cur.c)];
           }
-          label(b[0] * k, b[1] * k - 2, tag, col);
-          const ex = L.extent || {}, mpp = s.scale.degenerate ? NaN : mPerPx(s.scale, L.c[bi][1]);
-          if (cur.hull && ex.along != null && isFinite(mpp)) label(b[0] * k, b[3] * k + 17, `length ${fmtLen(ex.along * mpp)} · width ${fmtLen(ex.across * mpp)}`, col);
         } else if (sg) {
-          const p = segPos(sg, t); cur = { c: p }; label(X(p) + 6, Y(p) - 6, tag, col);
+          const p = segPos(sg, t); cur = { c: p };
+          bb = [X(p) - 4, Y(p) - 4, X(p) + 4, Y(p) + 4]; anchor = [X(p), Y(p)];
         }
-        if (L.name === s.prior.layer) priorPose = { L, cur, sg, col };
-        if (sg) {
+        if (sg && !still) {
           const p = segPos(sg, Math.min(Math.max(t, sg.t0), sg.t1));
           ctx.fillStyle = col; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.arc(X(p), Y(p), 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
         }
+        if (L.name === pr.layer) priorPose = { L, cur, sg };
+        if (bb) pending.push([layerText(L, sc.degenerate ? NaN : mPerPx(sc, cur.c[1])), col, anchor, bb, L.name === pr.layer]);
       });
       drawPrior(priorPose, t);
-      // one scale bar at the bottom left (the uniform m/px; with the perspective model the m/px at that height)
-      const sc = s.scale, pr = s.prior;
-      const yb = 0.93 * H, mpp = mPerPx(sc, yb);
+      // one line at the bottom left: scale bar + where the scale comes from
+      const yb = 0.93 * H, mpp = mPerPx(sc, yb), x0 = 10, yy = yb * k;
+      ctx.font = '600 11.5px system-ui, sans-serif';
       if (isFinite(mpp) && !sc.degenerate) {
-        const len = niceLen(0.22 * W * mpp), px = (len / mpp) * k, x0 = 10, yy = yb * k;
+        const len = niceLen(0.22 * W * mpp), px = (len / mpp) * k;
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x0 + px, yy); ctx.moveTo(x0, yy - 5); ctx.lineTo(x0, yy + 5); ctx.moveTo(x0 + px, yy - 5); ctx.lineTo(x0 + px, yy + 5); ctx.stroke();
-        label(x0, yy - 7, fmtLen(len), '#fff', true);
-        if (pr.how) label(x0 + px + 10, yy + 5, `尺度来自 prior：${pr.how}`, '#fff', true);
+        label(x0 + px + 8, yy + 6, fmtLen(len) + (pr.how ? ` · 尺度来自 prior：${pr.how}` : ''), '#fff', true);
       } else {
-        label(10, H * k - 8, `prior 不能定尺度（${noScaleReason(sc)}）`, '#ff8a80', true);
+        label(x0, yy + 6, `prior 不能定尺度（${noScaleReason(sc)}）`, '#ff8a80', true);
       }
       if (s.gravity_dir) {
         const g = s.gravity_dir, cx = W * k - 40, cy = 40;
         arrow(cx - g[0] * 22, cy - g[1] * 22, cx + g[0] * 22, cy + g[1] * 22, '#ffd43b');
-        if (pr.quantity === 'gravity') {
-          ctx.font = '600 11.5px system-ui, sans-serif';
-          const txt = `prior: g = ${fmtNum(pr.value_si)} m/s²`;
-          label(cx - 30 - ctx.measureText(txt).width, cy + 4, txt, '#111', true, true);
-        } else label(cx + 8, cy - 20, 'g', '#ffd43b', true);
+        label(cx + 8, cy - 20, 'g', '#ffd43b', true);
       }
+      pending.forEach((a) => placeLabel(...a));
     }
     // hull of the key frame nearest to tracked frame bi, shifted by the centroid motion between the two frames
     function hullAt(L, bi) {
@@ -454,28 +501,23 @@
       const dx = L.c[bi][0] - L.c[hj][0], dy = L.c[bi][1] - L.c[hj][1];
       return h[1].map((q) => [q[0] + dx, q[1] + dy]);
     }
-    // the prior drawn on its own layer: a dimension line for sizes, a 1 s displacement arrow for speeds
+    // the prior drawn on its own layer (its text is part of that layer's label): a dimension line for sizes,
+    // a 1 s displacement arrow for speeds (bright near the time the prior names, faint elsewhere)
     function drawPrior(pp, t) {
       const pr = s.prior;
       if (!pp || !pp.cur || !pr.px || pr.quantity === 'gravity') return;
       const { L, cur, sg } = pp, c = cur.c, ext = L.extent || {};
       const o = L.orient && Math.hypot(L.orient[0], L.orient[1]) > 0 ? L.orient : [1, 0], perp = [-o[1], o[0]];
       const P = (q) => [q[0] * k, q[1] * k];
-      const val = pr.value_si;
-      if (['height', 'length', 'width', 'diameter'].includes(pr.quantity)) {
-        // direction the prior is measured along, and an offset that moves the line just outside the object
+      if (SIZE_KEY[pr.quantity]) {
         let d, off;
-        if (pr.quantity === 'height') { d = [0, 1]; off = [(ext.w || 0) / 2 + 12, 0]; }
-        else if (pr.quantity === 'length') { d = o; off = perp.map((v) => v * ((ext.across || ext.h || 0) / 2 + 12)); }
-        else if (pr.quantity === 'width') { d = perp; off = o.map((v) => v * ((ext.along || ext.w || 0) / 2 + 12)); }
-        else { d = [1, 0]; off = [0, -((ext.h || 0) / 2 + 12)]; }
-        if (off[1] > 0 || (off[1] === 0 && off[0] < 0)) off = off.map((v) => -v);   // keep it above / to the right
-        if (pr.quantity === 'height') off = [Math.abs(off[0]), 0];
+        if (pr.quantity === 'height') { d = [0, 1]; off = [(ext.w || 0) / 2 + 8, 0]; }
+        else if (pr.quantity === 'length') { d = o; off = perp.map((v) => v * ((ext.across || ext.h || 0) / 2 + 8)); }
+        else if (pr.quantity === 'width') { d = perp; off = o.map((v) => v * ((ext.along || ext.w || 0) / 2 + 8)); }
+        else { d = [1, 0]; off = [0, (ext.h || 0) / 2 + 8]; }
+        if (pr.quantity !== 'height' && off[1] < 0) off = off.map((v) => -v);   // below the object: the label sits above it
         const m = [c[0] + off[0], c[1] + off[1]], h = pr.px / 2;
-        const p0 = P([m[0] - d[0] * h, m[1] - d[1] * h]), p1 = P([m[0] + d[0] * h, m[1] + d[1] * h]);
-        dimLine(p0, p1, PRIOR_COL);
-        const lx = Math.max(p0[0], p1[0]) + 6, ly = (p0[1] + p1[1]) / 2 + 6;
-        label(lx, ly, `prior: ${pr.quantity} = ${fmtLen(val)} (${fmt(pr.px, 0)} px)`, '#111', false, true);
+        dimLine(P([m[0] - d[0] * h, m[1] - d[1] * h]), P([m[0] + d[0] * h, m[1] + d[1] * h]), PRIOR_COL);
         return;
       }
       if (pr.quantity === 'speed' || pr.quantity === 'velocity') {
@@ -485,11 +527,9 @@
           if (n > 1e-6) dir = [(b[0] - a[0]) / n, (b[1] - a[1]) / n];
         }
         const mt = /at\s*t\s*=\s*([\d.]+)/i.exec(pr.text), tp = mt ? parseFloat(mt[1]) : NaN;
-        const on = !isFinite(tp) || Math.abs(t - tp) < 0.15;
-        ctx.globalAlpha = on ? 1 : 0.35;
+        ctx.globalAlpha = !isFinite(tp) || Math.abs(t - tp) < 0.15 ? 1 : 0.35;
         const p0 = P(c), p1 = P([c[0] + dir[0] * pr.px, c[1] + dir[1] * pr.px]);
         arrow(p0[0], p0[1], p1[0], p1[1], PRIOR_COL);
-        label(p1[0] + 6, p1[1] + 4, `prior: v = ${fmtNum(val)} m/s` + (isFinite(tp) ? ` @${fmtNum(tp)}s` : '') + ` (1 s = ${fmt(pr.px, 0)} px)`, '#111', false, true);
         ctx.globalAlpha = 1;
       }
     }
