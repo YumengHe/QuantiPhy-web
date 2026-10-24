@@ -341,11 +341,11 @@
     <tr><th>配置</th><th>3D macro</th><th>S3</th><th>D3</th><th>结论</th></tr>
     <tr><td>v7 参数</td><td>0.553</td><td>0.530</td><td>0.577</td><td>基线</td></tr>
     <tr><td><b>v8b</b>（typmatch + contact + overhead + ballistic）</td><td><b>0.593</b></td><td><b>0.609</b></td><td>0.577</td><td>采用</td></tr>
-    <tr><td>v8b 换跟踪缓存 tracks_m</td><td>0.586</td><td>—</td><td>—</td><td>—</td></tr>
-    <tr><td>v8b + visibility 约束</td><td>0.597</td><td>—</td><td>—</td><td>没采用：差距在噪声内，且 captured_0021x、simulation_0060 下降</td></tr>
-    <tr><td>v7 + 地平线校验（hgate）</td><td>0.531</td><td>—</td><td>—</td><td>没采用</td></tr>
+    <tr><td>v8b 换跟踪缓存 tracks_m</td><td>0.586</td><td>0.595</td><td>0.577</td><td>—</td></tr>
+    <tr><td>v8b + visibility 约束</td><td>0.597</td><td>0.598</td><td>0.596</td><td>没采用：差距在噪声内，且 captured_0021x、simulation_0060 下降</td></tr>
+    <tr><td>v7 + 地平线校验（hgate）</td><td>0.531</td><td>0.558</td><td>0.504</td><td>没采用</td></tr>
   </table>
-  <p>绝对值低于之前的 0.604（v7），是因为期间共享模块变了（在场性校验的误判、parse 的改动），不是场景拟合退步；同一代码状态下 v8b 比 v7 参数高 0.040。参数：<code>--fixes … typmatch contact overhead --motion ballistic</code>（见各场景 json 的 <code>args</code>）。</p>
+  <p>表里各行是同一代码状态下跑的（summary.json）。绝对值低于之前的 0.604（v7），是因为期间共享模块变了（在场性校验的误判、parse 的改动），不是场景拟合退步；同一代码状态下 v8b 比 v7 参数高 0.040。参数：<code>--fixes … typmatch contact overhead --motion ballistic</code>（见各场景 json 的 <code>args</code>）。</p>
 
   <h4>逐题质量与置信度</h4>
   <p>每道场景拟合的答案带 <code>quality</code> 字段和一个置信度 conf（0–1），是固定规则的乘积，不看答案。路由 <code>--fit</code> 用它：S3 题 conf ≥ 0.6 时用拟合值。</p>
@@ -364,16 +364,16 @@
   <table>
     <tr><th>conf 分桶</th><th class="n">题数</th><th class="n">拟合值的 MRA</th></tr>
     <tr><td>≤ 0.2</td><td class="n">43</td><td class="n">0.465</td></tr>
-    <tr><td>0.2–0.4</td><td class="n">—</td><td class="n">0.685</td></tr>
-    <tr><td>0.4–0.6</td><td class="n">—</td><td class="n">0.636</td></tr>
+    <tr><td>0.2–0.4</td><td class="n">13</td><td class="n">0.685</td></tr>
+    <tr><td>0.4–0.6</td><td class="n">14</td><td class="n">0.636</td></tr>
     <tr><td>&gt; 0.6</td><td class="n">20</td><td class="n">0.775</td></tr>
   </table>
   <p>conf 和 MRA 的 Spearman 相关 0.40。视频页"场景拟合自己的答案"表里有置信度一列，悬停看各项字段。</p>
 
   <h4>ballistic 弹跳模型（captured_0061）</h4>
-  <p>球在空中只受重力 a = −g·n（n 为地面法向）；碰到地面时法向速度乘 −e（恢复系数），切向速度乘 kt；贴地后按滚动阻力 μ_r 减速。碰撞时刻由参数解析算出，不靠检测。e、kt、μ_r 和初始状态一起拟合。</p>
+  <p>球在空中只受重力 a = −g·n（n 为地面法向）；碰到地面时法向速度乘 −e（恢复系数），切向速度乘 kt；贴地后按滚动阻力 μ_r 减速。碰撞时刻由参数解析算出，不靠检测。e、kt、μ_r 和直径 D、初始位置 p0、初速度 v0 一起拟合，范围 e ∈ [0.3, 0.95]、kt ∈ [0.5, 1]、μ_r ∈ [0, 0.5]。</p>
   <table>
-    <tr><th>题目</th><th class="n">真值</th><th class="n">v7</th><th class="n">自由分段</th><th class="n">ballistic</th></tr>
+    <tr><th>题目</th><th class="n">真值</th><th class="n">v7<sup>*</sup></th><th class="n">自由分段<sup>†</sup></th><th class="n">ballistic<sup>†</sup></th></tr>
     <tr><td>yoga 球直径 (cm)</td><td class="n">52.2</td><td class="n">37.9 · 0.7</td><td class="n">26.1 · 0.5</td><td class="n">37.0 · 0.7</td></tr>
     <tr><td>足球直径 (cm)</td><td class="n">17.5</td><td class="n">14.6 · 0.8</td><td class="n">13.7 · 0.7</td><td class="n">15.8 · 0.9</td></tr>
     <tr><td>足球–篮球距离 @2.0 s (m)</td><td class="n">1.95</td><td class="n">2.45 · 0.7</td><td class="n">3.21 · 0.3</td><td class="n">0.99 · 0.5</td></tr>
@@ -385,11 +385,11 @@
     <tr><td>篮球速度 @1.6 s (m/s)</td><td class="n">0.84</td><td class="n">1.40 · 0.3</td><td class="n">3.17 · 0.0</td><td class="n">0.90 · 0.9</td></tr>
     <tr><td><b>视频平均 MRA</b></td><td></td><td class="n">0.511</td><td class="n">0.433</td><td class="n"><b>0.611</b></td></tr>
   </table>
-  <p>每格是"预测值 · MRA"。自由分段（每段各拟合一条抛物线）残差更低、分数反而更低，原因有三：尺寸取自最长的一段，弹跳段被压扁；出画后按最后一段外推；短段把跟踪噪声吸收成加速度。失败例：captured_0013 的球先在斜坡、再到桌面、最后离开桌面，单一支撑面的 ballistic 模型不适用。</p>
+  <p>每格是"预测值 · MRA"。* 取自旧目录 <code>c_support_v7</code>（修复前的代码状态）；† 取自 <code>c_v8_seg</code> / <code>c_v8_bal</code>，这批消融在修复哈希顺序（迭代顺序不确定）之前跑，数字有不确定性。自由分段（每段各拟合一条抛物线）残差更低、分数反而更低，原因有三：尺寸取自最长的一段，弹跳段被压扁；出画后按最后一段外推；短段把跟踪噪声吸收成加速度。失败例：captured_0013 的球先在斜坡、再到桌面、最后离开桌面，单一支撑面的 ballistic 模型不适用。</p>
 
   <h4>contact、typmatch、overhead</h4>
   <ul>
-    <li><b>contact（simulation_0170 宇航员）：</b>轨迹的几何证据（贴着地面）优先于场景图的 airborne 判断。视频平均 MRA 0.44 → 0.50。逐题（预测 · MRA，v7 → v8b）：0.5 s 加速度 4.79 · 0.7 → 3.89 · 0.6；1 s 速度 10.35 · 0.2 → 9.51 · 0.3；1 s 加速度 4.79 · 0.6 → 3.89 · 0.9；2 s 速度 5.66 · 0.8 → 5.72 · 0.8；3 s 速度 1.63 · 0.6 → 2.28 · 0.9；3 s 加速度 4.79 · 0.6 → 3.89 · 0.5；0.5 s 速度和 2 s 加速度两题都是 0。</li>
+    <li><b>contact（simulation_0170 宇航员）：</b>轨迹的几何证据（贴着地面）优先于场景图的 airborne 判断。视频平均 MRA 0.44 → 0.50。逐题（预测 · MRA，v7 → v8b；v7 取自旧目录 <code>c_support_v7</code>，修复前的代码状态）：0.5 s 加速度 4.79 · 0.7 → 3.89 · 0.6；1 s 速度 10.35 · 0.2 → 9.51 · 0.3；1 s 加速度 4.79 · 0.6 → 3.89 · 0.9；2 s 速度 5.66 · 0.8 → 5.72 · 0.8；3 s 速度 1.63 · 0.6 → 2.28 · 0.9；3 s 加速度 4.79 · 0.6 → 3.89 · 0.5；0.5 s 速度和 2 s 加速度两题都是 0。</li>
     <li><b>typmatch（captured_0034as 笔袋）：</b>典型尺寸表改为整词匹配，去掉 18 个子串误命中（例如 "credit card" 命中 car、"cabin floor" 命中 bin）。笔袋高 13.07 → 5.23 cm（真值 6.7），长 32.6 → 19.7 cm（真值 21.0）。副作用：simulation_0060 黄车 −0.2。</li>
     <li><b>overhead（simulation_0015 屋顶）：</b>顶部结构从深度单独拟合。净高 9.24 m（真值 12.9，MRA 0 → 0.7），厚度 0.82 m（真值 0.72，MRA 0.1 → 0.8）。</li>
   </ul>
