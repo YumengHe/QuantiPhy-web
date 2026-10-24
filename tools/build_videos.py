@@ -9,7 +9,7 @@ Inputs (relative to the QuantiPhy repo root):
                                                  s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
                                                  scene-fit value and its confidence; source geo / vlm / s2d / fit)
   outputs/submission_v7.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
-  outputs/scene_fit_eval/c_support_v8b/<video>.json validation scene fits (scene graph, supports, dimension sources,
+  outputs/scene_fit_eval/c_support_v8e/<video>.json validation scene fits (scene graph, supports, dimension sources,
                                                  visible intervals, per-question quality / conf, ballistic paths)
   outputs/scene2d_eval/s2d_v5/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
                                                  object inventory, scene graph, rejected layers, constraints, mask hulls
@@ -46,7 +46,7 @@ from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
 VAL_CSV = ROOT / "outputs" / "val_mh3_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
-SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8b",
+SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8e",
               "test": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7_test"}   # the run behind submission_v7
 SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v5",
                 "test": ROOT / "outputs" / "scene2d_eval" / "s2d_v7_test"}     # the run behind submission_v7
@@ -405,7 +405,10 @@ def scene_fit(split: str, vid: str):
             vis = tracks.get(key) if key else None
         o["visible"] = [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None
     return {"file": str(p.relative_to(ROOT)), "f": num(j.get("f"), 5), "plane": plane, "objects": objs, "results": res,
-            "main_support": j.get("main_support"), "inventory": inv, "scene_graph": graph(sg)}
+            "main_support": j.get("main_support"), "inventory": inv, "scene_graph": graph(sg),
+            "f_source": text(j.get("f_source")) or None, "f_first": j.get("f_first"),
+            "focal_votes": [{"source": text(x.get("source")), "value": num(x.get("value"), 4), "weight": num(x.get("weight"), 3)}
+                            for x in j.get("focal_votes") or []] or None}
 
 
 def scene2d_checks(j: dict) -> dict:

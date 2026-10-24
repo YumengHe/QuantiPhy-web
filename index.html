@@ -231,12 +231,14 @@
     <li>captured_0041x：1.5–1.6 s 位移 0.6116 m、1.5 s 球到人距离 0.198 m，和数据集自己的 prior（5.21 m/s）、depth_info（径向 0.47 m）以及画面都对不上，像是比 depth_info 的时刻早约 1 帧取的值。</li>
     <li>captured_0061：篮球 1.1 s 速度 9.32 m/s，画面上的像素速度上限约 4.5–4.9 m/s（和焦距无关），真值约为画面的 2 倍。</li>
     <li>captured_0061：瑜伽球的 prior 速度 2.51 m/s，depth_info 加画面得到约 1.8 m/s，相差约 1.4 倍（只影响由 prior 估焦距，这一估计已被判为不合理而丢弃）。</li>
+    <li>simulation_0015：鸟的平均速度 1.3 m/s，但视频里看不到鸟（在场性校验也判为 absent）；几何值 1.40 是跟错的轨迹碰巧得分。</li>
   </ul>
   <h4>逐视频报告</h4>
   <ul>
     <li><b>simulation_0196</b>（<a href="data/eval/simulation_0196.html">全文</a>）：主因 跟踪 / 尺度。管线里的"气泡层"跟到的不是气泡（一份缓存是液滴下半个鼓包，另一份是滴管液柱的弯月面），所以速度 prior 给不出正确尺度；按画面实测气泡位移约 37 px，换算的尺度下四题都在真值 ±10% 以内。真值自洽，<b>撤回"真值存疑"</b>。三条通用修改已派。<b>状态：</b>气泡已重跟（<code>run --recheck-prior</code>）；剩余三题是尺寸取法问题（2D v5 已改，待合跑）。</li>
     <li><b>captured_0041x</b>（<a href="data/eval/captured_0041x.html">全文</a>）：主因 尺度，其次拟合。这个视频没有任何物体能给出焦距的度量证据，场景拟合和几何都退回实验室焦距先验 650 px（唯一一票），而标准尺寸的球 + 深度锚点、人的身高都指向 f ≈ 450–560。拟合方面，ballistic 把起踢前的静止位置当成 p0，球在静止阶段悬空 0.087 m；人没有深度锚点，球–人在深度上相差 0.66 m。q1、q2 真值存疑（已加入下方清单）。5 条通用修改已派给 qp-code-3d 和 qp-tools。</li>
     <li><b>captured_0061</b>（<a href="data/eval/captured_0061.html">全文</a>）：主因 尺度 + 拟合 + 几何 + 路由。焦距只来自实验室先验 650（唯一一票），重力抛物线和深度锚点给出 f ≈ 450–470，所有尺寸和横向速度被压成约 0.70 倍；ballistic 把篮球 0–0.92 s 的手持段当成抛体；3D 两物体距离按像面算；D3 固定用 Qwen，Qwen 照抄几何。真值存疑两条（已加入上方清单）。</li>
+    <li><b>simulation_0015</b>（<a href="data/eval/simulation_0015.html">全文</a>）：主因 解析 + 深度尺度 + 平面 + 置信度。depth_info 的 5 行里丢了 3 行，底座、雕塑、展板三个距离锚点都没用上；地平线用了线段检测的 y = 268，而行人脚底回归给出 240.8（相机高 1.37 m，f ≈ 394）；远处深度只靠两个近距离锚点仿射外推，被压缩，屋顶净高低了约 3.7 m。鸟速一题真值存疑（已加入上方清单）。</li>
   </ul>
   <p><small>来源 <code>outputs/eval/overview_1.md</code>、<code>outputs/eval/&lt;video&gt;.md</code>；进行中的修复见 <code>outputs/eval/in_progress.md</code>。</small></p>
 </section>
@@ -361,6 +363,21 @@
     <li><code>distance3d-approx</code>（近似的 3D 距离）不作为提示给 Qwen。</li>
   </ul>
 
+  <h4>第 9–11 轮</h4>
+  <table>
+    <tr><th>改动</th><th>效果</th></tr>
+    <tr><td>3 路中位数（mh3）的驱动改为可续跑</td><td>在验证集上复现得 0.7209（原 0.7230）。</td></tr>
+    <tr><td>离手时间区间</td><td>captured_0061 篮球离手区间定为 [0.583, 0.917] s。</td></tr>
+    <tr><td>物体清单：角色一致性检查 + 验证集 / 测试集一致性检查</td><td>旧的测试集清单有 38 处和验证集不一致。</td></tr>
+    <tr><td><b>depth_info 解析器重写</b></td><td>验证集 51 条、测试集 935 条全部能解析；找回 6 个静止物体的深度锚点；测试集 20 个视频受益。</td></tr>
+    <tr><td>截断框标记</td><td>贴着画面边缘、被截断的框单独标出。</td></tr>
+    <tr><td>refmeasure v5 / v6</td><td>环岛车道宽 36.5 px，那题回到 MRA 0.8；地砖边长从 10 px 改为 36 px。</td></tr>
+    <tr><td>速度 prior 轨迹的尺度一致性检查</td><td>internet_0013 有两个同名的行人，换成对的那个后尺度为 0.099 m/px。</td></tr>
+    <tr><td>几何流水线（跟踪缓存 tracks_v9pc）</td><td>几何 macro 0.481 → 0.602。</td></tr>
+    <tr><td>3 路路由重跑</td><td>0.7105。S3 下降，是因为 simulation_0015 鸟速那题原来"碰巧"得分（真值存疑，视频里没有鸟），现在没有了。</td></tr>
+    <tr><td>按帧场景图设为默认</td><td>待改为按维度（2D / 3D）分别设默认；pfc 场景图对 3D 不利，见 <a href="#sf-v8">v8e</a>。</td></tr>
+  </table>
+
   <h4>文件</h4>
   <p>主 repo commit ceb82e3、34255a6、24a9d0e、85aabfd（<code>pipeline/route.py</code>、<code>perceive.py</code>、<code>objects.py</code>、<code>scenegraph.py</code>、<code>presence.py</code>、<code>refmeasure.py</code>、<code>critic.py</code>、<code>parse.py</code> 等）。没有新的测试集提交文件，最新提交仍是 <code>outputs/submission_v6.csv</code>。</p>
     </div>
@@ -423,7 +440,7 @@
   <p>按时间倒序，点开看细节。早期影响所有类别的改动（几何流水线、Qwen 路由）也记在这里；只针对 2D 的迭代见 2D 组。</p>
 
   <details class="iter" id="sf-v8">
-    <summary><span class="d">10-24</span>3D 场景拟合 v8：逐题置信度 + ballistic 弹跳模型 + contact / typmatch / overhead + 可见区间 · 同一代码状态下场景拟合 0.553→0.593 <span class="yes">采用（场景拟合）</span></summary>
+    <summary><span class="d">10-24</span>3D 场景拟合 v8：逐题置信度 + ballistic 弹跳模型 + contact / typmatch / overhead + 可见区间 + 焦距先投票 · 同一代码状态下场景拟合 0.553→0.593（v8b）→0.603（v8c）→0.613（v8e） <span class="yes">采用（场景拟合）</span></summary>
     <div class="iter-body">
   <h4>版本与消融（验证集 3D 90 题，同一代码状态）</h4>
   <table>
@@ -502,11 +519,19 @@
     <tr><td>五个全开</td><td class="n">0.5910</td></tr>
   </table>
 
+  <h4>v8e：焦距先由投票定（focalfirst）</h4>
+  <ul>
+    <li><b>focalfirst：</b>有速度 prior 时，先用焦距投票（重力抛物线、尺寸先验、实验室先验等）定焦距，再用速度 prior。captured_0061 的 f 从 657 降到 482，相机高 0.88 m，篮球的第一个事件在 1.25 s。3D 场景拟合 0.603 → 0.613。</li>
+    <li>每个场景 json 写入 <code>focal_votes</code>（来源、值、权重）；视频页的场景表下面显示焦距投票表。</li>
+    <li>第五轮开关全量都没过，未进默认：personvote（captured_0041x 的 f → 456，但球径变成 23.4 cm）、pedhorizon（simulation_0015 地平线 240.8，展板高 1.94 m，但俯仰被拉到 0°）、staticanchor、extnear。</li>
+    <li>pfc 场景图对 3D 不利：0.613 → 0.603。</li>
+  </ul>
+
   <h4>可见性</h4>
   <p>场景 json 新增每个物体的 <code>visible</code> / <code>out_of_frame</code> 区间和 <code>visibility</code>（拟合位置是否在画内，和跟踪是否可见的一致度）。12 个视频的一致度都 ≥ 0.96；captured_0041x 的球用 ballistic 后 41/41 帧在画内（之前出画后仍投影在画内）；simulation_0015 现在 6/6。视频页的 3D 视图按这些区间显示物体，弹跳的球按 ballistic 轨迹采样播放。</p>
 
   <h4>文件</h4>
-  <p>主 repo commit 1080f91（scene_fit v8）；场景 json <code>outputs/scene_fit_eval/c_support_v8b/</code>（含 <code>visible</code>、<code>out_of_frame</code>、<code>visibility</code>、<code>ballistic</code>、逐题 <code>quality</code>）；消融目录 <code>c_v8_bal</code>、<code>c_v8_seg</code>、<code>c_v8_contact</code>、<code>c_v8_typ</code>、<code>c_v8_over</code>、<code>c_v8_plusvis</code>、<code>c_support_v8b_tm</code>、<code>c_v7_hgate</code>。视频页的 3D 场景已切到 v8b。</p>
+  <p>主 repo commit 1080f91（scene_fit v8）；场景 json <code>outputs/scene_fit_eval/c_support_v8b/</code>（含 <code>visible</code>、<code>out_of_frame</code>、<code>visibility</code>、<code>ballistic</code>、逐题 <code>quality</code>）；消融目录 <code>c_v8_bal</code>、<code>c_v8_seg</code>、<code>c_v8_contact</code>、<code>c_v8_typ</code>、<code>c_v8_over</code>、<code>c_v8_plusvis</code>、<code>c_support_v8b_tm</code>、<code>c_v7_hgate</code>。视频页的 3D 场景已切到 v8e（<code>c_support_v8e</code>，含焦距投票）。</p>
     </div>
   </details>
 
@@ -1010,6 +1035,25 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
 <section id="iter2d">
   <h2>2D 迭代记录</h2>
   <p>只针对 2D 题（S2、D2）的迭代，按时间倒序。</p>
+
+  <details class="iter" id="s2d-v6">
+    <summary><span class="d">10-24</span>2D 图层场景 v6：刚体一致性用跟踪掩码 + refmeasure 合理性交叉检查 · simulation_0196 终于有尺度（四题 0.25→0.425）</summary>
+    <div class="iter-body">
+  <h4>做法</h4>
+  <ul>
+    <li><b>刚体一致性：</b>prior 所在层是否刚体（大小、形状稳定）改用跟踪掩码判断；非刚体（人、动物等会变形的物体）豁免这项检查。</li>
+    <li><b>refmeasure 合理性交叉检查：</b>参考测量的结果要和场景里其他物体的尺寸大致相容，不相容的不用。</li>
+    <li><b>simulation_0196：</b>用重跟后的气泡轨迹（工具层的 <code>run --recheck-prior</code>）终于标出尺度 7e-5 m/px（评估员按画面实测约 6.3e-5），四题平均 MRA 0.25 → 0.425。</li>
+  </ul>
+  <h4>对比</h4>
+  <table>
+    <tr><th>配置</th><th class="n">有场景值的题</th><th class="n">场景值 MRA</th></tr>
+    <tr><td>跟踪缓存 tracks_v9</td><td class="n">65</td><td class="n">0.675</td></tr>
+    <tr><td>原跟踪缓存</td><td class="n">62</td><td class="n">0.635</td></tr>
+  </table>
+  <p>逐帧场景图（pfc）对 2D 不比 grid 差（pfc ≥ grid），和 3D 相反（见 <a href="#sf-v8">v8e</a>）。</p>
+    </div>
+  </details>
 
   <details class="iter" id="s2d-v3">
     <summary><span class="d">10-23</span>2D 图层场景 v3：结构朝向 + 参考测量（refmeasure）+ 关系一致性 + 噪声下限 · 验证集 0.671→0.681，D2 0.676→0.714 <span class="yes">采用（验证集）</span></summary>

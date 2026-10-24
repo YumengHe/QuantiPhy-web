@@ -243,6 +243,16 @@
     return `<div class="media"><div>${vid}</div>${scene}</div>`;
   }
 
+  // focal-length votes of the scene fit (scene_fit_eval json "focal_votes": gravity parabolas, size priors, lab prior …)
+  const F_SRC = { gravity: '重力抛物线', lab_prior: '实验室先验', size_prior_depth: '尺寸先验 + 深度', typical_votes: '典型尺寸', typical_height: '典型高度', prior_kinematic: '运动学先验', person: '人身高', votes_first: '投票优先' };
+  function focalVotes(s) {
+    if (!s.focal_votes || !s.focal_votes.length) return '';
+    const tw = s.focal_votes.reduce((a, x) => a + (x.weight || 0), 0);
+    return '<details class="sfres" open><summary>焦距投票（' + s.focal_votes.length + ' 票' + (s.f_first ? '，速度 prior 前先由投票定焦距' : '') + '）</summary><div class="scroll-x"><table><tr><th>来源</th><th class="n">f (px)</th><th class="n">权重</th></tr>' +
+      s.focal_votes.map((x) => `<tr><td>${esc(F_SRC[x.source] || x.source)}</td><td class="n">${fmtNum(x.value)}</td><td class="n">${fmtNum(x.weight)}${tw ? ` <span class="muted">(${fmt((100 * x.weight) / tw, 0)}%)</span>` : ''}</td></tr>`).join('') +
+      `</table></div><p class="muted" style="font-size:12.5px">最终 f = ${fmtNum(s.f)} px。</p></details>`;
+  }
+
   function sceneTables(v, split) {
     if (!v.scene) return '<h4>3D 场景</h4><div class="noscene">无场景拟合（拟合失败或没有结果）。</div>';
     const s = v.scene;
@@ -272,9 +282,9 @@
     }
     return graphBlocks(s.inventory, s.scene_graph, null, null) + `<h4>场景拟合的物体</h4><div><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th>` +
       (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th title="跟踪有框的时段；相机视角只在这些时段画出物体">视频里可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>` +
-      `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px` + (s.main_support ? `，主支撑面 ${esc(s.main_support)}` : '') + '。残差是拟合框与跟踪框的均方根误差。' +
+      `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px` + (s.f_source ? `（来源 ${esc(s.f_source)}）` : '') + (s.main_support ? `，主支撑面 ${esc(s.main_support)}` : '') + '。残差是拟合框与跟踪框的均方根误差。' +
       (hasSrc ? '尺寸来源：不加标记的是观测到的（框、深度）；<sup class="dim-prior">先验</sup> 来自尺寸先验；<span class="dim-bound">灰色<sup>看不见</sup></span> 表示框和深度都没看到这一维，只能靠先验（取防塌缩下限）。' : '') +
-      `</p>${res}</div>`;
+      `</p>${focalVotes(s)}${res}</div>`;
   }
 
 
