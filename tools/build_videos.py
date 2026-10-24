@@ -22,8 +22,10 @@ The page plays the original videos from media/val and media/test (git-ignored sy
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import math
+import re
 import sys
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
@@ -158,16 +160,135 @@ def eval_overview(video_ids) -> tuple[dict, str | None]:
     return out, str(src.relative_to(ROOT))
 
 
+IMG_RE = re.compile(r"(/[^\s`'\"()<>]+\.(?:jpg|jpeg|png|gif|webp))", re.I)
+IMG_MAX_BYTES = 5_000_000
+
+
+def _inline(s: str) -> str:
+    """Markdown inline -> HTML: escape, `code`, **bold**, [text](url)."""
+    s = html.escape(s, quote=False)
+    s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+    s = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", s)
+    s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", r'<a href="\2">\1</a>', s)
+    return s
+
+
+def md_to_html(md: str, title: str) -> str:
+    """Small markdown subset (headings, pipe tables, - / 1. lists with indentation, paragraphs, inline code / bold,
+    image paths already rewritten to relative ones) -> a standalone page for data/eval/."""
+    out, para, i, lines = [], [], 0, md.splitlines()
+
+    def flush():
+        if para:
+            out.append("<p>" + _inline(" ".join(para)) + "</p>")
+            para.clear()
+    while i < len(lines):
+        l = lines[i]
+        st = l.strip()
+        if not st:
+            flush(); i += 1; continue
+        m = re.match(r"^(#{1,6})\s+(.*)", l)
+        if m:
+            flush(); n = len(m.group(1)); out.append(f"<h{n}>{_inline(m.group(2))}</h{n}>"); i += 1; continue
+        if st.startswith("|"):
+            flush(); rows = []
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                if not set("".join(cells)) <= set("-: "):
+                    rows.append(cells)
+                i += 1
+            if rows:
+                t = "<tr>" + "".join(f"<th>{_inline(c)}</th>" for c in rows[0]) + "</tr>"
+                t += "".join("<tr>" + "".join(f"<td>{_inline(c)}</td>" for c in r) + "</tr>" for r in rows[1:])
+                out.append(f'<div class="scroll"><table>{t}</table></div>')
+            continue
+        m = re.match(r"^(\s*)(?:[-*]|\d+\.)\s+(.*)", l)
+        if m:
+            flush(); items = []
+            while i < len(lines):
+                m = re.match(r"^(\s*)(?:[-*]|\d+\.)\s+(.*)", lines[i])
+                if m:
+                    items.append([len(m.group(1)), m.group(2)])
+                elif lines[i].strip() and items and lines[i].startswith(" "):
+                    items[-1][1] += " " + lines[i].strip()          # continuation line of the previous item
+                else:
+                    break
+                i += 1
+            out.append("<ul>" + "".join(f'<li style="margin-left:{ind * 8}px">{_inline(t)}</li>' for ind, t in items) + "</ul>")
+            continue
+        para.append(st); i += 1
+    flush()
+    body = "\n".join(out)
+    # images referenced by a relative path become inline figures under their mention
+    body = re.sub(r'<code>([\w.-]+/[\w.-]+\.(?:jpg|jpeg|png|gif|webp))</code>',
+                  r'<a href="\1"><code>\1</code></a><br><img src="\1" alt="\1" loading="lazy">', body)
+    return f"""<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{html.escape(title)}</title>
+<style>
+:root {{ --bg:#fbfbfa; --fg:#1f2328; --muted:#656d76; --border:#d8dee4; --code:#f0f2f4; --th:#eef2fb; }}
+@media (prefers-color-scheme: dark) {{ :root {{ --bg:#16181c; --fg:#e6e8eb; --muted:#9aa4af; --border:#33383f; --code:#23272e; --th:#232a38; }} }}
+body {{ margin:0; background:var(--bg); color:var(--fg); font:15px/1.7 system-ui, -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif; }}
+main {{ max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }}
+h1 {{ font-size: 24px; }} h2 {{ font-size: 19px; margin-top: 28px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }}
+code {{ background: var(--code); padding: 0 4px; border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }}
+.scroll {{ overflow-x: auto; }} table {{ border-collapse: collapse; font-size: 13.5px; margin: 8px 0; }}
+th, td {{ border: 1px solid var(--border); padding: 4px 8px; vertical-align: top; text-align: left; }} th {{ background: var(--th); }}
+img {{ max-width: 100%; border-radius: 6px; margin: 6px 0; }} a {{ color: #3b6fd8; }}
+.back {{ font-size: 13px; color: var(--muted); }}
+</style></head><body><main>
+<p class="back"><a href="../../videos.html">← 视频与问题</a> · 评估员逐视频报告（由 outputs/eval/*.md 生成）</p>
+{body}
+</main></body></html>
+"""
+
+
 def eval_report(vid: str):
-    """Per-video evaluator report outputs/eval/<video>.md, copied to data/eval/ for the page; returns (path, excerpt)."""
+    """Per-video evaluator report outputs/eval/<video>.md -> data/eval/<video>.html (images it names by absolute path
+    are copied to data/eval/<video>/ and linked relatively). Returns the page path, the conclusion excerpt and, when the
+    report states them, the main layer and root cause (these override the overview row)."""
     p = EVAL_DIR / f"{vid}.md"
     if not p.exists():
         return None
     EVAL_WEB.mkdir(parents=True, exist_ok=True)
     txt = p.read_text()
-    (EVAL_WEB / p.name).write_text(txt)
+    for src in sorted(set(IMG_RE.findall(txt))):
+        sp = Path(src)
+        if sp.is_file() and sp.stat().st_size <= IMG_MAX_BYTES:
+            (EVAL_WEB / vid).mkdir(exist_ok=True)
+            (EVAL_WEB / vid / sp.name).write_bytes(sp.read_bytes())
+            txt = txt.replace(src, f"{vid}/{sp.name}")
+    out = EVAL_WEB / f"{vid}.html"
+    first = next((l.lstrip("# ").strip() for l in txt.splitlines() if l.startswith("# ")), vid)
+    out.write_text(md_to_html(txt, first))
+    stale = EVAL_WEB / p.name
+    if stale.exists():
+        stale.unlink()
+    # main layer / root cause as the report states them: an explicit "主因层：" / "根因：" line, else the first bold item
+    # of the section whose heading says 根因 (e.g. "**prior 物体跟错，导致尺度错（跟踪层，主因，影响 4 题）**")
+    layer = cause = None
+    lines = txt.splitlines()
+    for l in lines:
+        m = re.match(r"^\s*[-*]?\s*\**主因层\**[:：]\s*(.+)", l)
+        layer = layer or (m and m.group(1).strip("* "))
+        m = re.match(r"^\s*[-*]?\s*\**根因\**[:：]\s*(.+)", l)
+        cause = cause or (m and m.group(1).strip("* "))
+    if cause is None:
+        for i, l in enumerate(lines):
+            if l.startswith("#") and "根因" in l:
+                for m_ in lines[i + 1:]:
+                    if m_.startswith("#"):
+                        break
+                    b = re.search(r"\*\*([^*]+)\*\*", m_)
+                    if b:
+                        cause = b.group(1).rstrip("：:")
+                        break
+                break
+    if layer is None and cause:
+        m = re.search(r"([^\s，,（(]+?)层[，,]\s*主因", cause)
+        layer = m and m.group(1)
     # excerpt: the section whose heading says 结论 (conclusion), else the start of the report; markdown emphasis dropped
-    lines, body = txt.splitlines(), None
+    body = None
     for i, l in enumerate(lines):
         if l.startswith("#") and "结论" in l:
             body = []
@@ -180,7 +301,8 @@ def eval_report(vid: str):
     if body is None:
         body, title = [l for l in lines if not l.startswith("#")], ""
     text_ = " ".join(l.strip() for l in body if l.strip()).replace("**", "").replace("`", "")
-    return {"file": str((EVAL_WEB / p.name).relative_to(WEB)), "title": title, "excerpt": text_[:400]}
+    return {"file": str(out.relative_to(WEB)), "title": title, "excerpt": text_[:400], "layer": layer or None,
+            "cause": cause or None}
 
 
 def track_intervals(split: str, vid: str) -> dict:
@@ -383,6 +505,8 @@ def build_val(make_thumb: bool):
         dur, w, h, thumb = video_meta("val", vid, make_thumb)
         rep = eval_report(vid)
         ev_v = (verdicts.get(vid) or {}) | ({"report": rep} if rep else {})
+        if rep:   # the per-video report wins over the overview row; the overview stays as the fallback
+            ev_v |= {k: rep[k] for k in ("layer", "cause") if rep.get(k)} | {"from_report": True}
         first = g.iloc[0]
         qs = [{"cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
                "depth": text(r.depth_info), "answer": num(r.answer), "geo": num(r.geo), "vlm": num(r.vlm),

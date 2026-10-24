@@ -118,7 +118,7 @@
     return d;
   }
 
-  // evaluator verdict (outputs/eval/overview_<n>.md row, plus outputs/eval/<video>.md when it exists)
+  // evaluator verdict: the per-video report (outputs/eval/<video>.md -> data/eval/<video>.html) wins, the overview row is the fallback
   function evalBlock(v) {
     const e = v.eval;
     if (!e) return '';
@@ -126,7 +126,8 @@
     const rep = e.report ? `<div class="ev-rep"><b>逐视频报告${e.report.title ? `（${esc(e.report.title)}）` : ''}：</b>${esc(e.report.excerpt)}${e.report.excerpt.length >= 400 ? '…' : ''} <a href="${esc(e.report.file)}" target="_blank" rel="noopener">全文</a></div>` : '';
     return `<div class="evbox"><h4>评估</h4><div><b>主因层：</b>${esc(e.layer || '—')}　${prog}</div>` +
       (e.cause && e.cause !== '—' ? `<div><b>根因：</b>${esc(e.cause)}</div>` : '') + rep +
-      `<div class="muted" style="font-size:12px">来源 <code>${esc(e.source || '')}</code>（评估员的视频平均 MRA ${esc(e.mra || '')}）</div></div>`;
+      `<div class="muted" style="font-size:12px">` + (e.from_report ? `主因层和根因取自逐视频报告；概览 <code>${esc(e.source || '')}</code> 兜底` : `来源 <code>${esc(e.source || '')}</code>`) +
+      `（评估员的视频平均 MRA ${esc(e.mra || '')}）</div></div>`;
   }
 
   function questionTable(qs, split, s2d) {
