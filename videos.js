@@ -125,16 +125,17 @@
     let h = '<h4>问题</h4>' + (shared && kn(qs[0]) ? `<div class="known-shared">${kn(qs[0])}</div>` : '') +
       '<div class="scroll-x"><table class="qtable"><tr><th>类别</th><th>' + (shared ? '问题' : '问题与已知条件') + '</th>';
     if (split === 'val') {
-      h += '<th class="n">答案</th><th class="n">最终预测</th><th>来源</th><th class="n">几何值</th>' +
+      h += '<th class="n">答案</th><th class="n" title="着色的那一列就是最终预测（几何值蓝 / 2D 场景值绿 / Qwen 值橙）">几何值</th>' +
         (s2d ? '<th class="n" title="图层场景（pipeline.scene2d）的值，作为第二个提示给 Qwen">2D 场景值</th>' : '') +
         '<th class="n">Qwen 值</th><th class="n">MRA</th></tr>';
       qs.forEach((q) => {
         h += `<tr><td><span class="tag">${q.cat}</span><span class="muted">${esc(q.type)}</span></td>` +
           `<td class="q">${esc(q.q)}<div class="known">${known(q)}</div></td>` +
           // the column the final prediction was taken from is tinted (geo / s2d / vlm), so the route is visible at a glance
-          `<td class="n">${fmtNum(q.answer)}</td><td class="n pred">${fmtNum(q.pred)}</td><td><span class="srcdot src-${esc(q.src)}"></span>${SRC_LABEL[q.src] || esc(q.src)}</td>` +
-          `<td class="n${q.src === 'geo' ? ' picked src-geo' : ''}">${fmtNum(q.geo)}</td>` + (s2d ? `<td class="n${q.src === 's2d' ? ' picked src-s2d' : ''}">${fmtNum(q.s2d)}</td>` : '') +
-          `<td class="n${q.src === 'vlm' ? ' picked src-vlm' : ''}">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td></tr>`;
+          `<td class="n">${fmtNum(q.answer)}</td>` +
+          `<td class="n${q.src === 'geo' ? ' picked src-geo' : ''}" title="${q.src === 'geo' ? '最终预测取自几何值' : ''}">${fmtNum(q.geo)}</td>` +
+          (s2d ? `<td class="n${q.src === 's2d' ? ' picked src-s2d' : ''}" title="${q.src === 's2d' ? '最终预测取自 2D 场景值（Qwen 没给数字）' : ''}">${fmtNum(q.s2d)}</td>` : '') +
+          `<td class="n${q.src === 'vlm' ? ' picked src-vlm' : ''}" title="${q.src === 'vlm' ? '最终预测取自 Qwen 值' : ''}">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td></tr>`;
       });
     } else {
       h += '<th class="n">行号</th><th class="n">预测值</th></tr>';
