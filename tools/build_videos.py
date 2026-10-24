@@ -5,10 +5,10 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_defaults_routed.csv                validation predictions shown (0.6983, current best: all default switches on;
+  outputs/val_mh3_routed.csv                     validation predictions shown (0.7230, current best: 3-way median fill-in;
                                                  s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
                                                  scene-fit value and its confidence; source geo / vlm / s2d / fit)
-  outputs/submission_v6.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
+  outputs/submission_v7.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
   outputs/scene_fit_eval/c_support_v8b/<video>.json validation scene fits (scene graph, supports, dimension sources,
                                                  visible intervals, per-question quality / conf, ballistic paths)
   outputs/scene2d_eval/s2d_v5/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
@@ -43,8 +43,8 @@ import pandas as pd  # noqa: E402
 from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_defaults_routed.csv"
-TEST_CSV = ROOT / "outputs" / "submission_v6.csv"
+VAL_CSV = ROOT / "outputs" / "val_mh3_routed.csv"
+TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8b",
               "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
 SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v5"}   # the test tab stays on the submitted predictions
