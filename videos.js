@@ -40,7 +40,7 @@
     const all = val.videos.flatMap((v) => v.questions);
     const m = macro(all);
     $('val-macro').textContent = fmt(m.macro, 4);
-    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}。3D 视图为场景拟合 v9b（c_v9b），2D 图层为 scene2d v8（s2d_v8）`;
+    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}。3D 视图为场景拟合 c_v10c2（无网格），2D 图层为 scene2d v9（s2d_v9）`;
     // per answer source: how many questions took their final prediction from it and their MRA
     const SRCS = [['geo', '几何'], ['fit', '拟合'], ['s2d', '2D 场景'], ['vlm', 'Qwen']].filter(([k]) => all.some((q) => q.src === k));
     let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th>' + SRCS.map(([, l]) => `<th class="n">${l} 题数</th><th class="n">${l} MRA</th>`).join('') + '</tr>';

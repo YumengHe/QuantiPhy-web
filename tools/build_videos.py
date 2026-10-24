@@ -5,13 +5,13 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv  validation predictions shown (0.7479: valcur11 Qwen + scene2d v8 + scene fit c_v9b;
+  outputs/val_oldchain_v10c2_s2dv9_routed.csv    validation predictions shown (0.7632: old chain + scene fit c_v10c2 + scene2d v9;
                                                  s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
                                                  scene-fit value and its confidence; source geo / vlm / s2d / fit)
   outputs/submission_v7.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
-  outputs/scene_fit_eval/c_v9b/<video>.json      validation scene fits (scene graph, supports, dimension sources,
+  outputs/scene_fit_eval/c_v10c2/<video>.json    validation scene fits (scene graph, supports, dimension sources,
                                                  visible intervals, per-question quality / conf, ballistic paths)
-  outputs/scene2d_eval/s2d_v8/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
+  outputs/scene2d_eval/s2d_v9/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
                                                  object inventory, scene graph, rejected layers, constraints, mask hulls
   outputs/tracks[_test]/<video>.json             per-object visible intervals for the 3D viewer
   outputs/eval/overview_*.md, <video>.md         evaluator verdicts (summary table row; per-video report copied to data/eval/)
@@ -45,11 +45,11 @@ from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 from pipeline.parse import parse_question  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_mh3_valcur11_s2dv8_v9b_routed.csv"
+VAL_CSV = ROOT / "outputs" / "val_oldchain_v10c2_s2dv9_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
-SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_v9b",   # scene_fit v9b, the run behind the 0.7479 routing
+SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_v10c2",   # mesh-free scene fit, the run behind the 0.7554 routing
               "test": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7_test"}   # the run behind submission_v7
-SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v8",         # scene2d v8
+SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v9",         # scene2d v9 (the 0.7632 routing)
                 "test": ROOT / "outputs" / "scene2d_eval" / "s2d_v7_test"}     # the run behind submission_v7
 SCENES_TEST = WEB / "data" / "scenes" / "test"   # one json per test video, fetched by the page when a card opens
 BG_MAX_W = 960                                   # background images wider than this are shrunk (test is up to 2560 px)

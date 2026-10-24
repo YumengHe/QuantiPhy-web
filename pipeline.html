@@ -88,8 +88,8 @@
 <p class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#answers">答案从哪来</a><a href="#outputs">产物目录</a></p>
 <h1>完整流程</h1>
 <p class="lede">主图始终画<b>已批准的目标流水线</b>：一条流水线、一个 agent harness（<code>pipeline/harness.py</code>，实现中），每个方框右上角标状态。流水线每改一次，这张图跟着改一次。</p>
-<div class="callout"><b>harness 状态：实现中，未替换旧链。</b>10-24 Meshy / 网格库移除：物体形状只用解析几何体（commit 619b74f）。第一版 h1 首次验证集全量 0.7373（S2 0.675 / D2 0.892 / S3 0.719 / D3 0.664），旧链基线 0.7489；答案来源 scene 113 题（MRA 0.809）、prior 46 题（MRA 0.550）。替换门槛改为：旧链在 c_v10c2 上的路由分（待测；去网格后旧链的 0.7489 不再可比）。</div>
-<div class="callout">现状：v8 测试集提交和当前验证集最好 0.7489 都是用<b>旧链</b>（<code>pipeline/mh3.py</code>：三路几何 + 三路 Qwen + route）跑的，v8 没有带场景 agent 回路（时间不够）。旧链的步骤只在下面步骤表的"v8 用的旧步骤"一列和折叠块里列出；新 harness 在验证集达到 ≥ 0.7489 后替换旧链并删除旧代码。内容取自代码：<code>pipeline/mh3.py</code>、<code>pipeline/route.py</code>、<code>pipeline/scene_agent.py</code>、<code>pipeline/critic_loop.py</code>、<code>docs/WORKING_RULES.md</code>、<code>docs/TEST_RUN_v8.md</code>。</div>
+<div class="callout"><b>harness 状态：实现中，未替换旧链。</b>10-24 Meshy / 网格库移除：物体形状只用解析几何体（commit 619b74f）。第一版 h1 首次验证集全量 0.7373（S2 0.675 / D2 0.892 / S3 0.719 / D3 0.664），旧链基线 0.7489；答案来源 scene 113 题（MRA 0.809）、prior 46 题（MRA 0.550）。替换门槛 0.7632（旧链 + c_v10c2 + s2d_v9；口径：两者用同一版 scene2d）。</div>
+<div class="callout">现状：v8 测试集提交和当前验证集最好 0.7632 都是用<b>旧链</b>（<code>pipeline/mh3.py</code>：三路几何 + 三路 Qwen + route）跑的，v8 没有带场景 agent 回路（时间不够）。旧链的步骤只在下面步骤表的"v8 用的旧步骤"一列和折叠块里列出；新 harness 在验证集达到 ≥ 0.7489 后替换旧链并删除旧代码。内容取自代码：<code>pipeline/mh3.py</code>、<code>pipeline/route.py</code>、<code>pipeline/scene_agent.py</code>、<code>pipeline/critic_loop.py</code>、<code>docs/WORKING_RULES.md</code>、<code>docs/TEST_RUN_v8.md</code>。</div>
 
 <h2 id="flow">流程图（目标：harness.py）</h2>
 <div class="legend">
@@ -118,7 +118,7 @@
       <div class="arrow"></div>
       <div class="node d2"><div class="hd"><b>extents2d 掩码凸包</b><span class="st done">已实现</span></div><span class="m">SAM 2 图像模型取每层的掩码凸包。<code>pipeline.extents2d</code></span></div>
       <div class="arrow"></div>
-      <div class="node d2"><div class="hd"><b>scene2d 图层场景</b><span class="st done">已实现</span></div><span class="m">每个物体一层，prior 标定统一 m/px，分段运动模型，几何测量作为场景里的观测项，逐题给场景值和 conf。<code>pipeline.scene2d</code>（v8）</span></div>
+      <div class="node d2"><div class="hd"><b>scene2d 图层场景</b><span class="st done">已实现</span></div><span class="m">每个物体一层，prior 标定统一 m/px，分段运动模型，几何测量作为场景里的观测项，逐题给场景值和 conf。<code>pipeline.scene2d</code>（v9：几何观测吸收进场景）</span></div>
       <div class="arrow"></div>
       <div class="node d2"><div class="hd"><b>2D 工具</b><span class="st done">已实现</span></div><span class="m">回路可调的 2D 场景动作：rescale、set_extent、drop_frames 等（<code>scene2d.apply_critique</code>）。</span></div>
     </div>
@@ -168,10 +168,10 @@
   <tr class="grp g2d"><td colspan="10">2D</td></tr>
   <tr><td>refmeasure</td><td><span class="st done">已实现</span></td><td><code>pipeline.refmeasure</code>（跟踪步里首次生成）</td><td>视频、跟踪</td><td><code>refmeasure_v8</code></td><td>车道宽、刻度、地砖等参考长度</td><td>—</td><td>—</td><td>待 v8 跑完补</td><td>track_v8 内</td></tr>
   <tr><td>extents2d</td><td><span class="st done">已实现</span></td><td><code>pipeline.extents2d --caches tracks_v9p</code></td><td><code>tracks_v9p</code></td><td><code>extents2d</code></td><td>掩码凸包</td><td>SAM 2</td><td>约 80 s / 缓存</td><td>待 v8 跑完补</td><td>extents2d</td></tr>
-  <tr><td>scene2d</td><td><span class="st done">已实现</span></td><td><code>QP_TRACKS=tracks_v9p pipeline.scene2d --scenegraph scenegraph_pfc</code></td><td><code>tracks_v9p</code>、<code>extents2d</code>、<code>scenegraph_pfc</code>、<code>refmeasure_v8</code></td><td><code>scene2d_eval/s2d_v8</code></td><td>图层场景与场景值</td><td>—</td><td>约 15 s</td><td>待 v8 跑完补</td><td>scene2d</td></tr>
+  <tr><td>scene2d</td><td><span class="st done">已实现</span></td><td><code>QP_TRACKS=tracks_v9p pipeline.scene2d --scenegraph scenegraph_pfc</code></td><td><code>tracks_v9p</code>、<code>extents2d</code>、<code>scenegraph_pfc</code>、<code>refmeasure_v8</code></td><td><code>scene2d_eval/s2d_v9</code></td><td>图层场景与场景值</td><td>—</td><td>约 15 s</td><td>待 v8 跑完补</td><td>scene2d</td></tr>
   <tr class="grp g3d"><td colspan="10">3D</td></tr>
   <tr><td>depth / ground</td><td><span class="st done">已实现</span></td><td>深度缓存；<code>pipeline.ground</code></td><td>视频</td><td><code>depth</code>、<code>ground</code></td><td>深度、地面掩码、墙脚 / 墙顶</td><td>Depth Anything、GDINO、SAM 2（顶部结构时 Qwen）</td><td>—</td><td>待 v8 跑完补</td><td>ground</td></tr>
-  <tr><td>scene_fit</td><td><span class="st done">已实现（v10c2，3D 基线 0.6388）</span>；几何体模板 <span class="st wip">实现中</span></td><td><code>pipeline.eval_scene_fit --dim3 --two-pass</code></td><td><code>depth</code>、<code>ground</code>、<code>scenegraph_pfc</code>、跟踪</td><td><code>scene_fit_eval/c_v10c2</code>（视频页仍显示 <code>c_v9b</code>）</td><td>3D 场景拟合与拟合值</td><td>—</td><td>—</td><td>待 v8 跑完补</td><td>scene_fit</td></tr>
+  <tr><td>scene_fit</td><td><span class="st done">已实现（v10c2，3D 基线 0.6388）</span>；几何体模板 <span class="st wip">实现中</span></td><td><code>pipeline.eval_scene_fit --dim3 --two-pass</code></td><td><code>depth</code>、<code>ground</code>、<code>scenegraph_pfc</code>、跟踪</td><td><code>scene_fit_eval/c_v10c2</code></td><td>3D 场景拟合与拟合值</td><td>—</td><td>—</td><td>待 v8 跑完补</td><td>scene_fit</td></tr>
 </table></div>
 
 <details class="fold"><summary>旧链（mh3）独有、待删的步骤 <span class="st del">待删</span></summary>
@@ -193,7 +193,7 @@
   <div class="node d3"><div class="hd"><b>3D 题（S3 / D3）</b></div><span class="m" style="font-size:14px">① 拟合值按 conf 门控（S3 ≥ 0.6，D3 ≥ 0.3；D3 只来自直接测量的值只作提示）；② 否则 Qwen 三路对数中位数；③ Qwen 没数字时用任意 conf 的拟合值，再没有用常识典型值。被问物体判为不在场（conf ≥ 0.9）时不用几何 / 场景值。</span></div>
 </div>
 <div class="callout"><b>绝对不用验证集答案。</b>回退常数、合理范围、先验都是手写常识，不从验证集的 answer 列计算（<code>docs/WORKING_RULES.md</code>）。</div>
-<p><b>当前最好 0.7489</b>（S2 0.719 / D2 0.892 / S3 0.721 / D3 0.664；no-geo 路由（几何 csv 只作提示）；旧路由（几何直接作答）0.7500，在噪声内）：Qwen 三路沿用 valcur11 的答案，2D 场景值用重算后的 scene2d v8（<code>scene2d_eval/s2d_v8</code>），3D 拟合用 <code>scene_fit_eval/c_v9b</code>。逐题结果 <code>outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv</code>。</p>
+<p><b>当前最好 0.7632</b>（S2 0.797 / D2 0.892 / S3 0.705 / D3 0.660；43 题子集 0.6917）：旧链路由，3D 用删除网格库后的场景拟合 <code>scene_fit_eval/c_v10c2</code>，2D 用 <code>scene2d_eval/s2d_v9</code>；这也是新 harness 的替换门槛。逐题结果 <code>outputs/val_oldchain_v10c2_s2dv9_routed.csv</code>。中间值 0.7554（15:51 版 s2d_v8）；历史 0.7489（含网格，c_v9b）。</p>
 
 <h2 id="outputs">产物目录</h2>
 <p>保留的最新结果就是下面这些目录（都在 <code>outputs/</code> 下，测试集加 <code>_test</code>）；更早的版本目录会清理，只在 <a href="index.html">迭代记录</a> 里保留文字。</p>
@@ -204,7 +204,7 @@
   <tr><td>跟踪</td><td><code>tracks</code>、<code>tracks_qwen</code>、<code>tracks_v8(p)</code>、<code>tracks_rc(p)</code>、<code>tracks_v9(p)</code>、<code>trackcheck</code></td></tr>
   <tr><td>2D 中间量</td><td><code>extents2d</code>、<code>refmeasure_v8</code></td></tr>
   <tr><td>3D 中间量</td><td><code>ground</code>、<code>depth</code></td></tr>
-  <tr><td>场景</td><td><code>scene2d_eval/s2d_v8</code>、<code>scene_fit_eval/c_v9b</code></td></tr>
+  <tr><td>场景</td><td><code>scene2d_eval/s2d_v9</code>、<code>scene_fit_eval/c_v10c2</code></td></tr>
   <tr><td>旧链的 Qwen 作答</td><td><code>vlm/</code></td></tr>
   <tr><td>结果</td><td><code>*_routed.csv</code>（验证集）、<code>submission_vN.csv</code>（测试集）</td></tr>
 </table></div>
