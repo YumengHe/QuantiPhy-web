@@ -523,7 +523,7 @@ def scene_tree(split: str, vid: str, objtab: dict | None) -> dict | None:
 def track_intervals(split: str, vid: str) -> dict:
     """{track name: [[t0, t1], ...]} — the frames where the track cache (outputs/tracks[_test]/<video>.json) has a box,
     merged into runs of consecutive frames, in seconds (frame / fps of the cache)."""
-    p = cache_root("tracks", split) / f"{vid}.json"
+    p = cache_root(TRACKS_KIND.get(split, "tracks"), split) / f"{vid}.json"
     if not p.exists():
         return {}
     try:
@@ -804,6 +804,9 @@ def version_of(split: str, vid: str, is3d: bool, csv: Path) -> dict:
     """Version shown next to the timestamp: the scene json's own "version" field when it has one
     ({pipeline, commit, scene2d, scene_fit, objects, presence, refmeasure, time} -> "pipeline · commit"); else pieced
     together from the scene directory name, the pipeline tag in the result csv name (val_mh3_<tag>_...) and the json mtime."""
+    if split == "test" and TEST_VERSION:   # one version for the whole submission (--test-version)
+        return {"label": " · ".join(str(TEST_VERSION[k]) for k in ("pipeline", "commit") if TEST_VERSION.get(k)) or "版本 json",
+                "detail": TEST_VERSION}
     d = (SCENE_DIRS if is3d else SCENE2D_DIRS).get(split)
     p = d / f"{vid}.json" if d else None
     ver = None
@@ -930,6 +933,82 @@ def build_val(make_thumb: bool):
             "per_cat": {c: num(ev[c], 6) for c in CATEGORIES}, "eval_source": eval_src, "videos": videos}
 
 
+TRACKS_KIND = {"val": "tracks", "test": "tracks"}   # track cache kind for the visible intervals (--test-tracks)
+TEST_VERSION: dict = {}   # --test-version: the submission's version json, shown on every test card
+TEST_ROUTE = ROOT / "outputs" / "test_v7_routed_detailed.csv"   # per-question source of the test submission (v8: its routing csv)
+TEST_AUDIT2D = ROOT / "outputs" / "scene2d_eval" / "dev_test_audit_test" / "test_pred.csv"   # latest 2D test audit
+REASON_ZH = {"needs-track": "缓存里没有这个物体的轨迹", "no-layer": "没有图层", "no-reference-layer": "参照物没有图层",
+             "unsupported": "这类题拟合不支持", "object-not-fitted": "物体没拟合上", "reference-not-fitted": "参照物没拟合上",
+             "no-fit": "视频没有场景拟合"}
+
+
+def _reason_zh(method: str) -> str:
+    m = str(method or "")
+    if m in REASON_ZH:
+        return REASON_ZH[m]
+    if m.endswith("(no scale)"):
+        return "没有尺度（prior 定不了 m/px）"
+    if m.endswith("-failed"):
+        return m[:-7] + " 量不出来"
+    return m or "—"
+
+
+def test_noanswer(ref: pd.DataFrame, route_csv: Path, audit2d: Path) -> dict:
+    """Test questions the scene gave no usable value for: 2D from the latest scene2d test audit (pred empty, its method
+    and notes as the reason), 3D from the test scene-fit dir (no result value, or no fit for the video). The submitted
+    value comes from the submission; its source (vlm / geo / s2d) from the routing csv when it has a source column."""
+    src = {}
+    if route_csv.exists():
+        r = pd.read_csv(route_csv)
+        if "source" in r.columns:
+            src = {(a, b): c for a, b, c in zip(r.video_id, r.question, r.source)}
+    a2d = {}
+    if audit2d.exists():
+        a = pd.read_csv(audit2d)
+        for v, q, pr, m, n in zip(a.video_id, a.question, a.pred, a["method"], a.get("notes", pd.Series([""] * len(a)))):
+            a2d[(v, q)] = (pr, m, n)
+    fits = {}
+    d3 = SCENE_DIRS.get("test")
+    rows, totals = [], {c: 0 for c in CATEGORIES}
+    for i, r in ref.iterrows():
+        totals[r.category] = totals.get(r.category, 0) + 1
+        key = (r.video_id, r.question)
+        if str(r.dim) == "2":
+            if key not in a2d:
+                continue
+            pr, m, n = a2d[key]
+            if isinstance(pr, float) and math.isfinite(pr):
+                continue
+            reason, detail = _reason_zh(m), text(n)[:220]
+        else:
+            if r.video_id not in fits:
+                p = d3 / f"{r.video_id}.json" if d3 else None
+                try:
+                    fits[r.video_id] = ({x["question"]: (x.get("pred"), x.get("method")) for x in json.load(open(p)).get("results", [])}
+                                        if p is not None and p.exists() else None)
+                except (OSError, json.JSONDecodeError):
+                    fits[r.video_id] = None
+            fv = fits[r.video_id]
+            if fv is None:
+                reason, detail = REASON_ZH["no-fit"], ""
+            else:
+                pr, m = fv.get(r.question, (None, "unsupported"))
+                if pr is not None and not (isinstance(pr, float) and math.isnan(pr)):
+                    continue
+                reason, detail = _reason_zh(m), text(m)
+        rows.append({"vid": r.video_id, "row": int(i) + 1, "cat": r.category, "q": r.question, "pred": num(r.pred),
+                     "src": src.get(key), "reason": reason, "detail": detail})
+    by_cat = {c: [sum(x["cat"] == c for x in rows), totals.get(c, 0)] for c in CATEGORIES}
+    reasons = {}
+    for x in rows:
+        reasons[x["reason"]] = reasons.get(x["reason"], 0) + 1
+    print(f"test no-answer: {len(rows)} / {len(ref)} (" + ", ".join(f"{c} {a}/{b}" for c, (a, b) in by_cat.items()) + ")")
+    return {"rows": rows, "by_cat": by_cat, "by_reason": sorted(reasons.items(), key=lambda kv: -kv[1]),
+            "route": str(route_csv.relative_to(ROOT)) if route_csv.exists() else None,
+            "audit2d": str(audit2d.relative_to(ROOT)) if audit2d.exists() else None,
+            "fit3d": str(d3.relative_to(ROOT)) if d3 else None, "total": len(ref)}
+
+
 def build_test(make_thumb: bool):
     sub = pd.read_csv(TEST_CSV)
     ref = load_split("test").reset_index(drop=True)
@@ -968,16 +1047,38 @@ def build_test(make_thumb: bool):
     n3d = sum(v["dim"] == 3 for v in videos)
     print(f"test: {len(ref)} questions, {len(videos)} videos, scene fit {n_fit}/{n3d} 3D videos, "
           f"2D layered scene {n_2d}/{len(videos) - n3d} 2D videos")
-    return {"file": str(TEST_CSV.relative_to(ROOT)), "videos": videos}
+    return {"file": str(TEST_CSV.relative_to(ROOT)), "videos": videos, "noans": test_noanswer(ref, TEST_ROUTE, TEST_AUDIT2D)}
 
 
 def main():
+    global TEST_CSV, TEST_ROUTE, TEST_AUDIT2D
     ap = argparse.ArgumentParser()
     ap.add_argument("--rethumb", action="store_true", help="regenerate thumbnails that already exist")
     ap.add_argument("--count-check", type=Path, default=COUNT_CHECK_VAL,
                     help="validation count_check results {video: {frames: [{t, n_video, n_scene, ...}], ...}} merged into "
                          "scenes that do not carry the field themselves (default: %(default)s when it exists)")
+    # test tab data sources, so a new submission (v8) is one command:
+    #   --test-sub outputs/submission_v8.csv --test-route <its routing csv> --test-fit <test fit dir>
+    #   --test-s2d <test scene2d dir> --test-tracks tracks_v9p --test-version outputs/submission_v8.version.json
+    ap.add_argument("--test-sub", "--test-csv", dest="test_sub", type=Path, help="test submission csv (default: %s)" % TEST_CSV.name)
+    ap.add_argument("--test-route", type=Path, help="its per-question routing csv with a source column (default: %s)" % TEST_ROUTE.name)
+    ap.add_argument("--test-fit", type=Path, help="test scene-fit dir (default: %s)" % SCENE_DIRS["test"])
+    ap.add_argument("--test-s2d", type=Path, help="test scene2d dir (default: %s)" % SCENE2D_DIRS["test"])
+    ap.add_argument("--test-tracks", help="track cache kind for the test visible intervals, e.g. tracks_v9p (default: tracks)")
+    ap.add_argument("--test-version", type=Path, help="the submission's version json (e.g. submission_v8.version.json)")
+    ap.add_argument("--test-audit2d", type=Path, help="2D test audit *_pred.csv for the no-answer list (default: %s)" % TEST_AUDIT2D)
     args = ap.parse_args()
+    TEST_CSV = args.test_sub or TEST_CSV
+    TEST_ROUTE = args.test_route or TEST_ROUTE
+    TEST_AUDIT2D = args.test_audit2d or TEST_AUDIT2D
+    if args.test_fit:
+        SCENE_DIRS["test"] = args.test_fit.resolve()
+    if args.test_s2d:
+        SCENE2D_DIRS["test"] = args.test_s2d.resolve()
+    if args.test_tracks:
+        TRACKS_KIND["test"] = args.test_tracks
+    if args.test_version and args.test_version.exists():
+        TEST_VERSION.update(json.load(open(args.test_version)))
     if args.count_check and args.count_check.exists():
         COUNT_CHECK.update(json.load(open(args.count_check)))
         print(f"count_check: {len(COUNT_CHECK)} videos from {args.count_check}")

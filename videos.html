@@ -138,6 +138,8 @@
   .stree .edge.dashed { stroke-dasharray: 5 4; stroke: var(--muted); }
   .stree .elab { fill: var(--panel); opacity: .92; }
   .stree .etxt { font-size: 10.5px; fill: var(--text); }
+  .noans-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 8px 0 12px; }
+  .noans-tab td { font-size: 13.5px; }
   .sigtag { font-size: 11.5px; padding: 0 6px; border-radius: 999px; background: rgba(217, 72, 15, .12); color: #d9480f; white-space: nowrap; }
   .qtable td.align-warn { color: #d9480f; font-weight: 600; }
   .timebar button { font: inherit; padding: 2px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); cursor: pointer; }
@@ -219,7 +221,9 @@
     <label>场景拟合 <select id="t-fit"><option value="">全部</option><option value="yes">有</option><option value="no">3D 但没有</option></select></label>
     <label>排序 <select id="t-sort"><option value="id">视频名</option><option value="n-desc">题数从多到少</option></select></label>
     <label><input type="search" id="t-q" placeholder="搜索视频名或问题"></label>
+    <label title="只列出场景（2D 图层场景 / 3D 拟合）没给出可用值的题：提交值来自 Qwen 先验、几何或典型值兜底"><input type="checkbox" id="t-noans"> 只看没有答案的题</label>
   </div>
+  <div id="t-noans-sum"></div>
   <div class="status" id="t-status"></div>
   <div id="test-list"></div>
 </div>

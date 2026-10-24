@@ -57,7 +57,7 @@
     const all = test.videos.flatMap((v) => v.questions);
     const v3 = test.videos.filter((v) => v.dim === 3);
     const fit = v3.filter(hasScene).length;
-    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频，预测来自 submission_v7（<code>${esc(test.file)}</code>，按行号和 <code>load_split('test')</code> 对齐）；v8 运行中（切换到 commit 874b7d6 从清单步重跑）。测试集没有答案，不显示准确度。3D 视频 ${v3.length} 个，其中 ${fit} 个有场景拟合结果。`;
+    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频，预测来自 ${esc(test.file.split('/').pop().replace(/\.csv$/, ''))}（<code>${esc(test.file)}</code>，按行号和 <code>load_split('test')</code> 对齐）${/submission_v7/.test(test.file) ? '；v8 运行中，跑完后整体切到 v8' : ''}。测试集没有答案，不显示准确度。3D 视频 ${v3.length} 个，其中 ${fit} 个有场景拟合结果。`;
     let h = '<tr><th>类别</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '<th class="n">合计</th></tr>';
     h += '<tr><td>题数</td>' + CATS.map((c) => `<td class="n">${all.filter((q) => q.cat === c).length}</td>`).join('') + `<td class="n">${all.length}</td></tr>`;
     h += '<tr><td>视频数</td>' + CATS.map((c) => `<td class="n">${test.videos.filter((v) => v.cats.includes(c)).length}</td>`).join('') + `<td class="n">${test.videos.length}</td></tr>`;
@@ -1212,7 +1212,33 @@
     const list = $('val-list'); list.innerHTML = '';
     items.forEach((x) => list.appendChild(videoCard(x.v, x.qs, 'val')));
   }
+  // test questions without a scene answer (tools/build_videos.test_noanswer): summary + one flat table
+  const SRC_ZH = { vlm: 'Qwen', geo: '几何', s2d: '场景（2D）', fit: '场景（3D）' };
+  function noAnswerSummary(na) {
+    const tot = Object.values(na.by_cat).reduce((a, x) => a + x[0], 0);
+    const cats = CATS.map((c) => `<tr><td>${c}</td><td class="n">${na.by_cat[c][0]}</td><td class="n">${na.by_cat[c][1]}</td><td class="n">${fmt((100 * na.by_cat[c][0]) / Math.max(na.by_cat[c][1], 1), 1)}%</td></tr>`).join('');
+    const rs = na.by_reason.map(([r, n]) => `<tr><td>${esc(r)}</td><td class="n">${n}</td></tr>`).join('');
+    return `<div class="noans-sum"><div><b>没有答案：${tot} / ${na.total} 题（${fmt((100 * tot) / na.total, 1)}%）</b><div class="scroll-x"><table><tr><th>类别</th><th class="n">没有答案</th><th class="n">总题数</th><th class="n">占比</th></tr>${cats}</table></div></div>` +
+      `<div><b>原因分布</b><div class="scroll-x"><table><tr><th>原因</th><th class="n">题数</th></tr>${rs}</table></div></div></div>` +
+      `<p class="muted" style="font-size:12.5px">口径："没有答案" = 场景没给出可用值的题。2D 看最新的 2D 测试集审计 <code>${esc(na.audit2d || '—')}</code>（场景值为空），原因取审计里该题的 method / notes；3D 看测试集拟合目录 <code>${esc(na.fit3d || '—')}</code>（该题没有拟合值，或整个视频没有拟合）。提交值取测试集提交文件，来源列取路由明细 <code>${esc(na.route || '—')}</code> 的 source（vlm = Qwen，geo = 几何，s2d = 场景）。注意：v7 提交时 2D 场景值只直接用了 18 题，所以来源列和"场景有没有值"不是一回事；这里的筛选按场景有没有值判断。</p>`;
+  }
+  function renderNoAnswer() {
+    const na = DATA.test.noans, cat = $('t-cat').value, needle = $('t-q').value.trim().toLowerCase();
+    const rows = na.rows.filter((x) => (!cat || x.cat === cat) && (!needle || x.vid.toLowerCase().includes(needle) || x.q.toLowerCase().includes(needle)));
+    $('t-status').textContent = `${rows.length} 题（当前筛选下）。点视频名跳到它的卡片。`;
+    const list = $('test-list');
+    list.innerHTML = '<div class="scroll-x"><table class="noans-tab"><tr><th>视频</th><th class="n">行号</th><th>类别</th><th>问题</th><th class="n">提交值</th><th>来源</th><th>没有场景值的原因</th></tr>' +
+      rows.map((x) => `<tr><td><a href="#test/${esc(x.vid)}" class="na-link" data-vid="${esc(x.vid)}">${esc(x.vid)}</a></td><td class="n">${x.row}</td><td><span class="tag">${x.cat}</span></td><td>${esc(x.q)}</td>` +
+        `<td class="n">${fmtNum(x.pred)}</td><td>${esc(SRC_ZH[x.src] || x.src || '—')}</td><td>${esc(x.reason)}${x.detail ? `<div class="muted" style="font-size:12px">${esc(x.detail)}</div>` : ''}</td></tr>`).join('') + '</table></div>';
+    list.querySelectorAll('.na-link').forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault(); $('t-noans').checked = false; $('t-q').value = a.dataset.vid; renderTest();
+      const d = list.querySelector(`details[data-id="${CSS.escape(a.dataset.vid)}"]`); if (d) { d.open = true; d.scrollIntoView(); }
+    }));
+  }
   function renderTest() {
+    const na = DATA.test.noans;
+    $('t-noans-sum').innerHTML = na && $('t-noans').checked ? noAnswerSummary(na) : '';
+    if (na && $('t-noans').checked) { renderNoAnswer(); return; }
     const cat = $('t-cat').value, vsrc = $('t-vsrc').value, fit = $('t-fit').value, sort = $('t-sort').value;
     const needle = $('t-q').value.trim().toLowerCase();
     let items = DATA.test.videos.filter((v) => (!vsrc || v.source === vsrc) &&
@@ -1233,7 +1259,7 @@
     valSummary(d.val); testSummary(d.test);
     fillSourceSelect($('v-vsrc'), d.val.videos); fillSourceSelect($('t-vsrc'), d.test.videos);
     ['v-cat', 'v-src', 'v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
-    ['t-cat', 't-vsrc', 't-fit', 't-sort'].forEach((id) => $(id).addEventListener('change', renderTest));
+    ['t-cat', 't-vsrc', 't-fit', 't-sort', 't-noans'].forEach((id) => $(id).addEventListener('change', renderTest));
     $('v-q').addEventListener('input', debounce(renderVal, 200));
     $('t-q').addEventListener('input', debounce(renderTest, 200));
     renderVal(); renderTest();
