@@ -216,6 +216,17 @@
   <h2>评估记录</h2>
   <p>评估员（qp-evaluator）像看网页一样，从分数最低的视频开始逐个检查原帧、跟踪框、重建叠加图、场景 json 和各来源的数值，判断问题出在哪一层，再把通用修改派给对应的负责人。每个视频的结论显示在 <a href="videos.html">视频与问题</a> 的卡片里。</p>
   <p><b>进度：</b>已完成 13 个视频的逐视频报告（见下方"逐视频报告"），队列继续。</p>
+  <h3 id="eval-audit2d">测试集 2D 稳健性审计（10-24，不用答案）</h3>
+  <p>测试集 2D 题 1742 道里有 404 道（23%）2D 场景量不到，验证集是 0 道。原因前五：</p>
+  <table>
+    <tr><th>原因</th><th class="n">题数</th><th class="n">视频数</th></tr>
+    <tr><td>结构参照物（车道、刻度等）没有 refmeasure 缓存</td><td class="n">161</td><td class="n">77</td></tr>
+    <tr><td>prior 的运动物体过不了刚体面积检查（靠近 / 远离镜头的车、机器人、出画的轨迹）</td><td class="n">135</td><td class="n">35</td></tr>
+    <tr><td>缓存里没有 prior 物体的轨迹（v8 重跑解决）</td><td class="n">42</td><td class="n">—</td></tr>
+    <tr><td>prior 自相矛盾或量不出来</td><td class="n">32</td><td class="n">—</td></tr>
+    <tr><td>候选选成了静止的物体</td><td class="n">28</td><td class="n">4</td></tr>
+  </table>
+  <p>分布差异：测试集里加速度题占 25.8%，验证集没有；refmeasure 作为尺度来源，验证集 10%、测试集 0%。所以验证集分数会高估测试集的 2D 表现。2D 侧会写 <code>outputs/eval/test_audit_2d.md</code>，写好后在这里加链接。</p>
   <h3 id="eval-1">概览 1（2026-10-23，基于 s2d_v3 的 0.681）</h3>
   <p>各来源单独作答时的"神谕" MRA（每题都用这一来源）：</p>
   <table>
@@ -1351,6 +1362,20 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
 <section id="iter2d">
   <h2>2D 迭代记录</h2>
   <p>只针对 2D 题（S2、D2）的迭代，按时间倒序。</p>
+
+  <details class="iter" id="s2d-v9">
+    <summary><span class="d">10-24</span>2D 图层场景 v9：图层跨帧对应规则 + measure 接口 · S2 0.722 / D2 0.892（commit 046bc48）</summary>
+    <div class="iter-body">
+  <ul>
+    <li><b>刚体常量尺寸：</b>在 ±15% 的窗口里取逐帧尺寸的众数作为常量（<code>stable_extent_px</code>，<code>rigid_constant</code>）；视频页的图层视图对刚体层画一个不随帧变的稳定框。例：internet_0004 木块 489 × 246.5 px，不再闪。</li>
+    <li><b>遮挡 / 合并判定：</b>掩码明显变小的帧记为 <code>occluded</code>（框按常量补全，视频页画虚线框），和别的物体掩码合在一起的帧记为 <code>merged</code>（不用于尺寸，视频页标"合并"）。例：锯子 121 / 269 帧被遮挡。</li>
+    <li><b>可变形物体平滑：</b>人、动物等不按刚体约束，尺寸做平滑。</li>
+    <li><b>temporal_consistency：</b>每层写出尺寸变化的中位数 / p90、遮挡比例、是否可变形、是否不稳定；物体表的自检列显示"遮挡 N/M 帧""可变形""不稳定（p90 x%）"。补全前的原始中心和框保留为 <code>raw_center_px</code> / <code>raw_box_px</code>。</li>
+    <li>measure 接口：统一的测量调用。</li>
+  </ul>
+  <p>验证集：S2 0.722 / D2 0.892。场景 json 已重跑到 <code>scene2d_eval/s2d_v8/</code>。</p>
+    </div>
+  </details>
 
   <details class="iter" id="s2d-v6">
     <summary><span class="d">10-24</span>2D 图层场景 v6：刚体一致性用跟踪掩码 + refmeasure 合理性交叉检查 · simulation_0196 终于有尺度（四题 0.25→0.425） <span class="yes">采用（tracks_v9pc）</span></summary>

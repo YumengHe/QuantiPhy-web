@@ -100,17 +100,20 @@
 <div class="flow">
   <div class="node"><div class="hd"><b>输入</b><span class="st done">已实现</span></div><span class="m">视频、题目、prior（已知量）、depth_info（部分 3D 题给物体到相机的距离）。每题独立作答，不用同视频其他题的 prior。</span></div>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>物体清单 objects</b><span class="st done">已实现</span></div><span class="m">Qwen 从题目和 prior 列出被问到的物体、别名、角色（object / structure / class）、数量、形状提示、part_of。<code>pipeline.objects</code></span></div>
+  <div class="node"><div class="hd"><b>物体清单 objects</b><span class="st done">已实现</span></div><span class="m">Qwen 从题目和 prior 列出被问到的物体、别名、角色（object / structure / class）、数量、形状提示、part_of。<code>pipeline.objects</code></span>
+    <span class="m" style="margin-top:4px"><span class="st wip">实现中</span> 结构类 prior 标 <code>measure_as: line_spacing</code>（例如刻度、车道线间距）。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>场景图（grid）scenegraph</b><span class="st done">已实现</span></div><span class="m">Qwen 给 on / in / attached_to / airborne / above 关系和同一实例判断。<code>pipeline.scenegraph</code>（<code>scenegraph_v3grid</code>）</span></div>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>跟踪（一条）</b><span class="st wip">实现中</span></div><span class="m">GDINO + SAM 2；候选选择、Qwen 复核运动的 prior 物体、在场性分段核对，合成一个跟踪步（旧链里是 verify / track_v8 / track_rc / merge_v9 / verify_v9 五步，各部分已实现，合并实现中）。</span></div>
+  <div class="node"><div class="hd"><b>跟踪（一条）</b><span class="st wip">实现中</span></div><span class="m">GDINO + SAM 2；候选选择、Qwen 复核运动的 prior 物体、在场性分段核对，合成一个跟踪步（旧链里是 verify / track_v8 / track_rc / merge_v9 / verify_v9 五步，各部分已实现，合并实现中）。</span>
+    <span class="m" style="margin-top:4px"><span class="st wip">实现中</span> 运动类问题的候选必须在该时段有运动。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>按帧场景图 scenegraph_pfc</b><span class="st done">已实现</span></div><span class="m">在 grid 图上按帧问关系、合并成段、边界吸附到轨迹事件。<code>pipeline.scenegraph --per-frame</code></span></div>
   <div class="arrow"></div>
   <div class="cols">
     <div class="col c2"><p class="colhd">左列 · 2D 视频</p>
-      <div class="node d2"><div class="hd"><b>refmeasure 结构测量</b><span class="st done">已实现</span></div><span class="m">帧级参考测量：车道宽（沿法向剖面）、刻度周期、地砖边长。<code>pipeline.refmeasure</code>（<code>refmeasure_v8</code>）</span></div>
+      <div class="node d2"><div class="hd"><b>refmeasure 结构测量</b><span class="st done">已实现</span></div><span class="m">帧级参考测量：车道宽（沿法向剖面）、刻度周期、地砖边长。<code>pipeline.refmeasure</code>（<code>refmeasure_v8</code>）</span>
+        <span class="m" style="margin-top:4px"><span class="st wip">实现中</span> 成为显式步骤（现在靠 <code>run.py</code> 顺带生成，<code>ask=False</code>）。</span></div>
       <div class="arrow"></div>
       <div class="node d2"><div class="hd"><b>extents2d 掩码凸包</b><span class="st done">已实现</span></div><span class="m">SAM 2 图像模型取每层的掩码凸包。<code>pipeline.extents2d</code></span></div>
       <div class="arrow"></div>

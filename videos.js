@@ -316,7 +316,7 @@
         '<div class="timebar"><button type="button" class="play">播放</button><span class="tq-track"><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tq-marks"></span></span><span class="tlabel">t = 0.00 s</span></div>' +
         '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层、一个标签，颜色和下方图层表对应；标签第 1 行物体名，有尺寸题时第 2 行是题目问的尺寸（L 沿朝向、W 垂直朝向、H 竖直、D 直径），prior 所在的层再加一行黄字 prior；标签放在凸包外侧，不压任何物体。' +
         '只画当前帧跟踪到的层，左上角计数"视频可见 / 画出"应相等。' +
-        '半透明填充 = 掩码凸包；运动的层另画粗虚线轨迹（各分段运动模型，空心方块 = 分段起止点）和实心点（当前时刻的模型位置）。黄线 = prior 本身（尺寸画成带端线的标注线，速度画成 1 s 位移的箭头）。' +
+        '半透明填充 = 掩码凸包；刚体层画一个不随帧变的稳定框；虚线框 = 这一帧被遮挡；"合并" = 这一帧的掩码和别的物体合在一起。运动的层另画粗虚线轨迹（各分段运动模型，空心方块 = 分段起止点）和实心点（当前时刻的模型位置）。黄线 = prior 本身（尺寸画成带端线的标注线，速度画成 1 s 位移的箭头）。' +
         '模型类型和残差见下方图层表。左下角是比例尺和尺度来源' + (s.gravity_dir ? '，右上角箭头是重力方向' : '') + '。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
     }
@@ -424,7 +424,7 @@
     const objBlock = v.objtab ? objectTable(v, s.objects.map((o) => o.name))
       : `<h4>场景拟合的物体</h4><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th>` +
         (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th title="跟踪有框的时段；相机视角只在这些时段画出物体">视频里可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>`;
-    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, null, null) + objBlock + '<div>' +
+    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, null, null, { tree: v.stree, order: s.objects.map((o) => o.name) }) + objBlock + '<div>' +
       `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px` + (s.f_source ? `（来源 ${esc(s.f_source)}）` : '') + (s.main_support ? `，主支撑面 ${esc(s.main_support)}` : '') + '。残差是拟合框与跟踪框的均方根误差。' +
       (hasSrc ? '尺寸来源：不加标记的是观测到的（框、深度）；<sup class="dim-prior">先验</sup> 来自尺寸先验；<span class="dim-bound">灰色<sup>看不见</sup></span> 表示框和深度都没看到这一维，只能靠先验（取防塌缩下限）。' : '') +
       `</p>${focalVotes(s)}${res}</div>`;
@@ -676,7 +676,23 @@
         if (bi >= 0 && bd <= half) {
           const b = L.box[bi];
           cur = { c: L.c[bi], box: b, hull: hullAt(L, bi) };
-          if (cur.hull) {
+          const occ = L.occ && L.occ.includes(bi), mrg = L.merged && L.merged.includes(bi);
+          if (L.stable) {
+            // rigid layer: one constant box for every frame (scene2d stable_extent_px), centred on the tracked centroid
+            const [sw, sh] = L.stable, c0 = L.c[bi];
+            const r = [(c0[0] - sw / 2) * k, (c0[1] - sh / 2) * k, sw * k, sh * k];
+            ctx.fillStyle = col; ctx.globalAlpha = 0.22; ctx.fillRect(...r); ctx.globalAlpha = 1;
+            ctx.strokeStyle = col; ctx.lineWidth = 2; if (occ) ctx.setLineDash([6, 4]);
+            ctx.strokeRect(...r); ctx.setLineDash([]);
+            bb = [r[0], r[1], r[0] + r[2], r[1] + r[3]]; anchor = [X(c0), Y(c0)];
+            cur.hull = null;
+          } else if (occ) {
+            ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+            ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k); ctx.setLineDash([]);
+            bb = [b[0] * k, b[1] * k, b[2] * k, b[3] * k]; anchor = [X(cur.c), Y(cur.c)];
+            cur.hull = null;
+          }
+          if (bb) { /* drawn above */ } else if (cur.hull) {
             ctx.fillStyle = col; ctx.globalAlpha = 0.3;
             ctx.beginPath(); cur.hull.forEach((q, j) => (j ? ctx.lineTo(X(q), Y(q)) : ctx.moveTo(X(q), Y(q)))); ctx.closePath(); ctx.fill();
             ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
@@ -688,6 +704,8 @@
             ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k);
             bb = [b[0] * k, b[1] * k, b[2] * k, b[3] * k]; anchor = [X(cur.c), Y(cur.c)];
           }
+          // a frame where this layer's mask was merged with another object's (scene2d "merged")
+          if (mrg && bb) { ctx.fillStyle = col; ctx.font = '600 10.5px system-ui, sans-serif'; ctx.fillText('合并', bb[2] - 26, bb[3] - 4); }
         } else if (sg) {
           cur = { c: segPos(sg, t) };   // between tracked frames: the model dot only, no shape and no label
         }
@@ -802,7 +820,78 @@
     const m = /duplicate track of '(.*)'/.exec(r || '');
     return m ? `和 "${esc(m[1])}" 用的是同一条跟踪，而场景图判断两者不是同一个物体，所以拒绝较弱的这一层` : esc(r);
   }
-  function graphBlocks(inv, sg, rejected, layers) {
+  // scene graph drawn as a tree (tools/build_videos.scene_tree): supports at the top, children below their parent;
+  // a second parent (on the slope, then on the desk) and contact / above are extra edges (dashed for contact / above)
+  function sceneTreeSvg(tree, order) {
+    const NW = 168, NH = 50, SLOT = 190, LV = 112, PAD = 14;
+    const nodes = tree.nodes, byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+    const kids = {};
+    nodes.forEach((n) => { if (n.parent && byId[n.parent] && n.parent !== n.id) (kids[n.parent] = kids[n.parent] || []).push(n.id); });
+    const roots = nodes.filter((n) => !n.parent || !byId[n.parent]).map((n) => n.id);
+    const pos = {}; let slot = 0, maxD = 0;
+    const place = (id, d, seen) => {
+      if (seen.has(id)) return; seen.add(id);
+      maxD = Math.max(maxD, d);
+      const ch = (kids[id] || []).filter((c) => !seen.has(c));
+      if (!ch.length) { pos[id] = { x: slot++ * SLOT, d }; return; }
+      ch.forEach((c) => place(c, d + 1, seen));
+      const xs = ch.map((c) => pos[c] && pos[c].x).filter((x) => x != null);
+      pos[id] = { x: xs.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : slot++ * SLOT, d };
+    };
+    const seen = new Set();
+    roots.forEach((r) => place(r, 0, seen));
+    nodes.forEach((n) => { if (!pos[n.id]) place(n.id, 0, seen); });
+    const W = Math.max(slot, 1) * SLOT - (SLOT - NW) + 2 * PAD, H = (maxD + 1) * LV - (LV - NH) + 2 * PAD + 20;
+    const cx = (id) => PAD + pos[id].x + NW / 2, top = (id) => PAD + pos[id].d * LV, bot = (id) => top(id) + NH;
+    const wrap = (t, n) => { const w = []; let cur = ''; String(t).split(' ').forEach((x) => { if ((cur + ' ' + x).trim().length > n && cur) { w.push(cur); cur = x; } else cur = (cur + ' ' + x).trim(); }); if (cur) w.push(cur); return w.slice(0, 2).map((l, i, a) => (i === 1 && w.length > 2 ? l.slice(0, n - 1) + '…' : l)); };
+    // edge label: one line per relation span ("on 0.00–0.77 s", "airborne 0.77–2.58 s", ...), stacked around (x, y)
+    const lab = (x, y, t) => {
+      const ls = String(t).split('；').filter(Boolean);
+      const w = Math.min(Math.max(...ls.map((l) => l.length)) * 6.2 + 10, SLOT - 8), h = ls.length * 13 + 4, y0 = y - h / 2;
+      return `<rect class="elab" x="${x - w / 2}" y="${y0}" width="${w}" height="${h}" rx="3"></rect>` +
+        ls.map((l, i) => `<text class="etxt" x="${x}" y="${y0 + 12 + i * 13}" text-anchor="middle">${esc(l.length > 30 ? l.slice(0, 29) + '…' : l)}</text>`).join('');
+    };
+    let g = '';
+    tree.edges.forEach((e) => {
+      if (!e.to || !pos[e.from] || !pos[e.to]) return;
+      if (e.tree) {
+        const x1 = cx(e.to), y1 = bot(e.to), x2 = cx(e.from), y2 = top(e.from), my = (y1 + y2) / 2;
+        // the label sits just above the child, so labels of siblings fanning out from one parent do not collide
+        const nl = String(e.label || '').split('；').filter(Boolean).length;
+        g += `<path class="edge" d="M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}"></path>` + (e.label ? lab(x2, y2 - 6 - (nl * 13 + 4) / 2, e.label) : '');
+      } else {
+        // up to a shallower target: from the top of the child to the bottom of the target; same level: an arc above
+        // the two boxes; down: bottom to top. The label sits at the curve's midpoint, between the levels.
+        const df = pos[e.from].d, dt = pos[e.to].d, right = cx(e.to) > cx(e.from);
+        let x1, y1, x2, y2, qx, qy;
+        if (dt < df) { x1 = cx(e.from) + (right ? NW / 4 : -NW / 4); y1 = top(e.from); x2 = cx(e.to); y2 = bot(e.to); qx = (x1 + x2) / 2; qy = (y1 + y2) / 2; }
+        else if (dt > df) { x1 = cx(e.from); y1 = bot(e.from); x2 = cx(e.to) + (right ? -NW / 4 : NW / 4); y2 = top(e.to); qx = (x1 + x2) / 2; qy = (y1 + y2) / 2; }
+        else { x1 = cx(e.from); y1 = bot(e.from); x2 = cx(e.to); y2 = y1; qx = (x1 + x2) / 2; qy = bot(e.from) + 30 + Math.min(Math.abs(x2 - x1) / 8, 30); }
+        const mx = 0.25 * x1 + 0.5 * qx + 0.25 * x2, my = 0.25 * y1 + 0.5 * qy + 0.25 * y2;
+        g += `<path class="edge side${e.dashed ? ' dashed' : ''}" d="M${x1},${y1} Q${qx},${qy} ${x2},${y2}"></path>` + lab(mx, my, e.label);
+      }
+    });
+    nodes.forEach((n) => {
+      if (!pos[n.id]) return;
+      const x = PAD + pos[n.id].x, y = top(n.id);
+      const idx = n.scene ? order.indexOf(n.scene) : -1;
+      const col = idx >= 0 ? PALETTE[idx % PALETTE.length] : null;
+      const faint = n.absent || n.ref_only || (n.kind === 'object' && n.not_built);
+      const cls = `nbox${n.kind === 'support' ? ' support' : ''}${faint ? ' faint' : ''}${n.unmatched ? ' bad' : ''}`;
+      const lines = wrap(n.id, 19);
+      const sub = n.kind === 'support' ? '支撑面' : [ROLE_LABEL[n.role] || n.role || '', n.count > 1 ? `×${n.count}` : '', n.absent ? '不在场' : '', n.ref_only ? '仅作参考' : '', !n.absent && !n.ref_only && n.not_built ? '未重建' : ''].filter(Boolean).join(' · ');
+      g += `<g><title>${esc(n.id)}</title><rect class="${cls}" x="${x}" y="${y}" width="${NW}" height="${NH}" rx="7"${col ? ` style="stroke:${col}"` : ''}></rect>` +
+        (col ? `<rect x="${x}" y="${y}" width="6" height="${NH}" rx="3" fill="${col}"></rect>` : '') +
+        lines.map((l, i) => `<text class="ntxt" x="${x + 12}" y="${y + 16 + i * 14}">${esc(l)}</text>`).join('') +
+        `<text class="nsub" x="${x + 12}" y="${y + NH - 6}">${esc(sub)}</text></g>`;
+      const loose = tree.edges.filter((e) => e.from === n.id && !e.to);
+      if (loose.length) g += lab(x + NW / 2, y + NH + 12, loose.map((e) => e.label).join('；'));
+    });
+    return `<div class="scroll-x stree-wrap"><svg class="stree" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="场景图（树）">${g}</svg></div>` +
+      '<p class="muted" style="font-size:12.5px">父节点在上：子节点放在（或在里面、挂在）父节点上。边上写关系和时段；实线 = 第二个父节点（换了支撑面），虚线 = contact / above。灰色虚框 = 不在场、仅作参考或未重建。色条和物体表、视图里的颜色一致。</p>';
+  }
+
+  function graphBlocks(inv, sg, rejected, layers, treeOpt) {
     let out = '';
     if (inv && inv.length) {
       const o2 = (sg && sg.objects_2d) || {};
@@ -833,8 +922,9 @@
         else if (c.applied === true) items.push(`约束已用于拟合：${esc(L.name)} ${esc(rel)}`);
       });
       if (sg && sg.support && sg.support.length) items.push(`<span class="muted">支撑面节点：${sg.support.map(esc).join('、')}</span>`);
+      const list = items.length ? `<ul class="sg-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>` : '<p class="muted">没有边。</p>';
       out += `<h4>场景图${sg && sg.source ? `<span class="muted" style="font-weight:400">（来源 ${esc(sg.source)}）</span>` : ''}</h4>` +
-        (items.length ? `<ul class="sg-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>` : '<p class="muted">没有边。</p>');
+        (treeOpt && treeOpt.tree ? sceneTreeSvg(treeOpt.tree, treeOpt.order) + `<details class="sfres"><summary>关系文字（备查）</summary>${list}</details>` : list);
     }
     return out;
   }
@@ -871,7 +961,7 @@
     const scaleTxt = !sc.m_per_px_ref || sc.degenerate ? `没有可用的尺度（${noScaleReason(sc)}）` : sc.model === 'loglinear_y'
       ? `透视模型 m/px(y) = ${fmtNum(sc.m_per_px_ref)} · exp(−${fmtNum(sc.k_per_px)} · (y − ${fmtNum(sc.y_ref)}))`
       : `均匀 ${fmtNum(sc.m_per_px_ref)} m/px`;
-    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, s.rejected, s.layers) + checkBlocks(s) +
+    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, s.rejected, s.layers, { tree: v.stree, order: s.layers.map((L) => L.name) }) + checkBlocks(s) +
       (v.objtab ? objectTable(v, s.layers.map((L) => L.name)) :
         '<h4>图层</h4><div class="scroll-x"><table><tr><th></th><th>图层（物体）</th><th>可见时段</th><th>分段运动模型</th>' +
         '<th class="n" title="length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向">length × width (px)</th><th class="n">竖直高度 (px)</th><th>尺寸来源</th><th class="n">残差 (px)</th></tr>' +

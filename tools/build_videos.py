@@ -394,7 +394,7 @@ def object_table(split: str, vid: str, is3d: bool) -> dict | None:
                                   "support": " ".join(x for x in [c.get("mode") or "", c.get("surface") or ""] if x),
                                   "visible": [[num(a, 4), num(b, 4)] for a, b in L.get("visible") or []],
                                   "motion": " ".join(x for x in [segs, f"rms {L['rms_px']:.1f} px" if L.get("rms_px") is not None else ""] if x),
-                                  "flags": [text(f) for f in L.get("flags") or []]}
+                                  "flags": [text(f) for f in L.get("flags") or []] + temporal_flags(L)}
     rows, used = [], set()
     for o in inv:
         names = {_norm(a) for a in [o["name"], *(o.get("aliases") or [])]}
@@ -417,6 +417,106 @@ def object_table(split: str, vid: str, is3d: bool) -> dict | None:
     for n in unmatched:
         rows.append({"name": n, "aliases": [], "unmatched": True, "relations": rels.get(n, []), "scene": [{"name": n, **sc_objs[n]}]})
     return {"rows": rows, "unmatched": unmatched, "dim": 3 if is3d else 2}
+
+
+HIER = ("on", "in", "attached_to", "held_by", "airborne")   # tree relations (child -> parent); others are side edges
+
+
+def scene_tree(split: str, vid: str, objtab: dict | None) -> dict | None:
+    """Scene graph as a tree for the page: supports (floor / table / water ...) at the root, objects below the target
+    of their on / in / attached_to / held_by relations; an airborne span hangs under the target of the neighbouring
+    support relation. A relation to a second parent (on the slope, then on the desk) and contact / above are extra
+    edges. Edge labels carry the relation and its time span (scenegraph_pfc per-frame intervals = edge t_start/t_end).
+    Nodes: inventory objects (one per instance, "<name> #2" from the scene) and the graph's support nodes."""
+    p = cache_root("scenegraph_pfc", split) / f"{vid}.json"
+    if not p.exists():
+        return None
+    try:
+        sg = json.load(open(p))
+    except (OSError, json.JSONDecodeError):
+        return None
+    rows = (objtab or {}).get("rows") or []
+    key = {}
+    for r in rows:
+        for a in [r["name"], *(r.get("aliases") or [])]:
+            key.setdefault(_norm(a), r["name"])
+    canon = lambda n: key.get(_norm(n), n) if n else n   # noqa: E731
+    nodes, order = {}, []
+
+    def add(nid, **kw):
+        if nid not in nodes:
+            nodes[nid] = {"id": nid, **kw}
+            order.append(nid)
+    supports = [n.get("id") for n in sg.get("nodes") or [] if n.get("type") == "support"]
+    for sname in supports:
+        add(canon(sname), kind="support", role="support")
+    for r in rows:
+        inst = [x["name"] for x in r.get("scene") or []] or [r["name"]]
+        for k, nm in enumerate(inst):
+            add(nm if k else r["name"], kind="object", role=r.get("role"), count=r.get("count"),
+                absent=r.get("present") == "absent", ref_only=bool(r.get("reference_only")),
+                not_built=bool(r.get("not_built")), unmatched=bool(r.get("unmatched")), scene=nm if r.get("scene") else None,
+                instance_of=r["name"] if k else None)
+    for n in sg.get("nodes") or []:
+        if n.get("type") != "support":
+            add(canon(n.get("id")), kind="object", role=None)
+    fmt_t = lambda e: (f" {e['t_start']:.2f}–{e['t_end']:.2f} s" if e.get("t_start") is not None and e.get("t_end") is not None else "")  # noqa: E731
+    by_obj = {}
+    for e in sg.get("edges") or []:
+        by_obj.setdefault(canon(e.get("from")), []).append(e)
+    parent, edges = {}, []
+    for obj, es in by_obj.items():
+        add(obj, kind="object", role=None)
+        es = sorted(es, key=lambda e: (e.get("t_start") is None, e.get("t_start") or 0))
+        hier = [e for e in es if e.get("rel") in HIER]
+        # airborne: hang under the target of the closest support relation of the same object
+        for i, e in enumerate(hier):
+            if e.get("rel") == "airborne" and not e.get("to"):
+                near = [x for x in hier if x.get("to") and x.get("rel") != "airborne"]
+                if near:
+                    t0 = e.get("t_start") or 0
+                    e = {**e, "to": min(near, key=lambda x: abs((x.get("t_end") or x.get("t_start") or 0) - t0)).get("to")}
+                hier[i] = e
+        labels = {}
+        for e in hier:
+            tgt = canon(e.get("to")) if e.get("to") else None
+            labels.setdefault(tgt, []).append(f"{e.get('rel')}{fmt_t(e)}")
+        first = next((canon(e.get("to")) for e in hier if e.get("to")), None)
+        if first:
+            parent[obj] = first
+        for tgt, labs in labels.items():
+            if tgt is None:
+                edges.append({"from": obj, "to": None, "label": "；".join(labs), "tree": False, "dashed": False})
+                continue
+            add(tgt, kind="object", role=None)
+            edges.append({"from": obj, "to": tgt, "label": "；".join(labs), "tree": tgt == first, "dashed": False})
+        for e in es:
+            if e.get("rel") not in HIER and e.get("to"):
+                tgt = canon(e.get("to"))
+                add(tgt, kind="object", role=None)
+                edges.append({"from": obj, "to": tgt, "label": f"{e.get('rel')}{fmt_t(e)}", "tree": False, "dashed": True})
+    # break cycles (a parent chain that comes back to the node): drop that tree edge
+    for n in list(parent):
+        seen, cur = {n}, parent.get(n)
+        while cur is not None:
+            if cur in seen:
+                parent.pop(n, None)
+                for e in edges:
+                    if e["from"] == n and e["tree"]:
+                        e["tree"] = False
+                break
+            seen.add(cur)
+            cur = parent.get(cur)
+    # a second instance ("<name> #2") without relations of its own sits where its first instance sits
+    for nid in order:
+        base = nodes[nid].get("instance_of")
+        if base and nid not in parent and parent.get(base):
+            parent[nid] = parent[base]
+            lab = next((e["label"] for e in edges if e["from"] == base and e["tree"]), "")
+            edges.append({"from": nid, "to": parent[nid], "label": lab, "tree": True, "dashed": False})
+    for nid in order:
+        nodes[nid]["parent"] = parent.get(nid)
+    return {"nodes": [nodes[n] for n in order], "edges": edges}
 
 
 def track_intervals(split: str, vid: str) -> dict:
@@ -557,6 +657,41 @@ def scene_fit(split: str, vid: str):
                             for x in j.get("focal_votes") or []] or None}
 
 
+def layer_temporal(L: dict) -> dict:
+    """stable extent (rigid_constant layers: one w x h for every frame), occluded / merged frames as indices into the
+    layer's frame list, and the temporal_consistency numbers (scene2d v9 fields; empty when absent)."""
+    se = L.get("stable_extent_px") or {}
+    idx = {f: i for i, f in enumerate(L.get("frames") or [])}
+    out = {}
+    if se.get("rigid_constant") and se.get("w") and se.get("h"):
+        out["stable"] = [num(se["w"], 5), num(se["h"], 5)]
+    occ = [idx[f] for f in L.get("occluded") or [] if f in idx]
+    mrg = [idx[f] for f in L.get("merged") or [] if f in idx]
+    if occ:
+        out["occ"] = occ
+    if mrg:
+        out["merged"] = mrg
+    tc = L.get("temporal_consistency")
+    if tc:
+        out["tc"] = {k: (num(v, 4) if isinstance(v, (int, float)) and not isinstance(v, bool) else v) for k, v in tc.items()}
+    return out
+
+
+def temporal_flags(L: dict) -> list:
+    """self-check tags for the object table from a layer's cross-frame consistency."""
+    out = []
+    n = len(L.get("frames") or [])
+    if L.get("occluded"):
+        out.append(f"遮挡 {len(L['occluded'])}/{n} 帧")
+    tc = L.get("temporal_consistency") or {}
+    if tc.get("deformable"):
+        out.append("可变形")
+    if tc.get("unstable"):
+        p90 = tc.get("size_change_p90")
+        out.append(f"不稳定（p90 {p90 * 100:.0f}%）" if isinstance(p90, (int, float)) else "不稳定")
+    return out
+
+
 def scene2d_checks(j: dict) -> dict:
     """s2d_v5 consistency checks, compacted: relation checks per track candidate, size-order checks, frame-level
     reference measurements and the critic's applied / rejected issues (each only when present)."""
@@ -646,6 +781,9 @@ def scene2d(split: str, vid: str):
                        "extent": {k: (text(v) if k == "src" else num(v, 4)) for k, v in (L.get("extent_px") or {}).items()},
                        "rms": num(L.get("rms_px"), 3), "flags": [text(f) for f in L.get("flags") or []], "segments": segs,
                        "size_q": size_q.get(L.get("name"), []), "orient": vec(L.get("orientation")), "hulls": hulls(L, j.get("fps")),
+                       # cross-frame layer correspondence (scene2d v9): constant extent of a rigid layer, occluded /
+                       # merged frames (as indices into "t"), size statistics
+                       **layer_temporal(L),
                        "constraint": {k: (L.get("constraint") or {}).get(k) for k in ("mode", "surface", "motion_plane", "applied", "note")}})
     return {"file": str(p.relative_to(ROOT)), "fps": num(j.get("fps")), "width": j.get("width"), "height": j.get("height"),
             "n_frames": j.get("n_frames"), "bg": bg, "prior": prior, "scale": scale,
@@ -779,7 +917,8 @@ def build_val(make_thumb: bool):
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("val", vid),
-                       "scene": scene, "scene2d": sc2, "objtab": object_table("val", vid, is3d),
+                       "scene": scene, "scene2d": sc2, "objtab": (otab := object_table("val", vid, is3d)),
+                       "stree": scene_tree("val", vid, otab),
                        "version": version_of("val", vid, is3d, VAL_CSV),
                        **run_at("val", vid, VAL_CSV), "eval": ev_v or None,
                        "questions": qs})
