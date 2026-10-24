@@ -665,7 +665,7 @@
     <summary><span class="d">10-24</span>Meshy 整体移除：物体形状只用解析几何体（commit 619b74f） <span class="yes">采用</span></summary>
     <div class="iter-body">
   <p>用户 10-24 决定不再依赖网格库：删掉 <code>meshgen.py</code> 和 <code>eval_fpose.py</code>，scene_fit 里的网格选项由 3D 侧随后删除。原因：当前的场景拟合不依赖网格，Meshy credits 也已停用。</p>
-  <p>对分数的影响：等 3D 侧给出数字后补。10-22 的网格库和 CAD 对比条目保留原文，作为历史记录。</p>
+  <p>用户在知道代价后选择彻底删除网格库（commit 095820b）。对 3D 场景拟合的影响见 <a href="#sf-v8">3D v8 条目</a>第 20 轮：保留网格时 0.6671，去网格后的默认 c_v10c2 为 0.6388。10-22 的网格库和 CAD 对比条目保留原文，作为历史记录。</p>
     </div>
   </details>
 
@@ -882,6 +882,24 @@
     <li>修正跟踪后重跑独立基线 <code>c_v9e_base</code>：3D 场景拟合 0.6660。</li>
     <li>联合估计 <code>c_v10b</code>：0.6530，低于基线，未采纳；classprior / joint 两个开关改为 opt-in（默认关）。</li>
   </ul>
+
+  <h4>第 20 轮：删除网格库（commit 095820b）</h4>
+  <p>用户在知道代价后选择彻底删除网格库，物体形状只用解析几何体。</p>
+  <table>
+    <tr><th>配置</th><th class="n">3D macro</th><th class="n">S3</th><th class="n">D3</th></tr>
+    <tr><td>保留网格 + 静止刚体阶段 A（c_v10c1）</td><td class="n">0.6671</td><td class="n">0.702</td><td class="n">0.632</td></tr>
+    <tr><td>只去网格（c_v9e_nomesh）</td><td class="n">0.6373</td><td class="n">0.677</td><td class="n">0.598</td></tr>
+    <tr><td><b>去网格默认（c_v10c2）：典型尺寸只约束主维度 + classprior + 静止刚体阶段 A</b></td><td class="n"><b>0.6388</b></td><td class="n">0.712</td><td class="n">0.566</td></tr>
+    <tr><td>c_v10c3：主维度 + 比例约束</td><td class="n">0.6326</td><td class="n">—</td><td class="n">—</td></tr>
+  </table>
+  <table>
+    <tr><th>受影响物体（视频平均 MRA，有网格 → 去网格）</th><th class="n">变化</th></tr>
+    <tr><td>simulation_0034_segmented 帆船（高 7.09 → 1.34 m，真值 9.42）</td><td class="n">0.92 → 0.75</td></tr>
+    <tr><td>simulation_0009 船</td><td class="n">0.50 → 0.34</td></tr>
+    <tr><td>simulation_0060 车</td><td class="n">0.75 → 0.73</td></tr>
+    <tr><td>simulation_0300 车</td><td class="n">0.78 → 0.80</td></tr>
+  </table>
+  <p>下一步：几何体模板（车的比例先验；帆船拆成船体 + 桅杆）。</p>
 
   <h4>可见性</h4>
   <p>场景 json 新增每个物体的 <code>visible</code> / <code>out_of_frame</code> 区间和 <code>visibility</code>（拟合位置是否在画内，和跟踪是否可见的一致度）。12 个视频的一致度都 ≥ 0.96；captured_0041x 的球用 ballistic 后 41/41 帧在画内（之前出画后仍投影在画内）；simulation_0015 现在 6/6。视频页的 3D 视图按这些区间显示物体，弹跳的球按 ballistic 轨迹采样播放。</p>
