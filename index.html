@@ -217,16 +217,16 @@
   <p>评估员（qp-evaluator）像看网页一样，从分数最低的视频开始逐个检查原帧、跟踪框、重建叠加图、场景 json 和各来源的数值，判断问题出在哪一层，再把通用修改派给对应的负责人。每个视频的结论显示在 <a href="videos.html">视频与问题</a> 的卡片里。</p>
   <p><b>进度：</b>已完成 13 个视频的逐视频报告（见下方"逐视频报告"），队列继续。</p>
   <h3 id="eval-audit2d">测试集 2D 稳健性审计（10-24，不用答案）</h3>
-  <p>测试集 2D 题 1742 道里有 404 道（23%）2D 场景量不到，验证集是 0 道。原因前五：</p>
+  <p>测试集 2D 题 1742 道里，2D 场景量不到的从 404 道（23%）降到 273 道（15.7%）：刚体面积检查失败的题现在给低 conf 的尺度，不再是无值（commit 9bd2265）。验证集是 0 道。原因前五（<a href="data/eval/test_audit_2d.html">审计全文</a>）：</p>
   <table>
     <tr><th>原因</th><th class="n">题数</th><th class="n">视频数</th></tr>
     <tr><td>结构参照物（车道、刻度等）没有 refmeasure 缓存</td><td class="n">161</td><td class="n">77</td></tr>
-    <tr><td>prior 的运动物体过不了刚体面积检查（靠近 / 远离镜头的车、机器人、出画的轨迹）</td><td class="n">135</td><td class="n">35</td></tr>
+    <tr><td>prior 的运动物体过不了刚体面积检查（靠近 / 远离镜头的车、机器人、出画的轨迹）；现在只剩 7 题无值，其余给 conf &lt; 0.1 的尺度</td><td class="n">139</td><td class="n">35</td></tr>
     <tr><td>缓存里没有 prior 物体的轨迹（v8 重跑解决）</td><td class="n">42</td><td class="n">—</td></tr>
+    <tr><td>候选选成了静止的物体（prior 物体不动）</td><td class="n">28</td><td class="n">—</td></tr>
     <tr><td>prior 自相矛盾或量不出来</td><td class="n">32</td><td class="n">—</td></tr>
-    <tr><td>候选选成了静止的物体</td><td class="n">28</td><td class="n">4</td></tr>
   </table>
-  <p>分布差异：测试集里加速度题占 25.8%，验证集没有；refmeasure 作为尺度来源，验证集 10%、测试集 0%。所以验证集分数会高估测试集的 2D 表现。2D 侧会写 <code>outputs/eval/test_audit_2d.md</code>，写好后在这里加链接。</p>
+  <p>分布差异：测试集里加速度题占 25.8%，验证集没有；refmeasure 作为尺度来源，验证集 10%、测试集 0%。所以验证集分数会高估测试集的 2D 表现。审计全文：<a href="data/eval/test_audit_2d.html">test_audit_2d</a>（由 <code>outputs/eval/test_audit_2d.md</code> 生成）。</p>
   <h3 id="eval-1">概览 1（2026-10-23，基于 s2d_v3 的 0.681）</h3>
   <p>各来源单独作答时的"神谕" MRA（每题都用这一来源）：</p>
   <table>
@@ -315,6 +315,24 @@
 <section id="iter-tools">
   <h2>共享工具迭代记录</h2>
   <p>2D、3D 都调用的共享工具（解析、物体清单、场景图、跟踪候选、参考测量、在场性、评审、路由）的迭代。</p>
+
+  <details class="iter" id="harness-h1">
+    <summary><span class="d">10-24</span>统一 harness 第一版 h1 首次全量 · 验证集 0.7373（基线旧链 0.7489） <span class="muted">实现中，未替换旧链</span></summary>
+    <div class="iter-body">
+  <p>新 harness（一条流水线 + 场景 agent 回路，答案只从场景出：source = scene / prior）第一次在验证集全量跑。</p>
+  <table>
+    <tr><th>配置</th><th class="n">总分</th><th class="n">S2</th><th class="n">D2</th><th class="n">S3</th><th class="n">D3</th></tr>
+    <tr><td>h1</td><td class="n">0.7373</td><td class="n">0.675</td><td class="n">0.892</td><td class="n">0.719</td><td class="n">0.664</td></tr>
+    <tr><td>基线：旧链（mh3，no-geo）</td><td class="n">0.7489</td><td class="n">0.719</td><td class="n">0.892</td><td class="n">0.721</td><td class="n">0.664</td></tr>
+  </table>
+  <table>
+    <tr><th>答案来源</th><th class="n">题数</th><th class="n">MRA</th></tr>
+    <tr><td>scene（场景值 / 拟合值）</td><td class="n">113</td><td class="n">0.809</td></tr>
+    <tr><td>prior（<code>qwen_prior</code> 给的先验）</td><td class="n">46</td><td class="n">0.550</td></tr>
+  </table>
+  <p>差距主要在 S2（0.675 vs 0.719）；D2、D3 相同，S3 差 0.002。还没达到替换旧链的条件（验证集 ≥ 0.7489），旧链继续使用。</p>
+    </div>
+  </details>
 
   <details class="iter" id="tools-1023">
     <summary><span class="d">10-23</span>工具层：候选选择跟踪、清单 part_of、逐帧场景图、在场性、refmeasure、critic + 置信度路由门控 · 验证集 0.6811→0.6885→0.6996→0.7008；默认全开含退化保护 0.6983；v9 补位 0.7078 / 3 路中位数 0.7230（早期实验）；mh3 三路 0.7162 + D3 拟合路由 0.7210 / 0.7211（valcur3）；valcur9 + fr2 0.7196；valcur10 0.7237；valcur11 0.7434；0.7479（+ scene2d v8 + c_v9b）；当前最好 0.7489（no-geo 路由） <span class="yes">采用（验证集）</span></summary>
@@ -851,6 +869,12 @@
     <li><b>联合估计设计稿（已批准，实现中，c_v10）：</b>7 项残差，σ 取自观测误差；收掉 direct / directkin / focalfirst / kinagree / scalecheck / tqweight 这些开关。</li>
   </ul>
 
+  <h4>第 19 轮</h4>
+  <ul>
+    <li>修正跟踪后重跑独立基线 <code>c_v9e_base</code>：3D 场景拟合 0.6660。</li>
+    <li>联合估计 <code>c_v10b</code>：0.6530，低于基线，未采纳；classprior / joint 两个开关改为 opt-in（默认关）。</li>
+  </ul>
+
   <h4>可见性</h4>
   <p>场景 json 新增每个物体的 <code>visible</code> / <code>out_of_frame</code> 区间和 <code>visibility</code>（拟合位置是否在画内，和跟踪是否可见的一致度）。12 个视频的一致度都 ≥ 0.96；captured_0041x 的球用 ballistic 后 41/41 帧在画内（之前出画后仍投影在画内）；simulation_0015 现在 6/6。视频页的 3D 视图按这些区间显示物体，弹跳的球按 ballistic 轨迹采样播放。</p>
 
@@ -1372,6 +1396,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
     <li><b>可变形物体平滑：</b>人、动物等不按刚体约束，尺寸做平滑。</li>
     <li><b>temporal_consistency：</b>每层写出尺寸变化的中位数 / p90、遮挡比例、是否可变形、是否不稳定；物体表的自检列显示"遮挡 N/M 帧""可变形""不稳定（p90 x%）"。补全前的原始中心和框保留为 <code>raw_center_px</code> / <code>raw_box_px</code>。</li>
     <li>measure 接口：统一的测量调用。</li>
+    <li>叠加图的标签不再互相重叠；刚体面积检查失败时改为给低置信的尺度（conf ×0.2），不再无值。</li>
   </ul>
   <p>验证集：S2 0.722 / D2 0.892。场景 json 已重跑到 <code>scene2d_eval/s2d_v8/</code>。</p>
     </div>

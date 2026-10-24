@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>测试集 2D 稳健性审计（scene2d v8，dev_test_audit）</title>
+<style>
+:root { --bg:#fbfbfa; --fg:#1f2328; --muted:#656d76; --border:#d8dee4; --code:#f0f2f4; --th:#eef2fb; }
+@media (prefers-color-scheme: dark) { :root { --bg:#16181c; --fg:#e6e8eb; --muted:#9aa4af; --border:#33383f; --code:#23272e; --th:#232a38; } }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.7 system-ui, -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif; }
+main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 24px; } h2 { font-size: 19px; margin-top: 28px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+code { background: var(--code); padding: 0 4px; border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }
+.scroll { overflow-x: auto; } table { border-collapse: collapse; font-size: 13.5px; margin: 8px 0; }
+th, td { border: 1px solid var(--border); padding: 4px 8px; vertical-align: top; text-align: left; } th { background: var(--th); }
+img { max-width: 100%; border-radius: 6px; margin: 6px 0; } a { color: #3b6fd8; }
+.back { font-size: 13px; color: var(--muted); }
+</style></head><body><main>
+<p class="back"><a href="../../videos.html">← 视频与问题</a> · 评估员逐视频报告（由 outputs/eval/*.md 生成）</p>
+<h1>测试集 2D 稳健性审计（scene2d v8，dev_test_audit）</h1>
+<p>只读 v7 时期的测试缓存（tracks_test / tracks_qwen_test / objects_test / scenegraph_test / extents2d_test，refmeasure ask=False），不看、不用答案；统计只看预测值、置信度和自检旗标。产物：<code>outputs/scene2d_eval/dev_test_audit_test/</code>（333 个场景 json、test_pred.csv 1742 题、示例叠加图）。验证集对照：<code>outputs/scene2d_eval/s2d_v8/</code>（24 视频 / 69 题）。</p>
+<h2>总体分布</h2>
+<div class="scroll"><table><tr><th></th><th>验证集 (s2d_v8)</th><th>测试集 (dev_test_audit)</th></tr><tr><td>题数</td><td>69</td><td>1742</td></tr><tr><td>视频</td><td>12</td><td>333</td></tr><tr><td>conf&gt;=0.85</td><td>20.3%</td><td>12.6%</td></tr><tr><td>0.1-0.85</td><td>69.6%</td><td>60.5%</td></tr><tr><td>&lt;0.1</td><td>10.1%</td><td>26.9%</td></tr><tr><td>无值(None)</td><td>0 (0.0%)</td><td>273 (15.7%)</td></tr><tr><td>out_of_view</td><td>1.4%</td><td>0.3%</td></tr><tr><td>extrapolated</td><td>1.4%</td><td>0.3%</td></tr><tr><td>coverage&lt;0.5</td><td>2.9%</td><td>0.2%</td></tr><tr><td>结构层作答</td><td>7.2%</td><td>9.0%</td></tr></table></div>
+<p>conf = scale_conf × layer_conf × answer_conf；路由规则 conf ≥ 0.1 取场景值，否则 Qwen。</p>
+<h2>尺度来源</h2>
+<div class="scroll"><table><tr><th></th><th>验证集</th><th>测试集</th></tr><tr><td>class_prior</td><td>7.2%</td><td>2.8%</td></tr><tr><td>gravity_fit</td><td>10.1%</td><td>9.4%</td></tr><tr><td>none</td><td>0.0%</td><td>9.7%</td></tr><tr><td>prior_layer_extent</td><td>29.0%</td><td>25.9%</td></tr><tr><td>prior_layer_motion</td><td>43.5%</td><td>52.2%</td></tr><tr><td>refmeasure</td><td>10.1%</td><td>0.0%</td></tr></table></div>
+<p>测试集 refmeasure 为 0：v7 期缓存里没有可信的结构测量（验证集靠它拿到 10 %）。</p>
+<h2>prior 类型（题数）</h2>
+<div class="scroll"><table><tr><th></th><th>验证集</th><th>测试集</th></tr><tr><td>speed</td><td>26</td><td>607</td></tr><tr><td>acceleration</td><td>0</td><td>449</td></tr><tr><td>diameter</td><td>11</td><td>162</td></tr><tr><td>length</td><td>6</td><td>162</td></tr><tr><td>width</td><td>3</td><td>140</td></tr><tr><td>height</td><td>8</td><td>93</td></tr><tr><td>gravity</td><td>7</td><td>56</td></tr><tr><td>velocity</td><td>4</td><td>42</td></tr><tr><td>size</td><td>0</td><td>18</td></tr><tr><td>other</td><td>4</td><td>8</td></tr><tr><td>radius</td><td>0</td><td>5</td></tr></table></div>
+<p>测试集有 acceleration（25.8 %）、size、radius 三类 prior 是验证集没有的。</p>
+<h2>自检旗标（按题）</h2>
+<div class="scroll"><table><tr><th></th><th>验证集</th><th>测试集</th></tr><tr><td>mask merged with a neighbour in # frames (not used for the s</td><td>24.6%</td><td>14.0%</td></tr><tr><td>occluded in # of # frames (box completed to #x# px)</td><td>11.6%</td><td>9.6%</td></tr><tr><td>structure (inventory): extents only</td><td>7.2%</td><td>9.0%</td></tr><tr><td>asked to move but static</td><td>0.0%</td><td>1.8%</td></tr><tr><td>degenerate: box covers most of the frame</td><td>2.9%</td><td>1.4%</td></tr><tr><td>teleport at #s (# px</td><td>5.8%</td><td>1.0%</td></tr><tr><td># box sizes)</td><td>5.8%</td><td>1.0%</td></tr><tr><td>same track as 'the chinese chess board</td><td>0.0%</td><td>0.7%</td></tr></table></div>
+<p>图层级（946 层）：rigid_constant 609，deformable 152，unstable 24，有 occluded 帧 102（occluded_frac&gt;0.3 的 26），有 merged 帧 119；size_change_p90 中位 1.5%、p90 10.1%。 尺度 issue（场景数）：{'none': 298, 'track_broken': 26, 'perspective_suspect': 9}。</p>
+<h2>Top-5 通用失败模式</h2>
+<ul><li style="margin-left:0px"><b>1. 结构参照物没有 refmeasure 缓存（lane / court / belt 宽度等，ask=False 只能标 needs reference measurement）</b>：161 题 / 77 视频，其中无值 161。清单里的 lane 是整条双车道路面，层 extent 也不能当车道宽；测试跑时 refmeasure ask=True 可解（qp-tools：lane 类结构应是线到线的 refmeasure 对象）。示例叠加图 <code>outputs/scene2d_eval/dev_test_audit_test/internet_0012_overlay_1s.jpg</code>。</li><li style="margin-left:0px"><b>2. prior 运动物体的轨迹过不了刚体面积检查（mask area varies &gt; 50 %）→ 现在给 conf×0.2 的尺度并标 issue</b>：139 题 / 35 视频（track_broken 26 个场景、perspective_suspect 9 个），其中无值 7，conf&lt;0.1 的 138。接近/远离镜头的车、机器人、飞机（perspective_suspect）或断掉/出画的轨迹（track_broken）；示例 internet_0069 杯子几乎全程出画。值都在 conf&lt;0.1，路由仍走 Qwen，agent 可据 issue 触发 track_reselect。示例叠加图 <code>outputs/scene2d_eval/dev_test_audit_test/internet_0069_overlay_1s.jpg</code>。</li><li style="margin-left:0px"><b>3. 缓存里没有 prior 物体的轨迹 / 没有图层（needs-track / no-layer / no-reference-layer）</b>：42 题 / 35 视频，其中无值 42。v7 期清单名与轨迹缓存名对不上或当时没追到；由 v8 重跟踪解决。示例叠加图 <code>outputs/scene2d_eval/dev_test_audit_test/internet_0014_overlay_1s.jpg</code>。</li><li style="margin-left:0px"><b>4. prior 物体不动（低于跟踪噪声）</b>：28 题 / 4 视频，其中无值 28。实际是候选选错：示例 "the acorn" 的轨迹是整根静止导轨（qp-tools：带时间窗的运动 prior 要求候选在该时段有运动）。示例叠加图 <code>outputs/scene2d_eval/dev_test_audit_test/internet_0068_overlay_1s.jpg</code>。</li><li style="margin-left:0px"><b>5. prior 自相矛盾 / 不可量</b>：32 题 / 8 视频，其中无值 32。同一物体的速度 prior 与其尺寸推出的 m/px 差 &gt;2×（simulation_0118/0153）；prior 是刻度（ruler calibre）或 prior 文本解析为空（simulation_0105）。示例叠加图 <code>outputs/scene2d_eval/dev_test_audit_test/internet_0004_overlay_1s.jpg</code>。</li></ul>
+<p>无值合计 273 题（15.7%），其中不属于上面五类的 15 题（speed-failed：图层在问的时段没有速度模型等）。模式 2 改成低置信尺度后无值从 404 降到 273（131 题变成有值，conf 全部 &lt; 0.1，中位 0.05）。</p>
+<h2>与验证集的差别</h2>
+<ul><li style="margin-left:0px">加速度 prior 验证集完全没有；测试集 449 题。</li><li style="margin-left:0px">无值：测试 15.7% vs 验证 0，主因是 refmeasure 缓存缺（模式 1）和轨迹质量（模式 2、3）。</li><li style="margin-left:0px">out_of_view / extrapolated / coverage 比例相近且都很低；结构层作答比例相近（9 % vs 7 %）。</li><li style="margin-left:0px">验证集的 nonphysical_motion 旗标全是抛体题（airborne a_y 偏差），测试集这类题比例低。</li></ul>
+</main></body></html>

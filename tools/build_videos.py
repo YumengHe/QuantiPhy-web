@@ -57,6 +57,7 @@ EVAL_DIR = ROOT / "outputs" / "eval"
 COUNT_CHECK_VAL = ROOT / "outputs" / "eval" / "count_check_val.json"   # per-frame visible-count check (qp-tools)
 COUNT_CHECK: dict = {}    # video -> count_check, for scenes whose json has no "count_check" field
 EVAL_WEB = WEB / "data" / "eval"
+EVAL_DOCS = ("test_audit_2d",)   # outputs/eval/<name>.md reports that are not about one video
 SCENE2D_WEB = WEB / "data" / "scene2d"
 OUT = WEB / "data" / "videos.json"
 THUMBS = WEB / "data" / "thumbs"
@@ -893,6 +894,8 @@ def build_val(make_thumb: bool):
     print(f"val: n={ev['n']} macro={ev['average']:.4f} " + " ".join(f"{c}={ev[c]:.4f}" for c in CATEGORIES))
     videos = []
     verdicts, eval_src = eval_overview(sorted(df["video_id"].unique()))
+    for doc in EVAL_DOCS:   # non-video evaluator reports, rendered like the per-video ones (data/eval/<name>.html)
+        eval_report(doc)
     for vid, g in df.groupby("video_id", sort=True):
         dur, w, h, thumb = video_meta("val", vid, make_thumb)
         rep = eval_report(vid)

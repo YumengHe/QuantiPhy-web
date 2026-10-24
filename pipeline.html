@@ -88,6 +88,7 @@
 <p class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#answers">答案从哪来</a><a href="#outputs">产物目录</a></p>
 <h1>完整流程</h1>
 <p class="lede">主图始终画<b>已批准的目标流水线</b>：一条流水线、一个 agent harness（<code>pipeline/harness.py</code>，实现中），每个方框右上角标状态。流水线每改一次，这张图跟着改一次。</p>
+<div class="callout"><b>harness 状态：实现中，未替换旧链。</b>第一版 h1 首次验证集全量 0.7373（S2 0.675 / D2 0.892 / S3 0.719 / D3 0.664），旧链基线 0.7489；答案来源 scene 113 题（MRA 0.809）、prior 46 题（MRA 0.550）。达到 ≥ 0.7489 后替换旧链。</div>
 <div class="callout">现状：v8 测试集提交和当前验证集最好 0.7489 都是用<b>旧链</b>（<code>pipeline/mh3.py</code>：三路几何 + 三路 Qwen + route）跑的，v8 没有带场景 agent 回路（时间不够）。旧链的步骤只在下面步骤表的"v8 用的旧步骤"一列和折叠块里列出；新 harness 在验证集达到 ≥ 0.7489 后替换旧链并删除旧代码。内容取自代码：<code>pipeline/mh3.py</code>、<code>pipeline/route.py</code>、<code>pipeline/scene_agent.py</code>、<code>pipeline/critic_loop.py</code>、<code>docs/WORKING_RULES.md</code>、<code>docs/TEST_RUN_v8.md</code>。</div>
 
 <h2 id="flow">流程图（目标：harness.py）</h2>
