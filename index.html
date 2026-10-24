@@ -229,10 +229,12 @@
     <li>captured_0061：篮球 1.1 s 时 9.32 m/s，1.6 s 时 0.84 m/s。</li>
     <li>simulation_0171：加速度序列和速度序列不自洽。</li>
     <li>simulation_0060：车道宽 11.8 m。</li>
+    <li>captured_0041x：1.5–1.6 s 位移 0.6116 m、1.5 s 球到人距离 0.198 m，和数据集自己的 prior（5.21 m/s）、depth_info（径向 0.47 m）以及画面都对不上，像是比 depth_info 的时刻早约 1 帧取的值。</li>
   </ul>
   <h4>逐视频报告</h4>
   <ul>
     <li><b>simulation_0196</b>（<a href="data/eval/simulation_0196.html">全文</a>）：主因 跟踪 / 尺度。管线里的"气泡层"跟到的不是气泡（一份缓存是液滴下半个鼓包，另一份是滴管液柱的弯月面），所以速度 prior 给不出正确尺度；按画面实测气泡位移约 37 px，换算的尺度下四题都在真值 ±10% 以内。真值自洽，<b>撤回"真值存疑"</b>。三条通用修改已派。<b>状态：</b>气泡已重跟（<code>run --recheck-prior</code>）；剩余三题是尺寸取法问题（2D v5 已改，待合跑）。</li>
+    <li><b>captured_0041x</b>（<a href="data/eval/captured_0041x.html">全文</a>）：主因 尺度，其次拟合。这个视频没有任何物体能给出焦距的度量证据，场景拟合和几何都退回实验室焦距先验 650 px（唯一一票），而标准尺寸的球 + 深度锚点、人的身高都指向 f ≈ 450–560。拟合方面，ballistic 把起踢前的静止位置当成 p0，球在静止阶段悬空 0.087 m；人没有深度锚点，球–人在深度上相差 0.66 m。q1、q2 真值存疑（已加入下方清单）。5 条通用修改已派给 qp-code-3d 和 qp-tools。</li>
   </ul>
   <p><small>来源 <code>outputs/eval/overview_1.md</code>、<code>outputs/eval/&lt;video&gt;.md</code>；进行中的修复见 <code>outputs/eval/in_progress.md</code>。</small></p>
 </section>
@@ -313,7 +315,7 @@
     <tr><th>提示的变化</th><th class="n">题数</th><th class="n">Qwen MRA 平均变化</th><th>说明</th></tr>
     <tr><td>提示变好</td><td class="n">19</td><td class="n">+0.047</td><td>—</td></tr>
     <tr><td>提示变差</td><td class="n">11</td><td class="n">−0.145</td><td>0 题变好、7 题变差</td></tr>
-    <tr><td>提示不变</td><td class="n">60</td><td class="n">−0.027</td><td>重问的噪声</td></tr>
+    <tr><td>提示不变</td><td class="n">60</td><td class="n">−0.027</td><td>提示文字一变，Qwen 就更倾向跟着走</td></tr>
   </table>
   <ul>
     <li>Qwen 直接照抄提示值的题从 18 题增加到 27 题。</li>
@@ -336,7 +338,7 @@
   <table>
     <tr><th>验证集（159 题）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
     <tr><td><b>当前最好 harness（所有默认开关全开，含运动退化保护，commit 24a9d0e）</b></td><td><b>0.6983</b></td><td>0.719</td><td>0.703</td><td>0.719</td><td>0.653</td></tr>
-    <tr><td><small>参考：+ 侧拍宽度门控（退化保护之前，commit 34255a6）</small></td><td><small>0.7008</small></td><td><small>—</small></td><td><small>—</small></td><td><small>—</small></td><td><small>—</small></td></tr>
+    <tr><td><small>参考：+ 侧拍宽度门控（退化保护之前，commit 34255a6）</small></td><td><small>0.7008</small></td><td><small>0.713</small></td><td><small>0.719</small></td><td><small>0.719</small></td><td><small>0.653</small></td></tr>
     <tr><td><small>参考：门控路由和 refmeasure 标定为默认（退化保护之前，commit 1e84748）</small></td><td><small>0.6996</small></td><td><small>0.713</small></td><td><small>0.719</small></td><td><small>0.714</small></td><td><small>0.653</small></td></tr>
     <tr><td><small>参考：s2d_v3 + 置信度路由门控（commit ceb82e3）</small></td><td><small>0.6885</small></td><td><small>0.694</small></td><td><small>0.714</small></td><td><small>0.700</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：s2d_v3</small></td><td><small>0.681</small></td><td><small>0.678</small></td><td><small>0.714</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>

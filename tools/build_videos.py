@@ -11,7 +11,7 @@ Inputs (relative to the QuantiPhy repo root):
   outputs/submission_v6.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
   outputs/scene_fit_eval/c_support_v8b/<video>.json validation scene fits (scene graph, supports, dimension sources,
                                                  visible intervals, per-question quality / conf, ballistic paths)
-  outputs/scene2d_eval/s2d_v3/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
+  outputs/scene2d_eval/s2d_v5/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
                                                  object inventory, scene graph, rejected layers, constraints, mask hulls
   outputs/tracks[_test]/<video>.json             per-object visible intervals for the 3D viewer
   outputs/eval/overview_*.md, <video>.md         evaluator verdicts (summary table row; per-video report copied to data/eval/)
@@ -47,7 +47,7 @@ VAL_CSV = ROOT / "outputs" / "val_defaults_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v6.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8b",
               "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
-SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v3"}   # the test tab stays on the submitted predictions
+SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v5"}   # the test tab stays on the submitted predictions
 EVAL_DIR = ROOT / "outputs" / "eval"
 EVAL_WEB = WEB / "data" / "eval"
 SCENE2D_WEB = WEB / "data" / "scene2d"
@@ -258,7 +258,10 @@ def eval_report(vid: str):
         if sp.is_file() and sp.stat().st_size <= IMG_MAX_BYTES:
             (EVAL_WEB / vid).mkdir(exist_ok=True)
             (EVAL_WEB / vid / sp.name).write_bytes(sp.read_bytes())
-            txt = txt.replace(src, f"{vid}/{sp.name}")
+            rel = f"{vid}/{sp.name}"
+            txt = txt.replace(src, rel)
+            # a bare (not `quoted`) mention becomes `rel` too, so the page embeds the picture under it
+            txt = re.sub(rf"(?<!`){re.escape(rel)}(?!`)", f"`{rel}`", txt)
     out = EVAL_WEB / f"{vid}.html"
     first = next((l.lstrip("# ").strip() for l in txt.splitlines() if l.startswith("# ")), vid)
     out.write_text(md_to_html(txt, first))
@@ -300,7 +303,8 @@ def eval_report(vid: str):
             title = l.lstrip("# ").strip()
             break
     if body is None:
-        body, title = [l for l in lines if not l.startswith("#")], ""
+        # no conclusion section: the report's opening text, without the 主因层 / 根因 lines already shown on their own
+        body, title = [l for l in lines if not l.startswith("#") and not re.match(r"^\s*[-*]?\s*\**(主因层|根因)", l)], ""
     text_ = " ".join(l.strip() for l in body if l.strip()).replace("**", "").replace("`", "")
     return {"file": str(out.relative_to(WEB)), "title": title, "excerpt": text_[:400], "layer": layer or None,
             "cause": cause or None}
@@ -400,6 +404,35 @@ def scene_fit(split: str, vid: str):
             "main_support": j.get("main_support"), "inventory": inv, "scene_graph": graph(sg)}
 
 
+def scene2d_checks(j: dict) -> dict:
+    """s2d_v5 consistency checks, compacted: relation checks per track candidate, size-order checks, frame-level
+    reference measurements and the critic's applied / rejected issues (each only when present)."""
+    out = {}
+    rc = []
+    for r in j.get("relation_checks") or []:
+        rc.append({"from": text(r.get("from")), "candidates": [
+            {"cache": text(c.get("cache")), "ok": c.get("ok"),
+             "checks": [{"rel": text(x.get("rel")), "to": text(x.get("to")), "ok": x.get("ok"), "why": text(x.get("why"))}
+                        for x in c.get("checks") or []]} for c in r.get("candidates") or []]})
+    if rc:
+        out["relation_checks"] = rc
+    sc = [{"smaller": text(x.get("smaller")), "larger": text(x.get("larger")), "ok": x.get("ok"),
+           "px": [num(a, 4) for a in x.get("px") or []], "why": text(x.get("why"))} for x in j.get("size_checks") or []]
+    if sc:
+        out["size_checks"] = sc
+    rm = {text(k): {"px": num(v.get("px"), 4), "conf": num(v.get("conf"), 3), "relation": text(v.get("relation")),
+                    "frame": v.get("frame"), "p0": vec(v.get("p0")), "p1": vec(v.get("p1")), "spread": num(v.get("spread"), 3)}
+          for k, v in (j.get("reference_measurements") or {}).items() if isinstance(v, dict)}
+    if rm:
+        out["refmeasure"] = rm
+    cq = j.get("critique") or {}
+    if cq.get("applied") or cq.get("rejected"):
+        out["critique"] = {"applied": [json.dumps(a, ensure_ascii=False)[:200] for a in cq.get("applied") or []],
+                           "rejected": [json.dumps(a, ensure_ascii=False)[:200] for a in cq.get("rejected") or []],
+                           "rerun": text(cq.get("rerun"))}
+    return out
+
+
 def scene2d(split: str, vid: str):
     """Compact copy of the 2D layered scene (pipeline/scene2d.py docstring); pixel coordinates of that json's width/height."""
     d = SCENE2D_DIRS.get(split)
@@ -458,7 +491,8 @@ def scene2d(split: str, vid: str):
             "n_frames": j.get("n_frames"), "bg": bg, "prior": prior, "scale": scale,
             "gravity_dir": vec(j.get("gravity_dir")), "gravity_source": text(j.get("gravity_source")),
             "inventory": inventory(j.get("objects")), "scene_graph": graph(j.get("scene_graph")),
-            "rejected": {text(k): text(v) for k, v in (j.get("rejected_layers") or {}).items()}, "layers": layers}
+            "rejected": {text(k): text(v) for k, v in (j.get("rejected_layers") or {}).items()}, "layers": layers,
+            **scene2d_checks(j)}
 
 
 LA = ZoneInfo("America/Los_Angeles")

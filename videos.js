@@ -82,7 +82,7 @@
       `<div class="sub">${esc(v.source)} · ${esc(v.video_type)} · ${v.fps} fps${v.duration ? ' · ' + fmt(v.duration, 1) + ' s' : ''} · ${qs.length} 题 ` +
       v.cats.map((c) => `<span class="tag">${c}</span>`).join('') + sceneTag + '</div></div>' +
       '<div class="vright"><span class="vright-row">' +
-      (v.eval && v.eval.layer && v.eval.layer !== '—' ? `<span class="evtag" title="评估员判断的主因层：${esc(v.eval.cause)}">${esc(v.eval.layer)}</span>` : '') +
+      (v.eval && v.eval.layer && v.eval.layer !== '—' ? `<span class="evtag" title="评估员判断的主因层：${esc(v.eval.layer)}\n根因：${esc(v.eval.cause)}">${esc(shortLayer(v.eval.layer))}</span>` : '') +
       (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') + '</span>' +
       (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</div></summary>';
     let built = false, viewer = null, video = null;
@@ -118,6 +118,8 @@
     return d;
   }
 
+  // list tag: the main layer without parentheticals and trailing clauses ("尺度（…）+ 拟合（…）；q1 …" -> "尺度 + 拟合")
+  function shortLayer(l) { return String(l).replace(/（[^）]*）|\([^)]*\)/g, '').split(/[；;]/)[0].replace(/\s*\+\s*/g, ' + ').trim(); }
   // evaluator verdict: the per-video report (outputs/eval/<video>.md -> data/eval/<video>.html) wins, the overview row is the fallback
   function evalBlock(v) {
     const e = v.eval;
@@ -666,6 +668,23 @@
     return out;
   }
 
+  // s2d_v5 consistency checks (each block only when the scene json has it)
+  function checkBlocks(s) {
+    const ok = (x) => (x === false ? '<span class="fwarn">✗</span>' : x === true ? '✓' : '');
+    const items = [];
+    (s.relation_checks || []).forEach((r) => r.candidates.forEach((c) => c.checks.forEach((x) =>
+      items.push(`${ok(x.ok)} ${esc(r.from)} <b>${esc(x.rel)}</b> ${esc(x.to)} <span class="muted">（候选 ${esc(c.cache)}：${esc(x.why)}）</span>`))));
+    (s.size_checks || []).forEach((x) =>
+      items.push(`${ok(x.ok)} ${esc(x.smaller)} &lt; ${esc(x.larger)} <span class="muted">（${(x.px || []).map(fmtNum).join(' / ')} px，${esc(x.why)}）</span>`));
+    Object.entries(s.refmeasure || {}).forEach(([k, m]) =>
+      items.push(`参考测量 <b>${esc(k)}</b> = ${fmtNum(m.px)} px <span class="muted">（第 ${esc(m.frame)} 帧，${esc(m.relation)}，conf ${fmt(m.conf, 2)}${m.spread != null ? `，帧间离散 ${fmt(m.spread, 3)}` : ''}）</span>`));
+    if (s.critique) {
+      s.critique.applied.forEach((a) => items.push(`评审采纳：<code>${esc(a)}</code>`));
+      s.critique.rejected.forEach((a) => items.push(`<span class="muted">评审未采纳：<code>${esc(a)}</code></span>`));
+    }
+    return items.length ? `<h4>一致性检查</h4><ul class="sg-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>` : '';
+  }
+
   function layerTables(v) {
     const s = v.scene2d, sc = s.scale, pr = s.prior;
     let rows = '';
@@ -681,7 +700,7 @@
     const scaleTxt = !sc.m_per_px_ref || sc.degenerate ? `没有可用的尺度（${noScaleReason(sc)}）` : sc.model === 'loglinear_y'
       ? `透视模型 m/px(y) = ${fmtNum(sc.m_per_px_ref)} · exp(−${fmtNum(sc.k_per_px)} · (y − ${fmtNum(sc.y_ref)}))`
       : `均匀 ${fmtNum(sc.m_per_px_ref)} m/px`;
-    return graphBlocks(s.inventory, s.scene_graph, s.rejected, s.layers) +
+    return graphBlocks(s.inventory, s.scene_graph, s.rejected, s.layers) + checkBlocks(s) +
       '<h4>图层</h4><div class="scroll-x"><table><tr><th></th><th>图层（物体）</th><th>可见时段</th><th>分段运动模型</th>' +
       '<th class="n" title="length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向">length × width (px)</th><th class="n">竖直高度 (px)</th><th>尺寸来源</th><th class="n">残差 (px)</th></tr>' +
       rows + '</table></div>' +
