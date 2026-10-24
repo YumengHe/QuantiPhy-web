@@ -636,7 +636,7 @@
     <li><div class="step"><b><span class="n">1</span>解析</b>规则解析器提取物理量、物体、时间、单位<div class="m">parse.py</div></div></li>
     <li><div class="step"><b><span class="n">2</span>跟踪</b>Grounding DINO 找物体，Qwen 查框，SAM 2 跟踪<div class="m">perceive.py</div></div></li>
     <li><div class="step"><b><span class="n">3</span>几何测量</b>由 depth_info 和视大小估焦距与逐帧深度 → 几何值<div class="m">calibrate / physics / solve</div></div></li>
-    <li><div class="step"><b><span class="n">4</span>3D 场景拟合</b>Depth Anything 深度 + 地面与相机 + 几何体或 Meshy 网格 + ballistic 运动模型、overhead 结构 → 场景拟合值和逐题置信度<div class="m">scene_fit / fit3d / meshlib</div></div></li>
+    <li><div class="step"><b><span class="n">4</span>3D 场景拟合</b>Depth Anything 深度 + 地面与相机 + 解析几何体 + ballistic 运动模型、overhead 结构 → 场景拟合值和逐题置信度<div class="m">scene_fit / fit3d</div></div></li>
     <li><div class="step"><b><span class="n">5</span>Qwen 作答</b>Qwen3.8-27B 看 16 帧，带提示值直接给数字<div class="m">vlm_hint.py --direct</div></div></li>
     <li><div class="step"><b><span class="n">6</span>路由</b>S3 用几何值，D3 用 Qwen 的答案<div class="m">route.py</div></div></li>
     <li><div class="step hl"><b><span class="n">7</span>置信度路由</b>S3 题场景拟合置信度 ≥ 0.6 时改用拟合值<div class="m">route.py --fit --fit-conf 0.6</div></div></li>
@@ -646,7 +646,7 @@
     <tr><td>1 解析</td><td>规则解析器从问题和已知条件里提取物理量、物体名、时间、单位。</td><td><code>parse.py</code></td></tr>
     <tr><td>2 跟踪</td><td>Grounding DINO 找物体，Qwen 检查提示框，SAM 2 做视频跟踪；验证集和测试集的缓存分开存。</td><td><code>perceive.py</code></td></tr>
     <tr><td>3 几何测量</td><td>根据 depth_info 给的物体到相机距离和物体的视大小，估计焦距和逐帧深度；实验室视频估计失败时，用按帧宽缩放的焦距先验。得到每题的"几何值"。测不出来时用手写常识值兜底，交给 Qwen 作答。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
-    <tr><td>4 3D 场景拟合</td><td>Depth Anything 给出稠密深度；拟合地面平面和相机；把每个物体拟合成解析几何体（盒子、球、圆柱），或网格库里的 Meshy 网格（车、人、船、动物等，每个"场景 + 物体"只生成一次）；拟合尺寸、位置和匀加速轨迹；弹跳的球用 ballistic 模型（重力 + 碰撞恢复系数 + 滚动阻力），屋顶这类顶部结构从深度单独拟合（overhead）。得到每题的"场景拟合值"和逐题置信度（固定规则的乘积，见 <a href="#sf-v8">v8 迭代</a>）。</td><td><code>scene_fit.py</code> <code>fit3d.py</code> <code>meshlib.py</code></td></tr>
+    <tr><td>4 3D 场景拟合</td><td>Depth Anything 给出稠密深度；拟合地面平面和相机；把每个物体拟合成解析几何体（盒子、球、圆柱等；10-24 起不再用 Meshy 网格）；拟合尺寸、位置和匀加速轨迹；弹跳的球用 ballistic 模型（重力 + 碰撞恢复系数 + 滚动阻力），屋顶这类顶部结构从深度单独拟合（overhead）。得到每题的"场景拟合值"和逐题置信度（固定规则的乘积，见 <a href="#sf-v8">v8 迭代</a>）。</td><td><code>scene_fit.py</code> <code>fit3d.py</code></td></tr>
     <tr><td>5 Qwen 作答</td><td>本地 Qwen3.8-27B 看 16 帧，加上提示值作答。提示值一般用几何值，网格拟合的物体改用场景拟合值。两种跟踪（普通、Qwen 检查过提示框）各问一次，取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
     <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
     <tr><td>7 置信度路由</td><td>S3 题如果场景拟合给出的逐题置信度 ≥ 0.6，用拟合值代替几何值（默认开启）。</td><td><code>route.py --fit --fit-conf</code></td></tr>
@@ -660,6 +660,14 @@
 <section id="iter3d">
   <h2>迭代记录</h2>
   <p>按时间倒序，点开看细节。早期影响所有类别的改动（几何流水线、Qwen 路由）也记在这里；只针对 2D 的迭代见 2D 组。</p>
+
+  <details class="iter" id="meshy-removed">
+    <summary><span class="d">10-24</span>Meshy 整体移除：物体形状只用解析几何体（commit 619b74f） <span class="yes">采用</span></summary>
+    <div class="iter-body">
+  <p>用户 10-24 决定不再依赖网格库：删掉 <code>meshgen.py</code> 和 <code>eval_fpose.py</code>，scene_fit 里的网格选项由 3D 侧随后删除。原因：当前的场景拟合不依赖网格，Meshy credits 也已停用。</p>
+  <p>对分数的影响：等 3D 侧给出数字后补。10-22 的网格库和 CAD 对比条目保留原文，作为历史记录。</p>
+    </div>
+  </details>
 
   <details class="iter" id="sf-v8">
     <summary><span class="d">10-24</span>3D 场景拟合 v8：逐题置信度 + ballistic 弹跳模型 + contact / typmatch / overhead + 可见区间 + 焦距先投票 · 同一代码状态下场景拟合 0.553→0.593（v8b）→0.603（v8c）→0.613（v8e） <span class="yes">采用（场景拟合）</span></summary>
