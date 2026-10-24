@@ -15,7 +15,8 @@ Inputs (relative to the QuantiPhy repo root):
                                                  object inventory, scene graph, rejected layers, constraints, mask hulls
   outputs/tracks[_test]/<video>.json             per-object visible intervals for the 3D viewer
   outputs/eval/overview_*.md, <video>.md         evaluator verdicts (summary table row; per-video report copied to data/eval/)
-  outputs/scene_fit_eval/test_mesh/<video>.json  test scene fits
+  outputs/scene_fit_eval/c_support_v7_test/, outputs/scene2d_eval/s2d_v7_test/  test scenes behind submission_v7
+                                                 (written per video to data/scenes/test/<video>.json)
   data/QuantiPhy*/...mp4                         only to grab the first frame and duration
 
 The page plays the original videos from media/val and media/test (git-ignored symlinks, see video_info).
@@ -46,8 +47,11 @@ from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 VAL_CSV = ROOT / "outputs" / "val_mh3_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8b",
-              "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
-SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v5"}   # the test tab stays on the submitted predictions
+              "test": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7_test"}   # the run behind submission_v7
+SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v5",
+                "test": ROOT / "outputs" / "scene2d_eval" / "s2d_v7_test"}     # the run behind submission_v7
+SCENES_TEST = WEB / "data" / "scenes" / "test"   # one json per test video, fetched by the page when a card opens
+BG_MAX_W = 960                                   # background images wider than this are shrunk (test is up to 2560 px)
 EVAL_DIR = ROOT / "outputs" / "eval"
 EVAL_WEB = WEB / "data" / "eval"
 SCENE2D_WEB = WEB / "data" / "scene2d"
@@ -446,9 +450,16 @@ def scene2d(split: str, vid: str):
     bg = None
     bgname = (j.get("background") or {}).get("image")
     if bgname and (d / bgname).exists():
-        SCENE2D_WEB.mkdir(parents=True, exist_ok=True)
-        out = SCENE2D_WEB / bgname
-        out.write_bytes((d / bgname).read_bytes())
+        # val keeps data/scene2d/<name>; test (same video ids, higher resolution) goes to data/scene2d/test/, shrunk
+        out_dir = SCENE2D_WEB if split == "val" else SCENE2D_WEB / split
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out = out_dir / bgname
+        img = cv2.imread(str(d / bgname))
+        if img is not None and img.shape[1] > BG_MAX_W:
+            img = cv2.resize(img, (BG_MAX_W, round(img.shape[0] * BG_MAX_W / img.shape[1])), interpolation=cv2.INTER_AREA)
+            cv2.imwrite(str(out), img, [cv2.IMWRITE_JPEG_QUALITY, 82])
+        else:
+            out.write_bytes((d / bgname).read_bytes())
         bg = str(out.relative_to(WEB))
     sc = j.get("scale") or {}
     persp = sc.get("perspective") or {}
@@ -600,20 +611,31 @@ def build_test(make_thumb: bool):
         raise SystemExit(f"{int(bad.sum())} rows of {TEST_CSV.name} do not align with load_split('test')")
     ref["pred"] = sub["parsed_value"].values
     videos = []
-    n_fit = 0
+    n_fit = n_2d = 0
     for vid, g in ref.groupby("video_id", sort=True):
         first = g.iloc[0]
         dur, w, h, thumb = video_meta("test", vid, make_thumb)
         is3d = str(first.dim) == "3"
         sc = scene_fit("test", vid) if is3d else None
+        s2 = None if is3d else scene2d("test", vid)
         n_fit += sc is not None
+        n_2d += s2 is not None
+        ref_file = None
+        if sc or s2:   # kept out of videos.json (568 videos): written per video and fetched when the card opens
+            SCENES_TEST.mkdir(parents=True, exist_ok=True)
+            out = SCENES_TEST / f"{vid}.json"
+            out.write_text(json.dumps({"scene": sc, "scene2d": s2}, ensure_ascii=False, separators=(",", ":")))
+            ref_file = str(out.relative_to(WEB))
         qs = [{"row": int(i) + 1, "cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
                "depth": text(r.depth_info), "pred": num(r.pred)} for i, r in zip(g.index, g.itertuples())]
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
-                       "thumb": thumb, **video_info("test", vid), "scene": sc, **run_at("test", vid, TEST_CSV), "questions": qs})
+                       "thumb": thumb, **video_info("test", vid), "scene": None, "scene2d": None, "scene_ref": ref_file,
+                       "has_scene": sc is not None, "has_scene2d": s2 is not None, **run_at("test", vid, TEST_CSV),
+                       "questions": qs})
     n3d = sum(v["dim"] == 3 for v in videos)
-    print(f"test: {len(ref)} questions, {len(videos)} videos, scene fit {n_fit}/{n3d} 3D videos")
+    print(f"test: {len(ref)} questions, {len(videos)} videos, scene fit {n_fit}/{n3d} 3D videos, "
+          f"2D layered scene {n_2d}/{len(videos) - n3d} 2D videos")
     return {"file": str(TEST_CSV.relative_to(ROOT)), "videos": videos}
 
 

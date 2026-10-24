@@ -2,3 +2,7 @@
 .serve.log
 .DS_Store
 media/
+
+# generated per-video test scenes and backgrounds (rebuilt by tools/build_videos.py)
+data/scenes/test/
+data/scene2d/test/

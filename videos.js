@@ -56,7 +56,7 @@
   function testSummary(test) {
     const all = test.videos.flatMap((v) => v.questions);
     const v3 = test.videos.filter((v) => v.dim === 3);
-    const fit = v3.filter((v) => v.scene).length;
+    const fit = v3.filter(hasScene).length;
     $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频，预测来自 submission_v7（<code>${esc(test.file)}</code>，按行号和 <code>load_split('test')</code> 对齐）。测试集没有答案，不显示准确度。3D 视频 ${v3.length} 个，其中 ${fit} 个有场景拟合结果。`;
     let h = '<tr><th>类别</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '<th class="n">合计</th></tr>';
     h += '<tr><td>题数</td>' + CATS.map((c) => `<td class="n">${all.filter((q) => q.cat === c).length}</td>`).join('') + `<td class="n">${all.length}</td></tr>`;
@@ -70,13 +70,14 @@
   }
   function matchText(v, q, needle) { return !needle || v.id.toLowerCase().includes(needle) || q.q.toLowerCase().includes(needle); }
 
+  const hasScene = (v) => !!(v.scene || v.has_scene);
   function videoCard(v, qs, split) {
     const d = document.createElement('details');
     d.className = 'vid';
     d.dataset.id = v.id;
     const m = split === 'val' ? mean(qs.map((q) => q.mra)) : NaN;
-    const sceneTag = v.dim === 3 ? (v.scene ? '<span class="tag">场景拟合</span>' : '<span class="tag" style="opacity:.6">无场景拟合</span>')
-      : (v.scene2d ? '<span class="tag">图层场景</span>' : '');
+    const sceneTag = v.dim === 3 ? (hasScene(v) ? '<span class="tag">场景拟合</span>' : '<span class="tag" style="opacity:.6">无场景拟合</span>')
+      : (v.scene2d || v.has_scene2d ? '<span class="tag">图层场景</span>' : '');
     const thumb = v.thumb ? `<img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}">` : '<span class="thumb"></span>';
     d.innerHTML = `<summary>${thumb}<div class="vmeta"><div class="vid-id">${esc(v.id)}</div>` +
       `<div class="sub">${esc(v.source)} · ${esc(v.video_type)} · ${v.fps} fps${v.duration ? ' · ' + fmt(v.duration, 1) + ' s' : ''} · ${qs.length} 题 ` +
@@ -86,7 +87,15 @@
       (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') + '</span>' +
       (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</div></summary>';
     let built = false, viewer = null, video = null;
-    d.addEventListener('toggle', () => {
+    const onToggle = () => {
+      // test-set scenes live in one file per video (data/scenes/test/<id>.json) and are fetched when the card opens
+      if (d.open && v.scene_ref && !v._loaded) {
+        fetch(v.scene_ref).then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((j) => {
+          v.scene = j.scene || null; v.scene2d = j.scene2d || null; v._loaded = true;
+          if (d.open) onToggle();
+        });
+        return;
+      }
       if (d.open && !built) {
         built = true;
         const body = document.createElement('div');
@@ -114,7 +123,8 @@
         if (d.open && !viewer) viewer = Promise.resolve(startLayers(d.querySelector('.viewer'), d.querySelector('.timebar'), v, video));
         if (!d.open && viewer) { viewer.then((x) => x && x.dispose()); viewer = null; }
       }
-    });
+    };
+    d.addEventListener('toggle', onToggle);
     return d;
   }
 
@@ -416,15 +426,20 @@
       const cands = [[cx - w / 2, bb[1] - g - h], [cx - w / 2, bb[3] + g], [bb[2] + g, cy - h / 2], [bb[0] - g - w, cy - h / 2]]
         .map(([x, y]) => [Math.max(0, Math.min(x, cw - w)), Math.max(0, Math.min(y, ch - h))]);
       let pos = cands.find(([x, y]) => ok(x, y)), lead = false;
-      if (!pos) {
+      // free spot nearest to the own hull; when hulls cover the whole frame (a road, a lane), only other labels count
+      const nearest = (test) => {
         let best = null, bd = Infinity;
         for (let y = 0; y + h <= ch; y += 6) {
           for (let x = 0; x + w <= cw; x += 6) {
             const d = Math.hypot(x + w / 2 - cx, y + h / 2 - cy);
-            if (d < bd && ok(x, y)) { bd = d; best = [x, y]; }
+            if (d < bd && test(x, y)) { bd = d; best = [x, y]; }
           }
         }
-        pos = best || cands[0]; lead = true;
+        return best;
+      };
+      if (!pos) {
+        pos = nearest(ok) || nearest((x, y) => !placed.some((r) => hit(x, y, r))) || cands[0];
+        lead = true;
       }
       const [x, y] = pos;
       placed.push([x, y, w, h]);
@@ -542,7 +557,10 @@
         ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x0 + px, yy); ctx.moveTo(x0, yy - 5); ctx.lineTo(x0, yy + 5); ctx.moveTo(x0 + px, yy - 5); ctx.lineTo(x0 + px, yy + 5); ctx.stroke();
         label(x0 + px + 8, yy + 6, fmtLen(len) + (pr.how ? ` · 尺度来自 prior：${pr.how}` : ''), '#fff', true);
       } else {
-        label(x0, yy + 6, `prior 不能定尺度（${noScaleReason(sc)}）`, '#ff8a80', true);
+        let msg = `prior 不能定尺度（${noScaleReason(sc)}）`;
+        ctx.font = '600 11.5px system-ui, sans-serif';
+        while (msg.length > 12 && ctx.measureText(msg).width + 8 > W * k - x0) msg = msg.slice(0, -2) + '…';
+        label(x0, yy + 6, msg, '#ff8a80', true);
       }
       if (s.gravity_dir) {
         const g = s.gravity_dir, cx = W * k - 40, cy = 40;
@@ -954,7 +972,7 @@
     const cat = $('t-cat').value, vsrc = $('t-vsrc').value, fit = $('t-fit').value, sort = $('t-sort').value;
     const needle = $('t-q').value.trim().toLowerCase();
     let items = DATA.test.videos.filter((v) => (!vsrc || v.source === vsrc) &&
-      (!fit || (fit === 'yes' ? !!v.scene : v.dim === 3 && !v.scene))).map((v) => {
+      (!fit || (fit === 'yes' ? hasScene(v) : v.dim === 3 && !hasScene(v)))).map((v) => {
       const qs = v.questions.filter((q) => (!cat || q.cat === cat) && matchText(v, q, needle));
       return { v, qs };
     }).filter((x) => x.qs.length);

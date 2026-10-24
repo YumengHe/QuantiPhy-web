@@ -244,7 +244,7 @@
 <section id="submissions">
   <h2>提交记录</h2>
   <h3 id="sub-v7">submission_v7（2026-10-24）</h3>
-  <p>文件 <code>outputs/submission_v7.csv</code>，测试集 3289 题；代码 commit 05bf3fd，同一代码在验证集上的回归分数 0.6656。逐题预测见 <a href="videos.html">视频与问题</a> 的测试集页。</p>
+  <p>文件 <code>outputs/submission_v7.csv</code>，测试集 3289 题；代码 commit 05bf3fd，同一代码在验证集上的回归分数 0.6656。逐题预测见 <a href="videos.html">视频与问题</a> 的测试集页；那里的 3D 视图和 2D 图层就是这次提交用的场景（<code>scene_fit_eval/c_support_v7_test/</code> 233/235 个 3D 视频，<code>scene2d_eval/s2d_v7_test/</code> 333/333 个 2D 视频）。</p>
   <table>
     <tr><th>类别</th><th class="n">几何</th><th class="n">2D 场景值</th><th class="n">Qwen</th><th class="n">和 v6 相差 &gt; 1% 的题</th></tr>
     <tr><td>S2</td><td class="n">9</td><td class="n">12</td><td class="n">558</td><td class="n">340</td></tr>
@@ -375,7 +375,7 @@
   <table>
     <tr><th>验证集（159 题）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
     <tr><td><b>当前最好 harness（3 路 a/b 补位 + v9 中位数，commit 85aabfd）</b></td><td><b>0.7230</b></td><td>0.722</td><td>0.803</td><td>0.719</td><td>0.649</td></tr>
-    <tr><td><b>并列：2 路（v9 只补回退题，更稳）</b></td><td><b>0.7078</b></td><td>—</td><td>0.741</td><td>—</td><td>—</td></tr>
+    <tr><td><b>并列：2 路（v9 只补回退题，更稳）</b></td><td><b>0.7078</b></td><td>0.719</td><td>0.741</td><td>0.719</td><td>0.653</td></tr>
     <tr><td><small>参考：所有默认开关全开，含运动退化保护（commit 24a9d0e）</small></td><td><small>0.6983</small></td><td><small>0.719</small></td><td><small>0.703</small></td><td><small>0.719</small></td><td><small>0.653</small></td></tr>
     <tr><td><small>参考：+ 侧拍宽度门控（退化保护之前，commit 34255a6）</small></td><td><small>0.7008</small></td><td><small>0.713</small></td><td><small>0.719</small></td><td><small>0.719</small></td><td><small>0.653</small></td></tr>
     <tr><td><small>参考：门控路由和 refmeasure 标定为默认（退化保护之前，commit 1e84748）</small></td><td><small>0.6996</small></td><td><small>0.713</small></td><td><small>0.719</small></td><td><small>0.714</small></td><td><small>0.653</small></td></tr>
@@ -486,7 +486,7 @@
   <h4>v8c 与后续（10-24）</h4>
   <ul>
     <li><b>v8c：</b>overhead 结构改从场景图取，在场性用 v3。3D 场景拟合 0.593 → 0.603；路由不变。</li>
-    <li><b>solve 的 3D 两物体距离改为反投影：</b>两物体各自按深度反投影到相机坐标再求距离，不再按像面算。captured_0061 篮球–瑜伽球距离 0.40 → 1.34 m（真值 1.66），MRA 0.2 → 0.8；测试集有 117 题受影响。</li>
+    <li><b>solve 的 3D 两物体距离改为反投影：</b>两物体各自沿视线放到自己的 depth_info 距离上，再求欧氏距离，不再按像面算。captured_0061 篮球–瑜伽球距离 0.40 → 1.34 m（真值 1.66），MRA 0.2 → 0.8；测试集有 117 题受影响。</li>
     <li><b>重力抛物线焦距投票：</b>用球的抛物线和已知 g 反推焦距：足球 440、篮球 580 / 428，f 从 657 降到 577。降得不够，根因是速度 prior 把尺度拉住了，下一步改。</li>
     <li><b>captured_0013 分段支撑面：</b>球按 斜坡 → 桌面 → 空中 分段换支撑面。逐帧场景图下 1.5 s 速度 165.7 → 75.3（真值 102.65），MRA 0.3 → 0.7；但这个结果依赖逐帧场景图（pf）。</li>
   </ul>
