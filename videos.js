@@ -148,9 +148,13 @@
     let scene = '';
     if (v.dim === 3 && v.scene) {
       scene = `<div><h4>3D 场景（<code>${esc(v.scene.file)}</code>）</h4>` +
+        '<div class="viewbar"><span class="seg" role="group" aria-label="视角"><button type="button" data-view="free" aria-pressed="true">自由视角</button>' +
+        '<button type="button" data-view="cam" aria-pressed="false" title="从原视频相机的位置和视野看，可以和左边的视频逐帧对比">相机视角</button></span>' +
+        (v.video ? '<label class="off" title="相机视角下把原视频画面垫在渲染下面"><input type="checkbox" class="overlay" disabled> 叠加原视频</label>' : '') +
+        (v.scene.f ? '' : '<span class="fwarn" title="场景拟合没有给出焦距，用图像宽度代替">焦距为默认值（f = 图像宽度）</span>') + '</div>' +
         '<div class="viewer"><div class="msg">加载 three.js …</div></div>' +
         '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
-        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">灰色网格 = 拟合出的地面；黑色线框 = 相机（原点）与视野；彩色 = 物体及其匀加速轨迹（虚线）。拖动旋转，滚轮缩放。' +
+        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">灰色网格 = 拟合出的地面；黑色线框 = 相机（原点）与视野；彩色 = 物体及其匀加速轨迹（虚线）。自由视角下拖动旋转，滚轮缩放；相机视角固定在原视频相机处，画面比例和原视频相同。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
     }
     return `<div class="media"><div>${vid}</div>${scene}</div>`;
@@ -245,7 +249,8 @@
     const corners = [[-iw / 2, -ih / 2], [iw / 2, -ih / 2], [iw / 2, ih / 2], [-iw / 2, ih / 2]].map(([x, y]) => [x / f * zf, y / f * zf, zf]);
     const fr = [];
     corners.forEach((c, i) => { fr.push(toW([0, 0, 0]), toW(c), toW(c), toW(corners[(i + 1) % 4])); });
-    scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(fr), new THREE.LineBasicMaterial({ color: getComputedStyle(document.body).color })));
+    const frustum = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(fr), new THREE.LineBasicMaterial({ color: getComputedStyle(document.body).color }));
+    scene.add(frustum);
 
     const meshes = [];
     objs.forEach((o, i) => {
@@ -275,7 +280,7 @@
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(tr), new THREE.LineDashedMaterial({ color: col, dashSize: radius * 0.03, gapSize: radius * 0.02 }));
       line.computeLineDistances();
       scene.add(line);
-      meshes.push({ o, grp });
+      meshes.push({ o, grp, mat });
     });
 
     const cam = new THREE.PerspectiveCamera(45, 1, Math.max(0.01, radius / 500), radius * 50);
@@ -285,6 +290,38 @@
     controls.target.copy(tgt);
     controls.update();
 
+    // camera view = the original video camera: at the origin looking down +Z (three.js -Z), principal point at the image centre
+    // (pipeline/fit3d.py: u = W/2 + f X/Z), vertical fov from f and the image height
+    const camC = new THREE.PerspectiveCamera((2 * Math.atan(ih / 2 / f) * 180) / Math.PI, iw / ih, 0.01, radius * 50);
+    camC.position.set(0, 0, 0); camC.up.set(0, 1, 0); camC.lookAt(0, 0, -1);
+    let active = cam, vtex = null;
+    const vbar = box.previousElementSibling && box.previousElementSibling.classList.contains('viewbar') ? box.previousElementSibling : null;
+    const btns = vbar ? [...vbar.querySelectorAll('.seg button')] : [];
+    const ovBox = vbar && vbar.querySelector('.overlay'), ovLabel = ovBox && ovBox.parentElement;
+    function setOverlay(on) {
+      if (on && video && !video.error) {
+        if (!vtex) { vtex = new THREE.VideoTexture(video); vtex.colorSpace = THREE.SRGBColorSpace; }
+        scene.background = vtex;
+      } else scene.background = null;
+      meshes.forEach(({ o, mat }) => { mat.opacity = scene.background ? 0.45 : (o.shape === 'mesh' ? 0.35 : 0.8); });
+      render();
+    }
+    function setView(mode) {
+      const camMode = mode === 'cam';
+      active = camMode ? camC : cam;
+      controls.enabled = !camMode; frustum.visible = !camMode;
+      box.classList.toggle('cam', camMode);
+      btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === mode)));
+      if (ovBox) {
+        ovBox.disabled = !camMode || !video || !!video.error;
+        ovLabel.classList.toggle('off', ovBox.disabled);
+      }
+      setOverlay(camMode && ovBox && ovBox.checked);
+      resize();
+    }
+    btns.forEach((b) => { b.onclick = () => setView(b.dataset.view); });
+    if (ovBox) ovBox.onchange = () => setOverlay(ovBox.checked);
+
     const slider = bar.querySelector('input'), label = bar.querySelector('.tlabel'), play = bar.querySelector('.play');
     function setTime(t) {
       meshes.forEach(({ o, grp }) => grp.position.copy(toW(pos(o, t))));
@@ -292,10 +329,25 @@
       render();
     }
     function resize() {
-      const w = box.clientWidth, hh = box.clientHeight;
-      renderer.setSize(w, hh, false); cam.aspect = w / hh; cam.updateProjectionMatrix(); render();
+      const W = box.clientWidth, H = box.clientHeight;
+      if (!W || !H) return;
+      if (active === camC) {
+        // letterbox to iw:ih inside the box, like the <video> on the left (object-fit: contain, same box size)
+        const k = Math.min(W / iw, H / ih), w = Math.round(iw * k), hh = Math.round(ih * k);
+        renderer.setSize(w, hh, false);
+        renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = hh + 'px';
+      } else {
+        renderer.setSize(W, H, false);
+        renderer.domElement.style.width = ''; renderer.domElement.style.height = '';
+        cam.aspect = W / H; cam.updateProjectionMatrix();
+      }
+      render();
     }
-    function render() { renderer.render(scene, cam); }
+    function render() {
+      // VideoTexture only refreshes on its own frame callback; force an upload so a seek while paused shows the right frame
+      if (scene.background && vtex && video.readyState >= 2) vtex.needsUpdate = true;
+      renderer.render(scene, active);
+    }
     controls.addEventListener('change', render);
     let raf = 0, t0 = 0, playing = false;
     // Linked to the <video>: the scene time is the same fraction of T as currentTime is of the video's duration
@@ -333,6 +385,8 @@
       video.addEventListener('play', () => { play.textContent = '暂停'; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }, o);
       video.addEventListener('pause', () => { play.textContent = '播放'; cancelAnimationFrame(raf); if (linked()) fromVideo(); }, o);
       video.addEventListener('seeked', () => { if (linked() && video.paused) fromVideo(); }, o);
+      video.addEventListener('loadeddata', () => { if (scene.background) render(); }, o);
+      video.addEventListener('error', () => { if (ovBox) { ovBox.checked = false; setView(active === camC ? 'cam' : 'free'); } }, o);
     }
     const ro = new ResizeObserver(resize); ro.observe(box);
     resize(); setTime(0);
@@ -340,6 +394,10 @@
       dispose() {
         ac.abort();
         playing = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
+        scene.background = null; if (vtex) vtex.dispose();
+        btns.forEach((b) => { b.onclick = null; b.setAttribute('aria-pressed', String(b.dataset.view === 'free')); });
+        if (ovBox) { ovBox.onchange = null; ovBox.checked = false; ovBox.disabled = true; ovLabel.classList.add('off'); }
+        box.classList.remove('cam');
         scene.traverse((x) => { if (x.geometry) x.geometry.dispose(); if (x.material) x.material.dispose(); });
         renderer.dispose(); renderer.forceContextLoss();
         box.innerHTML = '<div class="msg">已收起</div>'; play.textContent = '播放';
