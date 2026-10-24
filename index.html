@@ -503,6 +503,11 @@
     <li>俯拍画面不再标 width-unobservable。</li>
   </ul>
   <p><b>评审回路：</b>设计已批准，qp-tools 实现中。耗时估计：验证集 4–6 路并行约 1 小时；测试集 568 个视频串行 50–60 小时，6 路并行约 10 小时。</p>
+  <p><b>改为场景 agent 回路</b>（用户 10-24 提出，设计中：qp-tools 负责回路，2D / 3D 侧在暴露工具函数）。每轮 LLM 看证据 → 选工具 → 执行并重跑受影响的步骤 → 用自检指标决定采纳或回滚，共 2–10 轮；原来写死的 issue → 阶段表降为回退。工具注册表：</p>
+  <ul>
+    <li><b>observe：</b>帧、裁切、叠加图、跟踪摘要、深度、自检指标、逐题值。</li>
+    <li><b>act：</b>物体清单增删、场景图关系、重选跟踪、拆出第二个实例、refmeasure、平面 / 焦距来源、重拟合，以及 2D 的 rescale / set_extent / drop_frames 等。</li>
+  </ul>
 
   <h4>文件</h4>
   <p>主 repo commit ceb82e3、34255a6、24a9d0e、85aabfd、1e92899、47c1ecf（<code>pipeline/route.py</code>、<code>perceive.py</code>、<code>objects.py</code>、<code>scenegraph.py</code>、<code>presence.py</code>、<code>refmeasure.py</code>、<code>critic.py</code>、<code>parse.py</code> 等）。没有新的测试集提交文件，最新提交仍是 <code>outputs/submission_v6.csv</code>。</p>
@@ -762,11 +767,35 @@
   <h4>第 17 轮：scene_fit v9b（commit 763e25d）</h4>
   <ul>
     <li>场景拟合单独 0.6811（S3 0.730 / D3 0.632）。视频页的 3D 视图已切到 <code>c_v9b</code>。</li>
-    <li><b><code>--no-geo</code> 输在哪：</b>captured_0034as 网球速度——身份切换时剔掉的帧让直接测量偏离了几何值，改为重新加载原始跟踪；simulation_0300、simulation_0060——直接值和拟合一致，但都偏 20%，已派场景级尺度一致性检查。</li>
-    <li>按题分组标定（captured_0021x 分两组）。</li>
+    <li>simulation_0300、simulation_0060：直接值和拟合一致，但都偏 20%，已派场景级尺度一致性检查。</li>
     <li>apply_critique 的 issue 类型已映射到动作；缺 size / plane / focal 三类动作，已派。</li>
     <li><code>--fixes inherit</code> + <code>--two-pass</code>：兄弟变体之间继承拟合结果。验证集没有可验收的样例。</li>
   </ul>
+  <p><b><code>--no-geo</code> 输在哪</b>（当前路由 vs no-geo，场景拟合 c_v9_dk_sf；每格"来源 值（MRA）"）：</p>
+  <table>
+    <tr><th>视频 / 题</th><th>当前路由</th><th>no-geo</th><th>原因</th></tr>
+    <tr><td>captured_0034as 右网球 1.2 s 速度</td><td>几何 103.0（1.0）</td><td>拟合 55.6（0.5）</td><td rowspan="2">直接测量用了剔除身份切换帧的跟踪 → 改为重新加载原始跟踪</td></tr>
+    <tr><td>captured_0034as 右网球 1.3 s 速度</td><td>几何 115.5（0.7）</td><td>拟合 53.6（0.5）</td></tr>
+    <tr><td>simulation_0300 小车 2 s 速度（D3）</td><td>Qwen 10.0（1.0）</td><td>直接测量 13.08（0.6）</td><td>D3 原本走 Qwen</td></tr>
+    <tr><td>simulation_0015 雕塑高、展板宽（S3）</td><td>几何</td><td>Qwen（拟合 conf &lt; 0.6）</td><td>门槛</td></tr>
+  </table>
+  <table>
+    <tr><th>路由（scene2d 为 valcur11 的那份）</th><th class="n">总分</th><th class="n">S3</th><th class="n">D3</th></tr>
+    <tr><td>c_v8g，当前路由</td><td class="n">0.7434</td><td class="n">0.719</td><td class="n">0.668</td></tr>
+    <tr><td>c_v9b，当前路由</td><td class="n">0.7440</td><td class="n">0.723</td><td class="n">0.666</td></tr>
+    <tr><td>c_v9b，no-geo</td><td class="n">0.7424</td><td class="n">0.721</td><td class="n">0.662</td></tr>
+    <tr><td>c_v9_dk_sf，no-geo</td><td class="n">0.7372</td><td class="n">0.700</td><td class="n">0.662</td></tr>
+  </table>
+  <p>换成 scene2d v8 后，c_v9b 当前路由 0.7479、no-geo 0.7463。</p>
+  <p><b>captured_0021x 按题分组标定：</b>组 1 的 prior 写作 "40 mm"（1 题），组 2 写作 "40mm"（4 题）；值相同，焦距也相同。</p>
+  <table>
+    <tr><th>组</th><th>题</th><th class="n">值</th><th class="n">真值</th><th class="n">MRA</th></tr>
+    <tr><td>1</td><td>1.2 s 速度</td><td class="n">94.0</td><td class="n">117.7</td><td class="n">0.7</td></tr>
+    <tr><td>2</td><td>1.4 s 速度</td><td class="n">77.9</td><td class="n">87.9</td><td class="n">0.8</td></tr>
+    <tr><td>2</td><td>位移</td><td class="n">47.8</td><td class="n">49.7</td><td class="n">1.0</td></tr>
+    <tr><td>2</td><td>桌宽</td><td class="n">53.7</td><td class="n">60.0</td><td class="n">0.8</td></tr>
+    <tr><td>2</td><td>桌长</td><td class="n">91.0</td><td class="n">75.0</td><td class="n">0.7</td></tr>
+  </table>
 
   <h4>可见性</h4>
   <p>场景 json 新增每个物体的 <code>visible</code> / <code>out_of_frame</code> 区间和 <code>visibility</code>（拟合位置是否在画内，和跟踪是否可见的一致度）。12 个视频的一致度都 ≥ 0.96；captured_0041x 的球用 ballistic 后 41/41 帧在画内（之前出画后仍投影在画内）；simulation_0015 现在 6/6。视频页的 3D 视图按这些区间显示物体，弹跳的球按 ballistic 轨迹采样播放。</p>
