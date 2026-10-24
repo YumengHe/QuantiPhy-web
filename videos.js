@@ -40,7 +40,7 @@
     const all = val.videos.flatMap((v) => v.questions);
     const m = macro(all);
     $('val-macro').textContent = fmt(m.macro, 4);
-    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}。3D 视图为 v8g（c_v8g_align，含 t_q 对齐），2D 图层为 s2d_v6（s2d_v6_v9，含 t_q 对齐）`;
+    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}。3D 视图为 v8g（c_v8g_pfc2_fr2，mh3 用的那份），2D 图层为 s2d_v6（s2d_v6_v9）`;
     // per answer source: how many questions took their final prediction from it and their MRA
     const SRCS = [['geo', '几何'], ['fit', '拟合'], ['s2d', '2D 场景'], ['vlm', 'Qwen']].filter(([k]) => all.some((q) => q.src === k));
     let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th>' + SRCS.map(([, l]) => `<th class="n">${l} 题数</th><th class="n">${l} MRA</th>`).join('') + '</tr>';
@@ -318,6 +318,20 @@
       `</table></div><p class="muted" style="font-size:12.5px">最终 f = ${fmtNum(s.f)} px。</p></details>`;
   }
 
+  // conf-lowering signals of one scene-fit answer (quality fields written by scene_fit)
+  function confSignals(q) {
+    if (!q) return [];
+    const out = [];
+    if (q.own_plane) out.push('自有平面');
+    if (q.support_uncertain) out.push('支撑不确定');
+    if (q.support_consistency != null && q.support_consistency < 1) out.push(`支撑一致 ${fmt(q.support_consistency, 2)}`);
+    if (q.dim_source === 'bound') out.push('看不见（bound）');
+    if (q.collapsed) out.push('塌缩');
+    if (q.structure) out.push('结构');
+    if (q.t_cover === false) out.push('t_q 不在可见区间');
+    return out;
+  }
+
   function sceneTables(v, split) {
     if (!v.scene) return '<h4>3D 场景</h4><div class="noscene">无场景拟合（拟合失败或没有结果）。</div>';
     const s = v.scene;
@@ -335,11 +349,13 @@
     const hasConf = s.results.some((r) => r.conf != null);
     if (s.results.length) {
       res = `<details class="sfres"><summary>场景拟合自己的答案（${s.results.length} 题；S3 题置信度 ≥ 0.6 时作为最终预测）</summary><div class="scroll-x"><table><tr><th>问题</th><th>物体</th><th>方法</th><th class="n">预测</th>` +
+        (hasConf ? '<th title="压低置信度的信号：自有平面、支撑不确定、支撑不一致、看不见的维度（bound）、塌缩、静态结构">信号</th>' : '') +
         (hasConf ? '<th class="n" title="逐题置信度：固定规则的乘积（残差、深度锚点、尺寸来源、焦距来源、地面、时刻是否在可见区间、可见性一致度、结构、塌缩），悬停看各项">置信度</th>' : '') +
         (split === 'val' ? '<th class="n">答案</th><th class="n">MRA</th>' : '') + '</tr>';
       s.results.forEach((r) => {
         const qt = r.quality ? Object.entries(r.quality).map(([k, x]) => `${k}=${typeof x === 'number' ? fmtNum(x) : x}`).join('\n') : '';
         res += `<tr><td>${esc(r.q)}</td><td>${esc(r.obj || '')}</td><td><code>${esc(r.method || '')}</code></td><td class="n">${fmtNum(r.pred)}</td>` +
+          (hasConf ? `<td>${confSignals(r.quality).map((x) => `<span class="sigtag">${esc(x)}</span>`).join(' ')}</td>` : '') +
           (hasConf ? `<td class="n" title="${esc(qt)}">${r.conf == null ? '—' : fmt(r.conf, 2)}</td>` : '') +
           (split === 'val' ? `<td class="n">${fmtNum(r.answer)}</td><td class="n">${r.pred == null ? '<span class="muted">未答</span>' : mraBadge(r.mra)}</td>` : '') + '</tr>';
       });
