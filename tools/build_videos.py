@@ -317,6 +317,106 @@ def eval_report(vid: str):
             "cause": cause or None}
 
 
+def _norm(name) -> str:
+    """Name key for matching inventory / scene-graph / scene objects: lower case, no leading article, no punctuation."""
+    x = re.sub(r"[^a-z0-9#]+", " ", str(name or "").lower()).strip()
+    return re.sub(r"^(the|a|an) ", "", x)
+
+
+def object_table(split: str, vid: str, is3d: bool) -> dict | None:
+    """One row per object: the inventory (pipeline.objects.inventory, presence merged), the per-frame scene graph
+    (scenegraph_pfc), and the 3D fit (scene_fit_eval) or the 2D layers (scene2d_eval), matched by normalised name and
+    aliases. Inventory objects without a scene object get a "not reconstructed" reason; scene objects the inventory
+    does not have are flagged (a self-check finding) and listed in "unmatched"."""
+    try:
+        from pipeline.objects import inventory
+        inv = inventory(split, vid)["objects"]
+    except Exception:   # noqa: BLE001 - no inventory: no table, the page falls back to the scene tables
+        return None
+    key = {}
+    for o in inv:
+        for a in [o["name"], *(o.get("aliases") or [])]:
+            key.setdefault(_norm(a), o["name"])
+    sgp = cache_root("scenegraph_pfc", split) / f"{vid}.json"
+    edges = []
+    if sgp.exists():
+        try:
+            edges = json.load(open(sgp)).get("edges") or []
+        except (OSError, json.JSONDecodeError):
+            pass
+    rels = {}
+    for e in edges:
+        n = key.get(_norm(e.get("from")), e.get("from"))
+        t = f" {e['t_start']:.2f}–{e['t_end']:.2f} s" if e.get("t_start") is not None and e.get("t_end") is not None else ""
+        rels.setdefault(n, []).append(f"{e.get('rel')}{(' ' + str(e['to'])) if e.get('to') else ''}{t}")
+    scene, s2 = None, None
+    d = (SCENE_DIRS if is3d else SCENE2D_DIRS).get(split)
+    p = d / f"{vid}.json" if d else None
+    if p is not None and p.exists():
+        try:
+            j = json.load(open(p))
+            scene, s2 = (j, None) if is3d else (None, j)
+        except (OSError, json.JSONDecodeError):
+            pass
+    sc_objs = {}
+    if scene:
+        collapsed = {r.get("object") for r in scene.get("results") or [] if (r.get("quality") or {}).get("collapsed")}
+        for n, o in (scene.get("objects") or {}).items():
+            dims = o.get("dims") or {}
+            ds = o.get("dim_source") or {}
+            sp = o.get("support") or {}
+            flags = []
+            if o.get("out_of_frame"):
+                flags.append("出画 " + ", ".join(f"{a:.2f}–{b:.2f} s" for a, b in o["out_of_frame"]))
+            va = (o.get("visibility") or {}).get("agree")
+            if va is not None and va < 0.9:
+                flags.append(f"可见性一致度 {va:.2f}")
+            if n in collapsed:
+                flags.append("尺寸塌缩")
+            sc_objs[n] = {"size": [[k, num(v), ds.get(k)] for k, v in dims.items()], "shape": o.get("shape"),
+                          "support": " ".join(x for x in [sp.get("mode") or o.get("mode") or "", sp.get("target") or ""] if x),
+                          "visible": [[num(a, 4), num(b, 4)] for a, b in o.get("visible") or []],
+                          "motion": " ".join(x for x in [o.get("mode") or "", f"rms {o['rms']:.1f} px" if o.get("rms") is not None else ""] if x),
+                          "flags": flags}
+    rejected = {}
+    if s2:
+        sc = s2.get("scale") or {}
+        mpp = None if sc.get("degenerate") else sc.get("m_per_px_ref")
+        rejected = {k: v for k, v in (s2.get("rejected_layers") or {}).items()}
+        for L in s2.get("layers") or []:
+            e = L.get("extent_px") or {}
+            c = L.get("constraint") or {}
+            segs = ", ".join(sorted({g.get("model") for g in L.get("segments") or [] if g.get("model")}))
+            sc_objs[L["name"]] = {"size_px": [num(e.get("along")), num(e.get("across")), num(e.get("h"))],
+                                  "mpp": num(mpp, 5), "src": e.get("src"),
+                                  "support": " ".join(x for x in [c.get("mode") or "", c.get("surface") or ""] if x),
+                                  "visible": [[num(a, 4), num(b, 4)] for a, b in L.get("visible") or []],
+                                  "motion": " ".join(x for x in [segs, f"rms {L['rms_px']:.1f} px" if L.get("rms_px") is not None else ""] if x),
+                                  "flags": [text(f) for f in L.get("flags") or []]}
+    rows, used = [], set()
+    for o in inv:
+        names = {_norm(a) for a in [o["name"], *(o.get("aliases") or [])]}
+        hit = next((n for n in sc_objs if _norm(n) in names), None)
+        hits = [n for n in sc_objs if _norm(n).split(" #")[0] in names]   # second instances "<name> #2"
+        row = {"name": o["name"], "aliases": [a for a in o.get("aliases") or [] if a != o["name"]],
+               "role": o.get("role"), "reference_only": bool(o.get("reference_only")), "count": o.get("count"),
+               "present": o.get("present"), "presence_conf": num(o.get("presence_conf"), 3),
+               "shape": (o.get("shape_hint") or {}).get("shape"), "thin": bool((o.get("shape_hint") or {}).get("thin")),
+               "track": o.get("track"), "part_of": o.get("part_of"), "relations": rels.get(o["name"], []),
+               "scene": [{"name": n, **sc_objs[n]} for n in (hits or ([hit] if hit else []))]}
+        used.update(hits or ([hit] if hit else []))
+        if not row["scene"]:
+            why = ("仅作参考（reference_only）" if o.get("reference_only") else "不在场（absent）" if o.get("present") == "absent"
+                   else "场景结构，不跟踪" if o.get("track") is False else ("被拒绝：" + text(rejected[o["name"]])) if o["name"] in rejected
+                   else "场景里没有这个物体")
+            row["not_built"] = why
+        rows.append(row)
+    unmatched = [n for n in sc_objs if n not in used]
+    for n in unmatched:
+        rows.append({"name": n, "aliases": [], "unmatched": True, "relations": rels.get(n, []), "scene": [{"name": n, **sc_objs[n]}]})
+    return {"rows": rows, "unmatched": unmatched, "dim": 3 if is3d else 2}
+
+
 def track_intervals(split: str, vid: str) -> dict:
     """{track name: [[t0, t1], ...]} — the frames where the track cache (outputs/tracks[_test]/<video>.json) has a box,
     merged into runs of consecutive frames, in seconds (frame / fps of the cache)."""
@@ -449,6 +549,7 @@ def scene_fit(split: str, vid: str):
         o["visible"] = [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None
     return {"file": str(p.relative_to(ROOT)), "f": num(j.get("f"), 5), "plane": plane, "objects": objs, "results": res,
             "main_support": j.get("main_support"), "inventory": inv, "scene_graph": graph(sg), "q_meta": q_meta,
+            "count_check": j.get("count_check"),
             "f_source": text(j.get("f_source")) or None, "f_first": j.get("f_first"),
             "focal_votes": [{"source": text(x.get("source")), "value": num(x.get("value"), 4), "weight": num(x.get("weight"), 3)}
                             for x in j.get("focal_votes") or []] or None}
@@ -549,12 +650,41 @@ def scene2d(split: str, vid: str):
             "gravity_dir": vec(j.get("gravity_dir")), "gravity_source": text(j.get("gravity_source")),
             "inventory": inventory(j.get("objects")), "scene_graph": graph(j.get("scene_graph")),
             "rejected": {text(k): text(v) for k, v in (j.get("rejected_layers") or {}).items()}, "layers": layers,
+            "count_check": j.get("count_check"),
             "q_meta": {r.get("question"): {"obj": r.get("layer"), "align": align(r.get("align_tq"))}
                        for r in j.get("results") or [] if r.get("question")},
             **scene2d_checks(j)}
 
 
 LA = ZoneInfo("America/Los_Angeles")
+
+
+def version_of(split: str, vid: str, is3d: bool, csv: Path) -> dict:
+    """Version shown next to the timestamp: the scene json's own "version" field when it has one
+    ({pipeline, commit, scene2d, scene_fit, objects, presence, refmeasure, time} -> "pipeline · commit"); else pieced
+    together from the scene directory name, the pipeline tag in the result csv name (val_mh3_<tag>_...) and the json mtime."""
+    d = (SCENE_DIRS if is3d else SCENE2D_DIRS).get(split)
+    p = d / f"{vid}.json" if d else None
+    ver = None
+    if p is not None and p.exists():
+        try:
+            ver = json.load(open(p)).get("version")
+        except (OSError, json.JSONDecodeError):
+            ver = None
+    if isinstance(ver, dict) and (ver.get("pipeline") or ver.get("commit")):
+        return {"label": " · ".join(str(ver[k]) for k in ("pipeline", "commit") if ver.get(k)), "detail": ver}
+    parts = []
+    if p is not None and p.exists():
+        parts.append(("拟合 " if is3d else "场景 ") + d.name)
+    m = re.match(r"(?:val|test)_mh3_([A-Za-z0-9]+)", csv.name)
+    if m:
+        parts.append("流水线 " + m.group(1))
+    elif split == "test":
+        parts.append(csv.stem)
+    detail = {}
+    if p is not None and p.exists():
+        detail["scene_mtime"] = datetime.fromtimestamp(p.stat().st_mtime, LA).strftime("%Y-%m-%d %H:%M %Z")
+    return {"label": " · ".join(parts), "detail": detail}
 
 
 def run_at(split: str, vid: str, csv: Path) -> dict:
@@ -647,7 +777,8 @@ def build_val(make_thumb: bool):
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("val", vid),
-                       "scene": scene, "scene2d": sc2,
+                       "scene": scene, "scene2d": sc2, "objtab": object_table("val", vid, is3d),
+                       "version": version_of("val", vid, is3d, VAL_CSV),
                        **run_at("val", vid, VAL_CSV), "eval": ev_v or None,
                        "questions": qs})
     print(f"eval: {len(verdicts)} videos with a verdict from {eval_src}")
@@ -688,6 +819,7 @@ def build_test(make_thumb: bool):
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("test", vid), "scene": None, "scene2d": None, "scene_ref": ref_file,
                        "has_scene": sc is not None, "has_scene2d": s2 is not None, **run_at("test", vid, TEST_CSV),
+                       "version": version_of("test", vid, is3d, TEST_CSV),
                        "questions": qs})
     n3d = sum(v["dim"] == 3 for v in videos)
     print(f"test: {len(ref)} questions, {len(videos)} videos, scene fit {n_fit}/{n3d} 3D videos, "

@@ -71,6 +71,19 @@
   function matchText(v, q, needle) { return !needle || v.id.toLowerCase().includes(needle) || q.q.toLowerCase().includes(needle); }
 
   const hasScene = (v) => !!(v.scene || v.has_scene);
+  const versionTitle = (ver) => '版本：' + Object.entries(ver.detail || {}).map(([k, x]) => `${k} = ${typeof x === 'object' ? JSON.stringify(x) : x}`).join('\n');
+  // per-frame visible-count check (scene json "count_check", written by qp-tools): n_video vs n_scene as a strip
+  function countStrip(cc) {
+    if (!cc) return '';
+    let rows = [];
+    if (Array.isArray(cc)) rows = cc.map((x) => (Array.isArray(x) ? { t: x[0], nv: x[1], ns: x[2] } : { t: x.t, nv: x.n_video, ns: x.n_scene }));
+    else if (cc.t && cc.n_video && cc.n_scene) rows = cc.t.map((t, i) => ({ t, nv: cc.n_video[i], ns: cc.n_scene[i] }));
+    else if (Array.isArray(cc.frames)) rows = cc.frames.map((x) => ({ t: x.t, nv: x.n_video, ns: x.n_scene }));
+    if (!rows.length) return '';
+    const bad = rows.filter((r) => r.nv !== r.ns).length;
+    return `<div class="cstrip-wrap"><b>可见数量一致</b> <span class="muted">${rows.length - bad}/${rows.length} 帧一致</span><div class="cstrip">` +
+      rows.map((r) => `<span class="${r.nv === r.ns ? 'ok' : 'bad'}" title="t = ${fmt(r.t, 2)} s：视频 ${r.nv} / 场景 ${r.ns}"></span>`).join('') + '</div></div>';
+  }
   function videoCard(v, qs, split) {
     const d = document.createElement('details');
     d.className = 'vid';
@@ -85,7 +98,8 @@
       '<div class="vright"><span class="vright-row">' +
       (v.eval && v.eval.layer && v.eval.layer !== '—' ? `<span class="evtag" title="评估员判断的主因层：${esc(v.eval.layer)}\n根因：${esc(v.eval.cause)}">${esc(shortLayer(v.eval.layer))}</span>` : '') +
       (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') + '</span>' +
-      (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</div></summary>';
+      (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}` +
+        (v.version && v.version.label ? ` · <span title="${esc(versionTitle(v.version))}">${esc(v.version.label)}</span>` : '') + '</span>' : '') + '</div></summary>';
     let built = false, viewer = null, video = null;
     const onToggle = () => {
       // test-set scenes live in one file per video (data/scenes/test/<id>.json) and are fetched when the card opens
@@ -332,6 +346,51 @@
     return out;
   }
 
+  // one table per video: inventory + scene graph + 3D fit / 2D layers, one row per object (tools/build_videos.object_table)
+  const ROLE_LABEL = { object: '物体', structure: '结构', class: '类别' };
+  const PRES_LABEL = { visible: '在场', partial: '部分在场', absent: '不在场' };
+  function objectTable(v, order) {
+    const t = v.objtab;
+    const ivs = (vis) => (vis && vis.length ? vis.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ') + ' s' : '');
+    const size = (sc) => {
+      if (sc.size) return sc.size.map(([k, x, src]) => {
+        const v0 = `${k} ${fmtNum(x)} m`;
+        return src === 'bound' ? `<span class="dim-bound" title="看不见、靠先验">${v0}<sup>看不见</sup></span>` : src === 'prior' ? `${v0}<sup class="dim-prior">先验</sup>` : v0;
+      }).join(' × ');
+      if (sc.size_px) {
+        const [a, c, h] = sc.size_px;
+        const m = sc.mpp ? `<div class="muted">${fmtLen(a * sc.mpp)} × ${fmtLen(c * sc.mpp)}</div>` : '';
+        return `${fmtNum(a)} × ${fmtNum(c)} px <span class="muted">（高 ${fmtNum(h)}，${esc(sc.src || '')}）</span>${m}`;
+      }
+      return '';
+    };
+    let rows = '';
+    t.rows.forEach((r) => {
+      const scs = r.scene && r.scene.length ? r.scene : [null];
+      scs.forEach((sc, k) => {
+        const idx = sc ? order.indexOf(sc.name) : -1;
+        const sw = idx >= 0 ? `<span class="swatch" style="background:${PALETTE[idx % PALETTE.length]}"></span>` : '';
+        const first = k === 0;
+        const name = first ? `${esc(r.name)}${r.aliases && r.aliases.length ? `<div class="muted" style="font-size:12px">别名：${r.aliases.map(esc).join('；')}</div>` : ''}` +
+          (sc && sc.name !== r.name ? `<div class="muted" style="font-size:12px">场景里：${esc(sc.name)}</div>` : '') : `<span class="muted">↳ ${esc(sc.name)}</span>`;
+        const pres = r.present ? `${PRES_LABEL[r.present] || esc(r.present)}${r.presence_conf != null ? ` <span class="muted">${fmt(r.presence_conf, 2)}</span>` : ''}` : '';
+        const role = r.unmatched ? '' : `${ROLE_LABEL[r.role] || esc(r.role || '')}${r.reference_only ? '<div class="muted" style="font-size:12px">仅作参考</div>' : ''}${r.part_of ? `<div class="muted" style="font-size:12px">属于 ${esc(r.part_of)}</div>` : ''}`;
+        const flags = sc ? (sc.flags || []).map((f) => `<span class="sigtag">${esc(f)}</span>`).join(' ') : '';
+        rows += `<tr${r.unmatched ? ' class="obj-unmatched"' : ''}><td>${sw}</td><td>${name}${r.unmatched ? '<div class="fwarn" style="font-size:12px">清单里没有这个物体</div>' : ''}</td>` +
+          `<td>${first ? role : ''}</td><td class="n">${first && r.count != null ? r.count : ''}</td><td>${first ? pres : ''}</td>` +
+          `<td>${first && r.shape ? esc(r.shape) + (r.thin ? '（细长）' : '') : ''}</td>` +
+          `<td style="font-size:13px">${first ? (r.relations || []).map(esc).join('<br>') : ''}</td>` +
+          `<td>${sc ? size(sc) : `<span class="muted">未重建（${esc(r.not_built || '')}）</span>`}</td>` +
+          `<td style="font-size:13px">${sc ? [sc.support ? esc(sc.support) : '', ivs(sc.visible)].filter(Boolean).join('<br>') : ''}</td>` +
+          `<td style="font-size:13px">${sc ? esc(sc.motion || '') : ''}</td><td>${flags}</td></tr>`;
+      });
+    });
+    return `<h4>物体（清单 + 场景图 + ${t.dim === 3 ? '场景拟合' : '图层'}）</h4><div class="scroll-x"><table class="objtab"><tr><th></th><th>物体（别名）</th><th>角色</th><th class="n">数量</th><th>在场性</th><th>形状提示</th><th>场景图关系</th>` +
+      `<th>${t.dim === 3 ? '拟合尺寸' : '图层尺寸（沿朝向 × 垂直）'}</th><th>支撑面 / 可见区间</th><th>运动 / 残差</th><th>自检标记</th></tr>${rows}</table></div>` +
+      (t.unmatched && t.unmatched.length ? `<p class="fwarn" style="font-size:12.5px">场景里有、清单里没有的物体（按名字匹配不上）：${t.unmatched.map(esc).join('、')}</p>`
+        : '<p class="muted" style="font-size:12.5px">场景里的物体都能和清单对上。</p>');
+  }
+
   function sceneTables(v, split) {
     if (!v.scene) return '<h4>3D 场景</h4><div class="noscene">无场景拟合（拟合失败或没有结果）。</div>';
     const s = v.scene;
@@ -361,8 +420,10 @@
       });
       res += '</table></div></details>';
     }
-    return graphBlocks(s.inventory, s.scene_graph, null, null) + `<h4>场景拟合的物体</h4><div><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th>` +
-      (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th title="跟踪有框的时段；相机视角只在这些时段画出物体">视频里可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>` +
+    const objBlock = v.objtab ? objectTable(v, s.objects.map((o) => o.name))
+      : `<h4>场景拟合的物体</h4><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th>` +
+        (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th title="跟踪有框的时段；相机视角只在这些时段画出物体">视频里可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>`;
+    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, null, null) + objBlock + '<div>' +
       `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px` + (s.f_source ? `（来源 ${esc(s.f_source)}）` : '') + (s.main_support ? `，主支撑面 ${esc(s.main_support)}` : '') + '。残差是拟合框与跟踪框的均方根误差。' +
       (hasSrc ? '尺寸来源：不加标记的是观测到的（框、深度）；<sup class="dim-prior">先验</sup> 来自尺寸先验；<span class="dim-bound">灰色<sup>看不见</sup></span> 表示框和深度都没看到这一维，只能靠先验（取防塌缩下限）。' : '') +
       `</p>${focalVotes(s)}${res}</div>`;
@@ -809,10 +870,11 @@
     const scaleTxt = !sc.m_per_px_ref || sc.degenerate ? `没有可用的尺度（${noScaleReason(sc)}）` : sc.model === 'loglinear_y'
       ? `透视模型 m/px(y) = ${fmtNum(sc.m_per_px_ref)} · exp(−${fmtNum(sc.k_per_px)} · (y − ${fmtNum(sc.y_ref)}))`
       : `均匀 ${fmtNum(sc.m_per_px_ref)} m/px`;
-    return graphBlocks(s.inventory, s.scene_graph, s.rejected, s.layers) + checkBlocks(s) +
-      '<h4>图层</h4><div class="scroll-x"><table><tr><th></th><th>图层（物体）</th><th>可见时段</th><th>分段运动模型</th>' +
-      '<th class="n" title="length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向">length × width (px)</th><th class="n">竖直高度 (px)</th><th>尺寸来源</th><th class="n">残差 (px)</th></tr>' +
-      rows + '</table></div>' +
+    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, s.rejected, s.layers) + checkBlocks(s) +
+      (v.objtab ? objectTable(v, s.layers.map((L) => L.name)) :
+        '<h4>图层</h4><div class="scroll-x"><table><tr><th></th><th>图层（物体）</th><th>可见时段</th><th>分段运动模型</th>' +
+        '<th class="n" title="length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向">length × width (px)</th><th class="n">竖直高度 (px)</th><th>尺寸来源</th><th class="n">残差 (px)</th></tr>' +
+        rows + '</table></div>') +
       `<p class="muted" style="font-size:12.5px">尺度：${scaleTxt}（${s.width}×${s.height} px 坐标）；` +
       (pr.layer ? `来自 prior "${esc(pr.text)}"，在图层 "${esc(pr.layer)}" 上量得 ${fmtNum(pr.px)} ${pr.quantity === 'speed' ? 'px/s' : pr.quantity === 'gravity' ? 'px/s²' : 'px'}（${esc(pr.how)}）。` : `prior "${esc(pr.text)}"。`) +
       (sc.model !== 'loglinear_y' && sc.persp_reason ? `没用透视模型：${esc(sc.persp_reason)}。` : '') +
