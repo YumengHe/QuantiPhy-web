@@ -148,8 +148,8 @@
     let scene = '';
     if (v.dim === 3 && v.scene) {
       scene = `<div><h4>3D 场景（<code>${esc(v.scene.file)}</code>）</h4>` +
-        '<div class="viewbar"><span class="seg" role="group" aria-label="视角"><button type="button" data-view="free" aria-pressed="true">自由视角</button>' +
-        '<button type="button" data-view="cam" aria-pressed="false" title="从原视频相机的位置和视野看，可以和左边的视频逐帧对比">相机视角</button></span>' +
+        '<div class="viewbar"><span class="seg" role="group" aria-label="视角"><button type="button" data-view="free" aria-pressed="false">自由视角</button>' +
+        '<button type="button" data-view="cam" aria-pressed="true" title="从原视频相机的位置和视野看，可以和左边的视频逐帧对比">相机视角</button></span>' +
         (v.video ? '<label class="off" title="相机视角下把原视频画面垫在渲染下面"><input type="checkbox" class="overlay" disabled> 叠加原视频</label>' : '') +
         (v.scene.f ? '' : '<span class="fwarn" title="场景拟合没有给出焦距，用图像宽度代替">焦距为默认值（f = 图像宽度）</span>') + '</div>' +
         '<div class="viewer"><div class="msg">加载 three.js …</div></div>' +
@@ -389,13 +389,13 @@
       video.addEventListener('error', () => { if (ovBox) { ovBox.checked = false; setView(active === camC ? 'cam' : 'free'); } }, o);
     }
     const ro = new ResizeObserver(resize); ro.observe(box);
-    resize(); setTime(0);
+    resize(); setTime(0); if (vbar) setView("cam");
     return {
       dispose() {
         ac.abort();
         playing = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
         scene.background = null; if (vtex) vtex.dispose();
-        btns.forEach((b) => { b.onclick = null; b.setAttribute('aria-pressed', String(b.dataset.view === 'free')); });
+        btns.forEach((b) => { b.onclick = null; b.setAttribute("aria-pressed", String(b.dataset.view === "cam")); });
         if (ovBox) { ovBox.onchange = null; ovBox.checked = false; ovBox.disabled = true; ovLabel.classList.add('off'); }
         box.classList.remove('cam');
         scene.traverse((x) => { if (x.geometry) x.geometry.dispose(); if (x.material) x.material.dispose(); });
