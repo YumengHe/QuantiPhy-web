@@ -104,6 +104,11 @@
           (v.dim === 3 ? sceneTables(v, split) : v.scene2d ? layerTables(v) : '');
         d.appendChild(body);
         video = body.querySelector('video');
+        tqMarks(body, v, qs);
+        body.addEventListener('click', (e) => {
+          const b = e.target.closest('.tq-btn');
+          if (b) jumpTo(body, v, b.dataset.t === '' ? null : Number(b.dataset.t));
+        });
       }
       // the <video> only holds a src while its card is open, so collapsed cards do not keep connections or buffers
       if (video) {
@@ -142,6 +147,59 @@
       `（评估员的视频平均 MRA ${esc(e.mra || '')}）</div></div>`;
   }
 
+  // ---------- question time t_q: jump button, alignment check, ticks on the time axis ----------
+  const hasAlign = (qs) => qs.some((q) => q.align);
+  function tqHead(qs) {
+    return '<th title="把原视频和 3D / 2D 视图跳到题目问的时刻 t_q（没写时刻的题跳到被问物体可见区间的中点），并切到相机视角、叠加原视频">问到的帧</th>' +
+      (hasAlign(qs) ? '<th class="n" title="t_q 时刻拟合的物体和跟踪框的对齐：IoU / 中心偏差（px）；IoU &lt; 0.3 标红">t_q 对齐</th>' : '');
+  }
+  function tqCells(qs, q) {
+    const t = q.tjump;
+    const lab = q.tq && q.tq.length ? q.tq.map((x) => fmt(x, 2)).join('–') + ' s' : (t != null ? `≈${fmt(t, 2)} s` : '中点');
+    let h = `<td><button type="button" class="tq-btn" data-t="${t == null ? '' : t}" title="${q.tq && q.tq.length ? '题目问的时刻' : '题目没写时刻：跳到被问物体可见区间的中点'}">${lab}</button></td>`;
+    if (hasAlign(qs)) {
+      const a = q.align;
+      h += !a ? '<td class="n"><span class="muted">—</span></td>'
+        : `<td class="n${a.iou != null && a.iou < 0.3 ? ' align-bad' : ''}">${a.iou != null ? 'IoU ' + fmt(a.iou, 2) : ''}${a.dc != null ? `<span class="muted"> · ${fmtNum(a.dc)} px</span>` : ''}</td>`;
+    }
+    return h;
+  }
+  // scene time span of a card's viewer (the 3D view uses the video duration, the 2D view n_frames / fps)
+  function sceneT(v) {
+    const s = v.scene2d;
+    if (v.dim === 2 && s && s.n_frames && s.fps) return s.n_frames / s.fps;
+    return v.duration || 2;
+  }
+  function tqMarks(body, v, qs) {
+    const marks = body.querySelector('.tq-marks');
+    if (!marks) return;
+    const T = sceneT(v);
+    qs.forEach((q, i) => (q.tq || []).forEach((t) => {
+      if (t > T + 1e-6) return;
+      const m = document.createElement('span');
+      m.className = 'tq-mark'; m.style.left = `${(100 * Math.min(Math.max(t / T, 0), 1)).toFixed(2)}%`;
+      m.title = `第 ${i + 1} 题 @ ${fmt(t, 2)} s：${q.q}`;
+      m.onclick = () => jumpTo(body, v, t);
+      marks.appendChild(m);
+    }));
+  }
+  function jumpTo(body, v, t) {
+    const T = sceneT(v);
+    if (t == null || !isFinite(t)) t = T / 2;
+    const cam = body.querySelector('button[data-view="cam"]');
+    if (cam && cam.getAttribute('aria-pressed') !== 'true') cam.click();
+    const ov = body.querySelector('input.overlay');
+    if (ov && !ov.disabled && !ov.checked) { ov.checked = true; ov.dispatchEvent(new Event('change')); }
+    const bgv = body.querySelector('button[data-bg="video"]');
+    if (bgv && !bgv.disabled && bgv.getAttribute('aria-pressed') !== 'true') bgv.click();
+    const video = body.querySelector('video.orig');
+    if (video && !video.paused) video.pause();
+    const slider = body.querySelector('.timebar input');
+    if (slider) { slider.value = String(Math.round(1000 * Math.min(Math.max(t / T, 0), 1))); slider.dispatchEvent(new Event('input')); }
+    const media = body.querySelector('.media');
+    if (media) media.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
   function questionTable(qs, split, s2d) {
     const kn = (q) => (q.prior ? `已知：${esc(q.prior)}` : '') + (q.depth ? `\ndepth_info：${esc(q.depth)}` : '');
     // when every question of the video has the same prior / depth_info, show it once above the table
@@ -155,7 +213,7 @@
       h += '<th class="n">答案</th><th class="n" title="着色的那一列就是最终预测（几何值蓝 / 拟合值紫 / 2D 场景值绿 / Qwen 值橙）">几何值</th>' +
         (hasFit ? '<th class="n" title="3D 场景拟合（scene_fit）的值；S3 题拟合置信度 ≥ 0.6 时作为最终预测">拟合值</th>' : '') +
         (s2d ? '<th class="n" title="图层场景（pipeline.scene2d）的值，作为第二个提示给 Qwen；置信度 ≥ 0.85 时直接作为最终预测">2D 场景值</th>' : '') +
-        '<th class="n">Qwen 值</th><th class="n">MRA</th></tr>';
+        '<th class="n">Qwen 值</th><th class="n">MRA</th>' + tqHead(qs) + '</tr>';
       qs.forEach((q) => {
         h += `<tr><td><span class="tag">${q.cat}</span><span class="muted">${esc(q.type)}</span></td>` +
           `<td class="q">${esc(q.q)}<div class="known">${known(q)}</div></td>` +
@@ -164,13 +222,13 @@
           `<td class="n${q.src === 'geo' ? ' picked src-geo' : ''}" title="${q.src === 'geo' ? '最终预测取自几何值' : ''}">${fmtNum(q.geo)}</td>` +
           (hasFit ? `<td class="n${q.src === 'fit' ? ' picked src-fit' : ''}" title="${[q.src === 'fit' ? '最终预测取自拟合值' : '', confT(q.fit_conf), q.unobs ? '这一维在侧拍画面里看不见（unobservable），路由对它用单独的门槛 --fit-conf-unobservable 0.3' : ''].filter(Boolean).join('；')}">${fmtNum(q.fit)}</td>` : '') +
           (s2d ? `<td class="n${q.src === 's2d' ? ' picked src-s2d' : ''}" title="${[q.src === 's2d' ? '最终预测取自 2D 场景值' : '', confT(q.s2d_conf)].filter(Boolean).join('；')}">${fmtNum(q.s2d)}</td>` : '') +
-          `<td class="n${q.src === 'vlm' ? ' picked src-vlm' : ''}" title="${q.src === 'vlm' ? '最终预测取自 Qwen 值' : ''}">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td></tr>`;
+          `<td class="n${q.src === 'vlm' ? ' picked src-vlm' : ''}" title="${q.src === 'vlm' ? '最终预测取自 Qwen 值' : ''}">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td>` + tqCells(qs, q) + '</tr>';
       });
     } else {
-      h += '<th class="n">行号</th><th class="n">预测值</th></tr>';
+      h += '<th class="n">行号</th><th class="n">预测值</th>' + tqHead(qs) + '</tr>';
       qs.forEach((q) => {
         h += `<tr><td><span class="tag">${q.cat}</span><span class="muted">${esc(q.type)}</span></td>` +
-          `<td class="q">${esc(q.q)}<div class="known">${known(q)}</div></td><td class="n">${q.row}</td><td class="n pred">${fmtNum(q.pred)}</td></tr>`;
+          `<td class="q">${esc(q.q)}<div class="known">${known(q)}</div></td><td class="n">${q.row}</td><td class="n pred">${fmtNum(q.pred)}</td>` + tqCells(qs, q) + '</tr>';
       });
     }
     return h + '</table></div>';
@@ -219,7 +277,7 @@
         (v.video ? '<label class="off" title="相机视角下把原视频画面垫在渲染下面"><input type="checkbox" class="overlay" disabled> 叠加原视频</label>' : '') +
         (v.scene.f ? '' : '<span class="fwarn" title="场景拟合没有给出焦距，用图像宽度代替">焦距为默认值（f = 图像宽度）</span>') + '</div>' +
         '<div class="viewer"><div class="msg">加载 three.js …</div></div>' +
-        '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
+        '<div class="timebar"><button type="button" class="play">播放</button><span class="tq-track"><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tq-marks"></span></span><span class="tlabel">t = 0.00 s</span></div>' +
         '<p class="muted" style="font-size:12.5px;margin:6px 0 0">灰色网格 = 拟合出的地面；黑色线框 = 相机（原点）与视野；彩色 = 物体及其匀加速轨迹（虚线）。物体只在视频里跟踪到它的时段画出：相机视角下其余时段不画，自由视角下画成淡色轮廓。' +
         '左上角计数：视频可见 = 当前帧跟踪有框的物体数，场景视野内 = 拟合位置投影在原相机画面内的物体数，两者不等时标红。自由视角下拖动旋转，滚轮缩放；相机视角固定在原视频相机处，画面比例和原视频相同。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
@@ -233,7 +291,7 @@
         '<label><input type="checkbox" class="raw"> 跟踪质心</label>' +
         (s.scale.degenerate ? '<span class="fwarn">尺度退化：prior 量不出像素长度</span>' : '') + '</div>' +
         '<div class="viewer cam l2d"><canvas></canvas></div>' +
-        '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
+        '<div class="timebar"><button type="button" class="play">播放</button><span class="tq-track"><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tq-marks"></span></span><span class="tlabel">t = 0.00 s</span></div>' +
         '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层、一个标签，颜色和下方图层表对应；标签第 1 行物体名，有尺寸题时第 2 行是题目问的尺寸（L 沿朝向、W 垂直朝向、H 竖直、D 直径），prior 所在的层再加一行黄字 prior；标签放在凸包外侧，不压任何物体。' +
         '只画当前帧跟踪到的层，左上角计数"视频可见 / 画出"应相等。' +
         '半透明填充 = 掩码凸包；运动的层另画粗虚线轨迹（各分段运动模型，空心方块 = 分段起止点）和实心点（当前时刻的模型位置）。黄线 = prior 本身（尺寸画成带端线的标注线，速度画成 1 s 位移的箭头）。' +

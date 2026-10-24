@@ -111,6 +111,13 @@
   .viewbar .fwarn { color: #c0392b; }
   .timebar { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted); }
   .timebar input[type="range"] { flex: 1 1 auto; }
+  .timebar .tq-track { position: relative; flex: 1 1 auto; display: flex; }
+  .timebar .tq-track input[type="range"] { width: 100%; margin: 0; }
+  .timebar:has(.tq-mark) { padding-bottom: 9px; }
+  .tq-marks { position: absolute; left: 8px; right: 8px; bottom: -9px; height: 9px; }
+  .tq-mark { position: absolute; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid #e8590c; cursor: pointer; }
+  .tq-btn { font: inherit; font-size: 12px; padding: 1px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--accent); cursor: pointer; white-space: nowrap; }
+  .qtable td.align-bad { color: #c0392b; font-weight: 600; }
   .timebar button { font: inherit; padding: 2px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); cursor: pointer; }
   .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; }
   .muted { color: var(--muted); }

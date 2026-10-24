@@ -43,6 +43,7 @@ import pandas as pd  # noqa: E402
 
 from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
+from pipeline.parse import parse_question  # noqa: E402
 
 VAL_CSV = ROOT / "outputs" / "val_mh3_valcur7_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
@@ -309,7 +310,9 @@ def eval_report(vid: str):
     if body is None:
         # no conclusion section: the report's opening text, without the 主因层 / 根因 lines already shown on their own
         body, title = [l for l in lines if not l.startswith("#") and not re.match(r"^\s*[-*]?\s*\**(主因层|根因)", l)], ""
-    text_ = " ".join(l.strip() for l in body if l.strip()).replace("**", "").replace("`", "")
+    # prose only: markdown table rows and the "数据来源 / 结果来源" provenance line are left to the full report
+    body = [l for l in body if l.strip() and not l.lstrip().startswith("|") and not re.match(r"^\s*(数据来源|结果来源)", l)]
+    text_ = " ".join(l.strip() for l in body).replace("**", "").replace("`", "")
     return {"file": str(out.relative_to(WEB)), "title": title, "excerpt": text_[:400], "layer": layer or None,
             "cause": cause or None}
 
@@ -359,6 +362,37 @@ def sampled_path(o: dict, j: dict):
     return out
 
 
+def align(a):
+    """t_q alignment check of one answer (scene json "align_tq"): a number (IoU) or a dict -> {"iou", "dc"} | None."""
+    if a is None:
+        return None
+    if isinstance(a, (int, float)):
+        return {"iou": num(a, 3), "dc": None}
+    if isinstance(a, dict):
+        iou = next((a[k] for k in ("iou", "IoU", "box_iou") if a.get(k) is not None), None)
+        dc = next((a[k] for k in ("center_px", "dc", "center_dev", "center_err", "dcenter_px") if a.get(k) is not None), None)
+        return {"iou": num(iou, 3), "dc": num(dc, 3)} if iou is not None or dc is not None else None
+    return None
+
+
+def question_times(q: str, meta: dict | None, scene: dict | None, is3d: bool):
+    """t_q of a question for the page: the times it names (pipeline.parse), and the time to jump to — the named time
+    (midpoint of a [t1, t2] window), else the middle of the asked object's visible interval, else None."""
+    try:
+        times = [float(t) for t in parse_question(q).times]
+    except Exception:   # noqa: BLE001 - a question the parser cannot read simply gets no time
+        times = []
+    jump = (sum(times[:2]) / len(times[:2])) if times else None
+    if jump is None and meta and scene:
+        obj = meta.get("obj")
+        items = scene.get("objects") if is3d else scene.get("layers")
+        it = next((o for o in items or [] if o.get("name") == obj), None)
+        vis = (it or {}).get("visible") or []
+        if vis:
+            jump = (vis[0][0] + vis[-1][1]) / 2
+    return [num(t, 4) for t in times], num(jump, 4)
+
+
 def scene_fit(split: str, vid: str):
     p = SCENE_DIRS[split] / f"{vid}.json"
     if not p.exists():
@@ -389,6 +423,9 @@ def scene_fit(split: str, vid: str):
                     "mra": num(r.get("mra"), 3) if split == "val" else None,
                     "conf": num(qual.get("conf"), 3), "quality": {k: (num(v, 3) if isinstance(v, float) else v)
                                                                   for k, v in qual.items() if k != "conf"} or None})
+    # per question: the fitted object and the t_q alignment check (quality.align_tq), when the scene json has them
+    q_meta = {r.get("question"): {"obj": r.get("object"), "align": align((r.get("quality") or {}).get("align_tq"))}
+              for r in j.get("results") or [] if r.get("question")}
     sg = j.get("scene_graph")
     inv = inventory(j.get("inventory") or j.get("objects_inventory"))
     if inv is None and sg:   # no inventory in the json: the scene graph's object nodes carry the same names and mentions
@@ -405,7 +442,7 @@ def scene_fit(split: str, vid: str):
             vis = tracks.get(key) if key else None
         o["visible"] = [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None
     return {"file": str(p.relative_to(ROOT)), "f": num(j.get("f"), 5), "plane": plane, "objects": objs, "results": res,
-            "main_support": j.get("main_support"), "inventory": inv, "scene_graph": graph(sg),
+            "main_support": j.get("main_support"), "inventory": inv, "scene_graph": graph(sg), "q_meta": q_meta,
             "f_source": text(j.get("f_source")) or None, "f_first": j.get("f_first"),
             "focal_votes": [{"source": text(x.get("source")), "value": num(x.get("value"), 4), "weight": num(x.get("weight"), 3)}
                             for x in j.get("focal_votes") or []] or None}
@@ -506,6 +543,8 @@ def scene2d(split: str, vid: str):
             "gravity_dir": vec(j.get("gravity_dir")), "gravity_source": text(j.get("gravity_source")),
             "inventory": inventory(j.get("objects")), "scene_graph": graph(j.get("scene_graph")),
             "rejected": {text(k): text(v) for k, v in (j.get("rejected_layers") or {}).items()}, "layers": layers,
+            "q_meta": {r.get("question"): {"obj": r.get("layer"), "align": align(r.get("align_tq"))}
+                       for r in j.get("results") or [] if r.get("question")},
             **scene2d_checks(j)}
 
 
@@ -585,18 +624,24 @@ def build_val(make_thumb: bool):
         if rep:   # the per-video report wins over the overview row; the overview stays as the fallback
             ev_v |= {k: rep[k] for k in ("layer", "cause") if rep.get(k)} | {"from_report": True}
         first = g.iloc[0]
+        is3d = str(first.dim) == "3"
+        scene = scene_fit("val", vid) if is3d else None
+        sc2 = None if is3d else scene2d("val", vid)
+        qmeta = ((scene or sc2) or {}).get("q_meta") or {}
         qs = [{"cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
                "depth": text(r.depth_info), "answer": num(r.answer), "geo": num(r.geo), "vlm": num(r.vlm),
                "pred": num(r.pred), "src": r.source, "mra": num(r.mra, 3), "s2d": num(getattr(r, "s2d", None)),
                "s2d_conf": num(getattr(r, "s2d_conf", None), 3), "fit": num(getattr(r, "fit", None)),
                "fit_conf": num(getattr(r, "fit_conf", None), 3),
-               "unobs": bool(getattr(r, "unobservable", False) is True)}
+               "unobs": bool(getattr(r, "unobservable", False) is True),
+               "align": (qmeta.get(r.question) or {}).get("align")}
               for r in g.itertuples()]
-        is3d = str(first.dim) == "3"
+        for q in qs:
+            q["tq"], q["tjump"] = question_times(q["q"], qmeta.get(q["q"]), scene or sc2, is3d)
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("val", vid),
-                       "scene": scene_fit("val", vid) if is3d else None, "scene2d": None if is3d else scene2d("val", vid),
+                       "scene": scene, "scene2d": sc2,
                        **run_at("val", vid, VAL_CSV), "eval": ev_v or None,
                        "questions": qs})
     print(f"eval: {len(verdicts)} videos with a verdict from {eval_src}")
@@ -631,6 +676,8 @@ def build_test(make_thumb: bool):
             ref_file = str(out.relative_to(WEB))
         qs = [{"row": int(i) + 1, "cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
                "depth": text(r.depth_info), "pred": num(r.pred)} for i, r in zip(g.index, g.itertuples())]
+        for q in qs:
+            q["tq"], q["tjump"] = question_times(q["q"], ((sc or s2) or {}).get("q_meta", {}).get(q["q"]), sc or s2, is3d)
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("test", vid), "scene": None, "scene2d": None, "scene_ref": ref_file,
