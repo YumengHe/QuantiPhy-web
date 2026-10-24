@@ -168,7 +168,7 @@
   <div class="node"><b>3D 题（S3 / D3）</b><span class="m" style="font-size:14px">① 场景拟合值按 conf 门控（S3 ≥ 0.6，D3 ≥ 0.3；D3 里只来自直接测量的值只作提示）；② 否则 Qwen 三路的对数中位数；③ Qwen 没给数字时用任意 conf 的拟合值，再没有就用常识典型值。被问物体判为不在场（conf ≥ 0.9）时不用几何 / 场景值。</span></div>
 </div>
 <div class="callout"><b>绝对不用验证集答案。</b>回退常数、合理范围、先验都是手写常识，不从验证集的 answer 列计算；验证集 159 题里有题和测试集重叠，任何间接使用都会泄漏（<code>docs/WORKING_RULES.md</code>）。</div>
-<p><b>当前最好 0.7500</b>（S2 0.719 / D2 0.892 / S3 0.723 / D3 0.666）：Qwen 三路沿用 valcur11 的答案，2D 场景值用重算后的 scene2d v8（<code>scene2d_eval/s2d_v8</code>），3D 拟合用 <code>scene_fit_eval/c_v9b</code>，路由为 <code>--no-geo</code>（mh3 的默认）。数字来自 <code>docs/WORKING_RULES.md</code>。</p>
+<p><b>当前最好 0.7489</b>（S2 0.719 / D2 0.892 / S3 0.721 / D3 0.664；no-geo 路由（几何 csv 只作提示）；旧路由（几何直接作答）0.7500，在噪声内）：Qwen 三路沿用 valcur11 的答案，2D 场景值用重算后的 scene2d v8（<code>scene2d_eval/s2d_v8</code>），3D 拟合用 <code>scene_fit_eval/c_v9b</code>，路由为 <code>--no-geo</code>（mh3 的默认）。逐题结果 <code>outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv</code>。</p>
 
 <h2 id="outputs">产物目录</h2>
 <p>保留的最新结果就是下面这些目录（都在 <code>outputs/</code> 下，测试集加 <code>_test</code>）；更早的版本目录会清理，只在 <a href="index.html">迭代记录</a> 里保留文字。</p>
