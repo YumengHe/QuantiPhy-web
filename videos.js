@@ -150,7 +150,7 @@
           // the column the final prediction was taken from is tinted (geo / s2d / vlm), so the route is visible at a glance
           `<td class="n">${fmtNum(q.answer)}</td>` +
           `<td class="n${q.src === 'geo' ? ' picked src-geo' : ''}" title="${q.src === 'geo' ? '最终预测取自几何值' : ''}">${fmtNum(q.geo)}</td>` +
-          (hasFit ? `<td class="n${q.src === 'fit' ? ' picked src-fit' : ''}" title="${[q.src === 'fit' ? '最终预测取自拟合值' : '', confT(q.fit_conf)].filter(Boolean).join('；')}">${fmtNum(q.fit)}</td>` : '') +
+          (hasFit ? `<td class="n${q.src === 'fit' ? ' picked src-fit' : ''}" title="${[q.src === 'fit' ? '最终预测取自拟合值' : '', confT(q.fit_conf), q.unobs ? '这一维在侧拍画面里看不见（unobservable），路由对它用单独的门槛 --fit-conf-unobservable 0.3' : ''].filter(Boolean).join('；')}">${fmtNum(q.fit)}</td>` : '') +
           (s2d ? `<td class="n${q.src === 's2d' ? ' picked src-s2d' : ''}" title="${[q.src === 's2d' ? '最终预测取自 2D 场景值' : '', confT(q.s2d_conf)].filter(Boolean).join('；')}">${fmtNum(q.s2d)}</td>` : '') +
           `<td class="n${q.src === 'vlm' ? ' picked src-vlm' : ''}" title="${q.src === 'vlm' ? '最终预测取自 Qwen 值' : ''}">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td></tr>`;
       });

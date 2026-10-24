@@ -5,7 +5,7 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_tools_routed.csv                   validation predictions shown (0.6996, current best: gated routing default;
+  outputs/val_defaults_routed.csv                validation predictions shown (0.6983, current best: all default switches on;
                                                  s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
                                                  scene-fit value and its confidence; source geo / vlm / s2d / fit)
   outputs/submission_v6.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
@@ -43,7 +43,7 @@ import pandas as pd  # noqa: E402
 from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_tools_routed.csv"
+VAL_CSV = ROOT / "outputs" / "val_defaults_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v6.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8b",
               "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
@@ -541,7 +541,8 @@ def build_val(make_thumb: bool):
                "depth": text(r.depth_info), "answer": num(r.answer), "geo": num(r.geo), "vlm": num(r.vlm),
                "pred": num(r.pred), "src": r.source, "mra": num(r.mra, 3), "s2d": num(getattr(r, "s2d", None)),
                "s2d_conf": num(getattr(r, "s2d_conf", None), 3), "fit": num(getattr(r, "fit", None)),
-               "fit_conf": num(getattr(r, "fit_conf", None), 3)}
+               "fit_conf": num(getattr(r, "fit_conf", None), 3),
+               "unobs": bool(getattr(r, "unobservable", False) is True)}
               for r in g.itertuples()]
         is3d = str(first.dim) == "3"
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
