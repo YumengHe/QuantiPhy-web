@@ -928,19 +928,21 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
     <tr><th>步骤</th><th>做法</th><th>代码</th></tr>
     <tr><td>1 解析、跟踪</td><td>和 <a href="#pipe3d">3D 流程</a>的第 1、2 步相同。</td><td><code>parse.py</code> <code>perceive.py</code></td></tr>
     <tr><td>2 几何测量</td><td>m/px = 已知量 ÷ 它的像素量，再换算成目标量，得到几何值。几何走回退常数的题不给这个提示。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
-    <tr><td>3 图层场景</td><td><b>物体清单</b>（<code>objects.py</code>）把题目和 prior 里提到的物体合并别名，得到 canonical 名，每个一层；<b>场景图</b>（<code>scenegraph.py --dim2</code>）给出 on / airborne / held 关系，并判断两个名字是否同一实例：不同实例却共用一条跟踪的，拒绝较弱的那一层。背景层是采样帧的中位数，每层从两份 SAM 2 跟踪缓存里选匹配最好、不退化的那条。尺寸在<b>掩码凸包</b>（<code>extents2d.py</code>）上量：length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向。用 prior 在对应图层上量出像素量，标定一个统一的 m/px（透视模型默认关）。每层按时间分段（碰撞、停下处切开），每段用 BIC 在静止、匀速、匀加速、匀速圆周里自动选模型；场景图说放在支撑面上的，先试约束到支撑线上的模型，轨迹不符时否决约束。逐题从模型算出"场景值"，两物体距离也直接从两层算。v3 起：车道、地砖这类场景结构按场景里运动物体或支撑面的方向定朝向；线状结构和刻度类 prior 改用帧级参考测量（<code>refmeasure</code>）；场景图的 in / on 关系用来剔除不一致的跟踪候选。验证集 12 个 2D 视频约 15 秒。</td><td><code>scene2d.py</code> <code>extents2d.py</code> <code>objects.py</code> <code>scenegraph.py</code></td></tr>
+    <tr><td>3 图层场景</td><td><b>物体清单</b>（<code>objects.py</code>）把题目和 prior 里提到的物体合并别名，得到 canonical 名，每个一层；<b>场景图</b>（<code>scenegraph.py --dim2</code>）给出 on / airborne / held 关系，并判断两个名字是否同一实例：不同实例却共用一条跟踪的，拒绝较弱的那一层。背景层是采样帧的中位数，每层从两份 SAM 2 跟踪缓存里选匹配最好、不退化的那条。尺寸在<b>掩码凸包</b>（<code>extents2d.py</code>）上量：length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向。用 prior 在对应图层上量出像素量，标定一个统一的 m/px（透视模型默认关）。每层按时间分段（碰撞、停下处切开），每段用 BIC 在静止、匀速、匀加速、匀速圆周里自动选模型；场景图说放在支撑面上的，先试约束到支撑线上的模型，轨迹不符时否决约束。逐题从模型算出"场景值"，两物体距离也直接从两层算。v3 起：车道、地砖这类场景结构按场景里运动物体或支撑面的方向定朝向；线状结构和刻度类 prior 改用帧级参考测量（<code>refmeasure</code>）；场景图的 in / on 关系用来剔除不一致的跟踪候选。v5 起（commit 4300ff2）：图层的轨迹由物体清单解析（在场性校验后，不在场的物体不建层）；成对物体（"两个 X"）各取一条轨迹；场景图逐帧，关系检查按阶段进行（例如先 on 再 airborne），并检查尺寸顺序；参考测量量不到时不作答，不再用掩码硬量；prior 所在的层要通过刚体一致性检查（掩码大小和形状要稳定）才用来定尺度。验证集 12 个 2D 视频约 15 秒。</td><td><code>scene2d.py</code> <code>extents2d.py</code> <code>objects.py</code> <code>scenegraph.py</code></td></tr>
     <tr><td>4 Qwen 作答</td><td>Qwen3.8-27B 看 16 帧作答，提示里同时给几何值和场景值（<code>--hint2d &lt;run&gt;/val_pred.csv --hint2d-mode second</code>），并说明场景值在图层跟错物体时会错。两种跟踪各问一次，取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
     <tr><td>5 路由</td><td>S2、D2 都用 Qwen 的答案；Qwen 没给出有效数字时先用场景值，再退回几何值。</td><td><code>route.py</code></td></tr>
     <tr><td>6 置信度门控</td><td>场景值的逐题置信度 ≥ 0.85 时不经 Qwen，直接用场景值（默认开启）。</td><td><code>route.py --scene2d-direct</code></td></tr>
   </table>
 <pre><code>python -m pipeline.extents2d --split val                     # 掩码凸包，每份跟踪缓存一次（约 80 秒）
-python -m pipeline.scene2d --split val --run s2d_v3
-python -m pipeline.vlm_hint --split val --tag s2d_v3b_sec_a --hint outputs/val_pred_newfb.csv --no-fallback-hint --direct \
-    --max-tokens 200 --hint2d outputs/scene2d_eval/s2d_v3/val_pred.csv --hint2d-mode second \
-    --base outputs/vlm/val_fbn_a_pred.csv --base-hint outputs/val_pred_newfb.csv      # _b 用 tracks_qwen 的提示再跑一次
-python -m pipeline.route --split val --geo outputs/val_pred_newfb.csv --fallback-vlm \
-    --vlm outputs/vlm/val_s2d_v3b_sec_a_pred.csv outputs/vlm/val_s2d_v3b_sec_b_pred.csv \
-    --scene2d outputs/scene2d_eval/s2d_v3/val_pred.csv --scene2d-column --out outputs/val_s2d_v3_routed.csv</code></pre>
+python -m pipeline.scene2d --split val --run s2d_v5 --overlay 1.0
+python -m pipeline.run --split val --no-gdino --out outputs/val_geo_defaults_a.csv        # b 组：QP_TRACKS=tracks_qwen
+python -m pipeline.vlm_hint --split val --tag defaults_a --hint outputs/val_geo_defaults_a.csv --no-fallback-hint --direct \
+    --max-tokens 200 --hint2d outputs/scene2d_eval/s2d_v3/val_pred.csv --hint2d-mode second   # 增量时加 --base …
+python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fallback-vlm \
+    --vlm outputs/vlm/val_defaults_a_pred.csv outputs/vlm/val_defaults_b_pred.csv \
+    --scene2d outputs/scene2d_eval/s2d_v5/val_pred.csv --scene2d-column \
+    --fit outputs/scene_fit_eval/c_support_v8b --out outputs/val_defaults_routed.csv   # → 0.6983</code></pre>
+  <p><small>命令照 <code>docs/WORKING_RULES.md</code> 的复现一节（<code>pipeline/scene2d.py</code> 的 docstring 还没有 v5 这一段）。注意 Qwen 的第二个提示仍用 s2d_v3 的场景值，路由时的场景值和置信度用 s2d_v5；route 必须带 <code>--fit &lt;目录&gt;</code> 或 <code>--no-fit</code>。</small></p>
   <p>验证集结果（所有默认开关全开）：S2 <b>0.719</b>、D2 <b>0.703</b>。每个 2D 视频的图层（掩码凸包、运动模型轨迹、比例尺、prior 标注）以及物体清单和场景图，可以在 <a href="videos.html">视频与问题</a> 里和原视频联动查看。测试集提交 v6 还没有第 3 步（测试集现阶段不跑）。</p>
   <h3 id="pipe2d-track2d">队友的 2D 方案</h3>
   <p>同样先做几何测量，几何测不出来的题由 Code-as-World-VL-9B 直接看视频兜底。验证集 S2 0.503、D2 0.508，详见 <a href="#track2d">2D 方案：几何测量 + VLM 兜底</a>。</p>

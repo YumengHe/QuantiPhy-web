@@ -57,7 +57,7 @@
     const all = test.videos.flatMap((v) => v.questions);
     const v3 = test.videos.filter((v) => v.dim === 3);
     const fit = v3.filter((v) => v.scene).length;
-    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频，预测值来自 <code>${esc(test.file)}</code>（按行号和 <code>load_split('test')</code> 对齐）。测试集没有答案，不显示准确度。3D 视频 ${v3.length} 个，其中 ${fit} 个有场景拟合结果。`;
+    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频，预测来自 submission_v6（<code>${esc(test.file)}</code>，按行号和 <code>load_split('test')</code> 对齐）；v7 正在生成。测试集没有答案，不显示准确度。3D 视频 ${v3.length} 个，其中 ${fit} 个有场景拟合结果。`;
     let h = '<tr><th>类别</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '<th class="n">合计</th></tr>';
     h += '<tr><td>题数</td>' + CATS.map((c) => `<td class="n">${all.filter((q) => q.cat === c).length}</td>`).join('') + `<td class="n">${all.length}</td></tr>`;
     h += '<tr><td>视频数</td>' + CATS.map((c) => `<td class="n">${test.videos.filter((v) => v.cats.includes(c)).length}</td>`).join('') + `<td class="n">${test.videos.length}</td></tr>`;
