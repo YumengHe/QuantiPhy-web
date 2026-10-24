@@ -75,7 +75,8 @@
     d.className = 'vid';
     d.dataset.id = v.id;
     const m = split === 'val' ? mean(qs.map((q) => q.mra)) : NaN;
-    const sceneTag = v.dim === 3 ? (v.scene ? '<span class="tag">场景拟合</span>' : '<span class="tag" style="opacity:.6">无场景拟合</span>') : '';
+    const sceneTag = v.dim === 3 ? (v.scene ? '<span class="tag">场景拟合</span>' : '<span class="tag" style="opacity:.6">无场景拟合</span>')
+      : (v.scene2d ? '<span class="tag">图层场景</span>' : '');
     const thumb = v.thumb ? `<img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}">` : '<span class="thumb"></span>';
     d.innerHTML = `<summary>${thumb}<div class="vmeta"><div class="vid-id">${esc(v.id)}</div>` +
       `<div class="sub">${esc(v.source)} · ${esc(v.video_type)} · ${v.fps} fps${v.duration ? ' · ' + fmt(v.duration, 1) + ' s' : ''} · ${qs.length} 题 ` +
@@ -87,7 +88,8 @@
         built = true;
         const body = document.createElement('div');
         body.className = 'vbody';
-        body.innerHTML = mediaBlock(v, split) + questionTable(qs, split) + (v.dim === 3 ? sceneTables(v, split) : '');
+        body.innerHTML = mediaBlock(v, split) + questionTable(qs, split, v.dim === 2 && !!v.scene2d) +
+          (v.dim === 3 ? sceneTables(v, split) : v.scene2d ? layerTables(v) : '');
         d.appendChild(body);
         video = body.querySelector('video');
       }
@@ -100,11 +102,15 @@
         if (d.open && !viewer) viewer = startViewer(d.querySelector('.viewer'), d.querySelector('.timebar'), v, video);
         if (!d.open && viewer) { viewer.then((x) => x && x.dispose()); viewer = null; }
       }
+      if (v.dim === 2 && v.scene2d) {
+        if (d.open && !viewer) viewer = Promise.resolve(startLayers(d.querySelector('.viewer'), d.querySelector('.timebar'), v, video));
+        if (!d.open && viewer) { viewer.then((x) => x && x.dispose()); viewer = null; }
+      }
     });
     return d;
   }
 
-  function questionTable(qs, split) {
+  function questionTable(qs, split, s2d) {
     const kn = (q) => (q.prior ? `已知：${esc(q.prior)}` : '') + (q.depth ? `\ndepth_info：${esc(q.depth)}` : '');
     // when every question of the video has the same prior / depth_info, show it once above the table
     const shared = qs.every((q) => q.prior === qs[0].prior && q.depth === qs[0].depth);
@@ -112,12 +118,15 @@
     let h = '<h4>问题</h4>' + (shared && kn(qs[0]) ? `<div class="known-shared">${kn(qs[0])}</div>` : '') +
       '<div class="scroll-x"><table class="qtable"><tr><th>类别</th><th>' + (shared ? '问题' : '问题与已知条件') + '</th>';
     if (split === 'val') {
-      h += '<th class="n">答案</th><th class="n">最终预测</th><th>来源</th><th class="n">几何值</th><th class="n">Qwen 值</th><th class="n">MRA</th></tr>';
+      h += '<th class="n">答案</th><th class="n">最终预测</th><th>来源</th><th class="n">几何值</th>' +
+        (s2d ? '<th class="n" title="图层场景（pipeline.scene2d）的值，作为第二个提示给 Qwen">2D 场景值</th>' : '') +
+        '<th class="n">Qwen 值</th><th class="n">MRA</th></tr>';
       qs.forEach((q) => {
         h += `<tr><td><span class="tag">${q.cat}</span><span class="muted">${esc(q.type)}</span></td>` +
           `<td class="q">${esc(q.q)}<div class="known">${known(q)}</div></td>` +
           `<td class="n">${fmtNum(q.answer)}</td><td class="n pred">${fmtNum(q.pred)}</td><td>${SRC_LABEL[q.src] || esc(q.src)}</td>` +
-          `<td class="n">${fmtNum(q.geo)}</td><td class="n">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td></tr>`;
+          `<td class="n">${fmtNum(q.geo)}</td>` + (s2d ? `<td class="n">${fmtNum(q.s2d)}</td>` : '') +
+          `<td class="n">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td></tr>`;
       });
     } else {
       h += '<th class="n">行号</th><th class="n">预测值</th></tr>';
@@ -157,6 +166,21 @@
         '<p class="muted" style="font-size:12.5px;margin:6px 0 0">灰色网格 = 拟合出的地面；黑色线框 = 相机（原点）与视野；彩色 = 物体及其匀加速轨迹（虚线）。自由视角下拖动旋转，滚轮缩放；相机视角固定在原视频相机处，画面比例和原视频相同。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
     }
+    if (v.dim === 2 && v.scene2d) {
+      const s = v.scene2d;
+      scene = `<div><h4>图层场景（<code>${esc(s.file)}</code>）</h4>` +
+        '<div class="viewbar"><span class="seg" role="group" aria-label="背景">' +
+        `<button type="button" data-bg="video" aria-pressed="${v.video ? 'true' : 'false'}"${v.video ? '' : ' disabled'} title="把原视频当前帧垫在图层下面">叠加原视频</button>` +
+        `<button type="button" data-bg="layers" aria-pressed="${v.video ? 'false' : 'true'}" title="背景换成静态背景层（采样帧的中位数）">只看图层</button></span>` +
+        '<label><input type="checkbox" class="raw" checked> 跟踪质心</label>' +
+        (s.scale.degenerate ? '<span class="fwarn">尺度退化：prior 量不出像素长度</span>' : '') + '</div>' +
+        '<div class="viewer cam l2d"><canvas></canvas></div>' +
+        '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
+        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层，颜色和下方图层表对应。实线框 = 当前帧的掩码包围框；实心点 = 运动模型在当前时刻的位置；' +
+        '粗虚线 = 各分段运动模型的轨迹（圆周模型画圆弧，＋ 为圆心），空心方块 = 分段的起止点；小点 = 跟踪到的逐帧质心。左下角比例尺按 prior 标定的 m/px 画' +
+        (s.scale.model === 'loglinear_y' ? '（透视模型，不同高度的比例尺长度不同）' : '') + (s.gravity_dir ? '；右上角箭头是重力方向' : '') + '。' +
+        (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
+    }
     return `<div class="media"><div>${vid}</div>${scene}</div>`;
   }
 
@@ -181,6 +205,243 @@
     }
     return `<h4>场景拟合的物体</h4><div><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th><th class="n">残差 (px)</th></tr>${rows}</table></div>` +
       `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px。残差是拟合框与跟踪框的均方根误差。</p>${res}</div>`;
+  }
+
+
+  // ---------- time axis shared by the 3D and 2D viewers ----------
+  // Linked to the <video>: scene time is the same fraction of T as currentTime is of the video's duration
+  // (the H.264 test copy of a validation video has the same frames but sometimes a different nominal fps).
+  function linkTime(bar, video, T, setTime, signal) {
+    const slider = bar.querySelector('input'), label = bar.querySelector('.tlabel'), play = bar.querySelector('.play');
+    let raf = 0, t0 = 0, playing = false;
+    const show = (t) => { setTime(t); label.textContent = `t = ${t.toFixed(2)} s`; };
+    const linked = () => video && !video.error && video.duration > 0;
+    const fromVideo = () => {
+      const fr = Math.min(1, video.currentTime / video.duration);
+      slider.value = String(Math.round(fr * 1000)); show(fr * T);
+    };
+    function tick(now) {
+      if (linked()) {
+        if (video.paused) return;
+        fromVideo();
+      } else {
+        if (!playing) return;
+        const t = (((now - t0) / 1000) % T);
+        slider.value = String(Math.round((t / T) * 1000));
+        show(t);
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    slider.oninput = () => {
+      const fr = slider.value / 1000;
+      show(fr * T);
+      if (linked()) video.currentTime = fr * video.duration;
+    };
+    play.onclick = () => {
+      if (linked()) { if (video.paused) video.play(); else video.pause(); return; }
+      playing = !playing; play.textContent = playing ? '暂停' : '播放';
+      if (playing) { t0 = performance.now() - (slider.value / 1000) * T * 1000; raf = requestAnimationFrame(tick); } else cancelAnimationFrame(raf);
+    };
+    if (video) {
+      const o = { signal };
+      video.addEventListener('play', () => { play.textContent = '暂停'; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }, o);
+      video.addEventListener('pause', () => { play.textContent = '播放'; cancelAnimationFrame(raf); if (linked()) fromVideo(); }, o);
+      video.addEventListener('seeked', () => { if (linked() && video.paused) fromVideo(); }, o);
+    }
+    return {
+      now: () => (slider.value / 1000) * T,
+      redraw: () => show((slider.value / 1000) * T),
+      stop() { playing = false; cancelAnimationFrame(raf); slider.oninput = null; play.onclick = null; play.textContent = '播放'; },
+    };
+  }
+
+  // ---------- 2D layered scene (pipeline/scene2d.py) ----------
+  const MODEL_LABEL = { static: '静止', const_vel: '匀速', const_acc: '匀加速', circle: '圆周' };
+  function segPos(s, t) {
+    const p = s.p, dt = t - s.t0;
+    if (s.model === 'static') return p.p;
+    if (s.model === 'const_vel') return [p.p0[0] + p.v[0] * dt, p.p0[1] + p.v[1] * dt];
+    if (s.model === 'const_acc') return [0, 1].map((k) => p.p0[k] + p.v0[k] * dt + 0.5 * p.a[k] * dt * dt);
+    if (s.model === 'circle') { const th = p.theta0 + p.omega * dt; return [p.center[0] + p.r * Math.cos(th), p.center[1] + p.r * Math.sin(th)]; }
+    return null;
+  }
+  function mPerPx(sc, y) {
+    if (!sc.m_per_px_ref) return NaN;
+    return sc.model === 'loglinear_y' ? sc.m_per_px_ref * Math.exp(-(sc.k_per_px || 0) * (y - sc.y_ref)) : sc.m_per_px_ref;
+  }
+  function niceLen(x) { // largest 1/2/5 x 10^k not above x
+    const e = Math.pow(10, Math.floor(Math.log10(x))), m = x / e;
+    return (m >= 5 ? 5 : m >= 2 ? 2 : 1) * e;
+  }
+  function fmtLen(m) { return m >= 1 ? `${fmtNum(m)} m` : m >= 0.01 ? `${fmtNum(m * 100)} cm` : `${fmtNum(m * 1000)} mm`; }
+
+  function startLayers(box, bar, v, video) {
+    const s = v.scene2d, W = s.width, H = s.height, fps = s.fps || 30;
+    const T = s.n_frames && fps ? s.n_frames / fps : (v.duration || 2);
+    const canvas = box.querySelector('canvas'), ctx = canvas.getContext('2d');
+    const vbar = box.previousElementSibling;
+    const btns = [...vbar.querySelectorAll('.seg button')], rawBox = vbar.querySelector('.raw');
+    let mode = video ? 'video' : 'layers', k = 1, dpr = 1, tCur = 0;
+    const bg = new Image();
+    if (s.bg) { bg.onload = () => draw(tCur); bg.src = s.bg; }
+    const ac = new AbortController();
+
+    function resize() {
+      const bw = box.clientWidth, bh = box.clientHeight;
+      if (!bw || !bh) return;
+      k = Math.min(bw / W, bh / H);
+      dpr = Math.min(devicePixelRatio || 1, 2);
+      const cw = Math.round(W * k), ch = Math.round(H * k);
+      canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
+      canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
+      draw(tCur);
+    }
+    let placed = [];   // label boxes already drawn this frame: a new label moves down until it does not overlap
+    function label(x, y, txt, col, fixed) {
+      ctx.font = '600 11.5px system-ui, sans-serif';
+      const w = ctx.measureText(txt).width + 8;
+      x = Math.max(0, Math.min(x, W * k - w)); y = Math.max(15, y);
+      if (!fixed) {
+        for (let n = 0; n < 30 && placed.some((r) => x < r[0] + r[2] && r[0] < x + w && y - 15 < r[1] && r[1] - 15 < y); n++) y += 16;
+        placed.push([x, y, w]);
+      }
+      ctx.fillStyle = 'rgba(0,0,0,.62)'; ctx.fillRect(x, y - 15, w, 16);
+      ctx.fillStyle = col; ctx.fillText(txt, x + 4, y - 3);
+    }
+    function arrow(x0, y0, x1, y1, col) {
+      const a = Math.atan2(y1 - y0, x1 - x0);
+      ctx.strokeStyle = ctx.fillStyle = col; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 - 9 * Math.cos(a - 0.45), y1 - 9 * Math.sin(a - 0.45)); ctx.lineTo(x1 - 9 * Math.cos(a + 0.45), y1 - 9 * Math.sin(a + 0.45));
+      ctx.closePath(); ctx.fill();
+    }
+    function draw(t) {
+      tCur = t; placed = [];
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const cw = W * k, ch = H * k;
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cw, ch);
+      if (mode === 'video' && video && video.readyState >= 2) ctx.drawImage(video, 0, 0, cw, ch);
+      else if (bg.complete && bg.naturalWidth) ctx.drawImage(bg, 0, 0, cw, ch);
+      ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(0, 0, cw, ch);
+      const X = (p) => p[0] * k, Y = (p) => p[1] * k;
+      const half = 0.5 / fps + 1e-6;
+      s.layers.forEach((L, i) => {
+        const col = PALETTE[i % PALETTE.length];
+        // tracked centroids
+        if (rawBox.checked) {
+          ctx.fillStyle = col; ctx.globalAlpha = 0.45;
+          L.c.forEach((c) => { ctx.beginPath(); ctx.arc(X(c), Y(c), 1.6, 0, 2 * Math.PI); ctx.fill(); });
+          ctx.globalAlpha = 1;
+        }
+        // model trajectories per segment
+        ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.setLineDash([7, 4]);
+        L.segments.forEach((sg) => {
+          if (sg.model === 'static') {
+            const p = sg.p.p; ctx.setLineDash([]); ctx.lineWidth = 1.6;
+            ctx.beginPath(); ctx.moveTo(X(p) - 5, Y(p) - 5); ctx.lineTo(X(p) + 5, Y(p) + 5); ctx.moveTo(X(p) + 5, Y(p) - 5); ctx.lineTo(X(p) - 5, Y(p) + 5); ctx.stroke();
+            ctx.setLineDash([7, 4]); ctx.lineWidth = 2.2;
+            return;
+          }
+          ctx.beginPath();
+          const nS = 80;
+          for (let j = 0; j <= nS; j++) {
+            const p = segPos(sg, sg.t0 + ((sg.t1 - sg.t0) * j) / nS);
+            if (j) ctx.lineTo(X(p), Y(p)); else ctx.moveTo(X(p), Y(p));
+          }
+          ctx.stroke();
+          // segment ends: hollow squares, so splits (collisions, stops) are visible on a straight path
+          ctx.setLineDash([]); ctx.lineWidth = 1.5;
+          [sg.t0, sg.t1].forEach((tb) => { const q = segPos(sg, tb); ctx.strokeRect(X(q) - 3.5, Y(q) - 3.5, 7, 7); });
+          ctx.setLineDash([7, 4]); ctx.lineWidth = 2.2;
+          if (sg.model === 'circle') {
+            const c = sg.p.center; ctx.setLineDash([]); ctx.lineWidth = 1.4;
+            ctx.beginPath(); ctx.moveTo(X(c) - 6, Y(c)); ctx.lineTo(X(c) + 6, Y(c)); ctx.moveTo(X(c), Y(c) - 6); ctx.lineTo(X(c), Y(c) + 6); ctx.stroke();
+            ctx.setLineDash([7, 4]); ctx.lineWidth = 2.2;
+          }
+        });
+        ctx.setLineDash([]);
+        // current box (nearest tracked frame within half a frame)
+        let bi = -1, bd = Infinity;
+        L.t.forEach((tt, j) => { const d = Math.abs(tt - t); if (d < bd) { bd = d; bi = j; } });
+        const sg = L.segments.find((x) => t >= x.t0 - half && t <= x.t1 + half);
+        const tag = `${L.name} · ` + (sg ? `${sg.model}, rms ${fmt(sg.rms, 1)} px` : '不可见');
+        if (bi >= 0 && bd <= half) {
+          const b = L.box[bi];
+          ctx.strokeStyle = col; ctx.lineWidth = 2;
+          ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k);
+          label(b[0] * k, b[1] * k - 2, tag, col);
+        } else if (sg) {
+          const p = segPos(sg, t); label(X(p) + 6, Y(p) - 6, tag, col);
+        }
+        if (sg) {
+          const p = segPos(sg, Math.min(Math.max(t, sg.t0), sg.t1));
+          ctx.fillStyle = col; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(X(p), Y(p), 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+        }
+      });
+      // scale bar(s): one metric length, drawn at several image heights when the scale depends on y
+      const sc = s.scale;
+      if (isFinite(mPerPx(sc, H / 2))) {
+        const ys = sc.model === 'loglinear_y' ? [0.3, 0.6, 0.9].map((f) => f * H) : [0.93 * H];
+        const len = niceLen(Math.min(...ys.map((y) => 0.22 * W * mPerPx(sc, y))));
+        ys.forEach((y) => {
+          const px = (len / mPerPx(sc, y)) * k, x0 = 10, yy = y * k;
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x0 + px, yy); ctx.moveTo(x0, yy - 5); ctx.lineTo(x0, yy + 5); ctx.moveTo(x0 + px, yy - 5); ctx.lineTo(x0 + px, yy + 5); ctx.stroke();
+          label(x0, yy - 7, fmtLen(len), '#fff', true);
+        });
+      }
+      if (s.gravity_dir) {
+        const g = s.gravity_dir, cx = W * k - 40, cy = 40;
+        arrow(cx - g[0] * 22, cy - g[1] * 22, cx + g[0] * 22, cy + g[1] * 22, '#ffd43b');
+        label(cx + 8, cy - 20, 'g', '#ffd43b', true);
+      }
+    }
+    function setMode(m) {
+      mode = m;
+      btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.bg === m)));
+      draw(tCur);
+    }
+    btns.forEach((b) => { b.onclick = () => { if (!b.disabled) setMode(b.dataset.bg); }; });
+    rawBox.onchange = () => draw(tCur);
+    const tl = linkTime(bar, video, T, draw, ac.signal);
+    if (video) {
+      video.addEventListener('loadeddata', () => draw(tCur), { signal: ac.signal });
+      video.addEventListener('error', () => { btns[0].disabled = true; setMode('layers'); }, { signal: ac.signal });
+    }
+    const ro = new ResizeObserver(resize); ro.observe(box);
+    resize(); tl.redraw();
+    return {
+      dispose() {
+        ac.abort(); tl.stop(); ro.disconnect();
+        btns.forEach((b) => { b.onclick = null; }); rawBox.onchange = null; bg.onload = null;
+        canvas.width = canvas.height = 0;
+      },
+    };
+  }
+
+  function layerTables(v) {
+    const s = v.scene2d, sc = s.scale, pr = s.prior;
+    let rows = '';
+    s.layers.forEach((L, i) => {
+      const segs = L.segments.map((g) => `${MODEL_LABEL[g.model] || esc(g.model)} <span class="muted">${fmt(g.t0, 2)}–${fmt(g.t1, 2)} s · rms ${fmt(g.rms, 1)}</span>`).join('<br>');
+      const ext = L.extent || {};
+      rows += `<tr><td><span class="swatch" style="background:${PALETTE[i % PALETTE.length]}"></span></td><td>${esc(L.name)}` +
+        (L.flags.length ? `<div class="known">${L.flags.map(esc).join('；')}</div>` : '') + '</td>' +
+        `<td>${L.visible.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ')} s</td><td>${segs}</td>` +
+        `<td class="n">${fmtNum(ext.w)} × ${fmtNum(ext.h)}</td><td class="n">${fmt(L.rms, 2)}</td></tr>`;
+    });
+    const scaleTxt = !sc.m_per_px_ref ? '没有可用的尺度' : sc.model === 'loglinear_y'
+      ? `透视模型 m/px(y) = ${fmtNum(sc.m_per_px_ref)} · exp(−${fmtNum(sc.k_per_px)} · (y − ${fmtNum(sc.y_ref)}))`
+      : `均匀 ${fmtNum(sc.m_per_px_ref)} m/px`;
+    return '<h4>图层</h4><div class="scroll-x"><table><tr><th></th><th>图层（物体）</th><th>可见时段</th><th>分段运动模型</th><th class="n">尺寸 w × h (px)</th><th class="n">残差 (px)</th></tr>' +
+      rows + '</table></div>' +
+      `<p class="muted" style="font-size:12.5px">尺度：${scaleTxt}（${s.width}×${s.height} px 坐标）；来自 prior "${esc(pr.text)}"，在图层 "${esc(pr.layer)}" 上量得 ${fmtNum(pr.px)} px（${esc(pr.how)}）。` +
+      (sc.model !== 'loglinear_y' && sc.persp_reason ? `没用透视模型：${esc(sc.persp_reason)}。` : '') +
+      (sc.notes.length ? sc.notes.map(esc).join('；') + '。' : '') +
+      (s.gravity_dir ? `重力方向（图像坐标）(${fmt(s.gravity_dir[0], 3)}, ${fmt(s.gravity_dir[1], 3)})。` : '') +
+      '残差是该段模型位置与跟踪质心的均方根误差。</p>';
   }
 
   // ---------- three.js scene viewer ----------
@@ -322,10 +583,8 @@
     btns.forEach((b) => { b.onclick = () => setView(b.dataset.view); });
     if (ovBox) ovBox.onchange = () => setOverlay(ovBox.checked);
 
-    const slider = bar.querySelector('input'), label = bar.querySelector('.tlabel'), play = bar.querySelector('.play');
     function setTime(t) {
       meshes.forEach(({ o, grp }) => grp.position.copy(toW(pos(o, t))));
-      label.textContent = `t = ${t.toFixed(2)} s`;
       render();
     }
     function resize() {
@@ -349,58 +608,26 @@
       renderer.render(scene, active);
     }
     controls.addEventListener('change', render);
-    let raf = 0, t0 = 0, playing = false;
-    // Linked to the <video>: the scene time is the same fraction of T as currentTime is of the video's duration
-    // (the H.264 test copy of a validation video has the same frames but sometimes a different nominal fps).
     const ac = new AbortController();
-    const linked = () => video && !video.error && video.duration > 0;
-    const fromVideo = () => {
-      const fr = Math.min(1, video.currentTime / video.duration);
-      slider.value = String(Math.round(fr * 1000)); setTime(fr * T);
-    };
-    function tick(now) {
-      if (linked()) {
-        if (video.paused) return;
-        fromVideo();
-      } else {
-        if (!playing) return;
-        const t = (((now - t0) / 1000) % T);
-        slider.value = String(Math.round((t / T) * 1000));
-        setTime(t);
-      }
-      raf = requestAnimationFrame(tick);
-    }
-    slider.oninput = () => {
-      const fr = slider.value / 1000;
-      setTime(fr * T);
-      if (linked()) video.currentTime = fr * video.duration;
-    };
-    play.onclick = () => {
-      if (linked()) { if (video.paused) video.play(); else video.pause(); return; }
-      playing = !playing; play.textContent = playing ? '暂停' : '播放';
-      if (playing) { t0 = performance.now() - (slider.value / 1000) * T * 1000; raf = requestAnimationFrame(tick); } else cancelAnimationFrame(raf);
-    };
+    const tl = linkTime(bar, video, T, setTime, ac.signal);
     if (video) {
       const o = { signal: ac.signal };
-      video.addEventListener('play', () => { play.textContent = '暂停'; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }, o);
-      video.addEventListener('pause', () => { play.textContent = '播放'; cancelAnimationFrame(raf); if (linked()) fromVideo(); }, o);
-      video.addEventListener('seeked', () => { if (linked() && video.paused) fromVideo(); }, o);
       video.addEventListener('loadeddata', () => { if (scene.background) render(); }, o);
       video.addEventListener('error', () => { if (ovBox) { ovBox.checked = false; setView(active === camC ? 'cam' : 'free'); } }, o);
     }
     const ro = new ResizeObserver(resize); ro.observe(box);
-    resize(); setTime(0); if (vbar) setView("cam");
+    resize(); tl.redraw(); if (vbar) setView("cam");
     return {
       dispose() {
-        ac.abort();
-        playing = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
+        ac.abort(); tl.stop();
+        ro.disconnect(); controls.dispose();
         scene.background = null; if (vtex) vtex.dispose();
         btns.forEach((b) => { b.onclick = null; b.setAttribute("aria-pressed", String(b.dataset.view === "cam")); });
         if (ovBox) { ovBox.onchange = null; ovBox.checked = false; ovBox.disabled = true; ovLabel.classList.add('off'); }
         box.classList.remove('cam');
         scene.traverse((x) => { if (x.geometry) x.geometry.dispose(); if (x.material) x.material.dispose(); });
         renderer.dispose(); renderer.forceContextLoss();
-        box.innerHTML = '<div class="msg">已收起</div>'; play.textContent = '播放';
+        box.innerHTML = '<div class="msg">已收起</div>';
       },
     };
   }

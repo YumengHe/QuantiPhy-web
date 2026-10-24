@@ -5,9 +5,11 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_best_routed.csv                    validation predictions of the current best harness
-  outputs/submission_v5.csv                      latest test submission (row-aligned with load_split('test'))
+  outputs/val_s2d_v1_routed.csv                  validation predictions of the current best harness (0.656; column s2d =
+                                                 2D-scene value given to Qwen as a second hint)
+  outputs/submission_v6.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
   outputs/scene_fit_eval/c_mesh2/<video>.json    validation scene fits
+  outputs/scene2d_eval/s2d_v1/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/)
   outputs/scene_fit_eval/test_mesh/<video>.json  test scene fits
   data/QuantiPhy*/...mp4                         only to grab the first frame and duration
 
@@ -33,10 +35,12 @@ import pandas as pd  # noqa: E402
 from pipeline.data import load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_best_routed.csv"
-TEST_CSV = ROOT / "outputs" / "submission_v5.csv"
+VAL_CSV = ROOT / "outputs" / "val_s2d_v1_routed.csv"
+TEST_CSV = ROOT / "outputs" / "submission_v6.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_mesh2",
               "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
+SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v1"}   # the test tab stays on the submitted predictions
+SCENE2D_WEB = WEB / "data" / "scene2d"
 OUT = WEB / "data" / "videos.json"
 THUMBS = WEB / "data" / "thumbs"
 THUMB_W = 240
@@ -87,6 +91,54 @@ def scene_fit(split: str, vid: str):
                     "method": r.get("method"), "answer": num(r.get("answer")) if split == "val" else None,
                     "mra": num(r.get("mra"), 3) if split == "val" else None})
     return {"file": str(p.relative_to(ROOT)), "f": num(j.get("f"), 5), "plane": plane, "objects": objs, "results": res}
+
+
+def scene2d(split: str, vid: str):
+    """Compact copy of the 2D layered scene (pipeline/scene2d.py docstring); pixel coordinates of that json's width/height."""
+    d = SCENE2D_DIRS.get(split)
+    p = d / f"{vid}.json" if d else None
+    if p is None or not p.exists():
+        return None
+    try:
+        j = json.load(open(p))
+    except (OSError, json.JSONDecodeError):
+        return None
+    bg = None
+    bgname = (j.get("background") or {}).get("image")
+    if bgname and (d / bgname).exists():
+        SCENE2D_WEB.mkdir(parents=True, exist_ok=True)
+        out = SCENE2D_WEB / bgname
+        out.write_bytes((d / bgname).read_bytes())
+        bg = str(out.relative_to(WEB))
+    sc = j.get("scale") or {}
+    persp = sc.get("perspective") or {}
+    scale = {"model": sc.get("model"), "m_per_px_ref": num(sc.get("m_per_px_ref"), 5), "y_ref": num(sc.get("y_ref"), 5),
+             "k_per_px": num(sc.get("k_per_px"), 5), "degenerate": bool(sc.get("degenerate")),
+             "persp_accepted": bool(persp.get("accepted")), "persp_reason": text(persp.get("reason")),
+             "notes": [text(x) for x in sc.get("notes") or []]}
+    pr = j.get("prior") or {}
+    prior = {k: text(pr.get(k)) for k in ("text", "layer", "how")} | {"value_si": num(pr.get("value_si")), "px": num(pr.get("px"))}
+
+    def par(v):
+        if isinstance(v, (list, tuple)):
+            return [num(a, 6) for a in v]
+        return v if isinstance(v, bool) else num(v, 6)
+
+    layers = []
+    for L in j.get("layers") or []:
+        segs = [{"t0": num(s.get("t0"), 6), "t1": num(s.get("t1"), 6), "model": s.get("model"),
+                 "rms": num(s.get("rms_px"), 3), "p": {k: par(v) for k, v in (s.get("params") or {}).items()}}
+                for s in L.get("segments") or []]
+        layers.append({"name": text(L.get("name")), "moving": bool(L.get("moving")),
+                       "t": [num(t, 6) for t in L.get("t") or []],
+                       "box": [[round(float(a), 1) for a in b] for b in L.get("box_px") or []],
+                       "c": [[round(float(a), 1) for a in c] for c in L.get("center_px") or []],
+                       "visible": [[num(a, 5) for a in iv] for iv in L.get("visible") or []],
+                       "extent": {k: num(v, 4) for k, v in (L.get("extent_px") or {}).items()},
+                       "rms": num(L.get("rms_px"), 3), "flags": [text(f) for f in L.get("flags") or []], "segments": segs})
+    return {"file": str(p.relative_to(ROOT)), "fps": num(j.get("fps")), "width": j.get("width"), "height": j.get("height"),
+            "n_frames": j.get("n_frames"), "bg": bg, "prior": prior, "scale": scale,
+            "gravity_dir": vec(j.get("gravity_dir")), "layers": layers}
 
 
 def video_meta(split: str, vid: str, make_thumb: bool):
@@ -150,12 +202,14 @@ def build_val(make_thumb: bool):
         first = g.iloc[0]
         qs = [{"cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
                "depth": text(r.depth_info), "answer": num(r.answer), "geo": num(r.geo), "vlm": num(r.vlm),
-               "pred": num(r.pred), "src": r.source, "mra": num(r.mra, 3)} for r in g.itertuples()]
+               "pred": num(r.pred), "src": r.source, "mra": num(r.mra, 3), "s2d": num(getattr(r, "s2d", None))}
+              for r in g.itertuples()]
         is3d = str(first.dim) == "3"
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("val", vid),
-                       "scene": scene_fit("val", vid) if is3d else None, "questions": qs})
+                       "scene": scene_fit("val", vid) if is3d else None, "scene2d": None if is3d else scene2d("val", vid),
+                       "questions": qs})
     return {"file": str(VAL_CSV.relative_to(ROOT)), "macro": num(ev["average"], 6),
             "per_cat": {c: num(ev[c], 6) for c in CATEGORIES}, "videos": videos}
 

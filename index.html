@@ -181,8 +181,8 @@
   <h1>QuantiPhy 文档</h1>
   <p class="lede">NeurIPS 2026 QuantiPhy 挑战赛：给一段视频和一个已知物理量（prior），求另一个物理量（尺寸、速度、加速度）。指标是 S2 / D2 / S3 / D3 四类 MRA 的平均（macro），只用开源权重（Track B）。最终提交截止 <b>2026-10-23 23:59 AoE</b>。</p>
   <div class="stats">
-    <div class="stat hi"><div class="num">0.620</div><div class="lbl">当前最好，验证集 macro MRA（去掉回退常数泄漏后）</div></div>
-    <div class="stat"><div class="num">0.594 / 0.551</div><div class="lbl">S2 / D2</div></div>
+    <div class="stat hi"><div class="num">0.656</div><div class="lbl">当前最好，验证集 macro MRA（加 2D 图层场景）</div></div>
+    <div class="stat"><div class="num">0.609 / 0.681</div><div class="lbl">S2 / D2</div></div>
     <div class="stat"><div class="num">0.686 / 0.647</div><div class="lbl">S3 / D3</div></div>
     <div class="stat"><div class="num">0.486</div><div class="lbl">官方 GPT-5.1 基线</div></div>
   </div>
@@ -206,11 +206,12 @@
   <h2>当前最好方案</h2>
   <table>
     <tr><th>验证集（159 题）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td><b>当前最好 harness</b></td><td><b>0.620</b></td><td>0.594</td><td>0.551</td><td>0.686</td><td>0.647</td></tr>
+    <tr><td><b>当前最好 harness</b></td><td><b>0.656</b></td><td>0.609</td><td>0.681</td><td>0.686</td><td>0.647</td></tr>
+    <tr><td><small>参考：上一版（没有 2D 图层场景）</small></td><td><small>0.620</small></td><td><small>0.594</small></td><td><small>0.551</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：几何流水线 <code>pipeline.run</code></small></td><td><small>0.497</small></td><td><small>0.462</small></td><td><small>0.341</small></td><td><small>0.707</small></td><td><small>0.477</small></td></tr>
     <tr><td><small>参考：官方 GPT-5.1 基线</small></td><td><small>0.486</small></td><td><small>0.569</small></td><td><small>0.354</small></td><td><small>0.456</small></td><td><small>0.564</small></td></tr>
   </table>
-  <p><small>去掉回退常数泄漏后的分数；旧的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
+  <p><small>0.620 → 0.656 来自 2D 图层场景（只影响 S2、D2，见 <a href="#s2d-layers">10-23 迭代</a>）；更早的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
   <h3 id="pipe3d">3D 流程（S3、D3）</h3>
   <ol class="flow" aria-label="3D 流程">
     <li><div class="step"><b><span class="n">1</span>解析</b>规则解析器提取物理量、物体、时间、单位<div class="m">parse.py</div></div></li>
@@ -230,7 +231,7 @@
     <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
   </table>
   <p>验证集结果：S3 <b>0.686</b>、D3 <b>0.647</b>。S2、D2 的流程见 <a href="#pipe2d">2D 流程</a>。</p>
-  <p><b>最新测试集提交：</b><code>outputs/submission_v6.csv</code>（v5 加上解析和场景拟合修复、回退常数去泄漏）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_best_routed.csv</code>）。</p>
+  <p><b>最新测试集提交：</b><code>outputs/submission_v6.csv</code>（v5 加上解析和场景拟合修复、回退常数去泄漏；还没有 2D 图层场景，测试集现阶段不跑）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_s2d_v1_routed.csv</code>）。</p>
   <p><small>同一配置重跑一次，单个类别会波动 ±0.03，所以差距不到约 0.01 的改动不算结论。</small></p>
 </section>
 
@@ -649,24 +650,95 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
 <section id="pipe2d">
   <h2>2D 流程</h2>
   <p>2D 题（S2、D2）目前有两条线。</p>
-  <h3 id="pipe2d-v5">当前提交（v5）用的</h3>
-  <ol class="flow" aria-label="2D 流程（v5）">
-    <li><div class="step"><b><span class="n">1</span>解析</b>规则解析器提取物理量、物体、时间、单位<div class="m">parse.py</div></div></li>
-    <li><div class="step"><b><span class="n">2</span>跟踪</b>Grounding DINO 找物体，Qwen 查框，SAM 2 跟踪<div class="m">perceive.py</div></div></li>
-    <li><div class="step"><b><span class="n">3</span>几何测量</b>由已知条件标定 m/px，换算出几何值作为提示值<div class="m">calibrate / physics / solve</div></div></li>
-    <li><div class="step"><b><span class="n">4</span>Qwen 作答</b>Qwen3.8-27B 看 16 帧，带提示值直接给数字<div class="m">vlm_hint.py --direct</div></div></li>
-    <li><div class="step hl"><b><span class="n">5</span>路由</b>S2、D2 都用 Qwen 的答案<div class="m">route.py</div></div></li>
+  <h3 id="pipe2d-best">当前最好 harness 用的</h3>
+  <ol class="flow" aria-label="2D 流程">
+    <li><div class="step"><b><span class="n">1</span>解析、跟踪</b>规则解析器 + Grounding DINO / Qwen 查框 / SAM 2<div class="m">parse.py / perceive.py</div></div></li>
+    <li><div class="step"><b><span class="n">2</span>几何测量</b>由已知条件标定 m/px，换算出几何值（第一个提示）<div class="m">calibrate / physics / solve</div></div></li>
+    <li><div class="step hl"><b><span class="n">3</span>图层场景</b>背景层 + 每个物体一层，分段运动模型 → 场景值（第二个提示）<div class="m">scene2d.py</div></div></li>
+    <li><div class="step"><b><span class="n">4</span>Qwen 作答</b>Qwen3.8-27B 看 16 帧，带两个提示值直接给数字<div class="m">vlm_hint.py --direct --hint2d-mode second</div></div></li>
+    <li><div class="step"><b><span class="n">5</span>路由</b>S2、D2 都用 Qwen 的答案<div class="m">route.py --fallback-vlm</div></div></li>
   </ol>
   <table class="steps">
     <tr><th>步骤</th><th>做法</th><th>代码</th></tr>
-    <tr><td>1–2 解析、跟踪</td><td>和 <a href="#pipe3d">3D 流程</a>的第 1、2 步相同。</td><td><code>parse.py</code> <code>perceive.py</code></td></tr>
-    <tr><td>3 几何测量</td><td>m/px = 已知量 ÷ 它的像素量，再换算成目标量，作为提示值。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
-    <tr><td>4 Qwen 作答</td><td>和 3D 流程第 5 步相同：Qwen3.8-27B 看 16 帧加提示值作答，两种跟踪各问一次取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
+    <tr><td>1 解析、跟踪</td><td>和 <a href="#pipe3d">3D 流程</a>的第 1、2 步相同。</td><td><code>parse.py</code> <code>perceive.py</code></td></tr>
+    <tr><td>2 几何测量</td><td>m/px = 已知量 ÷ 它的像素量，再换算成目标量，得到几何值。几何走回退常数的题不给这个提示。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
+    <tr><td>3 图层场景</td><td>把视频拆成背景层（采样帧的中位数）和每个物体一层（从两份 SAM 2 跟踪缓存里选匹配最好、不退化的那条）。用 prior 在对应图层上量出像素量，标定一个 m/px；运动图层的视大小随 y 一致变化（斜地面）时，m/px 改成随 y 对数线性变化。每层按时间分段（碰撞、停下处切开），每段用 BIC 在静止、匀速、匀加速、匀速圆周里自动选模型；圆心一致的圆周共用一个圆心。逐题从模型算出"场景值"。验证集 12 个 2D 视频约 10 秒。</td><td><code>scene2d.py</code></td></tr>
+    <tr><td>4 Qwen 作答</td><td>Qwen3.8-27B 看 16 帧作答，提示里同时给几何值和场景值（<code>--hint2d &lt;run&gt;/val_pred.csv --hint2d-mode second</code>），并说明场景值在图层跟错物体时会错。两种跟踪各问一次，取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
     <tr><td>5 路由</td><td>S2、D2 都用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
   </table>
-  <p>验证集结果：S2 <b>0.594</b>、D2 <b>0.581</b>。</p>
+<pre><code>python -m pipeline.scene2d --split val --run s2d_v1
+python -m pipeline.vlm_hint --split val --tag s2d_v1_sec_a --hint outputs/val_pred_newfb.csv --no-fallback-hint --direct \
+    --max-tokens 200 --hint2d outputs/scene2d_eval/s2d_v1/val_pred.csv --hint2d-mode second \
+    --base outputs/vlm/val_fbn_a_pred.csv --base-hint outputs/val_pred_newfb.csv      # _b 用 tracks_qwen 的提示再跑一次
+python -m pipeline.route --split val --geo outputs/val_pred_newfb.csv --fallback-vlm \
+    --vlm outputs/vlm/val_s2d_v1_sec_a_pred.csv outputs/vlm/val_s2d_v1_sec_b_pred.csv</code></pre>
+  <p>验证集结果：S2 <b>0.609</b>、D2 <b>0.681</b>。每个 2D 视频的图层（包围框、运动模型轨迹、比例尺）可以在 <a href="videos.html">视频与问题</a> 里和原视频联动查看。测试集提交 v6 还没有第 3 步（测试集现阶段不跑）。</p>
   <h3 id="pipe2d-track2d">队友的 2D 方案</h3>
   <p>同样先做几何测量，几何测不出来的题由 Code-as-World-VL-9B 直接看视频兜底。验证集 S2 0.503、D2 0.508，详见 <a href="#track2d">2D 方案：几何测量 + VLM 兜底</a>。</p>
+</section>
+
+<section id="iter2d">
+  <h2>2D 迭代记录</h2>
+  <p>只针对 2D 题（S2、D2）的迭代，按时间倒序。</p>
+
+  <details class="iter" id="s2d-layers">
+    <summary><span class="d">10-23</span>2D 图层式重建（scene2d），场景值作为 Qwen 的第二个提示 · 验证集 0.620→0.656，D2 0.551→0.681，2D 题 MRA=0 从 12 题降到 8 题 <span class="yes">采用（验证集）</span></summary>
+    <div class="iter-body">
+  <h4>做法</h4>
+  <p>和 3D 的场景拟合对称：2D 视频相机固定、物体大致在一个平面里运动，所以不建三维场景，而是拆成图层。</p>
+  <ul>
+    <li><b>图层：</b>背景层是采样帧的中位数；每个题目和 prior 里提到的物体一层，从两份跟踪缓存中选匹配最好、不退化的那条（包围框超过半个画面的视为背景）。</li>
+    <li><b>尺度：</b>用 prior 在对应图层上量出像素量（尺寸、圆周路径速度、净位移速度、自由落体段等），标定一个 m/px。运动图层的视大小随 y 一致变化时（斜地面），m/px 改为随 y 对数线性变化；否则用均匀尺度，并在 json 里写明没用透视模型的原因。</li>
+    <li><b>运动模型：</b>每层按时间分段（二分切分，每次切分要付 BIC 惩罚），每段在静止、匀速、匀加速、匀速圆周里按 BIC 选，像素噪声下限按帧宽缩放。圆心一致的圆周共用一个圆心，短弧也能定住。</li>
+    <li><b>接入 harness：</b>逐题的场景值作为第二个提示给 Qwen（<code>--hint2d-mode second</code>），几何值仍是第一个提示；路由不变。</li>
+  </ul>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:10px 0">
+    <figure style="margin:0"><img src="case/scene2d/simulation_0193.jpg" alt="simulation_0193 图层场景：四颗卫星的共心圆周轨道" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>simulation_0193：四颗卫星都是共心圆周模型，木星静止。</small></figcaption></figure>
+    <figure style="margin:0"><img src="case/scene2d/simulation_0163.jpg" alt="simulation_0163 图层场景：保龄球分三段匀加速，球瓶先静止后被撞" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>simulation_0163：保龄球分三段匀加速（方块是分段起止点），球瓶先静止、被撞后两段。</small></figcaption></figure>
+  </div>
+
+  <h4>验证集结果（159 题）</h4>
+  <table>
+    <tr><th>场景值的用法</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>2D 题 MRA=0</th></tr>
+    <tr><td>基线：不用场景值</td><td>0.6195</td><td>0.594</td><td>0.551</td><td>0.686</td><td>0.647</td><td>12</td></tr>
+    <tr><td>直接用场景值作答（<code>route --scene2d</code>）</td><td>0.6184</td><td>0.522</td><td>0.619</td><td>0.686</td><td>0.647</td><td>18</td></tr>
+    <tr><td>场景值替换几何提示（<code>--hint2d-mode replace</code>）</td><td>0.6501</td><td>0.619</td><td>0.649</td><td>0.686</td><td>0.647</td><td>10</td></tr>
+    <tr><td><b>场景值作为第二个提示（<code>--hint2d-mode second</code>，采用）</b></td><td><b>0.6558</b></td><td>0.609</td><td><b>0.681</b></td><td>0.686</td><td>0.647</td><td><b>8</b></td></tr>
+  </table>
+  <p>噪声对照：同样的提示再问一遍，S2 差 0.013、D2 差 0.006。所以 D2 +0.13 是真提升，S2 +0.015 在噪声内。3D 题不受影响。</p>
+
+  <h4>逐视频变化（视频内 2D 题的平均 MRA）</h4>
+  <table>
+    <tr><th>视频</th><th class="n">题数</th><th class="n">基线</th><th class="n">采用后</th><th class="n">变化</th><th>说明</th></tr>
+    <tr><td>simulation_0193</td><td class="n">12</td><td class="n">0.383</td><td class="n">0.708</td><td class="n">+0.325</td><td>卫星轨道题：轨道直径和线速度来自共心圆周模型</td></tr>
+    <tr><td>internet_0013</td><td class="n">6</td><td class="n">0.517</td><td class="n">0.717</td><td class="n">+0.200</td><td>—</td></tr>
+    <tr><td>simulation_0171</td><td class="n">8</td><td class="n">0.562</td><td class="n">0.675</td><td class="n">+0.113</td><td>—</td></tr>
+    <tr><td>simulation_0098_segmented</td><td class="n">4</td><td class="n">0.825</td><td class="n">0.925</td><td class="n">+0.100</td><td>—</td></tr>
+    <tr><td>simulation_0163</td><td class="n">6</td><td class="n">0.550</td><td class="n">0.617</td><td class="n">+0.067</td><td>保龄球分三段匀加速</td></tr>
+    <tr><td>internet_0001</td><td class="n">3</td><td class="n">0.633</td><td class="n">0.667</td><td class="n">+0.033</td><td>—</td></tr>
+    <tr><td>internet_0005</td><td class="n">4</td><td class="n">0.675</td><td class="n">0.700</td><td class="n">+0.025</td><td>—</td></tr>
+    <tr><td>internet_0019</td><td class="n">7</td><td class="n">0.857</td><td class="n">0.843</td><td class="n">−0.014</td><td>—</td></tr>
+    <tr><td>internet_0027</td><td class="n">5</td><td class="n">0.840</td><td class="n">0.820</td><td class="n">−0.020</td><td>—</td></tr>
+    <tr><td>simulation_0089</td><td class="n">6</td><td class="n">0.517</td><td class="n">0.467</td><td class="n">−0.050</td><td>鸟只在 7–10 帧里可见</td></tr>
+    <tr><td>internet_0004</td><td class="n">4</td><td class="n">0.500</td><td class="n">0.375</td><td class="n">−0.125</td><td>prior 是尺子刻度，刻度不是可跟踪的物体</td></tr>
+    <tr><td>simulation_0196</td><td class="n">4</td><td class="n">0.175</td><td class="n">0.000</td><td class="n">−0.175</td><td>prior 是气泡速度，气泡只动了 5 px，尺度不可靠</td></tr>
+  </table>
+
+  <h4>没采用：直接用场景值作答</h4>
+  <p>D2 比基线高（0.619），但 S2 掉到 0.522，总分 0.6184 不如基线。prior 给错尺度时（尺子刻度、车道、气泡这类 prior 物体量不准），场景值整体偏，只能靠 Qwen 看画面纠正；作为提示时 Qwen 可以不采信。场景值替换几何提示（0.6501）的 S2 略高，但 D2 低 0.032，总分不如同时给两个数（0.6558）。</p>
+
+  <h4>未解决的问题</h4>
+  <ul>
+    <li>尺度只来自一个 prior，没有用场景里其他物体交叉检验；prior 物体量不准时整段视频都偏（simulation_0196、internet_0004）。</li>
+    <li>没有单摆模型，摆动只能被切成多段匀加速或圆周。</li>
+    <li>场景 json 没存掩码，页面上只能画包围框。</li>
+    <li>两份跟踪缓存跟错同一个物体时（json 里标为 "same track as"），图层选不出正确的轨迹，需要在 perceive 里修。</li>
+  </ul>
+
+  <h4>文件</h4>
+  <p>代码 <code>pipeline/scene2d.py</code>（主 repo commit 9216d4d）；场景 json 和背景图 <code>outputs/scene2d_eval/s2d_v1/</code>；验证集逐题结果 <code>outputs/val_s2d_v1_routed.csv</code>。没有新的测试集提交文件（测试集现阶段不跑），最新提交仍是 <code>outputs/submission_v6.csv</code>。</p>
+    </div>
+  </details>
 </section>
 
 <section id="track2d">
