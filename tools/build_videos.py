@@ -9,9 +9,9 @@ Inputs (relative to the QuantiPhy repo root):
                                                  s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
                                                  scene-fit value and its confidence; source geo / vlm / s2d / fit)
   outputs/submission_v7.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
-  outputs/scene_fit_eval/c_support_v8e/<video>.json validation scene fits (scene graph, supports, dimension sources,
+  outputs/scene_fit_eval/c_v8g_align/<video>.json  validation scene fits (scene graph, supports, dimension sources,
                                                  visible intervals, per-question quality / conf, ballistic paths)
-  outputs/scene2d_eval/s2d_v6_v9pc/<video>.json  validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
+  outputs/scene2d_eval/s2d_v6_v9/<video>.json    validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
                                                  object inventory, scene graph, rejected layers, constraints, mask hulls
   outputs/tracks[_test]/<video>.json             per-object visible intervals for the 3D viewer
   outputs/eval/overview_*.md, <video>.md         evaluator verdicts (summary table row; per-video report copied to data/eval/)
@@ -47,9 +47,9 @@ from pipeline.parse import parse_question  # noqa: E402
 
 VAL_CSV = ROOT / "outputs" / "val_mh3_valcur7_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
-SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8e",
+SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_v8g_align",   # v8g + quality.align_tq
               "test": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7_test"}   # the run behind submission_v7
-SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v6_v9pc",   # tracks_v9pc, the mh3 configuration
+SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v6_v9",      # v6 + results[].align_tq
                 "test": ROOT / "outputs" / "scene2d_eval" / "s2d_v7_test"}     # the run behind submission_v7
 SCENES_TEST = WEB / "data" / "scenes" / "test"   # one json per test video, fetched by the page when a card opens
 BG_MAX_W = 960                                   # background images wider than this are shrunk (test is up to 2560 px)
@@ -367,11 +367,15 @@ def align(a):
     if a is None:
         return None
     if isinstance(a, (int, float)):
-        return {"iou": num(a, 3), "dc": None}
+        return {"iou": num(a, 3), "dc": None, "px": None, "t": None, "frame": None}
     if isinstance(a, dict):
+        # 3D: iou, dcenter_rel (centre offset / box size); 2D: iou, dev_rel, dev_px
         iou = next((a[k] for k in ("iou", "IoU", "box_iou") if a.get(k) is not None), None)
-        dc = next((a[k] for k in ("center_px", "dc", "center_dev", "center_err", "dcenter_px") if a.get(k) is not None), None)
-        return {"iou": num(iou, 3), "dc": num(dc, 3)} if iou is not None or dc is not None else None
+        dc = next((a[k] for k in ("dcenter_rel", "dev_rel") if a.get(k) is not None), None)
+        px = next((a[k] for k in ("dev_px", "dcenter_px", "center_px") if a.get(k) is not None), None)
+        if iou is None and dc is None and px is None:
+            return None
+        return {"iou": num(iou, 6), "dc": num(dc, 6), "px": num(px, 3), "t": num(a.get("t"), 4), "frame": a.get("frame")}
     return None
 
 
@@ -383,6 +387,8 @@ def question_times(q: str, meta: dict | None, scene: dict | None, is3d: bool):
     except Exception:   # noqa: BLE001 - a question the parser cannot read simply gets no time
         times = []
     jump = (sum(times[:2]) / len(times[:2])) if times else None
+    if jump is None and meta and (meta.get("align") or {}).get("t") is not None:   # the frame the alignment check used
+        jump = meta["align"]["t"]
     if jump is None and meta and scene:
         obj = meta.get("obj")
         items = scene.get("objects") if is3d else scene.get("layers")

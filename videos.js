@@ -40,7 +40,7 @@
     const all = val.videos.flatMap((v) => v.questions);
     const m = macro(all);
     $('val-macro').textContent = fmt(m.macro, 4);
-    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}。3D 视图为 v8e，2D 图层为 s2d_v6（tracks_v9pc）`;
+    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}。3D 视图为 v8g（c_v8g_align，含 t_q 对齐），2D 图层为 s2d_v6（s2d_v6_v9，含 t_q 对齐）`;
     // per answer source: how many questions took their final prediction from it and their MRA
     const SRCS = [['geo', '几何'], ['fit', '拟合'], ['s2d', '2D 场景'], ['vlm', 'Qwen']].filter(([k]) => all.some((q) => q.src === k));
     let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th>' + SRCS.map(([, l]) => `<th class="n">${l} 题数</th><th class="n">${l} MRA</th>`).join('') + '</tr>';
@@ -151,8 +151,13 @@
   const hasAlign = (qs) => qs.some((q) => q.align);
   function tqHead(qs) {
     return '<th title="把原视频和 3D / 2D 视图跳到题目问的时刻 t_q（没写时刻的题跳到被问物体可见区间的中点），并切到相机视角、叠加原视频">问到的帧</th>' +
-      (hasAlign(qs) ? '<th class="n" title="t_q 时刻拟合的物体和跟踪框的对齐：IoU / 中心偏差（px）；IoU &lt; 0.3 标红">t_q 对齐</th>' : '');
+      (hasAlign(qs) ? '<th class="n" title="t_q 时刻拟合的物体和跟踪框的对齐：IoU / dc（中心偏差 ÷ 框尺寸）；IoU &lt; 0.3 或 dc &gt; 0.5 标红">t_q 对齐</th>' : '');
   }
+  // IoU < 0.3 or centre offset > 0.5 box sizes: the fitted object is not where the track is at t_q
+  const alignBad = (a) => (a.iou != null && a.iou < 0.3) || (a.dc != null && a.dc > 0.5);
+  const alignTitle = (a) => [a.t != null ? `检查帧 t = ${fmt(a.t, 3)} s${a.frame != null ? `（第 ${a.frame} 帧）` : ''}` : '',
+    a.iou != null ? `IoU = 拟合框与跟踪框的交并比 ${fmt(a.iou, 3)}` : '', a.dc != null ? `dc = 中心偏差 ÷ 框尺寸 ${fmt(a.dc, 3)}` : '',
+    a.px != null ? `中心偏差 ${fmtNum(a.px)} px` : '', 'IoU < 0.3 或 dc > 0.5 标红'].filter(Boolean).join('\n');
   function tqCells(qs, q) {
     const t = q.tjump;
     const lab = q.tq && q.tq.length ? q.tq.map((x) => fmt(x, 2)).join('–') + ' s' : (t != null ? `≈${fmt(t, 2)} s` : '中点');
@@ -160,7 +165,8 @@
     if (hasAlign(qs)) {
       const a = q.align;
       h += !a ? '<td class="n"><span class="muted">—</span></td>'
-        : `<td class="n${a.iou != null && a.iou < 0.3 ? ' align-bad' : ''}">${a.iou != null ? 'IoU ' + fmt(a.iou, 2) : ''}${a.dc != null ? `<span class="muted"> · ${fmtNum(a.dc)} px</span>` : ''}</td>`;
+        : `<td class="n${alignBad(a) ? ' align-bad' : ''}" title="${esc(alignTitle(a))}">` +
+          [a.iou != null ? 'IoU ' + fmt(a.iou, 2) : '', a.dc != null ? 'dc ' + fmt(a.dc, 2) : (a.px != null ? fmtNum(a.px) + ' px' : '')].filter(Boolean).join(' · ') + '</td>';
     }
     return h;
   }
