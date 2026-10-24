@@ -183,6 +183,10 @@
     let t = sp.mode === 'support' ? `on ${sp.target || '主支撑面'}` : sp.mode === 'airborne' ? (sp.airborne_part && sp.target ? `先 on ${sp.target}，后 airborne` : 'airborne') : sp.mode || '';
     if (o.hang) t += '（顶面即支撑面）';
     if (o.t_on > 0) t += `；${fmt(o.t_on, 2)} s 前静止`;
+    const MODE = { ballistic: '弹跳模型', contact: '接触（几何证据优先）', overhead: '顶部结构', free3d: '自由 3D 运动', own_plane: '自有平面' };
+    if (o.mode && MODE[o.mode]) t += `；${MODE[o.mode]}`;
+    if (o.events && o.events.length) t += `（${o.events.slice(0, 4).map((e) => `${e[1] === 'bounce' ? '弹' : e[1] === 'stop' ? '停' : e[1]} ${fmt(e[0], 2)} s`).join('、')}${o.events.length > 4 ? '…' : ''}）`;
+    if (o.out_of_frame && o.out_of_frame.length) t += `；出画 ${o.out_of_frame.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ')} s`;
     return t;
   }
 
@@ -241,11 +245,15 @@
         `<td class="n">${fmt(o.rms, 1)}</td></tr>`;
     });
     let res = '';
+    const hasConf = s.results.some((r) => r.conf != null);
     if (s.results.length) {
-      res = `<details class="sfres"><summary>场景拟合自己的答案（${s.results.length} 题；最终提交只把网格物体的结果当作 Qwen 的提示）</summary><div class="scroll-x"><table><tr><th>问题</th><th>物体</th><th>方法</th><th class="n">预测</th>` +
+      res = `<details class="sfres"><summary>场景拟合自己的答案（${s.results.length} 题；S3 题置信度 ≥ 0.6 时作为最终预测）</summary><div class="scroll-x"><table><tr><th>问题</th><th>物体</th><th>方法</th><th class="n">预测</th>` +
+        (hasConf ? '<th class="n" title="逐题置信度：固定规则的乘积（残差、深度锚点、尺寸来源、焦距来源、地面、时刻是否在可见区间、可见性一致度、结构、塌缩），悬停看各项">置信度</th>' : '') +
         (split === 'val' ? '<th class="n">答案</th><th class="n">MRA</th>' : '') + '</tr>';
       s.results.forEach((r) => {
+        const qt = r.quality ? Object.entries(r.quality).map(([k, x]) => `${k}=${typeof x === 'number' ? fmtNum(x) : x}`).join('\n') : '';
         res += `<tr><td>${esc(r.q)}</td><td>${esc(r.obj || '')}</td><td><code>${esc(r.method || '')}</code></td><td class="n">${fmtNum(r.pred)}</td>` +
+          (hasConf ? `<td class="n" title="${esc(qt)}">${r.conf == null ? '—' : fmt(r.conf, 2)}</td>` : '') +
           (split === 'val' ? `<td class="n">${fmtNum(r.answer)}</td><td class="n">${r.pred == null ? '<span class="muted">未答</span>' : mraBadge(r.mra)}</td>` : '') + '</tr>';
       });
       res += '</table></div></details>';
@@ -706,7 +714,16 @@
     const norm = (a) => Math.hypot(a[0], a[1], a[2]);
     const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
     // FitResult.pos: the object rests at p0 until t_on, then moves with v0, a
-    const pos = (o, t) => { const u = Math.max(t - (o.t_on || 0), 0); return add(add(o.p0, o.v0, u), o.a, 0.5 * u * u); };
+    // a sampled path (ballistic bounces, motion pieces) is interpolated; otherwise one parabola from t_on
+    const pos = (o, t) => {
+      const P = o.path;
+      if (P && P.length > 1) {
+        const dt = P[1][0] - P[0][0], k = Math.min(Math.max((t - P[0][0]) / dt, 0), P.length - 1);
+        const i = Math.min(Math.floor(k), P.length - 2), w = k - i;
+        return [1, 2, 3].map((c) => P[i][c] * (1 - w) + P[i + 1][c] * w);
+      }
+      const u = Math.max(t - (o.t_on || 0), 0); return add(add(o.p0, o.v0, u), o.a, 0.5 * u * u);
+    };
     // tracked in the video at time t (no track info: always)
     const halfF = 0.5 / (v.fps || 30) + 1e-6;
     const visAt = (o, t) => !o.visible || o.visible.some((iv) => t >= iv[0] - halfF && t <= iv[1] + halfF);

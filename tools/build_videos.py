@@ -9,7 +9,8 @@ Inputs (relative to the QuantiPhy repo root):
                                                  s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
                                                  scene-fit value and its confidence; source geo / vlm / s2d / fit)
   outputs/submission_v6.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
-  outputs/scene_fit_eval/c_support_v7/<video>.json  validation scene fits (scene graph, supports, dimension sources)
+  outputs/scene_fit_eval/c_support_v8b/<video>.json validation scene fits (scene graph, supports, dimension sources,
+                                                 visible intervals, per-question quality / conf, ballistic paths)
   outputs/scene2d_eval/s2d_v3/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
                                                  object inventory, scene graph, rejected layers, constraints, mask hulls
   outputs/tracks[_test]/<video>.json             per-object visible intervals for the 3D viewer
@@ -44,7 +45,7 @@ from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
 VAL_CSV = ROOT / "outputs" / "val_tools_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v6.csv"
-SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7",
+SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8b",
               "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
 SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v3"}   # the test tab stays on the submitted predictions
 EVAL_DIR = ROOT / "outputs" / "eval"
@@ -329,6 +330,27 @@ def track_intervals(split: str, vid: str) -> dict:
     return out
 
 
+PATH_DT = 1 / 24     # sampling step (s) of non-parabolic object paths for the 3D viewer
+
+
+def sampled_path(o: dict, j: dict):
+    """[[t, x, y, z], ...] of an object's centre from pipeline.scene_fit._json_pos (ballistic replay or motion pieces),
+    over the times its fit covers (to the last results / visibility time, at least 2 s)."""
+    from pipeline.scene_fit import _json_pos
+    ends = [iv[1] for k in ("visible", "out_of_frame") for iv in (o.get(k) or [])]
+    T = max(ends + [2.0])
+    n = int(round(T / PATH_DT))
+    out = []
+    for i in range(n + 1):
+        t = i * PATH_DT
+        try:
+            P = _json_pos(o, t)
+        except Exception:   # noqa: BLE001 - a broken entry just falls back to the parabola on the page
+            return None
+        out.append([num(t, 4)] + [num(float(x), 5) for x in P])
+    return out
+
+
 def scene_fit(split: str, vid: str):
     p = SCENE_DIRS[split] / f"{vid}.json"
     if not p.exists():
@@ -346,12 +368,19 @@ def scene_fit(split: str, vid: str):
                      "yaw": num(o.get("yaw"), 5), "t_on": num(o.get("t_on"), 5),
                      # where each dimension comes from: observed / prior / bound (not seen, anti-collapse floor)
                      "dim_source": o.get("dim_source"), "support": o.get("support"), "hang": o.get("hang"),
-                     "length": num(o.get("length"))})
+                     "length": num(o.get("length")), "mode": o.get("mode"),
+                     "out_of_frame": o.get("out_of_frame"), "visibility": o.get("visibility"),
+                     "overhead": bool(o.get("overhead")), "events": ((o.get("ballistic") or {}).get("events") or [])[:12],
+                     # bounce model / motion pieces are not a single parabola: sample the centre for the viewer
+                     "path": sampled_path(o, j) if (o.get("ballistic") or o.get("segments")) else None})
     res = []
     for r in j.get("results") or []:
+        qual = r.get("quality") or {}
         res.append({"q": r.get("question"), "obj": r.get("object"), "pred": num(r.get("pred")),
                     "method": r.get("method"), "answer": num(r.get("answer")) if split == "val" else None,
-                    "mra": num(r.get("mra"), 3) if split == "val" else None})
+                    "mra": num(r.get("mra"), 3) if split == "val" else None,
+                    "conf": num(qual.get("conf"), 3), "quality": {k: (num(v, 3) if isinstance(v, float) else v)
+                                                                  for k, v in qual.items() if k != "conf"} or None})
     sg = j.get("scene_graph")
     inv = inventory(j.get("inventory") or j.get("objects_inventory"))
     if inv is None and sg:   # no inventory in the json: the scene graph's object nodes carry the same names and mentions

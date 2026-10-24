@@ -309,7 +309,7 @@
     <li><div class="step"><b><span class="n">1</span>解析</b>规则解析器提取物理量、物体、时间、单位<div class="m">parse.py</div></div></li>
     <li><div class="step"><b><span class="n">2</span>跟踪</b>Grounding DINO 找物体，Qwen 查框，SAM 2 跟踪<div class="m">perceive.py</div></div></li>
     <li><div class="step"><b><span class="n">3</span>几何测量</b>由 depth_info 和视大小估焦距与逐帧深度 → 几何值<div class="m">calibrate / physics / solve</div></div></li>
-    <li><div class="step"><b><span class="n">4</span>3D 场景拟合</b>Depth Anything 深度 + 地面与相机 + 几何体或 Meshy 网格 → 场景拟合值<div class="m">scene_fit / fit3d / meshlib</div></div></li>
+    <li><div class="step"><b><span class="n">4</span>3D 场景拟合</b>Depth Anything 深度 + 地面与相机 + 几何体或 Meshy 网格 + ballistic 运动模型、overhead 结构 → 场景拟合值和逐题置信度<div class="m">scene_fit / fit3d / meshlib</div></div></li>
     <li><div class="step"><b><span class="n">5</span>Qwen 作答</b>Qwen3.8-27B 看 16 帧，带提示值直接给数字<div class="m">vlm_hint.py --direct</div></div></li>
     <li><div class="step"><b><span class="n">6</span>路由</b>S3 用几何值，D3 用 Qwen 的答案<div class="m">route.py</div></div></li>
     <li><div class="step hl"><b><span class="n">7</span>置信度路由</b>S3 题场景拟合置信度 ≥ 0.6 时改用拟合值<div class="m">route.py --fit --fit-conf 0.6</div></div></li>
@@ -319,7 +319,7 @@
     <tr><td>1 解析</td><td>规则解析器从问题和已知条件里提取物理量、物体名、时间、单位。</td><td><code>parse.py</code></td></tr>
     <tr><td>2 跟踪</td><td>Grounding DINO 找物体，Qwen 检查提示框，SAM 2 做视频跟踪；验证集和测试集的缓存分开存。</td><td><code>perceive.py</code></td></tr>
     <tr><td>3 几何测量</td><td>根据 depth_info 给的物体到相机距离和物体的视大小，估计焦距和逐帧深度；实验室视频估计失败时，用按帧宽缩放的焦距先验。得到每题的"几何值"。测不出来时用手写常识值兜底，交给 Qwen 作答。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
-    <tr><td>4 3D 场景拟合</td><td>Depth Anything 给出稠密深度；拟合地面平面和相机；把每个物体拟合成解析几何体（盒子、球、圆柱），或网格库里的 Meshy 网格（车、人、船、动物等，每个"场景 + 物体"只生成一次）；拟合尺寸、位置和匀加速轨迹。得到每题的"场景拟合值"。</td><td><code>scene_fit.py</code> <code>fit3d.py</code> <code>meshlib.py</code></td></tr>
+    <tr><td>4 3D 场景拟合</td><td>Depth Anything 给出稠密深度；拟合地面平面和相机；把每个物体拟合成解析几何体（盒子、球、圆柱），或网格库里的 Meshy 网格（车、人、船、动物等，每个"场景 + 物体"只生成一次）；拟合尺寸、位置和匀加速轨迹；弹跳的球用 ballistic 模型（重力 + 碰撞恢复系数 + 滚动阻力），屋顶这类顶部结构从深度单独拟合（overhead）。得到每题的"场景拟合值"和逐题置信度（固定规则的乘积，见 <a href="#sf-v8">v8 迭代</a>）。</td><td><code>scene_fit.py</code> <code>fit3d.py</code> <code>meshlib.py</code></td></tr>
     <tr><td>5 Qwen 作答</td><td>本地 Qwen3.8-27B 看 16 帧，加上提示值作答。提示值一般用几何值，网格拟合的物体改用场景拟合值。两种跟踪（普通、Qwen 检查过提示框）各问一次，取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
     <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
     <tr><td>7 置信度路由</td><td>S3 题如果场景拟合给出的逐题置信度 ≥ 0.6，用拟合值代替几何值（默认开启）。</td><td><code>route.py --fit --fit-conf</code></td></tr>
@@ -332,6 +332,75 @@
 <section id="iter3d">
   <h2>迭代记录</h2>
   <p>按时间倒序，点开看细节。早期影响所有类别的改动（几何流水线、Qwen 路由）也记在这里；只针对 2D 的迭代见 2D 组。</p>
+
+  <details class="iter" id="sf-v8">
+    <summary><span class="d">10-24</span>3D 场景拟合 v8：逐题置信度 + ballistic 弹跳模型 + contact / typmatch / overhead + 可见区间 · 同一代码状态下场景拟合 0.553→0.593 <span class="yes">采用（场景拟合）</span></summary>
+    <div class="iter-body">
+  <h4>版本与消融（验证集 3D 90 题，同一代码状态）</h4>
+  <table>
+    <tr><th>配置</th><th>3D macro</th><th>S3</th><th>D3</th><th>结论</th></tr>
+    <tr><td>v7 参数</td><td>0.553</td><td>0.530</td><td>0.577</td><td>基线</td></tr>
+    <tr><td><b>v8b</b>（typmatch + contact + overhead + ballistic）</td><td><b>0.593</b></td><td><b>0.609</b></td><td>0.577</td><td>采用</td></tr>
+    <tr><td>v8b 换跟踪缓存 tracks_m</td><td>0.586</td><td>—</td><td>—</td><td>—</td></tr>
+    <tr><td>v8b + visibility 约束</td><td>0.597</td><td>—</td><td>—</td><td>没采用：差距在噪声内，且 captured_0021x、simulation_0060 下降</td></tr>
+    <tr><td>v7 + 地平线校验（hgate）</td><td>0.531</td><td>—</td><td>—</td><td>没采用</td></tr>
+  </table>
+  <p>绝对值低于之前的 0.604（v7），是因为期间共享模块变了（在场性校验的误判、parse 的改动），不是场景拟合退步；同一代码状态下 v8b 比 v7 参数高 0.040。参数：<code>--fixes … typmatch contact overhead --motion ballistic</code>（见各场景 json 的 <code>args</code>）。</p>
+
+  <h4>逐题质量与置信度</h4>
+  <p>每道场景拟合的答案带 <code>quality</code> 字段和一个置信度 conf（0–1），是固定规则的乘积，不看答案。路由 <code>--fit</code> 用它：S3 题 conf ≥ 0.6 时用拟合值。</p>
+  <table>
+    <tr><th>字段</th><th>含义</th><th>对 conf 的乘数</th></tr>
+    <tr><td><code>rms_rel</code></td><td>拟合框与跟踪框的残差 ÷ 物体像素尺寸</td><td>1 / (1 + (rms_rel / 0.15)²)；没有残差时 0.5</td></tr>
+    <tr><td><code>n_anchors</code></td><td>depth_info 给的深度锚点数</td><td>没有锚点 ×0.7</td></tr>
+    <tr><td><code>dim_source</code></td><td>尺寸题所问那一维的来源</td><td>observed ×1、prior ×0.6、bound ×0.3</td></tr>
+    <tr><td><code>f_source</code></td><td>焦距来源</td><td>尺寸先验 + 深度 ×1、实验室先验 ×0.9、典型尺寸投票 / 运动学先验 ×0.8、自由 ×0.6</td></tr>
+    <tr><td><code>plane_ok</code></td><td>地面没有卡在边界、相机滚转 ≤ 10°</td><td>否 ×0.7</td></tr>
+    <tr><td><code>t_cover</code></td><td>题目问的时刻在物体可见区间内</td><td>否 ×0.5</td></tr>
+    <tr><td><code>vis_agree</code></td><td>拟合位置在画内 / 画外与跟踪可见性的一致度 a</td><td>×(0.5 + 0.5a)</td></tr>
+    <tr><td><code>structure</code></td><td>静态结构（房间、屋顶、道路）或 overhead</td><td>×0.7</td></tr>
+    <tr><td><code>collapsed</code></td><td>同一物体两个不同尺寸量相等（有一维没看到）</td><td>×0.5</td></tr>
+  </table>
+  <table>
+    <tr><th>conf 分桶</th><th class="n">题数</th><th class="n">拟合值的 MRA</th></tr>
+    <tr><td>≤ 0.2</td><td class="n">43</td><td class="n">0.465</td></tr>
+    <tr><td>0.2–0.4</td><td class="n">—</td><td class="n">0.685</td></tr>
+    <tr><td>0.4–0.6</td><td class="n">—</td><td class="n">0.636</td></tr>
+    <tr><td>&gt; 0.6</td><td class="n">20</td><td class="n">0.775</td></tr>
+  </table>
+  <p>conf 和 MRA 的 Spearman 相关 0.40。视频页"场景拟合自己的答案"表里有置信度一列，悬停看各项字段。</p>
+
+  <h4>ballistic 弹跳模型（captured_0061）</h4>
+  <p>球在空中只受重力 a = −g·n（n 为地面法向）；碰到地面时法向速度乘 −e（恢复系数），切向速度乘 kt；贴地后按滚动阻力 μ_r 减速。碰撞时刻由参数解析算出，不靠检测。e、kt、μ_r 和初始状态一起拟合。</p>
+  <table>
+    <tr><th>题目</th><th class="n">真值</th><th class="n">v7</th><th class="n">自由分段</th><th class="n">ballistic</th></tr>
+    <tr><td>yoga 球直径 (cm)</td><td class="n">52.2</td><td class="n">37.9 · 0.7</td><td class="n">26.1 · 0.5</td><td class="n">37.0 · 0.7</td></tr>
+    <tr><td>足球直径 (cm)</td><td class="n">17.5</td><td class="n">14.6 · 0.8</td><td class="n">13.7 · 0.7</td><td class="n">15.8 · 0.9</td></tr>
+    <tr><td>足球–篮球距离 @2.0 s (m)</td><td class="n">1.95</td><td class="n">2.45 · 0.7</td><td class="n">3.21 · 0.3</td><td class="n">0.99 · 0.5</td></tr>
+    <tr><td>篮球–yoga 球距离 @2.0 s (m)</td><td class="n">1.66</td><td class="n">1.68 · 1.0</td><td class="n">0.89 · 0.5</td><td class="n">1.37 · 0.8</td></tr>
+    <tr><td>足球离地 @2.0 s (m)</td><td class="n">1.69</td><td class="n">0.55 · 0.3</td><td class="n">0.26 · 0.1</td><td class="n">0.17 · 0.1</td></tr>
+    <tr><td>足球速度 @0.6 s (m/s)</td><td class="n">2.79</td><td class="n">0.99 · 0.3</td><td class="n">1.82 · 0.6</td><td class="n">1.54 · 0.5</td></tr>
+    <tr><td>足球速度 @0.9 s (m/s)</td><td class="n">2.75</td><td class="n">1.46 · 0.5</td><td class="n">3.01 · 0.9</td><td class="n">2.35 · 0.8</td></tr>
+    <tr><td>篮球速度 @1.1 s (m/s)</td><td class="n">9.32</td><td class="n">0.88 · 0.0</td><td class="n">3.16 · 0.3</td><td class="n">3.29 · 0.3</td></tr>
+    <tr><td>篮球速度 @1.6 s (m/s)</td><td class="n">0.84</td><td class="n">1.40 · 0.3</td><td class="n">3.17 · 0.0</td><td class="n">0.90 · 0.9</td></tr>
+    <tr><td><b>视频平均 MRA</b></td><td></td><td class="n">0.511</td><td class="n">0.433</td><td class="n"><b>0.611</b></td></tr>
+  </table>
+  <p>每格是"预测值 · MRA"。自由分段（每段各拟合一条抛物线）残差更低、分数反而更低，原因有三：尺寸取自最长的一段，弹跳段被压扁；出画后按最后一段外推；短段把跟踪噪声吸收成加速度。失败例：captured_0013 的球先在斜坡、再到桌面、最后离开桌面，单一支撑面的 ballistic 模型不适用。</p>
+
+  <h4>contact、typmatch、overhead</h4>
+  <ul>
+    <li><b>contact（simulation_0170 宇航员）：</b>轨迹的几何证据（贴着地面）优先于场景图的 airborne 判断。视频平均 MRA 0.44 → 0.50。逐题（预测 · MRA，v7 → v8b）：0.5 s 加速度 4.79 · 0.7 → 3.89 · 0.6；1 s 速度 10.35 · 0.2 → 9.51 · 0.3；1 s 加速度 4.79 · 0.6 → 3.89 · 0.9；2 s 速度 5.66 · 0.8 → 5.72 · 0.8；3 s 速度 1.63 · 0.6 → 2.28 · 0.9；3 s 加速度 4.79 · 0.6 → 3.89 · 0.5；0.5 s 速度和 2 s 加速度两题都是 0。</li>
+    <li><b>typmatch（captured_0034as 笔袋）：</b>典型尺寸表改为整词匹配，去掉 18 个子串误命中（例如 "credit card" 命中 car、"cabin floor" 命中 bin）。笔袋高 13.07 → 5.23 cm（真值 6.7），长 32.6 → 19.7 cm（真值 21.0）。副作用：simulation_0060 黄车 −0.2。</li>
+    <li><b>overhead（simulation_0015 屋顶）：</b>顶部结构从深度单独拟合。净高 9.24 m（真值 12.9，MRA 0 → 0.7），厚度 0.82 m（真值 0.72，MRA 0.1 → 0.8）。</li>
+  </ul>
+
+  <h4>可见性</h4>
+  <p>场景 json 新增每个物体的 <code>visible</code> / <code>out_of_frame</code> 区间和 <code>visibility</code>（拟合位置是否在画内，和跟踪是否可见的一致度）。12 个视频的一致度都 ≥ 0.96；captured_0041x 的球用 ballistic 后 41/41 帧在画内（之前出画后仍投影在画内）；simulation_0015 现在 6/6。视频页的 3D 视图按这些区间显示物体，弹跳的球按 ballistic 轨迹采样播放。</p>
+
+  <h4>文件</h4>
+  <p>主 repo commit 1080f91（scene_fit v8）；场景 json <code>outputs/scene_fit_eval/c_support_v8b/</code>（含 <code>visible</code>、<code>out_of_frame</code>、<code>visibility</code>、<code>ballistic</code>、逐题 <code>quality</code>）；消融目录 <code>c_v8_bal</code>、<code>c_v8_seg</code>、<code>c_v8_contact</code>、<code>c_v8_typ</code>、<code>c_v8_over</code>、<code>c_v8_plusvis</code>、<code>c_support_v8b_tm</code>、<code>c_v7_hgate</code>。视频页的 3D 场景已切到 v8b。</p>
+    </div>
+  </details>
 
   <details class="iter" id="sf-v7">
     <summary><span class="d">10-23</span>3D 场景重建正确版（v7）：物体清单 + 场景图 + 支撑面与重力 + 尺寸来源 · 3D 场景拟合 0.513→0.604，0 分题 14→11；完整 harness 0.666（与 0.668 在噪声内） <span class="yes">采用（场景拟合）</span></summary>
