@@ -206,12 +206,14 @@
   <h2>当前最好方案</h2>
   <table>
     <tr><th>验证集（159 题）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td><b>当前最好 harness</b></td><td><b>0.668</b></td><td>0.669</td><td>0.670</td><td>0.686</td><td>0.647</td></tr>
+    <tr><td><b>当前最好 harness（s2d_v2）</b></td><td><b>0.668</b></td><td>0.669</td><td>0.670</td><td>0.686</td><td>0.647</td></tr>
+    <tr><td><b>v7（3D 场景重建正确版）</b></td><td><b>0.666</b></td><td>0.672</td><td>0.651</td><td>0.686</td><td>0.653</td></tr>
     <tr><td><small>参考：2D 图层场景 v1</small></td><td><small>0.656</small></td><td><small>0.609</small></td><td><small>0.681</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：上一版（没有 2D 图层场景）</small></td><td><small>0.620</small></td><td><small>0.594</small></td><td><small>0.551</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：几何流水线 <code>pipeline.run</code></small></td><td><small>0.497</small></td><td><small>0.462</small></td><td><small>0.341</small></td><td><small>0.707</small></td><td><small>0.477</small></td></tr>
     <tr><td><small>参考：官方 GPT-5.1 基线</small></td><td><small>0.486</small></td><td><small>0.569</small></td><td><small>0.354</small></td><td><small>0.456</small></td><td><small>0.564</small></td></tr>
   </table>
+  <p><b>0.668（s2d_v2）≈ 0.666（v7）</b>：两者差 0.002，在重跑噪声内（单个类别 ±0.03）。v7 的 3D 场景来自新的场景拟合 harness（物体清单、场景图、支撑面，见 <a href="#sf-v7">10-23 迭代</a>），所以 <a href="videos.html">视频与问题</a> 页展示 v7（<code>outputs/val_v7_routed.csv</code>）。</p>
   <p><small>0.620 → 0.656 → 0.668 来自 2D 图层场景 v1 和 v2（只影响 S2、D2，见 <a href="#s2d-layers">v1</a>、<a href="#s2d-v2">v2</a>）；更早的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
   <h3 id="pipe3d">3D 流程（S3、D3）</h3>
   <ol class="flow" aria-label="3D 流程">
@@ -232,13 +234,66 @@
     <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
   </table>
   <p>验证集结果：S3 <b>0.686</b>、D3 <b>0.647</b>。S2、D2 的流程见 <a href="#pipe2d">2D 流程</a>。</p>
-  <p><b>最新测试集提交：</b><code>outputs/submission_v6.csv</code>（v5 加上解析和场景拟合修复、回退常数去泄漏；还没有 2D 图层场景，测试集现阶段不跑）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_s2d_v2_routed.csv</code>）。</p>
+  <p><b>最新测试集提交：</b><code>outputs/submission_v6.csv</code>（v5 加上解析和场景拟合修复、回退常数去泄漏；还没有 2D 图层场景，测试集现阶段不跑）。逐题结果见 <a href="videos.html">视频与问题</a>（验证集来自 <code>outputs/val_v7_routed.csv</code>）。</p>
   <p><small>同一配置重跑一次，单个类别会波动 ±0.03，所以差距不到约 0.01 的改动不算结论。</small></p>
 </section>
 
 <section id="iter3d">
   <h2>迭代记录</h2>
   <p>按时间倒序，点开看细节。早期影响所有类别的改动（几何流水线、Qwen 路由）也记在这里；只针对 2D 的迭代见 2D 组。</p>
+
+  <details class="iter" id="sf-v7">
+    <summary><span class="d">10-23</span>3D 场景重建正确版（v7）：物体清单 + 场景图 + 支撑面与重力 + 尺寸来源 · 3D 场景拟合 0.513→0.604，0 分题 14→11；完整 harness 0.666（与 0.668 在噪声内） <span class="yes">采用（场景拟合）</span></summary>
+    <div class="iter-body">
+  <h4>做法</h4>
+  <ul>
+    <li><b>物体清单：</b>只取题目和 prior 里提到的物体，合并别名（例如 "soccer ball"、"the soccerball"、"the soccer ball" 是同一个球），每个物体只拟合一次。</li>
+    <li><b>场景图：</b>LLM 给出 on（放在哪个支撑面上，带时段）、airborne、held 关系；支撑面（floor / table / water）只在被提及的物体真的放在上面时出现。</li>
+    <li><b>支撑面与重力：</b>放在支撑面上的物体贴着该平面运动；airborne 段只受重力；桌子类物体的顶面就是支撑面（hang）。物体在某时刻之前静止的，从那一刻（<code>t_on</code>）才开始拟合运动。</li>
+    <li><b>厚度的三层来源：</b>每个尺寸标明来源：observed（框、深度看到的）、prior（尺寸先验）、bound（框和深度都没看到这一维，只能取防塌缩下限）。网页的场景表把 bound 的维度标灰。</li>
+    <li><b>rope：</b>绳、线类物体按一条折线拟合，输出端点和绳长。</li>
+    <li><b>候选选择：</b>同一物体有多条跟踪候选（例如别名各跟了一次）时，从中选一条用于拟合。</li>
+    <li><b>深度对齐：</b>单目深度与 depth_info 的对齐方式设为 auto（<code>--depth-norm auto</code>）。</li>
+  </ul>
+  <p>运行参数（写在每个场景 json 的 <code>args</code> 里）：<code>--depth --focal-band 0 0 --meshlib --minratio 0.15 --mesh-up yup --fixes wingspan airborne switch onset support labfocal shape extent focalfix --scene-graph --depth-norm auto</code>。</p>
+
+  <h4>场景拟合自己的分数（验证集 3D 90 题）</h4>
+  <table>
+    <tr><th>配置</th><th>3D macro</th><th>S3</th><th>D3</th><th>0 分题（含未答）</th></tr>
+    <tr><td>qa_all（10-22 的场景拟合）</td><td>0.513</td><td>0.479</td><td>0.547</td><td>14</td></tr>
+    <tr><td>c_support_v1_noshape</td><td>0.558</td><td>0.544</td><td>0.572</td><td>12</td></tr>
+    <tr><td>c_support_v1</td><td>0.587</td><td>0.595</td><td>0.579</td><td>11</td></tr>
+    <tr><td>c_support_v2</td><td>0.602</td><td>0.572</td><td>0.632</td><td>10</td></tr>
+    <tr><td><b>c_support_v7（采用）</b></td><td><b>0.604</b></td><td>0.586</td><td><b>0.621</b></td><td>11</td></tr>
+  </table>
+  <p>数字来自 <code>outputs/scene_fit_eval/&lt;run&gt;/summary.json</code> 和 <code>scores.csv</code>（v7 答了 88/90 题）。</p>
+
+  <h4>逐视频变化（场景拟合，qa_all → v7）</h4>
+  <table>
+    <tr><th>视频</th><th class="n">变化</th><th>说明</th></tr>
+    <tr><td>captured_0027s</td><td class="n">+0.43</td><td>—</td></tr>
+    <tr><td>simulation_0015</td><td class="n">+0.28</td><td>底座宽 0.22 → 1.32 m（真值 1.46）</td></tr>
+    <tr><td>simulation_0009</td><td class="n">+0.16</td><td>—</td></tr>
+    <tr><td>captured_0061</td><td class="n">+0.14</td><td>焦距 2176 → 657 px；yoga 球直径 10 → 37.9 cm（真值 52.2）</td></tr>
+    <tr><td>captured_0013</td><td class="n">+0.14</td><td>本子宽 5.8 → 10.4 cm（真值 10.8）</td></tr>
+    <tr><td>captured_0041x</td><td class="n">+0.10</td><td>球直径 24.2 → 16.4 cm（真值 17.5）；人高 0.23 → 1.25 m（现在人站立，场景里只有一个球）</td></tr>
+    <tr><td>simulation_0170_segmented</td><td class="n">−0.09</td><td>场景图把宇航员误判为 airborne</td></tr>
+    <tr><td>captured_0034as</td><td class="n">−0.03</td><td>"pencil bag" 误命中了 "bag" 的尺寸先验</td></tr>
+  </table>
+
+  <h4>为什么完整 harness 没涨</h4>
+  <p>完整 harness 里 S3 用几何值，D3 只把网格物体的场景拟合值当作 Qwen 的提示，所以场景拟合的提升基本没传到最终答案：v7 总分 0.6656（S2 0.672 / D2 0.651 / S3 0.686 / D3 0.653），和 0.668 在噪声内。qp-tools 正在改提示和路由，让场景拟合值进入更多题。</p>
+
+  <h4>没采用</h4>
+  <ul>
+    <li><b>弹跳分段：</b>把弹跳的球按落地点分段拟合，残差下降，但分数下降。</li>
+    <li><b>地平线校验：</b>用检测到的地平线校验地面平面，没采用（具体数字待 qp-code-3d 补充）。</li>
+  </ul>
+
+  <h4>文件</h4>
+  <p>主 repo commit f805145；场景 json <code>outputs/scene_fit_eval/c_support_v7/</code>（含 <code>scene_graph</code>、每个物体的 <code>dim_source</code>、<code>support</code>、<code>hang</code>、<code>t_on</code>）；验证集逐题结果 <code>outputs/val_v7_routed.csv</code>。没有新的测试集提交文件，最新提交仍是 <code>outputs/submission_v6.csv</code>。</p>
+    </div>
+  </details>
 
   <details class="iter" id="sf-zero">
     <summary><span class="d">10-22</span>场景拟合 0 分题排查 + 解析修复 + 回退常数去泄漏 · 0 分题 21→14，3D 场景拟合 0.460→0.513；harness 0.639→0.620（去掉验证集答案泄漏）<span class="yes">采用，提交 v6</span></summary>
@@ -698,7 +753,7 @@ python -m pipeline.route --split val --geo outputs/val_pred_newfb.csv --fallback
   </ul>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:10px 0">
     <figure style="margin:0"><img src="case/scene2d/simulation_0089_v2.jpg" alt="simulation_0089 图层：两只鸟的掩码凸包和 length、width 标注" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>simulation_0089：半透明填充是掩码凸包；标签里 L 沿飞行方向、W 垂直于它（只列题目问到的尺寸）；黄线是 prior（小鸟长 0.94 m）。</small></figcaption></figure>
-    <figure style="margin:0"><img src="case/scene2d/internet_0027_v2.jpg" alt="internet_0027 图层：台球的掩码凸包，orange ball 层被拒绝" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>internet_0027：orange ball 和 yellow ball 共用一条跟踪，orange ball 层被拒绝，图上没有它。</small></figcaption></figure>
+    <figure style="margin:0"><img src="case/scene2d/internet_0027_v2.jpg" alt="internet_0027 图层：台球的掩码凸包，orange ball 层被拒绝" style="width:100%;border-radius:6px" loading="lazy"><figcaption><small>internet_0027：orange ball 和 yellow ball 共用一条跟踪，orange ball 层被拒绝，图上没有它。（这是得出 0.668 的那次运行；<code>s2d_v2/</code> 目录 10-23 21:13 被重新生成，视频页现在显示的新结果里这个视频不再拒绝 orange ball 层。）</small></figcaption></figure>
   </div>
 
   <h4>验证集结果（159 题）</h4>

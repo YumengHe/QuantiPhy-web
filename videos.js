@@ -145,11 +145,26 @@
     return h + '</table></div>';
   }
 
+  // one dimension with its source (scene_fit dim_source): observed = plain, prior = tagged, bound = grey (not seen)
+  function dimCell(o, key, prefix = '') {
+    const d = o.dims || {}, src = (o.dim_source || {})[key];
+    const v = prefix + fmtNum(d[key]);
+    if (src === 'bound') return `<span class="dim-bound" title="看不见、靠先验：框和深度都没看到这一维，取防塌缩下限">${v}<sup>看不见</sup></span>`;
+    if (src === 'prior') return `<span title="这一维来自尺寸先验">${v}<sup class="dim-prior">先验</sup></span>`;
+    return v;
+  }
   function dimsText(o) {
-    const d = o.dims || {};
-    if (o.shape === 'sphere') return [`直径 ${fmtNum(d.D)}`, '', ''];
-    if (o.shape === 'cylinder') return [`直径 ${fmtNum(d.D)}`, '', fmtNum(d.H)];
-    return [fmtNum(d.L), fmtNum(d.W), fmtNum(d.H)];
+    if (o.shape === 'sphere') return [dimCell(o, 'D', '直径 '), '', ''];
+    if (o.shape === 'cylinder') return [dimCell(o, 'D', '直径 '), '', dimCell(o, 'H')];
+    if (o.shape === 'rope') return [dimCell(o, 'L', '绳长 '), '', ''];
+    return [dimCell(o, 'L'), dimCell(o, 'W'), dimCell(o, 'H')];
+  }
+  function supportText(o) {
+    const sp = o.support || {};
+    let t = sp.mode === 'support' ? `on ${sp.target || '主支撑面'}` : sp.mode === 'airborne' ? (sp.airborne_part && sp.target ? `先 on ${sp.target}，后 airborne` : 'airborne') : sp.mode || '';
+    if (o.hang) t += '（顶面即支撑面）';
+    if (o.t_on > 0) t += `；${fmt(o.t_on, 2)} s 前静止`;
+    return t;
   }
 
   // top of an opened card: original video (left) and, for 3D videos with a scene fit, the 3D view (right)
@@ -170,7 +185,8 @@
         (v.scene.f ? '' : '<span class="fwarn" title="场景拟合没有给出焦距，用图像宽度代替">焦距为默认值（f = 图像宽度）</span>') + '</div>' +
         '<div class="viewer"><div class="msg">加载 three.js …</div></div>' +
         '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
-        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">灰色网格 = 拟合出的地面；黑色线框 = 相机（原点）与视野；彩色 = 物体及其匀加速轨迹（虚线）。自由视角下拖动旋转，滚轮缩放；相机视角固定在原视频相机处，画面比例和原视频相同。' +
+        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">灰色网格 = 拟合出的地面；黑色线框 = 相机（原点）与视野；彩色 = 物体及其匀加速轨迹（虚线）。物体只在视频里跟踪到它的时段画出：相机视角下其余时段不画，自由视角下画成淡色轮廓。' +
+        '左上角计数：视频可见 = 当前帧跟踪有框的物体数，场景视野内 = 拟合位置投影在原相机画面内的物体数，两者不等时标红。自由视角下拖动旋转，滚轮缩放；相机视角固定在原视频相机处，画面比例和原视频相同。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
     }
     if (v.dim === 2 && v.scene2d) {
@@ -183,7 +199,8 @@
         (s.scale.degenerate ? '<span class="fwarn">尺度退化：prior 量不出像素长度</span>' : '') + '</div>' +
         '<div class="viewer cam l2d"><canvas></canvas></div>' +
         '<div class="timebar"><button type="button" class="play">播放</button><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tlabel">t = 0.00 s</span></div>' +
-        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层、一个标签，颜色和下方图层表对应；标签写物体名，有尺寸题时加上题目问的尺寸（L 沿朝向、W 垂直朝向、H 竖直、D 直径），prior 所在的层加上 prior（白底黄框）。' +
+        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层、一个标签，颜色和下方图层表对应；标签第 1 行物体名，有尺寸题时第 2 行是题目问的尺寸（L 沿朝向、W 垂直朝向、H 竖直、D 直径），prior 所在的层再加一行黄字 prior；标签放在凸包外侧，不压任何物体。' +
+        '只画当前帧跟踪到的层，左上角计数"视频可见 / 画出"应相等。' +
         '半透明填充 = 掩码凸包；运动的层另画粗虚线轨迹（各分段运动模型，空心方块 = 分段起止点）和实心点（当前时刻的模型位置）。黄线 = prior 本身（尺寸画成带端线的标注线，速度画成 1 s 位移的箭头）。' +
         '模型类型和残差见下方图层表。左下角是比例尺和尺度来源' + (s.gravity_dir ? '，右上角箭头是重力方向' : '') + '。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
@@ -194,11 +211,15 @@
   function sceneTables(v, split) {
     if (!v.scene) return '<h4>3D 场景</h4><div class="noscene">无场景拟合（拟合失败或没有结果）。</div>';
     const s = v.scene;
+    const hasSup = s.objects.some((o) => o.support), hasVis = s.objects.some((o) => o.visible);
+    const hasSrc = s.objects.some((o) => o.dim_source);
     let rows = '';
     s.objects.forEach((o, i) => {
       const [L, W, H] = dimsText(o);
       rows += `<tr><td><span class="swatch" style="background:${PALETTE[i % PALETTE.length]}"></span></td><td>${esc(o.name)}</td><td>${SHAPE_LABEL[o.shape] || esc(o.shape)}</td>` +
-        `<td class="n">${L}</td><td class="n">${W}</td><td class="n">${H}</td><td class="n">${fmt(o.rms, 1)}</td></tr>`;
+        `<td class="n">${L}</td><td class="n">${W}</td><td class="n">${H}</td>` + (hasSup ? `<td>${esc(supportText(o))}</td>` : '') +
+        (hasVis ? `<td>${o.visible ? o.visible.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ') + ' s' : '<span class="muted">无跟踪</span>'}</td>` : '') +
+        `<td class="n">${fmt(o.rms, 1)}</td></tr>`;
     });
     let res = '';
     if (s.results.length) {
@@ -210,8 +231,11 @@
       });
       res += '</table></div></details>';
     }
-    return graphBlocks(s.inventory, s.scene_graph, null, null) + `<h4>场景拟合的物体</h4><div><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th><th class="n">残差 (px)</th></tr>${rows}</table></div>` +
-      `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px。残差是拟合框与跟踪框的均方根误差。</p>${res}</div>`;
+    return graphBlocks(s.inventory, s.scene_graph, null, null) + `<h4>场景拟合的物体</h4><div><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th>` +
+      (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th title="跟踪有框的时段；相机视角只在这些时段画出物体">视频里可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>` +
+      `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px` + (s.main_support ? `，主支撑面 ${esc(s.main_support)}` : '') + '。残差是拟合框与跟踪框的均方根误差。' +
+      (hasSrc ? '尺寸来源：不加标记的是观测到的（框、深度）；<sup class="dim-prior">先验</sup> 来自尺寸先验；<span class="dim-bound">灰色<sup>看不见</sup></span> 表示框和深度都没看到这一维，只能靠先验（取防塌缩下限）。' : '') +
+      `</p>${res}</div>`;
   }
 
 
@@ -316,10 +340,7 @@
       ctx.font = '600 11.5px system-ui, sans-serif';
       const w = ctx.measureText(txt).width + 8;
       x = Math.max(0, Math.min(x, W * k - w)); y = Math.max(15, Math.min(y, H * k));
-      if (!fixed) {
-        for (let n = 0; n < 30 && placed.some((r) => x < r[0] + r[2] && r[0] < x + w && y - 15 < r[1] && r[1] - 15 < y); n++) y += 16;
-      }
-      placed.push([x, y, w]);
+      placed.push([x, y - 15, w, 16]);   // [left, top, width, height]
       ctx.fillStyle = light ? 'rgba(255,255,255,.92)' : 'rgba(0,0,0,.62)'; ctx.fillRect(x, y - 15, w, 16);
       if (light) { ctx.strokeStyle = PRIOR_COL; ctx.lineWidth = 1.5; ctx.strokeRect(x, y - 15, w, 16); }
       ctx.fillStyle = light ? '#111' : col; ctx.fillText(txt, x + 4, y - 3);
@@ -340,41 +361,51 @@
       ctx.lineTo(x1 - 9 * Math.cos(a - 0.45), y1 - 9 * Math.sin(a - 0.45)); ctx.lineTo(x1 - 9 * Math.cos(a + 0.45), y1 - 9 * Math.sin(a + 0.45));
       ctx.closePath(); ctx.fill();
     }
-    // one label per layer: "name · asked sizes · prior"; placed above the hull (else below / right / left) at the
-    // first free spot, pushed down only as a last resort, with a thin leader to the hull when it ends up far away
-    function placeLabel(txt, col, anchor, bb, light) {
+    // one label per layer, up to three lines: object name (wrapped at word boundaries, ~160 px wide), the asked sizes,
+    // the prior (yellow). Every layer's hull / box is an obstacle: try just above / below / right / left of the own
+    // hull (6 px gap), then the free spot nearest to it with a thin leader; a label never covers a hull.
+    const LINE_H = 15, MAX_W = 160;
+    function wrapName(name) {
+      ctx.font = '600 11.5px system-ui, sans-serif';
+      const words = name.split(/\s+/), lines = [];
+      let cur = '';
+      words.forEach((wd) => {
+        const t = cur ? cur + ' ' + wd : wd;
+        if (cur && ctx.measureText(t).width > MAX_W) { lines.push(cur); cur = wd; } else cur = t;
+      });
+      if (cur) lines.push(cur);
+      return lines;
+    }
+    function placeLabel(lines, col, anchor, bb, obstacles) {
       ctx.font = '600 11.5px system-ui, sans-serif';
       const cw = W * k, ch = H * k;
-      // too wide for the canvas: shorten the object name, keep the sizes and the prior
-      const cut = txt.indexOf(' · ');
-      if (cut > 0) {
-        let name = txt.slice(0, cut);
-        const rest = txt.slice(cut);
-        while (name.length > 6 && ctx.measureText(name + '…' + rest).width + 8 > cw) name = name.slice(0, -1);
-        if (name !== txt.slice(0, cut)) txt = name + '…' + rest;
-      }
-      const w = ctx.measureText(txt).width + 8;
-      const free = (x, y) => !placed.some((r) => x < r[0] + r[2] && r[0] < x + w && y - 15 < r[1] && r[1] - 15 < y);
-      const clampX = (x) => Math.max(0, Math.min(x, cw - w)), clampY = (y) => Math.max(15, Math.min(y, ch));
-      const cx = (bb[0] + bb[2]) / 2;
-      const cands = [[cx - w / 2, bb[1] - 4], [cx - w / 2, bb[3] + 17], [bb[2] + 6, (bb[1] + bb[3]) / 2 + 6], [bb[0] - w - 6, (bb[1] + bb[3]) / 2 + 6]]
-        .map(([x, y]) => [clampX(x), clampY(y)]);
-      let pos = cands.find(([x, y]) => free(x, y));
+      const w = Math.max(...lines.map((l) => ctx.measureText(l.t).width)) + 8, h = lines.length * LINE_H + 3;
+      const hit = (x, y, r) => x < r[0] + r[2] && r[0] < x + w && y < r[1] + r[3] && r[1] < y + h;
+      const ok = (x, y) => x >= 0 && y >= 0 && x + w <= cw && y + h <= ch &&
+        !obstacles.some((r) => hit(x, y, r)) && !placed.some((r) => hit(x, y, r));
+      const cx = (bb[0] + bb[2]) / 2, cy = (bb[1] + bb[3]) / 2, g = 6;
+      const cands = [[cx - w / 2, bb[1] - g - h], [cx - w / 2, bb[3] + g], [bb[2] + g, cy - h / 2], [bb[0] - g - w, cy - h / 2]]
+        .map(([x, y]) => [Math.max(0, Math.min(x, cw - w)), Math.max(0, Math.min(y, ch - h))]);
+      let pos = cands.find(([x, y]) => ok(x, y)), lead = false;
       if (!pos) {
-        let [x, y] = cands[0];
-        for (let n = 0; n < 40 && !free(x, y); n++) y = clampY(y + 16);
-        pos = [x, y];
+        let best = null, bd = Infinity;
+        for (let y = 0; y + h <= ch; y += 6) {
+          for (let x = 0; x + w <= cw; x += 6) {
+            const d = Math.hypot(x + w / 2 - cx, y + h / 2 - cy);
+            if (d < bd && ok(x, y)) { bd = d; best = [x, y]; }
+          }
+        }
+        pos = best || cands[0]; lead = true;
       }
       const [x, y] = pos;
-      placed.push([x, y, w]);
-      const lx = Math.max(x, Math.min(anchor[0], x + w)), ly = Math.max(y - 15, Math.min(anchor[1], y + 1));
-      if (Math.hypot(lx - anchor[0], ly - anchor[1]) > 20 + Math.max(bb[2] - bb[0], bb[3] - bb[1]) / 2) {
-        ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
+      placed.push([x, y, w, h]);
+      if (lead) {
+        const lx = Math.max(x, Math.min(anchor[0], x + w)), ly = Math.max(y, Math.min(anchor[1], y + h));
+        ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = 0.85;
         ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(anchor[0], anchor[1]); ctx.stroke(); ctx.globalAlpha = 1;
       }
-      ctx.fillStyle = light ? 'rgba(255,255,255,.92)' : 'rgba(0,0,0,.66)'; ctx.fillRect(x, y - 15, w, 16);
-      if (light) { ctx.strokeStyle = PRIOR_COL; ctx.lineWidth = 1.5; ctx.strokeRect(x, y - 15, w, 16); }
-      ctx.fillStyle = light ? '#111' : col; ctx.fillText(txt, x + 4, y - 3);
+      ctx.fillStyle = 'rgba(0,0,0,.66)'; ctx.fillRect(x, y, w, h);
+      lines.forEach((l, i) => { ctx.fillStyle = l.kind === 'prior' ? PRIOR_COL : col; ctx.fillText(l.t, x + 4, y + (i + 1) * LINE_H - 2); });
     }
     const SIZE_KEY = { length: ['L', 'along'], width: ['W', 'across'], height: ['H', 'h'], diameter: ['D', 'diam'] };
     function priorText(pr) {
@@ -387,15 +418,15 @@
       return `prior ${pr.text}`;
     }
     function layerText(L, mpp) {
-      const parts = [L.name];
+      const lines = wrapName(L.name).map((t) => ({ t, kind: 'name' }));
       const ext = L.extent || {};
       if (isFinite(mpp)) {
         const sz = (L.size_q || []).filter((q) => SIZE_KEY[q] && ext[SIZE_KEY[q][1]] != null)
           .map((q) => `${SIZE_KEY[q][0]} ${fmtLen(ext[SIZE_KEY[q][1]] * mpp)}`);
-        if (sz.length) parts.push(sz.join(' × '));
+        if (sz.length) lines.push({ t: sz.join(' × '), kind: 'size' });
       }
-      if (L.name === s.prior.layer && s.prior.value_si != null) parts.push(priorText(s.prior));
-      return parts.join(' · ');
+      if (L.name === s.prior.layer && s.prior.value_si != null) lines.push({ t: priorText(s.prior), kind: 'prior' });
+      return lines;
     }
     function draw(t) {
       tCur = t; placed = [];
@@ -410,6 +441,7 @@
       const half = 0.5 / fps + 1e-6;
       const sc = s.scale, pr = s.prior;
       const pending = [];   // labels are placed after all shapes, so the scale bar / g box can reserve their spots first
+      let nTracked = 0;
       s.layers.forEach((L, i) => {
         const col = PALETTE[i % PALETTE.length];
         const still = !L.moving || L.segments.every((g) => g.model === 'static');
@@ -460,16 +492,16 @@
             bb = [b[0] * k, b[1] * k, b[2] * k, b[3] * k]; anchor = [X(cur.c), Y(cur.c)];
           }
         } else if (sg) {
-          const p = segPos(sg, t); cur = { c: p };
-          bb = [X(p) - 4, Y(p) - 4, X(p) + 4, Y(p) + 4]; anchor = [X(p), Y(p)];
+          cur = { c: segPos(sg, t) };   // between tracked frames: the model dot only, no shape and no label
         }
+        nTracked += bi >= 0 && bd <= half;
         if (sg && !still) {
           const p = segPos(sg, Math.min(Math.max(t, sg.t0), sg.t1));
           ctx.fillStyle = col; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.arc(X(p), Y(p), 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
         }
         if (L.name === pr.layer) priorPose = { L, cur, sg };
-        if (bb) pending.push([layerText(L, sc.degenerate ? NaN : mPerPx(sc, cur.c[1])), col, anchor, bb, L.name === pr.layer]);
+        if (bb) pending.push([layerText(L, sc.degenerate ? NaN : mPerPx(sc, cur.c[1])), col, anchor, bb]);
       });
       drawPrior(priorPose, t);
       // one line at the bottom left: scale bar + where the scale comes from
@@ -488,7 +520,10 @@
         arrow(cx - g[0] * 22, cy - g[1] * 22, cx + g[0] * 22, cy + g[1] * 22, '#ffd43b');
         label(cx + 8, cy - 20, 'g', '#ffd43b', true);
       }
-      pending.forEach((a) => placeLabel(...a));
+      // consistency count: layers tracked in this frame vs layers drawn (should always agree)
+      label(8, 20, `视频可见 ${nTracked} / 画出 ${pending.length}`, nTracked === pending.length ? '#fff' : '#ff8a80', true);
+      const obstacles = pending.map((a) => [a[3][0], a[3][1], a[3][2] - a[3][0], a[3][3] - a[3][1]]);
+      pending.forEach((a) => placeLabel(a[0], a[1], a[2], a[3], obstacles));
     }
     // hull of the key frame nearest to tracked frame bi, shifted by the centroid motion between the two frames
     function hullAt(L, bi) {
@@ -651,7 +686,11 @@
     const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     const norm = (a) => Math.hypot(a[0], a[1], a[2]);
     const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-    const pos = (o, t) => add(add(o.p0, o.v0, t), o.a, 0.5 * t * t);
+    // FitResult.pos: the object rests at p0 until t_on, then moves with v0, a
+    const pos = (o, t) => { const u = Math.max(t - (o.t_on || 0), 0); return add(add(o.p0, o.v0, u), o.a, 0.5 * u * u); };
+    // tracked in the video at time t (no track info: always)
+    const halfF = 0.5 / (v.fps || 30) + 1e-6;
+    const visAt = (o, t) => !o.visible || o.visible.some((iv) => t >= iv[0] - halfF && t <= iv[1] + halfF);
 
     const pl = s.plane && s.plane.normal ? s.plane : null;
     const n = pl ? pl.normal : [0, -1, 0];
@@ -728,8 +767,13 @@
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(tr), new THREE.LineDashedMaterial({ color: col, dashSize: radius * 0.03, gapSize: radius * 0.02 }));
       line.computeLineDistances();
       scene.add(line);
-      meshes.push({ o, grp, mat });
+      meshes.push({ o, grp, mat, edges });
     });
+    const counter = document.createElement('div');
+    counter.className = 'vcount';
+    counter.title = '视频可见 = 当前帧跟踪有框的物体数；场景视野内 = 拟合位置投影在原相机画面内（且在相机前方）的物体数';
+    box.appendChild(counter);
+    let tNow = 0;
 
     const cam = new THREE.PerspectiveCamera(45, 1, Math.max(0.01, radius / 500), radius * 50);
     const tgt = toW(centre);
@@ -751,9 +795,9 @@
         if (!vtex) { vtex = new THREE.VideoTexture(video); vtex.colorSpace = THREE.SRGBColorSpace; }
         scene.background = vtex;
       } else scene.background = null;
-      meshes.forEach(({ o, mat }) => { mat.opacity = scene.background ? 0.45 : (o.shape === 'mesh' ? 0.35 : 0.8); });
-      render();
+      setTime(tNow);
     }
+    const baseOpacity = (o) => (scene.background ? 0.45 : (o.shape === 'mesh' ? 0.35 : 0.8));
     function setView(mode) {
       const camMode = mode === 'cam';
       active = camMode ? camC : cam;
@@ -770,8 +814,21 @@
     btns.forEach((b) => { b.onclick = () => setView(b.dataset.view); });
     if (ovBox) ovBox.onchange = () => setOverlay(ovBox.checked);
 
+    // an object is drawn only while the video tracks it: hidden in the camera view, a faint outline in the free view
     function setTime(t) {
-      meshes.forEach(({ o, grp }) => grp.position.copy(toW(pos(o, t))));
+      tNow = t;
+      let nVis = 0, nIn = 0;
+      meshes.forEach(({ o, grp, mat, edges }) => {
+        const p = pos(o, t), vis = visAt(o, t);
+        grp.position.copy(toW(p));
+        grp.visible = vis || active !== camC;
+        mat.opacity = vis ? baseOpacity(o) : 0.06;
+        edges.material.transparent = true; edges.material.opacity = vis ? 1 : 0.25;
+        nVis += vis;
+        if (p[2] > 0 && Math.abs((f * p[0]) / p[2]) <= iw / 2 && Math.abs((f * p[1]) / p[2]) <= ih / 2) nIn++;
+      });
+      counter.textContent = `视频可见 ${nVis} / 场景视野内 ${nIn}`;
+      counter.classList.toggle('bad', nVis !== nIn);
       render();
     }
     function resize() {

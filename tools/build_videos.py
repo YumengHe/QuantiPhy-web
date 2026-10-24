@@ -5,10 +5,10 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_s2d_v2_routed.csv                  validation predictions of the current best harness (0.668; column s2d =
+  outputs/val_v7_routed.csv                      validation predictions shown (0.666, harness with the 3D scene fit v7; column s2d =
                                                  2D-scene value given to Qwen as a second hint)
   outputs/submission_v6.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
-  outputs/scene_fit_eval/c_mesh2/<video>.json    validation scene fits
+  outputs/scene_fit_eval/c_support_v7/<video>.json  validation scene fits (scene graph, supports, dimension sources)
   outputs/scene2d_eval/s2d_v2/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
                                                  object inventory, scene graph, rejected layers, constraints, mask hulls
   outputs/scene_fit_eval/test_mesh/<video>.json  test scene fits
@@ -34,12 +34,12 @@ import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-from pipeline.data import load_split, video_path  # noqa: E402
+from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_s2d_v2_routed.csv"
+VAL_CSV = ROOT / "outputs" / "val_v7_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v6.csv"
-SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_mesh2",
+SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7",
               "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
 SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v2"}   # the test tab stays on the submitted predictions
 SCENE2D_WEB = WEB / "data" / "scene2d"
@@ -121,6 +121,30 @@ def hulls(L, fps):
     return out
 
 
+def track_intervals(split: str, vid: str) -> dict:
+    """{track name: [[t0, t1], ...]} — the frames where the track cache (outputs/tracks[_test]/<video>.json) has a box,
+    merged into runs of consecutive frames, in seconds (frame / fps of the cache)."""
+    p = cache_root("tracks", split) / f"{vid}.json"
+    if not p.exists():
+        return {}
+    try:
+        j = json.load(open(p))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    fps = (j.get("info") or {}).get("fps") or 30.0
+    out = {}
+    for name, tr in (j.get("tracks") or {}).items():
+        fr = sorted(int(k) for k, b in (tr.get("boxes") or {}).items() if b is not None)
+        runs = []
+        for f in fr:
+            if runs and f == runs[-1][1] + 1:
+                runs[-1][1] = f
+            else:
+                runs.append([f, f])
+        out[name] = [[num(a / fps, 5), num(b / fps, 5)] for a, b in runs]
+    return out
+
+
 def scene_fit(split: str, vid: str):
     p = SCENE_DIRS[split] / f"{vid}.json"
     if not p.exists():
@@ -135,16 +159,32 @@ def scene_fit(split: str, vid: str):
     for name, o in (j.get("objects") or {}).items():
         objs.append({"name": name, "shape": o.get("shape"), "dims": {k: num(v) for k, v in (o.get("dims") or {}).items()},
                      "rms": num(o.get("rms"), 3), "p0": vec(o.get("p0")), "v0": vec(o.get("v0")), "a": vec(o.get("a")),
-                     "yaw": num(o.get("yaw"), 5)})
+                     "yaw": num(o.get("yaw"), 5), "t_on": num(o.get("t_on"), 5),
+                     # where each dimension comes from: observed / prior / bound (not seen, anti-collapse floor)
+                     "dim_source": o.get("dim_source"), "support": o.get("support"), "hang": o.get("hang"),
+                     "length": num(o.get("length"))})
     res = []
     for r in j.get("results") or []:
         res.append({"q": r.get("question"), "obj": r.get("object"), "pred": num(r.get("pred")),
                     "method": r.get("method"), "answer": num(r.get("answer")) if split == "val" else None,
                     "mra": num(r.get("mra"), 3) if split == "val" else None})
-    # 3D scene fits do not carry an inventory / scene graph yet; shown on the page once they do
+    sg = j.get("scene_graph")
+    inv = inventory(j.get("inventory") or j.get("objects_inventory"))
+    if inv is None and sg:   # no inventory in the json: the scene graph's object nodes carry the same names and mentions
+        inv = inventory({"objects": [{"name": n.get("id"), "aliases": list(dict.fromkeys(
+            m.get("alias") for m in n.get("mentions") or [] if isinstance(m, dict) and m.get("alias"))),
+            "mentions": n.get("mentions") or []} for n in sg.get("nodes") or [] if n.get("type") == "object"]})
+    # visible intervals: the scene json's own "visible" when it has one, else the object's track (its name, else an alias)
+    tracks = track_intervals(split, vid)
+    aliases = {o["name"]: o["aliases"] for o in inv or []}
+    for o, (name, raw) in zip(objs, (j.get("objects") or {}).items()):
+        vis = raw.get("visible")
+        if vis is None:
+            key = next((k for k in [name, *aliases.get(name, [])] if k in tracks), None)
+            vis = tracks.get(key) if key else None
+        o["visible"] = [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None
     return {"file": str(p.relative_to(ROOT)), "f": num(j.get("f"), 5), "plane": plane, "objects": objs, "results": res,
-            "inventory": inventory(j.get("inventory") or (j.get("objects_inventory"))),
-            "scene_graph": graph(j.get("scene_graph"))}
+            "main_support": j.get("main_support"), "inventory": inv, "scene_graph": graph(sg)}
 
 
 def scene2d(split: str, vid: str):
@@ -212,10 +252,10 @@ LA = ZoneInfo("America/Los_Angeles")
 
 
 def run_at(split: str, vid: str, csv: Path) -> dict:
-    """Last time this video was run: newest mtime of its scene json (3D scene fit / 2D layered scene) and the
-    per-question csv, shown in Los Angeles time."""
-    paths = [csv] + [d / f"{vid}.json" for d in (SCENE_DIRS.get(split), SCENE2D_DIRS.get(split)) if d]
-    ts = max(p.stat().st_mtime for p in paths if p.exists())
+    """Last time this video was run, in Los Angeles time: the mtime of its scene json (3D scene fit / 2D layered
+    scene); only a video without a scene json falls back to the per-question csv."""
+    scenes = [p for p in (d / f"{vid}.json" for d in (SCENE_DIRS.get(split), SCENE2D_DIRS.get(split)) if d) if p.exists()]
+    ts = max(p.stat().st_mtime for p in scenes or [csv])
     t = datetime.fromtimestamp(ts, LA)
     return {"run_at": t.strftime("%Y-%m-%d %H:%M %Z"), "run_at_iso": t.isoformat(timespec="seconds")}
 
