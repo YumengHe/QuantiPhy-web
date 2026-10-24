@@ -414,8 +414,9 @@
       const qs = v.questions.filter((q) => (!cat || q.cat === cat) && (!src || q.src === src) && okM(q.mra) && matchText(v, q, needle));
       return { v, qs, m: mean(qs.map((q) => q.mra)) };
     }).filter((x) => x.qs.length);
-    if (sort === 'mra-asc') items.sort((a, b) => a.m - b.m);
-    else if (sort === 'mra-desc') items.sort((a, b) => b.m - a.m);
+    const nanLast = (f) => (a, b) => (isNaN(a.m) ? 1 : 0) - (isNaN(b.m) ? 1 : 0) || f(a, b);
+    if (sort === 'mra-asc') items.sort(nanLast((a, b) => a.m - b.m));
+    else if (sort === 'mra-desc') items.sort(nanLast((a, b) => b.m - a.m));
     else if (sort === 'n-desc') items.sort((a, b) => b.qs.length - a.qs.length);
     const allQ = items.flatMap((x) => x.qs);
     const filtered = cat || src || vsrc || mf || needle;
