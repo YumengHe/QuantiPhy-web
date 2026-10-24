@@ -95,7 +95,12 @@
       }
       // the <video> only holds a src while its card is open, so collapsed cards do not keep connections or buffers
       if (video) {
-        if (d.open && !video.getAttribute('src')) video.src = v.video;
+        // preload="auto" + a tiny seek decodes the first frame right away, so the layer / overlay canvases
+        // can draw it before the user presses play (with metadata-only preload the canvas stays black)
+        if (d.open && !video.getAttribute('src')) {
+          video.preload = 'auto'; video.src = v.video;
+          video.addEventListener('loadedmetadata', () => { if (video.readyState < 2) video.currentTime = 0.001; }, { once: true });
+        }
         if (!d.open) { video.pause(); video.removeAttribute('src'); video.load(); }
       }
       if (v.dim === 3 && v.scene) {
@@ -407,7 +412,7 @@
     rawBox.onchange = () => draw(tCur);
     const tl = linkTime(bar, video, T, draw, ac.signal);
     if (video) {
-      video.addEventListener('loadeddata', () => draw(tCur), { signal: ac.signal });
+      ['loadeddata', 'canplay', 'seeked'].forEach((ev) => video.addEventListener(ev, () => draw(tCur), { signal: ac.signal }));
       video.addEventListener('error', () => { btns[0].disabled = true; setMode('layers'); }, { signal: ac.signal });
     }
     const ro = new ResizeObserver(resize); ro.observe(box);
@@ -612,7 +617,7 @@
     const tl = linkTime(bar, video, T, setTime, ac.signal);
     if (video) {
       const o = { signal: ac.signal };
-      video.addEventListener('loadeddata', () => { if (scene.background) render(); }, o);
+      ['loadeddata', 'canplay', 'seeked'].forEach((ev) => video.addEventListener(ev, () => { if (scene.background) { if (vtex) vtex.needsUpdate = true; render(); } }, o));
       video.addEventListener('error', () => { if (ovBox) { ovBox.checked = false; setView(active === camC ? 'cam' : 'free'); } }, o);
     }
     const ro = new ResizeObserver(resize); ro.observe(box);
