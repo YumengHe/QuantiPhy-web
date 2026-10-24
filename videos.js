@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
-  const SRC_LABEL = { geo: '几何', vlm: 'Qwen', s2d: '场景值（Qwen 无数字）' };
+  const SRC_LABEL = { geo: '几何', vlm: 'Qwen', s2d: '2D 场景值', fit: '拟合值' };
   const SHAPE_LABEL = { box: '长方体', sphere: '球', cylinder: '圆柱', prism: '三棱柱', mesh: '网格（画包围盒）' };
   const PALETTE = ['#3b6fd8', '#d9622b', '#2e9b5f', '#b03fa8', '#c79a12', '#1b9aaa', '#d6455d', '#6d5bd0', '#7a8b2a', '#8a5a3c'];
   let DATA = null;
@@ -39,19 +39,18 @@
   function valSummary(val) {
     const all = val.videos.flatMap((v) => v.questions);
     const m = macro(all);
-    $('val-macro').textContent = fmt(m.macro, 3);
+    $('val-macro').textContent = fmt(m.macro, 4);
     $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}`;
-    let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th><th class="n">几何 题数</th><th class="n">几何 MRA</th><th class="n">Qwen 题数</th><th class="n">Qwen MRA</th></tr>';
+    // per answer source: how many questions took their final prediction from it and their MRA
+    const SRCS = [['geo', '几何'], ['fit', '拟合'], ['s2d', '2D 场景'], ['vlm', 'Qwen']].filter(([k]) => all.some((q) => q.src === k));
+    let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th>' + SRCS.map(([, l]) => `<th class="n">${l} 题数</th><th class="n">${l} MRA</th>`).join('') + '</tr>';
     const row = (label, qs, strong) => {
-      const g = qs.filter((q) => q.src === 'geo'), v = qs.filter((q) => q.src === 'vlm');
       const s = (x) => (strong ? `<b>${x}</b>` : x);
       return `<tr><td>${s(label)}</td><td class="n">${qs.length}</td><td class="n">${s(fmt(mean(qs.map((q) => q.mra))))}</td>` +
-        `<td class="n">${g.length}</td><td class="n">${g.length ? fmt(mean(g.map((q) => q.mra))) : '—'}</td>` +
-        `<td class="n">${v.length}</td><td class="n">${v.length ? fmt(mean(v.map((q) => q.mra))) : '—'}</td></tr>`;
+        SRCS.map(([k]) => { const g = qs.filter((q) => q.src === k); return `<td class="n">${g.length}</td><td class="n">${g.length ? fmt(mean(g.map((q) => q.mra))) : '—'}</td>`; }).join('') + '</tr>';
     };
     CATS.forEach((c) => { h += row(c, all.filter((q) => q.cat === c)); });
-    h += `<tr><td><b>macro</b></td><td class="n">${all.length}</td><td class="n"><b>${fmt(m.macro)}</b></td><td colspan="4" class="muted">四类 MRA 的平均` +
-      (all.some((q) => q.src === 's2d') ? `；另有 ${all.filter((q) => q.src === 's2d').length} 题 Qwen 没给数字，用的是 2D 场景值（不在几何 / Qwen 两列里）` : '') + '</td></tr>';
+    h += `<tr><td><b>macro</b></td><td class="n">${all.length}</td><td class="n"><b>${fmt(m.macro, 4)}</b></td><td colspan="${2 * SRCS.length}" class="muted">四类 MRA 的平均</td></tr>`;
     $('val-sum').innerHTML = h;
   }
   function testSummary(test) {
@@ -124,7 +123,7 @@
     const e = v.eval;
     if (!e) return '';
     const prog = e.progress && e.progress !== '—' ? `<span class="muted">修复进行中：${esc(e.progress)}</span>` : '';
-    const rep = e.report ? `<div class="ev-rep">${esc(e.report.excerpt)}${e.report.excerpt.length >= 400 ? '…' : ''} <a href="${esc(e.report.file)}">逐视频报告</a></div>` : '';
+    const rep = e.report ? `<div class="ev-rep"><b>逐视频报告${e.report.title ? `（${esc(e.report.title)}）` : ''}：</b>${esc(e.report.excerpt)}${e.report.excerpt.length >= 400 ? '…' : ''} <a href="${esc(e.report.file)}" target="_blank" rel="noopener">全文</a></div>` : '';
     return `<div class="evbox"><h4>评估</h4><div><b>主因层：</b>${esc(e.layer || '—')}　${prog}</div>` +
       (e.cause && e.cause !== '—' ? `<div><b>根因：</b>${esc(e.cause)}</div>` : '') + rep +
       `<div class="muted" style="font-size:12px">来源 <code>${esc(e.source || '')}</code>（评估员的视频平均 MRA ${esc(e.mra || '')}）</div></div>`;
@@ -138,8 +137,11 @@
     let h = '<h4>问题</h4>' + (shared && kn(qs[0]) ? `<div class="known-shared">${kn(qs[0])}</div>` : '') +
       '<div class="scroll-x"><table class="qtable"><tr><th>类别</th><th>' + (shared ? '问题' : '问题与已知条件') + '</th>';
     if (split === 'val') {
-      h += '<th class="n">答案</th><th class="n" title="着色的那一列就是最终预测（几何值蓝 / 2D 场景值绿 / Qwen 值橙）">几何值</th>' +
-        (s2d ? '<th class="n" title="图层场景（pipeline.scene2d）的值，作为第二个提示给 Qwen">2D 场景值</th>' : '') +
+      const hasFit = qs.some((q) => q.fit != null);
+      const confT = (c) => (c != null ? `置信度 ${fmt(c, 2)}` : '');
+      h += '<th class="n">答案</th><th class="n" title="着色的那一列就是最终预测（几何值蓝 / 拟合值紫 / 2D 场景值绿 / Qwen 值橙）">几何值</th>' +
+        (hasFit ? '<th class="n" title="3D 场景拟合（scene_fit）的值；S3 题拟合置信度 ≥ 0.6 时作为最终预测">拟合值</th>' : '') +
+        (s2d ? '<th class="n" title="图层场景（pipeline.scene2d）的值，作为第二个提示给 Qwen；置信度 ≥ 0.85 时直接作为最终预测">2D 场景值</th>' : '') +
         '<th class="n">Qwen 值</th><th class="n">MRA</th></tr>';
       qs.forEach((q) => {
         h += `<tr><td><span class="tag">${q.cat}</span><span class="muted">${esc(q.type)}</span></td>` +
@@ -147,7 +149,8 @@
           // the column the final prediction was taken from is tinted (geo / s2d / vlm), so the route is visible at a glance
           `<td class="n">${fmtNum(q.answer)}</td>` +
           `<td class="n${q.src === 'geo' ? ' picked src-geo' : ''}" title="${q.src === 'geo' ? '最终预测取自几何值' : ''}">${fmtNum(q.geo)}</td>` +
-          (s2d ? `<td class="n${q.src === 's2d' ? ' picked src-s2d' : ''}" title="${q.src === 's2d' ? '最终预测取自 2D 场景值（Qwen 没给数字）' : ''}">${fmtNum(q.s2d)}</td>` : '') +
+          (hasFit ? `<td class="n${q.src === 'fit' ? ' picked src-fit' : ''}" title="${[q.src === 'fit' ? '最终预测取自拟合值' : '', confT(q.fit_conf)].filter(Boolean).join('；')}">${fmtNum(q.fit)}</td>` : '') +
+          (s2d ? `<td class="n${q.src === 's2d' ? ' picked src-s2d' : ''}" title="${[q.src === 's2d' ? '最终预测取自 2D 场景值' : '', confT(q.s2d_conf)].filter(Boolean).join('；')}">${fmtNum(q.s2d)}</td>` : '') +
           `<td class="n${q.src === 'vlm' ? ' picked src-vlm' : ''}" title="${q.src === 'vlm' ? '最终预测取自 Qwen 值' : ''}">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td></tr>`;
       });
     } else {

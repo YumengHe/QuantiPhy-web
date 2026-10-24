@@ -5,8 +5,9 @@ Reads only existing outputs; never runs the pipeline.
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
-  outputs/val_s2d_v3_routed.csv                  validation predictions shown (0.681, current best; column s2d =
-                                                 2D-scene value given to Qwen as a second hint)
+  outputs/val_tools_routed.csv                   validation predictions shown (0.6996, current best: gated routing default;
+                                                 s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
+                                                 scene-fit value and its confidence; source geo / vlm / s2d / fit)
   outputs/submission_v6.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
   outputs/scene_fit_eval/c_support_v7/<video>.json  validation scene fits (scene graph, supports, dimension sources)
   outputs/scene2d_eval/s2d_v3/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
@@ -39,7 +40,7 @@ import pandas as pd  # noqa: E402
 from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_s2d_v3_routed.csv"
+VAL_CSV = ROOT / "outputs" / "val_tools_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v6.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7",
               "test": ROOT / "outputs" / "scene_fit_eval" / "test_mesh"}
@@ -165,8 +166,21 @@ def eval_report(vid: str):
     EVAL_WEB.mkdir(parents=True, exist_ok=True)
     txt = p.read_text()
     (EVAL_WEB / p.name).write_text(txt)
-    lines = [l.strip() for l in txt.splitlines() if l.strip() and not l.startswith("#")]
-    return {"file": str((EVAL_WEB / p.name).relative_to(WEB)), "excerpt": " ".join(lines)[:400]}
+    # excerpt: the section whose heading says 结论 (conclusion), else the start of the report; markdown emphasis dropped
+    lines, body = txt.splitlines(), None
+    for i, l in enumerate(lines):
+        if l.startswith("#") and "结论" in l:
+            body = []
+            for m in lines[i + 1:]:
+                if m.startswith("#"):
+                    break
+                body.append(m)
+            title = l.lstrip("# ").strip()
+            break
+    if body is None:
+        body, title = [l for l in lines if not l.startswith("#")], ""
+    text_ = " ".join(l.strip() for l in body if l.strip()).replace("**", "").replace("`", "")
+    return {"file": str((EVAL_WEB / p.name).relative_to(WEB)), "title": title, "excerpt": text_[:400]}
 
 
 def track_intervals(split: str, vid: str) -> dict:
@@ -372,7 +386,9 @@ def build_val(make_thumb: bool):
         first = g.iloc[0]
         qs = [{"cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
                "depth": text(r.depth_info), "answer": num(r.answer), "geo": num(r.geo), "vlm": num(r.vlm),
-               "pred": num(r.pred), "src": r.source, "mra": num(r.mra, 3), "s2d": num(getattr(r, "s2d", None))}
+               "pred": num(r.pred), "src": r.source, "mra": num(r.mra, 3), "s2d": num(getattr(r, "s2d", None)),
+               "s2d_conf": num(getattr(r, "s2d_conf", None), 3), "fit": num(getattr(r, "fit", None)),
+               "fit_conf": num(getattr(r, "fit_conf", None), 3)}
               for r in g.itertuples()]
         is3d = str(first.dim) == "3"
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),

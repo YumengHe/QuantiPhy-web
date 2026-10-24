@@ -84,10 +84,12 @@
   .qtable td.picked { font-weight: 600; border-radius: 4px; }
   .qtable td.picked.src-geo { background: rgba(59, 130, 246, .18); }
   .qtable td.picked.src-s2d { background: rgba(34, 197, 94, .18); }
+  .qtable td.picked.src-fit { background: rgba(147, 51, 234, .18); }
   .qtable td.picked.src-vlm { background: rgba(249, 115, 22, .18); }
   .srcdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
   .srcdot.src-geo { background: rgb(59, 130, 246); }
   .srcdot.src-s2d { background: rgb(34, 197, 94); }
+  .srcdot.src-fit { background: rgb(147, 51, 234); }
   .srcdot.src-vlm { background: rgb(249, 115, 22); }
   .media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 4px; }
   video.orig { display: block; width: 100%; height: 340px; background: #000; border: 1px solid var(--border); border-radius: 8px; object-fit: contain; }
@@ -142,7 +144,7 @@
 <div class="wrap">
 <header>
   <h1>视频与问题</h1>
-  <p>验证集逐题看当前最好 harness 的预测和准确度（s2d_v3，0.681；3D 视频的三维视图来自场景拟合 v7），每个视频带评估员的结论（主因层、根因），测试集看最新提交的预测值；展开视频可以看原视频，3D 视频还有场景拟合的三维视图，验证集的 2D 视频还有图层场景（都和视频时间联动）。<a href="index.html">返回文档主页</a></p>
+  <p>验证集逐题看当前最好 harness 的预测和准确度（门控路由和 refmeasure 标定为默认，0.6996；3D 视频的三维视图来自场景拟合 v7），每个视频带评估员的结论（主因层、根因），测试集看最新提交的预测值；展开视频可以看原视频，3D 视频还有场景拟合的三维视图，验证集的 2D 视频还有图层场景（都和视频时间联动）。<a href="index.html">返回文档主页</a></p>
   <p id="gen" class="muted"></p>
 </header>
 
@@ -160,14 +162,14 @@
         <div class="muted" id="val-src-file"></div>
         <p class="legend">MRA 着色：
           <span class="mra m4">≥ 0.8</span><span class="mra m3">0.6–0.8</span><span class="mra m2">0.4–0.6</span><span class="mra m1">0.2–0.4</span><span class="mra m0">&lt; 0.2</span>
-          　最终预测 = 着色的那一列：<span class="srcdot src-geo"></span>几何值　<span class="srcdot src-s2d"></span>2D 场景值　<span class="srcdot src-vlm"></span>Qwen 值</p>
+          　最终预测 = 着色的那一列：<span class="srcdot src-geo"></span>几何值　<span class="srcdot src-fit"></span>拟合值　<span class="srcdot src-s2d"></span>2D 场景值　<span class="srcdot src-vlm"></span>Qwen 值</p>
       </div>
       <div class="scroll-x"><table id="val-sum"></table></div>
     </div>
   </div>
   <div class="controls">
     <label>类别 <select id="v-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
-    <label>答案来源 <select id="v-src"><option value="">全部</option><option value="geo">几何</option><option value="vlm">Qwen</option><option value="s2d">场景值</option></select></label>
+    <label>答案来源 <select id="v-src"><option value="">全部</option><option value="geo">几何</option><option value="vlm">Qwen</option><option value="fit">拟合值</option><option value="s2d">2D 场景值</option></select></label>
     <label>视频来源 <select id="v-vsrc"><option value="">全部</option></select></label>
     <label>题目 MRA <select id="v-mra"><option value="">全部</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
     <label>排序 <select id="v-sort"><option value="mra-asc" selected>平均 MRA 从低到高</option><option value="id">视频名</option><option value="mra-desc">平均 MRA 从高到低</option><option value="n-desc">题数从多到少</option></select></label>
