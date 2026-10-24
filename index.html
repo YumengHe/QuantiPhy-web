@@ -1037,7 +1037,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
   <p>只针对 2D 题（S2、D2）的迭代，按时间倒序。</p>
 
   <details class="iter" id="s2d-v6">
-    <summary><span class="d">10-24</span>2D 图层场景 v6：刚体一致性用跟踪掩码 + refmeasure 合理性交叉检查 · simulation_0196 终于有尺度（四题 0.25→0.425）</summary>
+    <summary><span class="d">10-24</span>2D 图层场景 v6：刚体一致性用跟踪掩码 + refmeasure 合理性交叉检查 · simulation_0196 终于有尺度（四题 0.25→0.425） <span class="yes">采用（tracks_v9pc）</span></summary>
     <div class="iter-body">
   <h4>做法</h4>
   <ul>
@@ -1050,7 +1050,9 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
     <tr><th>配置</th><th class="n">有场景值的题</th><th class="n">场景值 MRA</th></tr>
     <tr><td>跟踪缓存 tracks_v9</td><td class="n">65</td><td class="n">0.675</td></tr>
     <tr><td>原跟踪缓存</td><td class="n">62</td><td class="n">0.635</td></tr>
+    <tr><td><b>tracks_v9pc（采用，mh3 将用的配置；整套 0.6955）</b></td><td class="n">65</td><td class="n"><b>0.728</b></td></tr>
   </table>
+  <p>场景 json <code>outputs/scene2d_eval/s2d_v6_v9pc/</code>，视频页的 2D 图层已切到这份。</p>
   <p>逐帧场景图（pfc）对 2D 不比 grid 差（pfc ≥ grid），和 3D 相反（见 <a href="#sf-v8">v8e</a>）。</p>
     </div>
   </details>

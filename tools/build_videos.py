@@ -11,7 +11,7 @@ Inputs (relative to the QuantiPhy repo root):
   outputs/submission_v7.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
   outputs/scene_fit_eval/c_support_v8e/<video>.json validation scene fits (scene graph, supports, dimension sources,
                                                  visible intervals, per-question quality / conf, ballistic paths)
-  outputs/scene2d_eval/s2d_v5/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
+  outputs/scene2d_eval/s2d_v6_v9pc/<video>.json  validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
                                                  object inventory, scene graph, rejected layers, constraints, mask hulls
   outputs/tracks[_test]/<video>.json             per-object visible intervals for the 3D viewer
   outputs/eval/overview_*.md, <video>.md         evaluator verdicts (summary table row; per-video report copied to data/eval/)
@@ -48,7 +48,7 @@ VAL_CSV = ROOT / "outputs" / "val_mh3_routed.csv"
 TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
 SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_support_v8e",
               "test": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7_test"}   # the run behind submission_v7
-SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v5",
+SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v6_v9pc",   # tracks_v9pc, the mh3 configuration
                 "test": ROOT / "outputs" / "scene2d_eval" / "s2d_v7_test"}     # the run behind submission_v7
 SCENES_TEST = WEB / "data" / "scenes" / "test"   # one json per test video, fetched by the page when a card opens
 BG_MAX_W = 960                                   # background images wider than this are shrunk (test is up to 2560 px)
