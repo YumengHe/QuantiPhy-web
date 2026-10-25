@@ -113,8 +113,8 @@
 <div class="callout"><b>v49平面矩形原型。</b>5项专项合成测试通过，但真实角点对.5px扰动敏感、f范围很宽，桌面遮挡返回null；只读诊断、未接入harness，不把偶然接近标注的数值当高置信度测量。</div>
 <div class="callout"><b>v51边线细化原型（未接harness）。</b>v49角点附近以原图RGB梯度拟合边线并求交点，3项专项测试通过。真实角点移动.34–2px后正交性和焦距稳定性仍不足，128扰动只有23正f；保持只读诊断，不提高置信度、不改变默认。</div>
 <div class="callout"><b>v52距离锚点绑定候选。</b>native严格token导致pingpong与ping pong ball不匹配、原始距离未进入拟合。新规则只做相邻字母词的精确空格等价，保留颜色/左右/编号，新增多实例歧义不绑定；depth-map track定位共用规则，保存raw_key审计。259项CPU测试；27题 .68680556与同题基线相同，0无效、11/11 prior回放。两条距离已进入native，full159输入审计新规则仅影响该已测视频；v53作为正确性修复采纳。</div>
-<div class="callout"><b>v72可选完整响应回放已采纳。</b>raw policy只用于val，保留0/空/非数字模型内容以复现原重试；HTTP/队列/坏envelope仍是执行失败，默认usable不变。279测试；v70/v71真实22题pred/conf/source/method/MRA及9个prior重试记录逐项一致，独立空cache 9/9冷回放、0无效/partial；本次真实响应均有效，零值路径由CPU/历史内容离线测试覆盖。v73完整Astra high raw control已完成159题：macro .77037134，非重叠43题 .66755952，0无效/partial，2479s；49真实响应含2零值。v76相同.py/最终helper和视觉seed已验证，完整agent已启动，回放原零值与重试；尚无配对分数。</div>
-<div class="callout"><b>v79终端prior观测包候选运行中。</b>只读取本题/自身prior/reference的轨迹，补自身prior时刻；保留原帧，明确裁剪缩放、原始像素bbox/中心和缓存身份矛盾，不把框当已确认对象或另一路数值答案。290测试；真实裁剪已检查，图像及元数据/hash存NAS。标准22题配对完成：v79 .61979167，默认none v80 .64791667；0无效/partial，13物理值/来源全同、7 prior值变化。观测包未采纳。v81同.py仅补自身prior时刻（无轨迹图/像素提示）22题 .66979167 vs默认 .64791667，13物理值全同；增益只在一个输入组，非重叠smoke未改善。v82完整159题已启动，v83相同.py默认对照已冻结、未运行，暂无完整新分数。</div>
+<div class="callout"><b>v72可选完整响应回放已采纳。</b>raw policy只用于val，保留0/空/非数字模型内容以复现原重试；HTTP/队列/坏envelope仍是执行失败，默认usable不变。279测试；v70/v71真实22题pred/conf/source/method/MRA及9个prior重试记录逐项一致，独立空cache 9/9冷回放、0无效/partial；本次真实响应均有效，零值路径由CPU/历史内容离线测试覆盖。v73完整Astra high raw control已完成159题：macro .77037134，非重叠43题 .66755952，0无效/partial，2479s；49真实响应含2零值。v76严格配对完成：159题 .77409475，非重叠43题仍 .66755952，0无效/partial；原零值重试完整回放，无稳定提升证据，未采用。</div>
+<div class="callout"><b>v79终端prior观测包候选运行中。</b>只读取本题/自身prior/reference的轨迹，补自身prior时刻；保留原帧，明确裁剪缩放、原始像素bbox/中心和缓存身份矛盾，不把框当已确认对象或另一路数值答案。290测试；真实裁剪已检查，图像及元数据/hash存NAS。标准22题配对完成：v79 .61979167，默认none v80 .64791667；0无效/partial，13物理值/来源全同、7 prior值变化。观测包未采纳。v81同.py仅补自身prior时刻（无轨迹图/像素提示）22题 .66979167 vs默认 .64791667，13物理值全同；增益只在一个输入组，非重叠smoke未改善。v82完整159题 .76310815，非重叠43 .65982143，112物理值与历史对照相同；v83同.py默认对照运行中，配对结论待定。</div>
 <div class="callout"><b>v77直接标定距离语义候选运行中。</b>按绑定图像射线将相机距离换成Z，以自身prior求焦距固定点；288测试，输入审计13个3D组中5组可换算，3个检测根、2个无根固定原相机并报告残差。端点/别名缺口跳过，数值扫描不证明唯一性；仅直接标定，native默认不动。34题已完成：S3 .71764706/D3 .67647059（各17题，非完整macro），0无效/partial；15 prior中9旧库回放、6新请求已raw保存。v78同.py legacy_z对照已完成：S3 .71176471/D3 .70588235，两类均值 .70882353，高于v77 .69705882；均0无效/partial。测量MRA总和+.1、prior总和-.5、scene值不变，候选不采用。</div>
 <div class="callout"><b>v75深度残差审计修复已采纳。</b>三类native拟合结果按anchor_range报告相机距离或Z误差，与优化目标一致；281测试，两种语义/运动起始及loss逐项核对。只改诊断记录，无新MRA，几何默认策略保持v26。</div>
 <div class="callout"><b>v74运动约束候选未采纳。</b>自身正2D速度prior已接通结构化重选运动窗，替代框遵守同帧排除，合并后复核；297测试通过。但真实v68原始轨迹位移5.05785px仍过原门槛，未修复身份/尺度；未按案例调阈值，无新MRA。 后续三轨迹/三共同时间点的两种多帧呈现仍有模型分歧；单次采样、无身份标签，不直接做全局硬门槛。</div>
@@ -167,7 +167,7 @@
     <p class="cycle">每轮记录：state_id、evidence_hash、工具参数、执行结果、前后指标、接受 / 拒绝原因。</p>
   </section>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>终端 finalize_scene</b><span class="st done">已实现</span></div><span class="m">先重放 scene / measurement；不可用时显式调用本题 answer_prior，完全相同请求可复用缓存；仍无有效数值则 unresolved。v45可使用显式冻结响应库作配对验证，完整请求精确匹配且仅val，来源/hash进入审计。缓存命中仍是 prior，不增加可信度。保留 scene_id 与 provenance。v39已采纳完整JSON数值解析与重试预算续跑签名；247项CPU测试通过。v37定量首答降低22题分数，保留direct首答。v79候选已实现：只给本题与自身prior的假设轨迹图，显式给原像素坐标/显示缩放，保留身份矛盾并补自身prior时刻；默认none；v79/v80 22题配对为 .61979/.64792，未采用。v81仅补时刻22题 .66979；v82完整159题运行中、v83配对待启动。</span></div>
+  <div class="node"><div class="hd"><b>终端 finalize_scene</b><span class="st done">已实现</span></div><span class="m">先重放 scene / measurement；不可用时显式调用本题 answer_prior，完全相同请求可复用缓存；仍无有效数值则 unresolved。v45可使用显式冻结响应库作配对验证，完整请求精确匹配且仅val，来源/hash进入审计。缓存命中仍是 prior，不增加可信度。保留 scene_id 与 provenance。v39已采纳完整JSON数值解析与重试预算续跑签名；247项CPU测试通过。v37定量首答降低22题分数，保留direct首答。v79候选已实现：只给本题与自身prior的假设轨迹图，显式给原像素坐标/显示缩放，保留身份矛盾并补自身prior时刻；默认none；v79/v80 22题配对为 .61979/.64792，未采用。v81仅补时刻22题 .66979；v82完整 .76310815 / 非重叠 .65982143，v83配对运行中。v84归一化候选开发中：自身prior定义长度单位，本题metric事实同比例换算，程序恢复单位；默认physical，尚无准确率结果。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>逐视频 answers → assemble → 评分</b><span class="st done">已实现</span></div><span class="m">组装阶段不推理、不补常数。缺题与失败仍按零分计入所请求题目集的分母；报告四类 macro MRA 和非重叠子集。测试提交要求全部预期行完整有效。</span></div>
 </div>
@@ -196,11 +196,12 @@
 <tr><td>v45冻结响应</td><td colspan="2">仅验证集的完整wire request回放；库hash、原始signature/cache key可追溯；变化使续跑失效，未匹配正常请求</td><td><span class="st wip">254测试、真实复现通过</span> 默认关闭</td></tr>
 <tr><td>终端先验审计</td><td colspan="2">逐次记录阶段、耗时、响应摘要和有效性；HTTP/连接/超时错误传播为执行失败</td><td><span class="st done">v25 已实现</span></td></tr>
 <tr><td>验收与终端作答</td><td>共享固定证据裁判 + issue_accept；runtime replay</td><td>共享固定证据裁判；runtime / measurement replay</td><td><span class="st done">已实现</span> 效果待验证</td></tr>
-<tr><td>v79 prior观测包与自身时刻（候选）</td><td>只含本题/自身prior的假设轨迹，保留身份不确定性</td><td>同样限于本组输入，不把框当真实对象</td><td>290测试；v79 .61979低于v80 .64792，未采纳；v81时刻消融完成，v82全量运行中</td></tr>
+<tr><td>v84 prior长度归一化（实现中）</td><td>仅自身prior标尺，时间与像素不变</td><td>本题深度同尺度换算，不引入其他题数据</td><td>独立候选；默认physical，尚无MRA</td></tr>
+<tr><td>v79 prior观测包与自身时刻（候选）</td><td>只含本题/自身prior的假设轨迹，保留身份不确定性</td><td>同样限于本组输入，不把框当真实对象</td><td>290测试；v79 .61979低于v80 .64792，未采纳；v81时刻消融完成，v82全量 .76310815，v83配对运行中</td></tr>
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；默认usable仅成功有限正数；val可选raw保留无效模型内容，agent / control可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
-<tr><td>v72完整模型响应回放 / v73全量control</td><td colspan="2">验证raw policy保存成功HTTP中的无效模型内容，严格重放重试；默认usable不变</td><td>v72采纳279测试；v73完整 .77037134，v76严格agent配对运行中</td></tr>
+<tr><td>v72完整模型响应回放 / v73全量control</td><td colspan="2">验证raw policy保存成功HTTP中的无效模型内容，严格重放重试；默认usable不变</td><td>v72采纳279测试；v73完整 .77037134，v76严格agent .77409475，非重叠与v73均 .66755952</td></tr>
 <tr><td>v77直接距离标定候选</td><td>不适用</td><td>候选已实现：range沿绑定射线转Z，自身prior约束焦距；native默认不动</td><td>288测试；34题配对完成，.69706低于.70882，未采纳</td></tr>
 <tr><td>v75深度残差语义</td><td>不适用</td><td>已实现：误差按拟合使用的相机距离或Z记录</td><td>已采纳281测试；无新MRA</td></tr>
 <tr><td>v74自身prior运动窗</td><td>候选已实现：正速度prior进入重选，替代框与合并结果受约束</td><td>不适用</td><td>297测试；真实坏轨迹仍通过；未采纳</td></tr>
