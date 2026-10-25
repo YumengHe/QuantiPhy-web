@@ -157,7 +157,7 @@
   <div class="node"><div class="hd"><b>冻结原始证据 frozen evidence</b><span class="st done">已实现</span></div><span class="m">保留全部原始记录与来源 hash；采样合并均匀网格、每个可信可见连续段首 / 中 / 末帧、题目时刻及其两侧观测。超预算报错，不丢覆盖。所有候选共用证据；unknown ≠ absent，in_frustum 使用完整投影框。v28候选纳入结构真实框，排除身份冲突，并按时间块与part/whole证据族汇总，避免重复计权。</span></div>
   <div class="arrow"></div>
   <section class="loop" aria-label="场景 agent 回路">
-  <div class="callout"><b>v88运行态上下文候选。</b>question_values / 首轮提示 / t_q文字共享终端场景重放，明确source/use与实际阻断条件；不改变阈值或prior请求。287测试，159题终端行为保持、planner一致；22题Astra control运行中，v89严格agent配对待启动，尚无MRA，未采用。</div>
+  <div class="callout"><b>v88运行态上下文候选。</b>question_values / 首轮提示 / t_q文字共享终端场景重放，明确source/use与实际阻断条件；不改变阈值或prior请求。287测试，159题终端行为保持、planner一致；22题Astra control .66145833、与v73同题pred/source全同、9/9raw回放；v89严格agent配对已启动，尚无agent MRA，未采用。</div>
     <div class="hd"><b>观察 → 诊断 → 动作 → 验收 / 回滚</b><span class="st done">已实现 · 默认 2–10 轮</span></div>
     <div class="lgrid">
       <div class="lbox"><b>观察</b>原帧、crop、runtime overlay、depth、逐题诊断。tracks_summary 正确返回连续段帧范围、时间与观测数；工具错误明确记录，不能解释为无轨迹。最多6次观察后给一次最终决策请求；仍无act/done则记规划失败。</div>
