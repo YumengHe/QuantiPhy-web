@@ -157,6 +157,7 @@
   <div class="node"><div class="hd"><b>冻结原始证据 frozen evidence</b><span class="st done">已实现</span></div><span class="m">保留全部原始记录与来源 hash；采样合并均匀网格、每个可信可见连续段首 / 中 / 末帧、题目时刻及其两侧观测。超预算报错，不丢覆盖。所有候选共用证据；unknown ≠ absent，in_frustum 使用完整投影框。v28候选纳入结构真实框，排除身份冲突，并按时间块与part/whole证据族汇总，避免重复计权。</span></div>
   <div class="arrow"></div>
   <section class="loop" aria-label="场景 agent 回路">
+  <div class="callout"><b>v88运行态上下文候选。</b>question_values / 首轮提示 / t_q文字共享终端场景重放，明确source/use与实际阻断条件；不改变阈值或prior请求。287测试，159题终端行为保持、planner一致；22题Astra control运行中，v89严格agent配对待启动，尚无MRA，未采用。</div>
     <div class="hd"><b>观察 → 诊断 → 动作 → 验收 / 回滚</b><span class="st done">已实现 · 默认 2–10 轮</span></div>
     <div class="lgrid">
       <div class="lbox"><b>观察</b>原帧、crop、runtime overlay、depth、逐题诊断。tracks_summary 正确返回连续段帧范围、时间与观测数；工具错误明确记录，不能解释为无轨迹。最多6次观察后给一次最终决策请求；仍无act/done则记规划失败。</div>
@@ -196,6 +197,7 @@
 <tr><td>v45冻结响应</td><td colspan="2">仅验证集的完整wire request回放；库hash、原始signature/cache key可追溯；变化使续跑失效，未匹配正常请求</td><td><span class="st wip">254测试、真实复现通过</span> 默认关闭</td></tr>
 <tr><td>终端先验审计</td><td colspan="2">逐次记录阶段、耗时、响应摘要和有效性；HTTP/连接/超时错误传播为执行失败</td><td><span class="st done">v25 已实现</span></td></tr>
 <tr><td>验收与终端作答</td><td>共享固定证据裁判 + issue_accept；runtime replay</td><td>共享固定证据裁判；runtime / measurement replay</td><td><span class="st done">已实现</span> 效果待验证</td></tr>
+<tr><td>v88 agent运行态诊断（实现中）</td><td>重放当前图层/标尺，明确终端use与门控</td><td>重放原生场景/绑定测量，显示D3 direct阻断</td><td>287测试、159题行为一致；v88/v89配对中，未采用默认</td></tr>
 <tr><td>v84 prior长度归一化（候选未采用）</td><td>仅自身prior标尺，时间与像素不变</td><td>本题深度同尺度换算，不引入其他题数据</td><td>304测试；v84 .61771低于v85 .66979；HTTP408续跑完成，未采用</td></tr>
 <tr><td>v79 prior观测包与自身时刻（候选）</td><td>只含本题/自身prior的假设轨迹，保留身份不确定性</td><td>同样限于本组输入，不把框当真实对象</td><td>290测试；v79 .61979低于v80 .64792，未采纳；v81时刻消融完成，v82全量 .76310815，v83完整 .75938475 / 非重叠 .65982143，无稳定收益</td></tr>
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；默认usable仅成功有限正数；val可选raw保留无效模型内容，agent / control可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
