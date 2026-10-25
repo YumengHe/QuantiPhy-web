@@ -800,6 +800,11 @@ def scene2d(split: str, vid: str):
 LA = ZoneInfo("America/Los_Angeles")
 
 
+def _vlabel(x) -> str:
+    """Page naming: pipeline versions are vN, module versions "module rN" ("scene2d-v9" -> "scene2d r9")."""
+    return re.sub(r"^([A-Za-z0-9_]+)-v(\w+)$", r"\1 r\2", str(x))
+
+
 def version_of(split: str, vid: str, is3d: bool, csv: Path) -> dict:
     """Version shown next to the timestamp: the scene json's own "version" field when it has one
     ({pipeline, commit, scene2d, scene_fit, objects, presence, refmeasure, time} -> "pipeline · commit"); else pieced
@@ -816,7 +821,7 @@ def version_of(split: str, vid: str, is3d: bool, csv: Path) -> dict:
         except (OSError, json.JSONDecodeError):
             ver = None
     if isinstance(ver, dict) and (ver.get("pipeline") or ver.get("commit")):
-        return {"label": " · ".join(str(ver[k]) for k in ("pipeline", "commit") if ver.get(k)), "detail": ver}
+        return {"label": " · ".join(_vlabel(ver[k]) if k == "pipeline" else str(ver[k]) for k in ("pipeline", "commit") if ver.get(k)), "detail": ver}
     parts = []
     if p is not None and p.exists():
         parts.append(("拟合 " if is3d else "场景 ") + d.name)

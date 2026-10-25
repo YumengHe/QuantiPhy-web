@@ -127,14 +127,14 @@
       <div class="arrow"></div>
       <div class="node d2"><div class="hd"><b>extents2d 掩码凸包</b><span class="st done">已实现</span></div><span class="m">SAM 2 图像模型取每层的掩码凸包。<code>pipeline.extents2d</code></span></div>
       <div class="arrow"></div>
-      <div class="node d2"><div class="hd"><b>scene2d 图层场景</b><span class="st done">已实现</span></div><span class="m">每个物体一层，prior 标定统一 m/px，分段运动模型，几何测量作为场景里的观测项，逐题给场景值和 conf。<code>pipeline.scene2d</code>（v9：几何观测吸收进场景）</span></div>
+      <div class="node d2"><div class="hd"><b>scene2d 图层场景</b><span class="st done">已实现</span></div><span class="m">每个物体一层，prior 标定统一 m/px，分段运动模型，几何测量作为场景里的观测项，逐题给场景值和 conf。<code>pipeline.scene2d</code>（r9：几何观测吸收进场景）</span></div>
       <div class="arrow"></div>
       <div class="node d2"><div class="hd"><b>2D 工具</b><span class="st done">已实现</span></div><span class="m">回路可调的 2D 场景动作：rescale、set_extent、drop_frames 等（<code>scene2d.apply_critique</code>）。</span></div>
     </div>
     <div class="col c3"><p class="colhd">右列 · 3D 视频</p>
       <div class="node d3"><div class="hd"><b>depth / ground 地面与墙</b><span class="st done">已实现</span></div><span class="m">Depth Anything 深度（缓存 <code>depth</code>）；地面掩码、墙脚 / 墙顶点（<code>pipeline.ground</code>）。</span></div>
       <div class="arrow"></div>
-      <div class="node d3"><div class="hd"><b>scene_fit 场景拟合</b><span class="st done">已实现（v10c2）</span></div><span class="m">地面与相机 + 解析几何体（盒子、球、圆柱等）+ 运动模型（匀加速、单摆等），每道 3D 题在拟合内作答并给 conf。去掉网格后的默认版本 c_v10c2：典型尺寸只约束主维度 + classprior + 静止刚体阶段 A；3D 基线 0.6388。<code>pipeline.eval_scene_fit</code></span>
+      <div class="node d3"><div class="hd"><b>scene_fit 场景拟合</b><span class="st done">已实现（r10c2）</span></div><span class="m">地面与相机 + 解析几何体（盒子、球、圆柱等）+ 运动模型（匀加速、单摆等），每道 3D 题在拟合内作答并给 conf。去掉网格后的默认版本 c_v10c2：典型尺寸只约束主维度 + classprior + 静止刚体阶段 A；3D 基线 0.6388。<code>pipeline.eval_scene_fit</code></span>
         <span class="m" style="margin-top:4px"><span class="st wip">实现中</span> 几何体模板：车的比例先验、帆船的船体 + 桅杆。</span></div>
       <div class="arrow"></div>
       <div class="node d3"><div class="hd"><b>3D 工具</b><span class="st done">已实现</span></div><span class="m">回路可调的 3D 场景动作：fix_extent、set_plane、set_focal 等（<code>scene_fit.apply_critique</code>）。</span></div>
@@ -180,7 +180,7 @@
   <tr><td>scene2d</td><td><span class="st done">已实现</span></td><td><code>QP_TRACKS=tracks_v9p pipeline.scene2d --scenegraph scenegraph_pfc</code></td><td><code>tracks_v9p</code>、<code>extents2d</code>、<code>scenegraph_pfc</code>、<code>refmeasure_v8</code></td><td><code>scene2d_eval/s2d_v9</code></td><td>图层场景与场景值</td><td>—</td><td>约 15 s</td><td>待 v8 跑完补</td><td>scene2d</td></tr>
   <tr class="grp g3d"><td colspan="10">3D</td></tr>
   <tr><td>depth / ground</td><td><span class="st done">已实现</span></td><td>深度缓存；<code>pipeline.ground</code></td><td>视频</td><td><code>depth</code>、<code>ground</code></td><td>深度、地面掩码、墙脚 / 墙顶</td><td>Depth Anything、GDINO、SAM 2（顶部结构时 Qwen）</td><td>—</td><td>待 v8 跑完补</td><td>ground</td></tr>
-  <tr><td>scene_fit</td><td><span class="st done">已实现（v10c2，3D 基线 0.6388）</span>；几何体模板 <span class="st wip">实现中</span></td><td><code>pipeline.eval_scene_fit --dim3 --two-pass</code></td><td><code>depth</code>、<code>ground</code>、<code>scenegraph_pfc</code>、跟踪</td><td><code>scene_fit_eval/c_v10c2</code></td><td>3D 场景拟合与拟合值</td><td>—</td><td>—</td><td>待 v8 跑完补</td><td>scene_fit</td></tr>
+  <tr><td>scene_fit</td><td><span class="st done">已实现（r10c2，3D 基线 0.6388）</span>；几何体模板 <span class="st wip">实现中</span></td><td><code>pipeline.eval_scene_fit --dim3 --two-pass</code></td><td><code>depth</code>、<code>ground</code>、<code>scenegraph_pfc</code>、跟踪</td><td><code>scene_fit_eval/c_v10c2</code></td><td>3D 场景拟合与拟合值</td><td>—</td><td>—</td><td>待 v8 跑完补</td><td>scene_fit</td></tr>
 </table></div>
 
 <details class="fold"><summary>旧链（mh3）独有、待删的步骤 <span class="st del">待删</span></summary>
