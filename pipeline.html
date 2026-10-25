@@ -104,7 +104,7 @@
 <div class="callout"><b>v34候选：完整JSON数值解析。</b>修复e+指数被截短、截断JSON数字前缀被误当成功的问题；坏返回进入既有重试且不缓存，245项CPU测试通过。抽查13条缓存数值不变，尚无MRA收益；独立分支，不修改在跑v32/v33。离线误差分解：v26仅将prior题答满分的理论macro约.861，仅将物理来源题答满分约.891，0.9需要两边共同改进。</div>
 <div class="callout"><b>v35候选：局部运动导数，默认关闭。</b>原始metric轨迹以共同中心观测留出选择窗宽与阶数，单位与轨迹descriptor可重放；247项CPU测试通过。合成快速运动的平滑衰减减小，但真实两视频7题初查有升有降，未采用、不宣称MRA收益。v32完整对照和v33独立全链GPT实验继续运行。</div>
 <div class="callout"><b>v36 / v37候选。</b>v36统一条件深度与静态prior的尺寸口径、去重复平滑，250项CPU测试通过；7题固定观测诊断总MRA不变，未采用。v37将direct/reasoning终端首答策略纳入运行签名，248项测试通过；定量首答22题macro .62083，direct .64792；物理来源13题值相同，更多token未见收益，未采用。两者均不修改正在跑的v32/v33。</div>
-<div class="callout"><b>v38身份候选已运行。</b>单实例非part物体比较共享帧与原始最佳帧的既有候选，枚举编号映回源帧坐标并保存像素hash；身份无正向多数票为unknown，物体存在不代替跟踪身份。未知身份/不可观测测量不提供prior数字提示；255项CPU测试和真实工具定位验证通过。固定v33清单/grid，四视频22题重跑track至作答，尚无MRA结果；默认仍legacy。</div>
+<div class="callout"><b>v38身份候选已运行。</b>单实例非part物体比较共享帧与原始最佳帧的既有候选，枚举编号映回源帧坐标并保存像素hash；身份无正向多数票为unknown，物体存在不代替跟踪身份。未知身份/不可观测测量不提供prior数字提示；255项CPU测试和真实工具定位验证通过。固定v33清单/grid，四视频22题重跑track至作答。真实运行已选回桌面笔记本，后续身份票yes/yes/yes；尚无最终MRA结果，不把定位成功当作数值收益；默认仍legacy。</div>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
   <div class="node"><div class="hd"><b>输入与运行编排</b><span class="st done">已实现</span></div><span class="m">视频、题目、本题 prior / depth_info。多个视频并行，同场景变体按背景 C 优先。actor 不读 answer / MRA。每视频独立落盘、失败记录与续跑。</span></div>
