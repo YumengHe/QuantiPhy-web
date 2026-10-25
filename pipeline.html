@@ -87,7 +87,7 @@
 <main class="wrap">
 <nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
 <h1>QuantiPhy agent harness</h1>
-<p class="lede">主分支v26 / 候选v29 · 2026-10-24 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
+<p class="lede">当前v31后端实验 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
 <div class="callout"><b>最近完整验证 v26：control 0.75116 / agent 0.75169（v24 agent 0.75435）。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
 <div class="callout"><b>验证阶段记录：</b>v22 代码 <code>da51368</code>，<b>103 项 CPU 测试通过</b>；完整 <b>159 题 / 24 视频</b> control：S2 <b>0.78125</b> / D2 <b>0.89459</b> / S3 <b>0.66512</b> / D3 <b>0.63617</b>，1 unresolved 按零分计入；非重叠 <b>43 题 0.60923</b>（同题历史 <b>0.64613</b>）。agent macro <b>0.74747</b>（D3 0.64894，其余相同），非重叠同为 <b>0.60923</b>，同样 1 unresolved。25组51轮、5轮尝试修复、1轮接受；43次观察工具调用成功。4题prior→scene平均MRA 0.450→0.425，净上涨主要来自另3个prior回复变化，不能宣称几何收益。历史 v21 的 5 视频 smoke：control <b>0.62125</b>，agent <b>0.61292</b>，子集没有 D2；0 次接受修复，1 次无效 <code>mark_absent</code> 被拒绝，没有证明 agent 收益。</div>
 <div class="callout"><b>v24：159 项 CPU 测试通过；全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。51轮中1轮接受，无执行失败。</b>轨迹验证绑定内容，变更会使场景 / 答案失效；有限观察后必须完成决策；contact 按对象、目标及时间窗编辑。3D 新增共享相机与释放前观测实验，均默认关闭。v24 3D专项：0013默认/onset/再加sharedcamera的8题拟合MRA为0.4125/0.4750/0.4750，球框RMS 19.81→13.35px；0009三配置9题均0.5000。两次joint候选都因护栏拒绝。这不是完整harness分数。</div>
@@ -99,12 +99,14 @@
 <div class="callout"><b>v28候选：五视频34题control/agent均0.59613，无MRA收益。</b>结构对象的真实框纳入冻结证据；SAM传播保留提示帧和身份投票；可疑身份保持unknown。相关帧按时间块汇总，part/whole共用证据族，族内取最差对象、族间等权。相机继承必须证明生成输入仍有效，缺少或过期producer回执时跳过继承。13轮评审接受1次修改，无执行失败。主分支与视频卡仍为v26。</div>
 <div class="callout"><b>v29候选：294项CPU测试通过，全部2D 69题验证完成。</b>标定与作答使用同一个尺寸算子，长边/短边替代解释只作歧义诊断；旧selected_px不能再掩盖prior读回不一致。control/agent均S2 0.71875、D2 0.89459，0无效、0 accepted，未见MRA收益；完整159题control为0.73708，非重叠43题0.62321，1 unresolved；agent仍运行中。保留原置信度门槛。</div>
 <h2 id="flow">流程图：一个视频一次走完</h2>
+<div class="callout"><b>v30：GPT后端实验。</b>统一Qwen/GPT请求和代理鉴权；端点进入运行与prior缓存身份。GPT文本连通成功；固定Qwen视觉缓存后比较GPT评审/先验，v30首轮因seed缺raw停止；v31以完整v26_control重跑，新增严格seed预检。四视频22题GPT agent macro .66667，同题Qwen v26 .67083；10轮/1 accepted、0无效，未见收益。GPT control .64792，agent增加.01875但仍低于Qwen；尚无完整159题GPT分数，0.9目标未达到。</div>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
   <div class="node"><div class="hd"><b>输入与运行编排</b><span class="st done">已实现</span></div><span class="m">视频、题目、本题 prior / depth_info。多个视频并行，同场景变体按背景 C 优先。actor 不读 answer / MRA。每视频独立落盘、失败记录与续跑。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>物体清单 → grid 场景图</b><span class="st done">已实现</span></div><span class="m">只覆盖题目、prior 提到的对象及必要支撑结构；记录别名、数量、角色、身份与关系。<code>objects</code>、<code>scenegraph</code></span></div>
   <div class="arrow"></div>
+  <div class="node"><div class="hd"><b>模型后端：Qwen / GPT（v30已接入，效果验证中）</b></div><span class="m">统一请求与鉴权，端点隔离缓存；v31推理前检查seed完整性，缺raw报错；先固定初始视觉观测比较后续评审和先验。</span></div>
   <div class="node"><div class="hd"><b>候选跟踪 → raw → merge / presence → 按帧关系</b><span class="st done">已实现</span></div><span class="m">GDINO / SAM 2 与 Qwen 复核；新轨迹先写 raw，经同一后处理进入场景。按帧关系提供支撑、接触与运动阶段。初始视觉观测可复用；验证绑定 split / video / cache / track hash，只有同身份同内容才迁移。缺失或过期检查为 unknown。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>按 prior / depth_info 分组，建立独立状态</b><span class="st done">已实现</span></div><span class="m"><code>groups[*].scene</code> 保存完整组场景；<code>question_context</code> 与 <code>question_scope</code> 限定本组输入。每组 agent 从相同初始观测恢复，上一组接受的编辑不成为下一组的证据。</span></div>
@@ -149,6 +151,7 @@
 <thead><tr><th>阶段</th><th>左：2D</th><th>右：3D</th><th>状态</th></tr></thead>
 <tbody>
 <tr><td>允许输入与组隔离</td><td>本组 prior 标定；完整 layers / scale / results</td><td>本组 prior / depth_info；完整 camera / objects / results</td><td><span class="st done">已实现</span></td></tr>
+<tr><td>模型后端</td><td colspan="2">Qwen或GPT统一请求与鉴权；仅Qwen发送vLLM参数；端点与模型隔离缓存</td><td><span class="st done">v30已接入</span> 效果验证中</td></tr>
 <tr><td>观测</td><td>refmeasure、凸包、原始框、稳定尺寸、遮挡</td><td>refmeasure、深度、ground、端点、接触</td><td><span class="st done">已实现</span></td></tr>
 <tr><td>前向模型</td><td>scene_state2d：位置、速度、投影、数值重放；检测驱动的重复首帧 hold 共用时间映射</td><td>scene_state3d：完整运动、解析几何投影与重放</td><td><span class="st done">已实现</span></td></tr>
 <tr><td>轨迹验证依赖</td><td>unknown 保留框与对象，沿用未验证权重</td><td>unknown 不成为可信可见性证据；直接测量置信门控</td><td><span class="st done">v24 已实现</span></td></tr>
