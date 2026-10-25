@@ -221,6 +221,7 @@
 <!-- versions:begin -->
   <table>
     <tr><th>版本</th><th>日期</th><th>改动</th><th>验证集</th><th>测试集 / 官方分</th></tr>
+    <tr><td>v28（候选）</td><td>10-24</td><td>结构观测纳入冻结证据；身份冲突保持未知；SAM传播谱系、part_of证据族与等时间块验收；继承相机必须验证producer生成输入与产物，父manifest绑定子缓存；292项CPU测试通过</td><td>五视频34题配对smoke运行中，未合入主分支；不改置信度门槛</td><td>未跑</td></tr>
     <tr><td>v27（候选）</td><td>10-24</td><td>输入依赖闭包与split隔离；严格题组相机继承；移除同源置信度加分，prior置信度留未知；276项CPU测试通过。代码af3c264，主分支暂保留v26</td><td>四视频25题control/agent均.59208，同题v26 control为.67854；6题场景→prior，执行/恢复检查通过但准确率下降。完整159题control/agent均.73601799（S2 .71875/D2 .89459/S3 .68605/D3 .64468）；非重叠43题.62321429；1 unresolved，未采用</td><td>未跑</td></tr>
     <tr><td>v26</td><td>10-24</td><td>受限3D模型策略工具、输入绑定/去重、group隔离与采纳持久化；共同约束固定分母并runtime重算；内层/外层状态与失败传播；237项CPU测试通过</td><td>完整159题control/agent=.75116055/.75169247，非重叠43题均.66755952，1 unresolved计零；control逐题与v24 control相同。agent S2 .78125/D2 .89459/S3 .68837/D3 .64255；52轮/2 accepted，无执行失败，增益.00053不足以支持收益结论；低于v24 agent .75435</td><td>未跑</td></tr>
     <tr><td>v25</td><td>10-24</td><td>静止刚体模型选择（staticmodel默认关），独立yaw、移除v/a自由度，静止假设下显式绑定timeless depth；prior对象时刻解析、每次先验尝试审计、真实HTTP错误传播；独立离线compare_harness；195项CPU测试</td><td>六组专项（均含onsetevidence）：0013 control/static/+joint = .4750/.4750/.4125，0009 = .5000/.54444/.54444；首例joint内部接受但数值下降，需外层固定证据验收；不是完整harness分数，未改变默认3D参数</td><td>未跑</td></tr>
