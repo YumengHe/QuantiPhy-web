@@ -113,6 +113,7 @@
 <div class="callout"><b>v49平面矩形原型。</b>5项专项合成测试通过，但真实角点对.5px扰动敏感、f范围很宽，桌面遮挡返回null；只读诊断、未接入harness，不把偶然接近标注的数值当高置信度测量。</div>
 <div class="callout"><b>v51边线细化原型（未接harness）。</b>v49角点附近以原图RGB梯度拟合边线并求交点，3项专项测试通过。真实角点移动.34–2px后正交性和焦距稳定性仍不足，128扰动只有23正f；保持只读诊断，不提高置信度、不改变默认。</div>
 <div class="callout"><b>v52距离锚点绑定候选。</b>native严格token导致pingpong与ping pong ball不匹配、原始距离未进入拟合。新规则只做相邻字母词的精确空格等价，保留颜色/左右/编号，新增多实例歧义不绑定；depth-map track定位共用规则，保存raw_key审计。259项CPU测试；27题 .68680556与同题基线相同，0无效、11/11 prior回放。两条距离已进入native，full159输入审计新规则仅影响该已测视频；v53作为正确性修复采纳。</div>
+<div class="callout"><b>v57直接深度序列绑定候选。</b>唯一精确分词等价补回此前漏用的时间锚点，保存raw key/track/匹配/时间来源；不改平滑、导数或range/Z语义。275项CPU测试通过，27题固定视觉与相同GPT原始prior响应对照运行中，未采用；完整最好macro仍为v50的 .76974047。</div>
 <div class="callout"><b>v55验证通过，v56采纳视觉错误传播。</b>共用ground/point/visible/selector的HTTP/格式失败不得变成None/visible=true或无候选；新的错误族透传旧fallback，由harness记录失败、固定分母计零。只有显式null才缓存未定位到，绑定像素/语义/backend/producer，旧无类型null重确认。主分支270项CPU测试通过；22题预测/conf/source/method/MRA与基线全部一致、0无效、9/9 prior回放，4条旧null重新确认。真实selector/visible/point调用通过；不宣称MRA提升。</div>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
@@ -187,6 +188,7 @@
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；仅成功有限正数，agent / control 可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
+<tr><td>v57直接深度序列</td><td colspan="2">补唯一精确分词绑定，第二锚点参与已有尺度估计，保留多实例歧义与来源审计</td><td>候选；275测试，27题验证运行中</td></tr>
 <tr><td>v56视觉错误传播</td><td colspan="2">请求/格式失败显式透传；显式null绑定原像素/语义/backend/producer；不可用不当物理不存在，失败题不缩分母</td><td><span class="st wip">v56采纳、270测试</span> 22题逐项同基线</td></tr>
 <tr><td>v52 depth名称绑定候选</td><td>不变</td><td>精确闭合词空格等价，保留颜色/左右/编号；native与depth-map定位一致，raw_key审计</td><td><span class="st wip">v53采纳、主分支262测试</span> 27题同分，锚点恢复</td></tr>
 <tr><td>v48显式推理强度候选</td><td colspan="2">GPT reasoning_effort与兼容采样参数绑定HTTP/body/backend/cache/resume；v50固定视觉完整对照</td><td><span class="st wip">v53采纳可选接口</span> high全量control已完成，v54 agent运行中</td></tr>
