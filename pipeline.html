@@ -108,7 +108,9 @@
 <div class="callout"><b>v45已采纳，v42模型对照完成，v43身份候选运行中。</b>v39修复数值JSON解析和重试策略变更后的旧答案误续跑，247项CPU测试通过，尚无新MRA。v40/v41检查摆模型独自改变焦距而场景仍用旧焦距的问题：候选固定共享相机、题目已知直径，并用同一中心/直径观测比较拟合；不提高置信度，不放宽验收，尚未采用。v40遗漏CLI白名单而主动停止，无有效分数；v41补齐入口后250项测试通过，22题.65833 vs同题v32 .64792；13道物理值不变，分差全来自prior。v42使用v39冻结实现与相同视觉seed，GPT-6-astra完整159题no-agent已完成：macro .76282557，非重叠43题 .65505952，0无效；112道物理值与sol相同，33道prior变化，未证明稳健收益。v43身份候选260项测试通过，固定v26_control清单/grid，从track重建完整159题GPT control，运行中。</div>
 <div class="callout"><b>v44复现通过，v45采纳可选工具。</b>v41与v32有9组完全相同的模型请求，其中7组重新生成后的数值不同。候选冻结单一源码签名的原始响应；完整请求/模型/后端/split精确匹配，bank sha256绑定缓存和续跑，仅val可用，仍为prior而非新观测。主分支254项CPU测试通过；22题预测/来源/方法/conf与v32基线全部一致，9/9 prior回放、0无效，macro .64791667；默认关闭，不宣称MRA提升。</div>
 <div class="callout"><b>v46类型化端点候选。</b>端点不再用whole-object bbox中心替代；点观测绑定源帧/语义/backend，ray+题目range的距离由runtime重算，缺点或模糊点不以range差冒充精确长度。坏返回/HTTP失败显式失败，不提高旧置信度。262项CPU测试通过，22题macro .64791667与基线相同，0无效；7/9 prior回放，仅桌面/斜坡数值变动、分数不变，未采用。</div>
-<div class="callout"><b>v47原生range语义对照。</b>仅开启已有range拟合开关，depth_info原生锚点用norm(P)而非P_z；固定v26_control视觉与v32冻结prior bank，完整159题运行中。不混入身份/端点候选，direct/depth-series旧实现未改，主分支仍v45。</div>
+<div class="callout"><b>v47原生range语义对照。</b>仅开启已有range拟合开关，depth_info原生锚点用norm(P)而非P_z；固定v26_control视觉与v32冻结prior bank，完整159题已完成：macro .76470390，非重叠43题 .67857143，0无效；30/47 prior回放，几何改善混合，未采用。不混入身份/端点候选，direct/depth-series旧实现未改，主分支仍v45。</div>
+<div class="callout"><b>v48/v50显式Astra high。</b>按SPARK2 high与官方兼容参数发送reasoning_effort，省略temperature；effort进入backend/cache/resume，默认配置不变。257项CPU测试；22题 .67395833 vs默认Astra同题 .65520833，13道物理值不变，单道prior题贡献全部增益。v50完整159题对照运行中，尚无稳健收益结论。</div>
+<div class="callout"><b>v49平面矩形原型。</b>5项专项合成测试通过，但真实角点对.5px扰动敏感、f范围很宽，桌面遮挡返回null；只读诊断、未接入harness，不把偶然接近标注的数值当高置信度测量。</div>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
   <div class="node"><div class="hd"><b>输入与运行编排</b><span class="st done">已实现</span></div><span class="m">视频、题目、本题 prior / depth_info。多个视频并行，同场景变体按背景 C 优先。actor 不读 answer / MRA。每视频独立落盘、失败记录与续跑。</span></div>
@@ -182,7 +184,9 @@
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；仅成功有限正数，agent / control 可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
-<tr><td>v47 range候选</td><td>不变</td><td>原生depth_info锚点按相机欧氏距离；已有开关单独消融，其他语义分支尚未统一</td><td><span class="st wip">完整159题运行中</span> 未采用</td></tr>
+<tr><td>v48显式推理强度候选</td><td colspan="2">GPT reasoning_effort与兼容采样参数绑定HTTP/body/backend/cache/resume；v50固定视觉完整对照</td><td><span class="st wip">257测试、22题完成、全量运行中</span> 未采用</td></tr>
+<tr><td>v49矩形几何原型</td><td>不变</td><td>四角/正交vanishing-point与ray+range条件重建；显式像素敏感性与不可辨识f</td><td><span class="st wip">5项专项测试</span> 未接harness</td></tr>
+<tr><td>v47 range候选</td><td>不变</td><td>原生depth_info锚点按相机欧氏距离；已有开关单独消融，其他语义分支尚未统一</td><td><span class="st wip">全量完成</span> 几何改善混合，未采用</td></tr>
 <tr><td>v46命名端点候选</td><td>不变</td><td>具体point与题目range重建；同帧/像素/语义绑定；descriptor运行时重算，未知不作精确长度</td><td><span class="st wip">262测试、22题完成</span> 无MRA收益，未采用</td></tr>
 <tr><td>v41共享相机候选</td><td>不变</td><td>摆拟合固定共享f和题目直径，同一中心/直径观测算子比较；不提升置信度</td><td><span class="st wip">22题完成</span> 无几何MRA收益证据</td></tr>
 <tr><td>独立新证据进入裁判</td><td colspan="2">当前冻结证据防止自证；来源可审计的新观测入场协议仍需完成</td><td><span class="st wip">实现中</span></td></tr>
