@@ -113,7 +113,7 @@
 <div class="callout"><b>v49平面矩形原型。</b>5项专项合成测试通过，但真实角点对.5px扰动敏感、f范围很宽，桌面遮挡返回null；只读诊断、未接入harness，不把偶然接近标注的数值当高置信度测量。</div>
 <div class="callout"><b>v51边线细化原型（未接harness）。</b>v49角点附近以原图RGB梯度拟合边线并求交点，3项专项测试通过。真实角点移动.34–2px后正交性和焦距稳定性仍不足，128扰动只有23正f；保持只读诊断，不提高置信度、不改变默认。</div>
 <div class="callout"><b>v52距离锚点绑定候选。</b>native严格token导致pingpong与ping pong ball不匹配、原始距离未进入拟合。新规则只做相邻字母词的精确空格等价，保留颜色/左右/编号，新增多实例歧义不绑定；depth-map track定位共用规则，保存raw_key审计。259项CPU测试；27题 .68680556与同题基线相同，0无效、11/11 prior回放。两条距离已进入native，full159输入审计新规则仅影响该已测视频；v53作为正确性修复采纳。</div>
-<div class="callout"><b>v72可选完整响应回放已采纳。</b>raw policy只用于val，保留0/空/非数字模型内容以复现原重试；HTTP/队列/坏envelope仍是执行失败，默认usable不变。279测试；v70/v71真实22题pred/conf/source/method/MRA及9个prior重试记录逐项一致，独立空cache 9/9冷回放、0无效/partial；本次真实响应均有效，零值路径由CPU/历史内容离线测试覆盖。v73完整Astra high raw control已启动，后续再严格配对agent。</div>
+<div class="callout"><b>v72可选完整响应回放已采纳。</b>raw policy只用于val，保留0/空/非数字模型内容以复现原重试；HTTP/队列/坏envelope仍是执行失败，默认usable不变。279测试；v70/v71真实22题pred/conf/source/method/MRA及9个prior重试记录逐项一致，独立空cache 9/9冷回放、0无效/partial；本次真实响应均有效，零值路径由CPU/历史内容离线测试覆盖。v73完整Astra high raw control运行中；同.py的v76 agent工作区已冻结，等待control完成及最终bank/helper快照，尚未启动。</div>
 <div class="callout"><b>v75深度残差审计修复已采纳。</b>三类native拟合结果按anchor_range报告相机距离或Z误差，与优化目标一致；281测试，两种语义/运动起始及loss逐项核对。只改诊断记录，无新MRA，几何默认策略保持v26。</div>
 <div class="callout"><b>v74运动约束候选未采纳。</b>自身正2D速度prior已接通结构化重选运动窗，替代框遵守同帧排除，合并后复核；297测试通过。但真实v68原始轨迹位移5.05785px仍过原门槛，未修复身份/尺度；未按案例调阈值，无新MRA。</div>
 <div class="callout"><b>v67原图不可变修复已采纳。</b>v66已触发同帧排除约束，但frames观察工具原来直接向缓存源图写时间戳，导致pixel hash检查失败。现_stamp先copy，273测试；真实frame198观察后缓存不变，seek/sequence逐像素相同，未降低绑定门槛。v68闭环286测试，六题已正常完成、排除生效但新轨迹运动不足，仍全prior；v66是execution partial，不能把终端prior .9当成功。</div>
