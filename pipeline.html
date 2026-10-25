@@ -88,7 +88,7 @@
 <nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
 <h1>QuantiPhy agent harness</h1>
 <p class="lede">当前v32完整GPT对照实验 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
-<div class="callout"><b>最近完整验证 v26：control 0.75116 / agent 0.75169（v24 agent 0.75435）。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
+<div class="callout"><b>最近完整配对基线 v26：control 0.75116 / agent 0.75169（v24 agent 0.75435）。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
 <div class="callout"><b>验证阶段记录：</b>v22 代码 <code>da51368</code>，<b>103 项 CPU 测试通过</b>；完整 <b>159 题 / 24 视频</b> control：S2 <b>0.78125</b> / D2 <b>0.89459</b> / S3 <b>0.66512</b> / D3 <b>0.63617</b>，1 unresolved 按零分计入；非重叠 <b>43 题 0.60923</b>（同题历史 <b>0.64613</b>）。agent macro <b>0.74747</b>（D3 0.64894，其余相同），非重叠同为 <b>0.60923</b>，同样 1 unresolved。25组51轮、5轮尝试修复、1轮接受；43次观察工具调用成功。4题prior→scene平均MRA 0.450→0.425，净上涨主要来自另3个prior回复变化，不能宣称几何收益。历史 v21 的 5 视频 smoke：control <b>0.62125</b>，agent <b>0.61292</b>，子集没有 D2；0 次接受修复，1 次无效 <code>mark_absent</code> 被拒绝，没有证明 agent 收益。</div>
 <div class="callout"><b>v24：159 项 CPU 测试通过；全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。51轮中1轮接受，无执行失败。</b>轨迹验证绑定内容，变更会使场景 / 答案失效；有限观察后必须完成决策；contact 按对象、目标及时间窗编辑。3D 新增共享相机与释放前观测实验，均默认关闭。v24 3D专项：0013默认/onset/再加sharedcamera的8题拟合MRA为0.4125/0.4750/0.4750，球框RMS 19.81→13.35px；0009三配置9题均0.5000。两次joint候选都因护栏拒绝。这不是完整harness分数。</div>
 <div class="callout"><b>v8 旧链仍保留。</b>不删除正在运行的 v8 及其依赖，不启动新的 mh3 / route 实验。旧链迁出当前流程，清理需另行安排。图上的“已实现”表示代码已落地，不表示已通过端到端 MRA 验证。</div>
@@ -145,7 +145,7 @@
     <p class="cycle">每轮记录：state_id、evidence_hash、工具参数、执行结果、前后指标、接受 / 拒绝原因。</p>
   </section>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>终端 finalize_scene</b><span class="st done">已实现</span></div><span class="m">先重放 scene / measurement；不可用时显式调用本题 answer_prior，完全相同请求可复用缓存；仍无有效数值则 unresolved。缓存命中仍是 prior，不增加可信度。保留 scene_id 与 provenance。</span></div>
+  <div class="node"><div class="hd"><b>终端 finalize_scene</b><span class="st done">已实现</span></div><span class="m">先重放 scene / measurement；不可用时显式调用本题 answer_prior，完全相同请求可复用缓存；仍无有效数值则 unresolved。缓存命中仍是 prior，不增加可信度。保留 scene_id 与 provenance。候选v34严格解析完整JSON数值；v37定量首答策略正在准备消融，默认direct未改。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>逐视频 answers → assemble → 评分</b><span class="st done">已实现</span></div><span class="m">组装阶段不推理、不补常数。缺题与失败仍按零分计入所请求题目集的分母；报告四类 macro MRA 和非重叠子集。测试提交要求全部预期行完整有效。</span></div>
 </div>
@@ -168,6 +168,8 @@
 <tr><td>工具契约</td><td colspan="2">tracks_summary 返回真实连续段；观察失败显式记录；无适用改动不触发 refit</td><td><span class="st done">v22 已实现</span></td></tr>
 <tr><td>稳定性诊断</td><td>定位噪声、运动拟合、尺度解释、出画 / 遮挡</td><td>固定其他参数的 extent ±10% 条件探测；未联合焦距 / 深度求区间</td><td><span class="st done">已实现</span> 局部诊断，非严格区间</td></tr>
 <tr><td>工具修复</td><td>原 issue 系统保留；drop_frames 需 merge / 孤立尖峰证据</td><td>关系、支撑、跟踪与运动假设修复</td><td><span class="st done">已实现</span></td></tr>
+<tr><td>候选终端策略</td><td colspan="2">v34完整JSON数值解析；v37显式比较direct短首答与定量reasoning首答，policy进入续跑签名；默认direct</td><td><span class="st wip">候选已测试</span> 效果待验证</td></tr>
+<tr><td>候选瞬时测量</td><td>维持现有2D</td><td>v35/v36原始metric轨迹局部留出选择导数；静态prior与深度同尺寸算子；descriptor重放，默认legacy</td><td><span class="st wip">候选</span> 暂无稳定收益</td></tr>
 <tr><td>终端先验审计</td><td colspan="2">逐次记录阶段、耗时、响应摘要和有效性；HTTP/连接/超时错误传播为执行失败</td><td><span class="st done">v25 已实现</span></td></tr>
 <tr><td>验收与终端作答</td><td>共享固定证据裁判 + issue_accept；runtime replay</td><td>共享固定证据裁判；runtime / measurement replay</td><td><span class="st done">已实现</span> 效果待验证</td></tr>
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；仅成功有限正数，agent / control 可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
