@@ -100,10 +100,11 @@
 <div class="callout"><b>v29候选：294项CPU测试通过，全部2D 69题验证完成。</b>标定与作答使用同一个尺寸算子，长边/短边替代解释只作歧义诊断；旧selected_px不能再掩盖prior读回不一致。control/agent均S2 0.71875、D2 0.89459，0无效、0 accepted，未见MRA收益；完整159题control为0.73708，非重叠43题0.62321，1 unresolved；agent仍运行中。保留原置信度门槛。</div>
 <h2 id="flow">流程图：一个视频一次走完</h2>
 <div class="callout"><b>v30：GPT后端实验。</b>统一Qwen/GPT请求和代理鉴权；端点进入运行与prior缓存身份。GPT文本连通成功；固定Qwen视觉缓存后比较GPT评审/先验，v30首轮因seed缺raw停止；v31以完整v26_control重跑，新增严格seed预检。四视频22题GPT agent macro .66667，同题Qwen v26 .67083；10轮/1 accepted、0无效，未见收益。GPT control .64792，agent增加.01875但仍低于Qwen；v32 control完整159题macro .75938（Qwen control .75116），非重叠43题 .65982（Qwen .66756），0无效；112道物理来源数值完全相同，净增来自prior回复。GPT agent完整对照已启动；0.9目标未达到。</div>
-<div class="callout"><b>v33：全链GPT观测实验已启动。</b>独立工作区QuantiPhy-gpt-fresh与独立outputs；从清单、场景图、跟踪复核、参考点与ground重新生成观测后进入同一harness。仅共享视频与模型权重，不读取主工作区视觉缓存；四视频22题结果待完成。v32继续固定Qwen视觉seed的完整159题对照，两种实验分开解释。</div>
+<div class="callout"><b>v33：全链GPT观测实验已启动。</b>独立工作区QuantiPhy-gpt-fresh与独立outputs；从清单、场景图、跟踪复核、参考点与ground重新生成观测后进入同一harness。仅共享视频与模型权重，不读取主工作区视觉缓存；四视频22题已完成macro .67292，Qwen同题 .67083，10轮/1接受，0无效；无稳定收益证据。v32继续固定Qwen视觉seed的完整159题对照，两种实验分开解释。</div>
 <div class="callout"><b>v34候选：完整JSON数值解析。</b>修复e+指数被截短、截断JSON数字前缀被误当成功的问题；坏返回进入既有重试且不缓存，245项CPU测试通过。抽查13条缓存数值不变，尚无MRA收益；独立分支，不修改在跑v32/v33。离线误差分解：v26仅将prior题答满分的理论macro约.861，仅将物理来源题答满分约.891，0.9需要两边共同改进。</div>
 <div class="callout"><b>v35候选：局部运动导数，默认关闭。</b>原始metric轨迹以共同中心观测留出选择窗宽与阶数，单位与轨迹descriptor可重放；247项CPU测试通过。合成快速运动的平滑衰减减小，但真实两视频7题初查有升有降，未采用、不宣称MRA收益。v32完整对照和v33独立全链GPT实验继续运行。</div>
-<div class="callout"><b>v36 / v37候选。</b>v36统一条件深度与静态prior的尺寸口径、去重复平滑，250项CPU测试通过；7题固定观测诊断总MRA不变，未采用。v37将direct/reasoning终端首答策略纳入运行签名，248项测试通过；独立固定视觉输入的定量首答消融已准备，等待v33结束后运行。两者均不修改正在跑的v32/v33。</div>
+<div class="callout"><b>v36 / v37候选。</b>v36统一条件深度与静态prior的尺寸口径、去重复平滑，250项CPU测试通过；7题固定观测诊断总MRA不变，未采用。v37将direct/reasoning终端首答策略纳入运行签名，248项测试通过；定量首答22题macro .62083，direct .64792；物理来源13题值相同，更多token未见收益，未采用。两者均不修改正在跑的v32/v33。</div>
+<div class="callout"><b>v38身份候选已运行。</b>单实例非part物体比较共享帧与原始最佳帧的既有候选，枚举编号映回源帧坐标并保存像素hash；身份无正向多数票为unknown，物体存在不代替跟踪身份。未知身份/不可观测测量不提供prior数字提示；255项CPU测试和真实工具定位验证通过。固定v33清单/grid，四视频22题重跑track至作答，尚无MRA结果；默认仍legacy。</div>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
   <div class="node"><div class="hd"><b>输入与运行编排</b><span class="st done">已实现</span></div><span class="m">视频、题目、本题 prior / depth_info。多个视频并行，同场景变体按背景 C 优先。actor 不读 answer / MRA。每视频独立落盘、失败记录与续跑。</span></div>
@@ -111,7 +112,7 @@
   <div class="node"><div class="hd"><b>物体清单 → grid 场景图</b><span class="st done">已实现</span></div><span class="m">只覆盖题目、prior 提到的对象及必要支撑结构；记录别名、数量、角色、身份与关系。<code>objects</code>、<code>scenegraph</code></span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>模型后端：Qwen / GPT（v30已接入，效果验证中）</b></div><span class="m">统一请求与鉴权，端点隔离缓存；v31推理前检查seed完整性，缺raw报错；先固定初始视觉观测比较后续评审和先验。</span></div>
-  <div class="node"><div class="hd"><b>候选跟踪 → raw → merge / presence → 按帧关系</b><span class="st done">已实现</span></div><span class="m">GDINO / SAM 2 与 Qwen 复核；新轨迹先写 raw，经同一后处理进入场景。按帧关系提供支撑、接触与运动阶段。初始视觉观测可复用；验证绑定 split / video / cache / track hash，只有同身份同内容才迁移。缺失或过期检查为 unknown。</span></div>
+  <div class="node"><div class="hd"><b>候选跟踪 → raw → merge / presence → 按帧关系</b><span class="st done">已实现</span></div><span class="m">GDINO / SAM 2 与模型复核；v38候选可比较两个源帧的枚举种子、身份冲突保留unknown，默认legacy。新轨迹先写 raw，经同一后处理进入场景。按帧关系提供支撑、接触与运动阶段。初始视觉观测可复用；验证绑定 split / video / cache / track hash，只有同身份同内容才迁移。缺失或过期检查为 unknown。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>按 prior / depth_info 分组，建立独立状态</b><span class="st done">已实现</span></div><span class="m"><code>groups[*].scene</code> 保存完整组场景；<code>question_context</code> 与 <code>question_scope</code> 限定本组输入。每组 agent 从相同初始观测恢复，上一组接受的编辑不成为下一组的证据。</span></div>
   <div class="arrow"></div>
@@ -158,6 +159,7 @@
 <tr><td>模型后端</td><td colspan="2">Qwen或GPT统一请求与鉴权；仅Qwen发送vLLM参数；端点与模型隔离缓存</td><td><span class="st done">v30已接入</span> 效果验证中</td></tr>
 <tr><td>观测</td><td>refmeasure、凸包、原始框、稳定尺寸、遮挡</td><td>refmeasure、深度、ground、端点、接触</td><td><span class="st done">已实现</span></td></tr>
 <tr><td>前向模型</td><td>scene_state2d：位置、速度、投影、数值重放；检测驱动的重复首帧 hold 共用时间映射</td><td>scene_state3d：完整运动、解析几何投影与重放</td><td><span class="st done">已实现</span></td></tr>
+<tr><td>v38候选身份</td><td colspan="2">非part单实例对比多帧已有候选；多数否定/缺少正向多数票不升级verified；保留物体和框，未知身份数值不给prior作提示；策略签名与首次fresh-track契约</td><td><span class="st wip">已测试、运行中</span> MRA待验证</td></tr>
 <tr><td>轨迹验证依赖</td><td>unknown 保留框与对象，沿用未验证权重</td><td>unknown 不成为可信可见性证据；直接测量置信门控</td><td><span class="st done">v24 已实现</span></td></tr>
 <tr><td>决策与关系工具</td><td colspan="2">有限观察后明确act/done；未完成规划单独失败；contact按精确对象/目标/时间窗set或clear。3D先读model_options，再以绑定输入的option_id单独尝试一种拟合策略</td><td><span class="st done">v24 已实现</span></td></tr>
 <tr><td>v29候选：量纲语义</td><td>标定与作答共享尺寸算子，真实读回prior残差，保留方向歧义</td><td>不改3D模型</td><td><span class="st done">2D已验证</span> 全量运行中</td></tr>
