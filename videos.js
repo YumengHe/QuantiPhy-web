@@ -71,7 +71,7 @@
   function matchText(v, q, needle) { return !needle || v.id.toLowerCase().includes(needle) || q.q.toLowerCase().includes(needle); }
 
   const hasScene = (v) => !!(v.scene || v.has_scene);
-  const versionTitle = (ver) => '版本：' + Object.entries(ver.detail || {}).map(([k, x]) => `${k} = ${typeof x === 'object' ? JSON.stringify(x) : x}`).join('\n');
+  const versionTitle = (ver) => `版本 ${ver.label || '—'}（产生这个场景的版本，见首页版本表）` + (ver.module ? '\n' + ver.module.split(' · ').join('\n') : '') + '\n' + Object.entries(ver.detail || {}).map(([k, x]) => `${k} = ${typeof x === 'object' ? JSON.stringify(x) : x}`).join('\n');
   // per-frame visible-count check (scene json "count_check", written by qp-tools): n_video vs n_scene as a strip
   function countStrip(cc) {
     if (!cc) return '';
@@ -99,8 +99,9 @@
       '<div class="vright"><span class="vright-row">' +
       (v.eval && v.eval.layer && v.eval.layer !== '—' ? `<span class="evtag" title="评估员判断的主因层：${esc(v.eval.layer)}\n根因：${esc(v.eval.cause)}">${esc(shortLayer(v.eval.layer))}</span>` : '') +
       (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') + '</span>' +
-      (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}` +
-        (v.version && v.version.label ? ` · <span title="${esc(versionTitle(v.version))}">${esc(v.version.label)}</span>` : '') + '</span>' : '') + '</div></summary>';
+      (v.run_at || (v.version && v.version.label) ? '<span class="runat">' +
+        (v.version && v.version.label ? `<span title="${esc(versionTitle(v.version))}">${esc(v.version.label)}</span>` + (v.run_at ? ' · ' : '') : '') +
+        (v.run_at ? `<span title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</span>' : '') + '</div></summary>';
     let built = false, viewer = null, video = null;
     const onToggle = () => {
       // test-set scenes live in one file per video (data/scenes/test/<id>.json) and are fetched when the card opens

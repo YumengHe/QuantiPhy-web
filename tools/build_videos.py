@@ -800,40 +800,81 @@ def scene2d(split: str, vid: str):
 LA = ZoneInfo("America/Los_Angeles")
 
 
-def _vlabel(x) -> str:
-    """Page naming: pipeline versions are vN, module versions "module rN" ("scene2d-v9" -> "scene2d r9")."""
-    return re.sub(r"^([A-Za-z0-9_]+)-v(\w+)$", r"\1 r\2", str(x))
+PIPE_VERSION = {"val": "v12", "test": "v7"}   # version vN that produced each tab's scenes (--val-version / --test-version-label)
 
 
 def version_of(split: str, vid: str, is3d: bool, csv: Path) -> dict:
-    """Version shown next to the timestamp: the scene json's own "version" field when it has one
-    ({pipeline, commit, scene2d, scene_fit, objects, presence, refmeasure, time} -> "pipeline · commit"); else pieced
-    together from the scene directory name, the pipeline tag in the result csv name (val_mh3_<tag>_...) and the json mtime."""
-    if split == "test" and TEST_VERSION:   # one version for the whole submission (--test-version)
-        return {"label": " · ".join(str(TEST_VERSION[k]) for k in ("pipeline", "commit") if TEST_VERSION.get(k)) or "版本 json",
-                "detail": TEST_VERSION}
+    """Card label = the global version vN that produced the split's scenes (docs/VERSIONS.md); the hover gets the
+    commit and the scene directory ("module") and the run time."""
     d = (SCENE_DIRS if is3d else SCENE2D_DIRS).get(split)
     p = d / f"{vid}.json" if d else None
-    ver = None
-    if p is not None and p.exists():
-        try:
-            ver = json.load(open(p)).get("version")
-        except (OSError, json.JSONDecodeError):
-            ver = None
-    if isinstance(ver, dict) and (ver.get("pipeline") or ver.get("commit")):
-        return {"label": " · ".join(_vlabel(ver[k]) if k == "pipeline" else str(ver[k]) for k in ("pipeline", "commit") if ver.get(k)), "detail": ver}
+    if split == "test" and TEST_VERSION:   # one version json for the whole submission (--test-version)
+        ver = dict(TEST_VERSION)
+    else:
+        ver = None
+        if p is not None and p.exists():
+            try:
+                ver = json.load(open(p)).get("version")
+            except (OSError, json.JSONDecodeError):
+                ver = None
+        ver = dict(ver) if isinstance(ver, dict) else {}
+    ver.pop("pipeline", None)   # old per-module tag (scene2d-v9 ...), not a global version
+    commit = ver.pop("commit", None)
     parts = []
+    if commit:
+        parts.append("commit " + str(commit))
     if p is not None and p.exists():
-        parts.append(("拟合 " if is3d else "场景 ") + d.name)
-    m = re.match(r"(?:val|test)_mh3_([A-Za-z0-9]+)", csv.name)
-    if m:
-        parts.append("流水线 " + m.group(1))
-    elif split == "test":
-        parts.append(csv.stem)
-    detail = {}
-    if p is not None and p.exists():
-        detail["scene_mtime"] = datetime.fromtimestamp(p.stat().st_mtime, LA).strftime("%Y-%m-%d %H:%M %Z")
-    return {"label": " · ".join(parts), "detail": detail}
+        parts.append("目录 " + str(d.relative_to(ROOT / "outputs") if d.is_relative_to(ROOT / "outputs") else d.name))
+    if split == "test":
+        parts.append("提交 " + csv.name)
+    if p is not None and p.exists() and "time" not in ver:
+        ver["scene_mtime"] = datetime.fromtimestamp(p.stat().st_mtime, LA).strftime("%Y-%m-%d %H:%M %Z")
+    # the json's per-module counters (scene2d: 8, refmeasure: 8 ...) are not global versions: only the time is shown
+    return {"label": PIPE_VERSION.get(split, ""), "module": " · ".join(parts),
+            "detail": {k: ver[k] for k in ("time", "scene_mtime") if ver.get(k)}}
+
+
+VERSIONS_MD = ROOT / "docs" / "VERSIONS.md"
+INDEX_HTML = WEB / "index.html"
+
+
+def _md_cell(x: str) -> str:
+    x = html.escape(x.strip(), quote=False)
+    x = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", x)
+    return re.sub(r"`([^`]+)`", r"<code>\1</code>", x)
+
+
+def versions_table(md: Path = VERSIONS_MD) -> str:
+    """The version table in docs/VERSIONS.md (| 版本 | 日期 | 改动 | 验证集 | 测试集 / 官方分 |) as an HTML table."""
+    rows = []
+    for line in md.read_text().splitlines():
+        if not line.startswith("|") or re.match(r"^\|\s*-", line):
+            continue
+        cells = [c for c in line.strip().strip("|").split("|")]
+        rows.append(cells)
+    if not rows:
+        return ""
+    head, body = rows[0], rows[1:]
+    out = ["  <table>", "    <tr>" + "".join(f"<th>{_md_cell(h)}</th>" for h in head) + "</tr>"]
+    for r in body:
+        out.append("    <tr>" + "".join(f"<td>{_md_cell(c)}</td>" for c in r) + "</tr>")
+    out.append("  </table>")
+    return "\n".join(out)
+
+
+def write_versions(index: Path = INDEX_HTML, md: Path = VERSIONS_MD) -> int:
+    """Replace the block between <!-- versions:begin --> and <!-- versions:end --> in index.html; returns the row count."""
+    if not md.exists() or not index.exists():
+        return 0
+    s = index.read_text()
+    a, b = "<!-- versions:begin -->", "<!-- versions:end -->"
+    if s.count(a) != 1 or s.count(b) != 1:
+        return 0
+    tab = versions_table(md)
+    i, j = s.index(a) + len(a), s.index(b)
+    index.write_text(s[:i] + "\n" + tab + "\n" + s[j:])
+    return tab.count("<tr>") - 1
+
 
 
 def run_at(split: str, vid: str, csv: Path) -> dict:
@@ -1070,9 +1111,16 @@ def main():
     ap.add_argument("--test-fit", type=Path, help="test scene-fit dir (default: %s)" % SCENE_DIRS["test"])
     ap.add_argument("--test-s2d", type=Path, help="test scene2d dir (default: %s)" % SCENE2D_DIRS["test"])
     ap.add_argument("--test-tracks", help="track cache kind for the test visible intervals, e.g. tracks_v9p (default: tracks)")
+    ap.add_argument("--val-version", default=PIPE_VERSION["val"], help="pipeline version vN shown on validation cards")
+    ap.add_argument("--test-version-label", default=PIPE_VERSION["test"], help="pipeline version vN shown on test cards (v8 once it is in)")
     ap.add_argument("--test-version", type=Path, help="the submission's version json (e.g. submission_v8.version.json)")
     ap.add_argument("--test-audit2d", type=Path, help="2D test audit *_pred.csv for the no-answer list (default: %s)" % TEST_AUDIT2D)
+    ap.add_argument("--versions-only", action="store_true", help="only regenerate the version table in index.html from docs/VERSIONS.md")
     args = ap.parse_args()
+    n = write_versions()
+    print(f"versions: {n} rows from {VERSIONS_MD} into {INDEX_HTML.name}")
+    if args.versions_only:
+        return
     TEST_CSV = args.test_sub or TEST_CSV
     TEST_ROUTE = args.test_route or TEST_ROUTE
     TEST_AUDIT2D = args.test_audit2d or TEST_AUDIT2D
@@ -1082,6 +1130,7 @@ def main():
         SCENE2D_DIRS["test"] = args.test_s2d.resolve()
     if args.test_tracks:
         TRACKS_KIND["test"] = args.test_tracks
+    PIPE_VERSION.update(val=args.val_version, test=args.test_version_label)
     if args.test_version and args.test_version.exists():
         TEST_VERSION.update(json.load(open(args.test_version)))
     if args.count_check and args.count_check.exists():

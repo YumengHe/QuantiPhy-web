@@ -181,7 +181,7 @@
   <h1>QuantiPhy 文档</h1>
   <p class="lede">NeurIPS 2026 QuantiPhy 挑战赛：给一段视频和一个已知物理量（prior），求另一个物理量（尺寸、速度、加速度）。指标是 S2 / D2 / S3 / D3 四类 MRA 的平均（macro），只用开源权重（Track B）。最终提交截止 <b>2026-10-25 23:59 AoE</b>（原为 10-23，已延期，见下方公告）。</p>
   <div class="stats">
-    <div class="stat hi"><div class="num">0.7632</div><div class="lbl">当前最好 / 新 harness 的替换门槛（旧链 + c_v10c2 + s2d_v9）</div></div>
+    <div class="stat hi"><div class="num">0.7632</div><div class="lbl">当前最好 v12 / 新 harness 的替换门槛（旧链 + c_v10c2 + s2d_v9）</div></div>
     <div class="stat"><div class="num">0.630</div><div class="lbl">测试集官方分（submission_v7，<a href="#submissions">提交记录</a>）</div></div>
     <div class="stat"><div class="num">0.797 / 0.892</div><div class="lbl">S2 / D2</div></div>
     <div class="stat"><div class="num">0.705 / 0.660</div><div class="lbl">S3 / D3</div></div>
@@ -214,20 +214,26 @@
 
 <section id="versions">
   <h2>版本表</h2>
-  <p>每完整跑一次流水线（验证集或测试集）就占一个版本号 vN，编号单调递增。只有跑了测试集的版本才有提交文件 <code>outputs/submission_vN.csv</code>，所以有些版本没有提交。原来的 h1 / h2 / h3 对应 v9 / v10 / v11。缓存目录不改名，例如 <code>objects_h1</code>、<code>tracks_h3</code> 仍按原名读。</p>
-  <p><b>命名：</b>流水线版本只写 vN；模块版本写"模块名 rN"，例如 scene2d r9、scene_fit r10c2、refmeasure r8。目录名照代码路径显示，例如 <code>s2d_v9</code>、<code>c_v10c2</code>。</p>
+  <p>一条全局版本线 vN：任何被采纳的改动，不论是整条流水线还是一个小模块，都升一个 vN。当前版本写在 <code>pipeline/VERSION</code>。一次运行（验证集或测试集）用运行时的代码版本作标签；只有跑了测试集的版本才有 <code>outputs/submission_vN.csv</code>，所以提交编号可以跳。视频页每张卡片标的是产生该场景的 vN。目录名照代码路径显示（例如 <code>s2d_v9</code>、<code>c_v10c2</code>），目录名里的数字不是版本号。</p>
+  <p class="muted" style="font-size:13px">下表由 <code>tools/build_videos.py</code> 从 <code>docs/VERSIONS.md</code> 生成，改版本日志只改那一个文件。10-24 之前的迭代记录里，"scene2d v8""scene_fit v9b""refmeasure v8"这类写法是当时各模块自己的编号，和全局版本号无关。</p>
+<!-- versions:begin -->
   <table>
-    <tr><th>版本</th><th>日期</th><th>流水线</th><th class="n">验证集（总分 · S2 / D2 / S3 / D3）</th><th>跑测试集</th><th>提交文件</th><th class="n">官方分</th></tr>
-    <tr><td>v12</td><td>—</td><td>harness（<code>--tag v12</code>）</td><td class="n">下一次运行</td><td>—</td><td>—</td><td class="n">—</td></tr>
-    <tr><td>v11（原 h3）</td><td>10-24</td><td>harness</td><td class="n">运行中</td><td>否</td><td>无</td><td class="n">—</td></tr>
-    <tr><td>v10（原 h2）</td><td>10-24</td><td>harness</td><td class="n">待定（首遍 0.7095 无效：运行中途删网格参数，7 个 3D 视频拟合失败，正在补跑）</td><td>否</td><td>无</td><td class="n">—</td></tr>
-    <tr><td>v9（原 h1）</td><td>10-24</td><td>harness 第一版</td><td class="n">0.7373 · 0.675 / 0.892 / 0.719 / 0.664<br><small>qwen_prior 新规则 0.7172</small></td><td>否</td><td>无</td><td class="n">—</td></tr>
-    <tr><td>v8</td><td>10-24</td><td>旧链 mh3（commit 874b7d6）</td><td class="n">valcur11 一线：0.7434<br><small>换 scene2d r8 + scene_fit r9b 后 0.7489</small></td><td>是（运行中）</td><td><code>submission_v8.csv</code>（未出）</td><td class="n">待上传</td></tr>
-    <tr><td><b>v7</b></td><td>10-24</td><td>3D harness r7 + scene2d r2 + 路由（commit 05bf3fd）</td><td class="n">0.6656</td><td>是</td><td><code>submission_v7.csv</code></td><td class="n"><b>0.630</b></td></tr>
-    <tr><td>v6</td><td>10-23</td><td>旧版流程</td><td class="n">0.620</td><td>是</td><td><code>submission_v6.csv</code>（已清理）</td><td class="n">0.603</td></tr>
-    <tr><td>v5</td><td>10-22</td><td>旧版流程</td><td class="n">0.639（含样本内泄漏）</td><td>是</td><td>已清理</td><td class="n">—</td></tr>
-    <tr><td>v1–v4</td><td>—</td><td>早期版本</td><td class="n">—</td><td>是</td><td>已清理</td><td class="n">—</td></tr>
+    <tr><th>版本</th><th>日期</th><th>改动</th><th>验证集</th><th>测试集 / 官方分</th></tr>
+    <tr><td>v18</td><td>10-24</td><td>scene2d：不再有自己的版本号，场景 json 的 version 只写全局版本（pipeline/VERSION）和 commit</td><td>不变</td><td>—</td></tr>
+    <tr><td>v17</td><td>10-24</td><td>scene_fit：类别比例模板（车宽高、矮框船宽、高框船=帆船不约束）。commit 0cfffb0；mh3 默认拟合目录仍为 c_v10c2（c9e422f），模板待挂开关</td><td>3D 单独 0.6548，路由后 0.7531（未进默认）</td><td>—</td></tr>
+    <tr><td>v16</td><td>10-24</td><td>scene2d：删掉未验证的 CLI 选项（--perspective / --no-shared-center / --length-longer / --tq-weight）。9618fc6</td><td>不变</td><td>—</td></tr>
+    <tr><td>v15</td><td>10-24</td><td>scene2d：删掉死开关（clean-run 等）。b010a82</td><td>不变</td><td>—</td></tr>
+    <tr><td>v14</td><td>10-24</td><td>scene2d：重选候选过尺度一致性，轨迹键归属，no_layer 挂清单名。77d741c</td><td>不变（注入检验 12/18 恢复）</td><td>—</td></tr>
+    <tr><td>v13</td><td>10-24</td><td>scene2d：结构化场景 issue + reselect_moving + issue_accept。b89198e</td><td>不变（注入检验 16/18 检出）</td><td>—</td></tr>
+    <tr><td>v12</td><td>10-24</td><td>旧链 + scene_fit c_v10c2（去网格）+ scene2d s2d_v9（几何观测、重力线索、边界对称拟合，至 84c7062）</td><td><b>0.7632</b>（S2 0.797 / D2 0.892 / S3 0.705 / D3 0.660），harness 替换门槛</td><td>—</td></tr>
+    <tr><td>v11</td><td>10-24</td><td>harness 第三次验证集运行（原 h3，3D 用 c_v10c2 参数）</td><td>运行中</td><td>—</td></tr>
+    <tr><td>v10</td><td>10-24</td><td>harness 第二次验证集运行（原 h2，agent 回路四项修复）</td><td>待定（首遍 7 个 3D 视频拟合失败，补跑中）</td><td>—</td></tr>
+    <tr><td>v9</td><td>10-24</td><td>harness 第一次验证集全量（原 h1，a8c90f5）</td><td>0.7373（qwen_prior 新规则 0.7172）</td><td>—</td></tr>
+    <tr><td>v8</td><td>10-24</td><td>旧链测试运行：745ca11 + null 坐标修复（d9c1110 / 64bc6df / ce3d058），新清单 + 方位词跟踪 + refmeasure</td><td>valcur11 一线 0.7434（换 scene2d / scene_fit 新版后 0.7489）</td><td>运行中，submission_v8.csv</td></tr>
+    <tr><td>v7</td><td>10-24</td><td>旧链</td><td>0.6656</td><td>已上传，官方 0.630</td></tr>
+    <tr><td>v6</td><td>10-23</td><td>旧链</td><td>0.620</td><td>官方 0.603</td></tr>
   </table>
+<!-- versions:end -->
   <details class="appx"><summary>历史：v8 之前旧链（mh3）的验证集运行 valcurN（都没跑测试集）</summary>
   <table>
     <tr><th>运行</th><th class="n">验证集总分</th><th>说明</th></tr>
@@ -240,7 +246,6 @@
     <tr><td>valcur3</td><td class="n">0.7211</td><td>mh3 三路流程 + D3 按拟合置信度路由</td></tr>
   </table>
   </details>
-  <p class="muted" style="font-size:13px">v10 的分数从 <code>outputs/val_h2_answers.csv</code> 的 mra 列算出：先求四类各自的平均，再对四类取平均（用同一算法核对过 0.7632）。v9 的 0.7373 是"场景值作提示"的规则；同一版本按 qwen_prior 新规则算是 0.7172，这也是现在 <code>val_h1_answers.csv</code> 里的结果。当前验证集最好的 0.7632 是旧链换场景后的组合（旧链 + c_v10c2 + s2d_v9），不是一次完整运行，所以没有单独的版本号，见<a href="#best">当前最好</a>。</p>
 </section>
 
 <section id="eval">
@@ -295,7 +300,7 @@
   </ul>
   <h4>逐视频报告</h4>
   <ul>
-    <li><b>simulation_0196</b>（<a href="data/eval/simulation_0196.html">全文</a>）：主因 跟踪 / 尺度。管线里的"气泡层"跟到的不是气泡（一份缓存是液滴下半个鼓包，另一份是滴管液柱的弯月面），所以速度 prior 给不出正确尺度；按画面实测气泡位移约 37 px，换算的尺度下四题都在真值 ±10% 以内。真值自洽，<b>撤回"真值存疑"</b>。三条通用修改已派。<b>状态：</b>气泡已重跟（<code>run --recheck-prior</code>）；剩余三题是尺寸取法问题（2D r5 已改，待合跑）。</li>
+    <li><b>simulation_0196</b>（<a href="data/eval/simulation_0196.html">全文</a>）：主因 跟踪 / 尺度。管线里的"气泡层"跟到的不是气泡（一份缓存是液滴下半个鼓包，另一份是滴管液柱的弯月面），所以速度 prior 给不出正确尺度；按画面实测气泡位移约 37 px，换算的尺度下四题都在真值 ±10% 以内。真值自洽，<b>撤回"真值存疑"</b>。三条通用修改已派。<b>状态：</b>气泡已重跟（<code>run --recheck-prior</code>）；剩余三题是尺寸取法问题（2D v5 已改，待合跑）。</li>
     <li><b>captured_0041x</b>（<a href="data/eval/captured_0041x.html">全文</a>）：主因 尺度，其次拟合。这个视频没有任何物体能给出焦距的度量证据，场景拟合和几何都退回实验室焦距先验 650 px（唯一一票），而标准尺寸的球 + 深度锚点、人的身高都指向 f ≈ 450–560。拟合方面，ballistic 把起踢前的静止位置当成 p0，球在静止阶段悬空 0.087 m；人没有深度锚点，球–人在深度上相差 0.66 m。q1、q2 真值存疑（已加入下方清单）。5 条通用修改已派给 qp-code-3d 和 qp-tools。</li>
     <li><b>captured_0061</b>（<a href="data/eval/captured_0061.html">全文</a>）：主因 尺度 + 拟合 + 几何 + 路由。焦距只来自实验室先验 650（唯一一票），重力抛物线和深度锚点给出 f ≈ 450–470，所有尺寸和横向速度被压成约 0.70 倍；ballistic 把篮球 0–0.92 s 的手持段当成抛体；3D 两物体距离按像面算；D3 固定用 Qwen，Qwen 照抄几何。真值存疑两条（已加入上方清单）。</li>
     <li><b>simulation_0015</b>（<a href="data/eval/simulation_0015.html">全文</a>）：主因 解析 + 深度尺度 + 平面 + 置信度。depth_info 的 5 行里丢了 3 行，底座、雕塑、展板三个距离锚点都没用上；地平线用了线段检测的 y = 268，而行人脚底回归给出 240.8（相机高 1.37 m，f ≈ 394）；远处深度只靠两个近距离锚点仿射外推，被压缩，屋顶净高低了约 3.7 m。鸟速一题真值存疑（已加入上方清单）。</li>
@@ -324,7 +329,7 @@
   </table>
   <p>测试集 3289 题里有 279 题和验证集重叠，不计分，所以计分的是 3010 题。v7 验证集 0.6656 → 测试集 0.630，差 0.036；分类看 3D 最弱（测试集 S3 0.563，而验证集当时 S3 约 0.70），D2 最强（0.718）。v6 → v7 官方分 +0.027。v5 的 0.639 含样本内泄漏（见 <a href="#sf-zero">10-22 迭代</a>）。</p>
   <h3 id="sub-v8">submission_v8（运行中）</h3>
-  <p>切换到 commit 874b7d6 从清单步重跑（含 scene_fit r9b、scene2d r8、refmeasure r8、no-geo 默认、方位词修复）。最初在 commit e4b00b4 上于 2026-10-24 11:26 PDT 开跑。</p>
+  <p>切换到 commit 874b7d6 从清单步重跑（含 scene_fit v9b、scene2d v8、refmeasure v8、no-geo 默认、方位词修复）。最初在 commit e4b00b4 上于 2026-10-24 11:26 PDT 开跑。</p>
   <h3 id="sub-v7">submission_v7（2026-10-24）</h3>
   <p>文件 <code>outputs/submission_v7.csv</code>，测试集 3289 题；代码 commit 05bf3fd，同一代码在验证集上的回归分数 0.6656。逐题预测见 <a href="videos.html">视频与问题</a> 的测试集页；那里的 3D 视图和 2D 图层就是这次提交用的场景（<code>scene_fit_eval/c_support_v7_test/</code> 233/235 个 3D 视频，<code>scene2d_eval/s2d_v7_test/</code> 333/333 个 2D 视频）。</p>
   <table>
@@ -366,7 +371,7 @@
   </details>
 
   <details class="iter" id="tools-1023">
-    <summary><span class="d">10-23</span>工具层：候选选择跟踪、清单 part_of、逐帧场景图、在场性、refmeasure、critic + 置信度路由门控 · 验证集 0.6811→0.6885→0.6996→0.7008；默认全开含退化保护 0.6983；r9 补位 0.7078 / 3 路中位数 0.7230（早期实验）；mh3 三路 0.7162 + D3 拟合路由 0.7210 / 0.7211（valcur3）；valcur9 + fr2 0.7196；valcur10 0.7237；valcur11 0.7434；0.7479（+ scene2d r8 + c_v9b）；0.7489（no-geo 路由，含网格）；0.7554（旧链 + c_v10c2 + s2d_v8）；当前最好 0.7632（+ s2d_v9） <span class="yes">采用（验证集）</span></summary>
+    <summary><span class="d">10-23</span>工具层：候选选择跟踪、清单 part_of、逐帧场景图、在场性、refmeasure、critic + 置信度路由门控 · 验证集 0.6811→0.6885→0.6996→0.7008；默认全开含退化保护 0.6983；v9 补位 0.7078 / 3 路中位数 0.7230（早期实验）；mh3 三路 0.7162 + D3 拟合路由 0.7210 / 0.7211（valcur3）；valcur9 + fr2 0.7196；valcur10 0.7237；valcur11 0.7434；0.7479（+ scene2d v8 + c_v9b）；0.7489（no-geo 路由，含网格）；0.7554（旧链 + c_v10c2 + s2d_v8）；当前最好 0.7632（+ s2d_v9） <span class="yes">采用（验证集）</span></summary>
     <div class="iter-body">
   <h4>路由（前四行 Qwen 的答案不变，只改路由；最后一行改了默认开关，提示重算后重问了部分题）</h4>
   <table>
@@ -384,7 +389,7 @@
   <table>
     <tr><th>工具</th><th>做法与效果</th></tr>
     <tr><td>候选选择跟踪（<code>run --choose</code>，缓存 <code>tracks_v7</code>）</td><td>几何流水线 0.481 → 0.521；但 S3 降 0.03，所以 S3 用合并缓存 <code>tracks_m</code>（几何 0.485，S3 0.691）。internet_0027 五个球各有一条轨迹；两路牌距离 MRA 0.6 → 1.0；两黑车 0.1 → 0.7。</td></tr>
-    <tr><td>物体清单 r2（part_of）</td><td>部件不再并进整体。13 组合并里只有 simulation_0009 是误合并，已拆开。</td></tr>
+    <tr><td>物体清单 v2（part_of）</td><td>部件不再并进整体。13 组合并里只有 simulation_0009 是误合并，已拆开。</td></tr>
     <tr><td>逐帧场景图</td><td>按帧询问关系再合并成段、边界吸附到轨迹事件。两次重跑 89 个物体只有 2 个结果不同；captured_0013 的球被判为 斜坡 → 桌面 → 空中，离开时刻 1.25 s。</td></tr>
     <tr><td>same_instance 回归修复</td><td>29 对物体判断和修复前 0 差异。</td></tr>
     <tr><td>在场性校验（<code>presence</code>）</td><td>captured_0027s 的人判为不在场（absent，置信度 0.98）；simulation_0015 的鸟判为不在场；误判：simulation_0060 的紫车。</td></tr>
@@ -408,7 +413,7 @@
     <tr><td>尺度 prior 物体复核 + 重跟（<code>run --recheck-prior</code>）</td><td>会动的 prior 物体让 Qwen 复核位置，不对就用 SAM 2 重跟。simulation_0196 的气泡 y 从 170 改到 200（跟到了真气泡），液滴宽 MRA 0 → 0.8。全验证集只重跟了 2 个物体。</td></tr>
     <tr><td>几何退化保护（calibrate motion guard）</td><td>prior 物体不动时不从它定尺度（<code>QP_CAL_MOTION_GUARD=0</code> 关闭）。</td></tr>
     <tr><td>侧拍宽度门控（<code>--fit-conf-unobservable 0.3</code>）</td><td>侧拍画面里看不见的宽度 / 厚度标为 unobservable，路由用单独门槛。0.6996 → 0.7008，只改了 simulation_0015 底座宽一题。</td></tr>
-    <tr><td>在场性 r3</td><td>规则：放大复核 + DINO 分数 ≥ 0.35 + 不骑在别的物体上。simulation_0015 的鸟 absent（0.95）、captured_0027s 的人 absent（0.98）、simulation_0060 的紫车 partial（0.4，之前误判为 absent）。</td></tr>
+    <tr><td>在场性 v3</td><td>规则：放大复核 + DINO 分数 ≥ 0.35 + 不骑在别的物体上。simulation_0015 的鸟 absent（0.95）、captured_0027s 的人 absent（0.98）、simulation_0060 的紫车 partial（0.4，之前误判为 absent）。</td></tr>
     <tr><td>轨道直径按轨迹测（solve）</td><td>"轨道直径 / 半径"按物体的运动轨迹量，不再量物体本身。simulation_0193 四题 MRA 0 → 1.0 / 0.8 / 0.3 / 0.6。</td></tr>
     <tr><td>场景图 above 关系</td><td>新增 above（A 在 B 上方、不接触）。</td></tr>
   </table>
@@ -426,8 +431,8 @@
     <tr><th>整套 harness</th><th class="n">总分</th></tr>
     <tr><td>默认全开（2D 用 s2d_v4）</td><td class="n">0.6967</td></tr>
     <tr><td><b>默认全开（2D 用 s2d_v5，采用）</b></td><td class="n"><b>0.6983</b></td></tr>
-    <tr><td>r9 几何值 + 按它重算的提示</td><td class="n">0.6860</td></tr>
-    <tr><td>r9 几何值 + 轨道修复</td><td class="n">0.6948</td></tr>
+    <tr><td>v9 几何值 + 按它重算的提示</td><td class="n">0.6860</td></tr>
+    <tr><td>v9 几何值 + 轨道修复</td><td class="n">0.6948</td></tr>
   </table>
   <p>几何流水线本身从 0.4986 提到 0.5826，但把它的值当提示给 Qwen 后整套反而更低（0.6860 / 0.6948 &lt; 0.6983），原因见下一节。</p>
 
@@ -446,12 +451,12 @@
   </ul>
   <div class="callout"><b>结论：</b>提示变好时 Qwen 只多拿一点，提示变差时会被拖下很多。所以宁可不给提示，也不要给质量一般的提示。下一步按置信度门控提示，只给高置信的值（已派）。</div>
 
-  <h4>第 6–8 轮：r9 回退补位 + 3 路中位数</h4>
+  <h4>第 6–8 轮：v9 回退补位 + 3 路中位数</h4>
   <table>
     <tr><th>配置</th><th>总分</th><th>说明</th></tr>
     <tr><td>默认全开</td><td>0.6983</td><td>—</td></tr>
-    <tr><td>r9 几何值只补几何走回退常数的题（2 路）</td><td>0.7078</td><td>D2 0.741；更稳</td></tr>
-    <tr><td><b>a / b 两组 + r9 补位，取 3 路中位数（commit 85aabfd）</b></td><td><b>0.7230</b></td><td>D2 0.803；收益集中在 simulation_0196 三题，样本小，需谨慎</td></tr>
+    <tr><td>v9 几何值只补几何走回退常数的题（2 路）</td><td>0.7078</td><td>D2 0.741；更稳</td></tr>
+    <tr><td><b>a / b 两组 + v9 补位，取 3 路中位数（commit 85aabfd）</b></td><td><b>0.7230</b></td><td>D2 0.803；收益集中在 simulation_0196 三题，样本小，需谨慎</td></tr>
     <tr><td>再加 rc 组，4 路</td><td>0.7107</td><td>反而下降，没采用</td></tr>
   </table>
   <ul>
@@ -469,17 +474,17 @@
     <tr><td>物体清单：角色一致性检查 + 验证集 / 测试集一致性检查</td><td>旧的测试集清单有 38 处和验证集不一致。</td></tr>
     <tr><td><b>depth_info 解析器重写</b></td><td>验证集 51 条、测试集 935 条全部能解析；找回 6 个静止物体的深度锚点；测试集 20 个视频受益。</td></tr>
     <tr><td>截断框标记</td><td>贴着画面边缘、被截断的框单独标出。</td></tr>
-    <tr><td>refmeasure r5 / r6</td><td>环岛车道宽 36.5 px，那题回到 MRA 0.8；地砖边长从 10 px 改为 36 px。</td></tr>
+    <tr><td>refmeasure v5 / v6</td><td>环岛车道宽 36.5 px，那题回到 MRA 0.8；地砖边长从 10 px 改为 36 px。</td></tr>
     <tr><td>速度 prior 轨迹的尺度一致性检查</td><td>internet_0013 有两个同名的行人，换成对的那个后尺度为 0.099 m/px。</td></tr>
     <tr><td>几何流水线（跟踪缓存 tracks_v9pc）</td><td>几何 macro 0.481 → 0.602。</td></tr>
     <tr><td>3 路路由重跑</td><td>0.7105。S3 下降，是因为 simulation_0015 鸟速那题原来"碰巧"得分（真值存疑，视频里没有鸟），现在没有了。</td></tr>
-    <tr><td>按帧场景图设为默认</td><td>待改为按维度（2D / 3D）分别设默认；pfc 场景图对 3D 不利，见 <a href="#sf-v8">r8e</a>。</td></tr>
+    <tr><td>按帧场景图设为默认</td><td>待改为按维度（2D / 3D）分别设默认；pfc 场景图对 3D 不利，见 <a href="#sf-v8">v8e</a>。</td></tr>
   </table>
 
   <h4>第 12 轮</h4>
   <ul>
     <li><b>场景图按维度设默认</b>（2D 用按帧图，3D 用 grid），并修正了按帧图在 3D 上的两处问题。</li>
-    <li><b>refmeasure r7：刻度周期重写。</b>internet_0004 量得 1 cm = 47.16 px（conf 0.9），之前量到的是视频编码的 8 px 块网格；测试集同一视频 5.32 px/mm。</li>
+    <li><b>refmeasure v7：刻度周期重写。</b>internet_0004 量得 1 cm = 47.16 px（conf 0.9），之前量到的是视频编码的 8 px 块网格；测试集同一视频 5.32 px/mm。</li>
     <li><b>parse 的 spacing 默认开：</b>"ruler calibre = 1 cm" 按刻度间距理解，internet_0004 木块长 10.39。</li>
     <li><b>depth_anchors 匹配置信度：</b>depth_info 里的每条距离和物体的匹配带置信度；simulation_0015 三条锚点都匹配正确（底座和雕塑同为 9.46 m）。</li>
   </ul>
@@ -566,14 +571,14 @@
     <li>子集指标：另报不在测试集出现的题的分数。</li>
     <li><b>独立性分组 <code>data.question_groups</code>：</b>同一视频里按"相同 prior + depth_info"把题分组，每组只用自己的 prior 和所有题共有的深度语句做标定与锚点，不用别的题的数值（验证集 captured_0021x；测试集 6 个视频 30 题）。</li>
     <li>场景图：桌面类视频的主平面取桌面（captured_0013 → desk；captured_0021x、captured_0034as、internet_0004、internet_0027 → table）；simulation_0171 的接触标签用几何校验（0–0.77 s on，0.77–2.58 s airborne）。</li>
-    <li>ground r2：结构长轴两端、overhead 前沿、桌面掩码、兄弟变体共用。</li>
+    <li>ground v2：结构长轴两端、overhead 前沿、桌面掩码、兄弟变体共用。</li>
     <li>name_similarity 支持复合词：测试集 captured_0008 / 0009 系列 6 个视频修好。</li>
     <li><b>评审回路（设计稿，实现中）：</b>每个视频至少 2 轮、最多 10 轮；按 issue 类型回到 objects / scenegraph / track / scene 阶段重跑，用自检指标决定采纳还是回滚（用户 10-24 的要求）。</li>
   </ul>
 
   <h4>第 21 轮（commit 47c1ecf）</h4>
   <ul>
-    <li><b>refmeasure r8：车道宽沿法向剖面量。</b>internet_0001 71.54 px；六条车道 74.3 / 68.8 / 72.2 / 70.9 / 67.5 / 74.0 px，离散 3.6%；测试集 internet_0002 相差 0.3%。环岛和强透视场景不适用，保持原值。</li>
+    <li><b>refmeasure v8：车道宽沿法向剖面量。</b>internet_0001 71.54 px；六条车道 74.3 / 68.8 / 72.2 / 70.9 / 67.5 / 74.0 px，离散 3.6%；测试集 internet_0002 相差 0.3%。环岛和强透视场景不适用，保持原值。</li>
     <li>一次缓存迁移事故：迁移时丢了条目，2D 退化（D2 −0.014），已修复。</li>
     <li>俯拍画面不再标 width-unobservable。</li>
   </ul>
@@ -607,11 +612,11 @@
   <h2>当前最好方案</h2>
   <table>
     <tr><th>验证集（159 题）</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th></tr>
-    <tr><td><b>当前最好：旧链 + 场景拟合 c_v10c2（无网格）+ scene2d r9；新 harness 的替换门槛（两者用同一版 scene2d）</b></td><td><b>0.7632</b></td><td>0.797</td><td>0.892</td><td>0.705</td><td>0.660</td></tr>
+    <tr><td><b>当前最好 v12：旧链 + 场景拟合 c_v10c2（无网格）+ scene2d（s2d_v9）；新 harness 的替换门槛（两者用同一版 scene2d）</b></td><td><b>0.7632</b></td><td>0.797</td><td>0.892</td><td>0.705</td><td>0.660</td></tr>
     <tr><td><small>中间值：旧链 + c_v10c2 + 15:51 版 s2d_v8</small></td><td><small>0.7554</small></td><td><small>0.766</small></td><td><small>0.892</small></td><td><small>0.705</small></td><td><small>0.660</small></td></tr>
-    <tr><td><small>历史（含网格）：valcur11 的 Qwen 答案 + scene2d r8 + 场景拟合 c_v9b，no-geo 路由；旧路由 0.7500，在噪声内</small></td><td><small>0.7489</small></td><td><small>0.719</small></td><td><small>0.892</small></td><td><small>0.721</small></td><td><small>0.664</small></td></tr>
+    <tr><td><small>历史（含网格）：valcur11 的 Qwen 答案 + scene2d v8 + 场景拟合 c_v9b，no-geo 路由；旧路由 0.7500，在噪声内</small></td><td><small>0.7489</small></td><td><small>0.719</small></td><td><small>0.892</small></td><td><small>0.721</small></td><td><small>0.664</small></td></tr>
     <tr><td><small>参考：同上但用旧路由（几何直接作答）</small></td><td><small>0.7500</small></td><td><small>0.719</small></td><td><small>0.892</small></td><td><small>0.723</small></td><td><small>0.666</small></td></tr>
-    <tr><td><small>参考：scene2d r8 重算前，旧路由</small></td><td><small>0.7479</small></td><td><small>0.719</small></td><td><small>0.884</small></td><td><small>0.723</small></td><td><small>0.666</small></td></tr>
+    <tr><td><small>参考：scene2d v8 重算前，旧路由</small></td><td><small>0.7479</small></td><td><small>0.719</small></td><td><small>0.884</small></td><td><small>0.723</small></td><td><small>0.666</small></td></tr>
     <tr><td><small>参考：valcur11（2D 场景值 conf ≥ 0.1 直接作答，Qwen 只做回退；commit 1e92899）</small></td><td><small>0.7434</small></td><td><small>0.703</small></td><td><small>0.884</small></td><td><small>0.719</small></td><td><small>0.668</small></td></tr>
     <tr><td><small>参考：valcur10</small></td><td><small>0.7237</small></td><td><small>0.681</small></td><td><small>0.827</small></td><td><small>0.719</small></td><td><small>0.668</small></td></tr>
     <tr><td><small>参考：valcur9 + fr2</small></td><td><small>0.7196</small></td><td><small>0.681</small></td><td><small>0.819</small></td><td><small>0.719</small></td><td><small>0.660</small></td></tr>
@@ -620,30 +625,30 @@
     <tr><td><small>参考：valcur3（mh3 三路流程 + D3 按拟合置信度路由，conf ≥ 0.3）</small></td><td><small>0.7211</small></td><td><small>0.700</small></td><td><small>0.816</small></td><td><small>0.702</small></td><td><small>0.666</small></td></tr>
     <tr><td><small>参考：valcur3 同配置前一次</small></td><td><small>0.7210</small></td><td>0.697</td><td>0.819</td><td>0.702</td><td>0.666</td></tr>
     <tr><td><b>mh3 三路流程</b></td><td><b>0.7162</b></td><td>0.697</td><td>0.819</td><td>0.702</td><td>0.647</td></tr>
-    <tr><td><small>参考：3 路 a/b 补位 + r9 中位数（commit 85aabfd；用旧 VLM 文件的早期实验）</small></td><td><small>0.7230</small></td><td><small>0.722</small></td><td><small>0.803</small></td><td><small>0.719</small></td><td><small>0.649</small></td></tr>
-    <tr><td><small>参考：2 路（r9 只补回退题）</small></td><td><small>0.7078</small></td><td><small>0.719</small></td><td><small>0.741</small></td><td><small>0.719</small></td><td><small>0.653</small></td></tr>
+    <tr><td><small>参考：3 路 a/b 补位 + v9 中位数（commit 85aabfd；用旧 VLM 文件的早期实验）</small></td><td><small>0.7230</small></td><td><small>0.722</small></td><td><small>0.803</small></td><td><small>0.719</small></td><td><small>0.649</small></td></tr>
+    <tr><td><small>参考：2 路（v9 只补回退题）</small></td><td><small>0.7078</small></td><td><small>0.719</small></td><td><small>0.741</small></td><td><small>0.719</small></td><td><small>0.653</small></td></tr>
     <tr><td><small>参考：所有默认开关全开，含运动退化保护（commit 24a9d0e）</small></td><td><small>0.6983</small></td><td><small>0.719</small></td><td><small>0.703</small></td><td><small>0.719</small></td><td><small>0.653</small></td></tr>
     <tr><td><small>参考：+ 侧拍宽度门控（退化保护之前，commit 34255a6）</small></td><td><small>0.7008</small></td><td><small>0.713</small></td><td><small>0.719</small></td><td><small>0.719</small></td><td><small>0.653</small></td></tr>
     <tr><td><small>参考：门控路由和 refmeasure 标定为默认（退化保护之前，commit 1e84748）</small></td><td><small>0.6996</small></td><td><small>0.713</small></td><td><small>0.719</small></td><td><small>0.714</small></td><td><small>0.653</small></td></tr>
     <tr><td><small>参考：s2d_v3 + 置信度路由门控（commit ceb82e3）</small></td><td><small>0.6885</small></td><td><small>0.694</small></td><td><small>0.714</small></td><td><small>0.700</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：s2d_v3</small></td><td><small>0.681</small></td><td><small>0.678</small></td><td><small>0.714</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：s2d_v2</small></td><td><small>0.668</small></td><td><small>0.669</small></td><td><small>0.670</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
-    <tr><td><small>参考：r7（3D 场景重建正确版）</small></td><td><small>0.666</small></td><td><small>0.672</small></td><td><small>0.651</small></td><td><small>0.686</small></td><td><small>0.653</small></td></tr>
-    <tr><td><small>参考：2D 图层场景 r1</small></td><td><small>0.656</small></td><td><small>0.609</small></td><td><small>0.681</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
+    <tr><td><small>参考：v7（3D 场景重建正确版）</small></td><td><small>0.666</small></td><td><small>0.672</small></td><td><small>0.651</small></td><td><small>0.686</small></td><td><small>0.653</small></td></tr>
+    <tr><td><small>参考：2D 图层场景 v1</small></td><td><small>0.656</small></td><td><small>0.609</small></td><td><small>0.681</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：上一版（没有 2D 图层场景）</small></td><td><small>0.620</small></td><td><small>0.594</small></td><td><small>0.551</small></td><td><small>0.686</small></td><td><small>0.647</small></td></tr>
     <tr><td><small>参考：几何流水线 <code>pipeline.run</code></small></td><td><small>0.497</small></td><td><small>0.462</small></td><td><small>0.341</small></td><td><small>0.707</small></td><td><small>0.477</small></td></tr>
     <tr><td><small>参考：官方 GPT-5.1 基线</small></td><td><small>0.486</small></td><td><small>0.569</small></td><td><small>0.354</small></td><td><small>0.456</small></td><td><small>0.564</small></td></tr>
   </table>
-  <p><b>当前最好 0.7632</b>（S2 0.797 / D2 0.892 / S3 0.705 / D3 0.660；43 题子集 0.6917）：旧链路由，3D 用删除网格库后的场景拟合 c_v10c2，2D 用 scene2d r9（16:08）。这是新 harness 的替换门槛，口径是两者用同一版 scene2d。中间值 0.7554 用的是 15:51 版 s2d_v8。视频页的逐题结果来自 <code>outputs/val_oldchain_v10c2_s2dv9_routed.csv</code>，3D 视图来自 <code>scene_fit_eval/c_v10c2/</code>，2D 图层来自 <code>scene2d_eval/s2d_v9/</code>。</p>
-  <p><b>历史：0.7489（含网格；no-geo 路由（几何 csv 只作提示）；旧路由（几何直接作答）0.7500，在噪声内）：</b>Qwen 的答案沿用 valcur11，场景值换成 scene2d r8，场景拟合换成 c_v9b，路由用 mh3 的默认 <code>--no-geo</code>。各步的差都在噪声内：</p>
+  <p><b>当前最好 v12：0.7632</b>（S2 0.797 / D2 0.892 / S3 0.705 / D3 0.660；43 题子集 0.6917）：旧链路由，3D 用删除网格库后的场景拟合 c_v10c2，2D 用 scene2d 场景 s2d_v9（16:08）。这是新 harness 的替换门槛，口径是两者用同一版 scene2d。中间值 0.7554 用的是 15:51 版 s2d_v8。视频页的逐题结果来自 <code>outputs/val_oldchain_v10c2_s2dv9_routed.csv</code>，3D 视图来自 <code>scene_fit_eval/c_v10c2/</code>，2D 图层来自 <code>scene2d_eval/s2d_v9/</code>。</p>
+  <p><b>历史：0.7489（含网格；no-geo 路由（几何 csv 只作提示）；旧路由（几何直接作答）0.7500，在噪声内）：</b>Qwen 的答案沿用 valcur11，场景值换成 scene2d v8，场景拟合换成 c_v9b，路由用 mh3 的默认 <code>--no-geo</code>。各步的差都在噪声内：</p>
   <table>
     <tr><th>配置</th><th class="n">总分</th><th class="n">43 题子集（参考）</th></tr>
     <tr><td>valcur11</td><td class="n">0.7434</td><td class="n">0.629</td></tr>
-    <tr><td>+ scene2d r8 场景值</td><td class="n">0.7473</td><td class="n">0.679</td></tr>
+    <tr><td>+ scene2d v8 场景值</td><td class="n">0.7473</td><td class="n">0.679</td></tr>
     <tr><td>+ 场景拟合 c_v9b（旧路由）</td><td class="n">0.7479</td><td class="n">0.671</td></tr>
-    <tr><td><code>--no-geo</code>（重算前的 scene2d r8）</td><td class="n">0.7463</td><td class="n">—</td></tr>
-    <tr><td>+ scene2d r8 重算，旧路由（几何直接作答）</td><td class="n">0.7500</td><td class="n">—</td></tr>
-    <tr><td><b>+ scene2d r8 重算，<code>--no-geo</code>（当前最好）</b></td><td class="n"><b>0.7489</b></td><td class="n">—</td></tr>
+    <tr><td><code>--no-geo</code>（重算前的 scene2d v8）</td><td class="n">0.7463</td><td class="n">—</td></tr>
+    <tr><td>+ scene2d v8 重算，旧路由（几何直接作答）</td><td class="n">0.7500</td><td class="n">—</td></tr>
+    <tr><td><b>+ scene2d v8 重算，<code>--no-geo</code>（当前最好）</b></td><td class="n"><b>0.7489</b></td><td class="n">—</td></tr>
   </table>
   <p>当时的逐题结果是 <code>outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv</code>，3D 用 <code>scene_fit_eval/c_v9b/</code>（含网格）。</p>
   <p><b>0.7434（valcur11）：</b>2D 题的场景值 conf ≥ 0.1 就直接作答，Qwen 只在没有场景值时回退（S2 0.681 → 0.703，D2 0.827 → 0.884，3D 两类不变）。当时视频页用的是 <code>outputs/val_mh3_valcur11_routed.csv</code>。</p>
@@ -652,16 +657,16 @@
     <tr><td>验证集总分</td><td class="n"><b>0.7434</b></td><td class="n">0.7272</td><td class="n">0.7327</td><td class="n">0.7303</td><td class="n">0.7276</td></tr>
   </table>
   <p><small>参考：不在测试集里出现的 43 题子集，valcur10 0.660 → valcur11 0.629，差别在 simulation_0089 一个视频的 4 题；这个子集里 S2 只有 7 题，噪声大，只作参考，不作主指标。</small></p>
-  <p><b>0.7237（valcur10）：</b>3D 用 fr3 + groundgeom 的场景拟合，2D 含 simulation_0193 的修正（见 <a href="#tools-1023">工具层</a> 第 19 轮、<a href="#sf-v8">3D r8</a> 第 14 轮、<a href="#s2d-v6">2D r6</a>）。当时视频页用的是 <code>outputs/val_mh3_valcur10_routed.csv</code>。</p>
+  <p><b>0.7237（valcur10）：</b>3D 用 fr3 + groundgeom 的场景拟合，2D 含 simulation_0193 的修正（见 <a href="#tools-1023">工具层</a> 第 19 轮、<a href="#sf-v8">3D v8</a> 第 14 轮、<a href="#s2d-v6">2D v6</a>）。当时视频页用的是 <code>outputs/val_mh3_valcur10_routed.csv</code>。</p>
   <p><b>0.7196（valcur9 + fr2）：</b>和 0.7173（valfinal）、0.7218（valcur7）的差异都在噪声内，来源分别是场景拟合目录 fr → fr2、全帧框替换、首帧平移等（见 <a href="#tools-1023">工具层迭代</a> 第 18 轮）。当时视频页用的是 <code>outputs/val_mh3_valcur9_fr2_routed.csv</code>。</p>
   <p><b>0.7173（valfinal）：</b>3D 场景拟合用 pfc2_fr 配置（<code>c_v8g_pfc2_fr2</code>），作为测试集 v8 的参照。和 valcur7 的 0.7218 只差 3 题，在噪声内；差异来自 3D 场景拟合配置不同（S3 0.716 → 0.707，D3 0.670 → 0.662，2D 两类不变）。当时视频页用的是 <code>outputs/val_mh3_valfinal_routed.csv</code>。</p>
   <p><b>0.7218（valcur7）：</b>所有新默认全开（见各条目）后整条链重跑，和 0.7211 在噪声内。</p>
-  <p><b>0.7211（valcur3，整条链重跑；同配置前一次 0.7210）：</b>mh3 三路流程（a / b 两组提示 + r9 几何补位取中位数，整条链重跑，Qwen 重问）得 0.7162；再让 D3 题在场景拟合置信度 ≥ 0.3 时用拟合值，得 0.7210。早先的 0.7230 是旧 VLM 文件上的早期实验，降为参考。当时视频页用的是 <code>outputs/val_mh3_valcur3_routed.csv</code>。见 <a href="#tools-1023">工具层迭代</a> 第 12 轮。</p>
-  <p><b>0.6983 → 0.7078 / 0.7230：</b>几何流水线 r9 的值只用来补几何走了回退常数的题（0.7078，D2 0.741）；再对 a / b 两组提示和 r9 补位取 3 路中位数得到 0.7230（D2 0.803）。0.7230 的提升集中在 simulation_0196 三题，样本小，需要谨慎，所以 2 路 0.7078 作为更稳的并列方案。见 <a href="#tools-1023">工具层迭代</a> 第 6–8 轮。</p>
+  <p><b>0.7211（valcur3，整条链重跑；同配置前一次 0.7210）：</b>mh3 三路流程（a / b 两组提示 + v9 几何补位取中位数，整条链重跑，Qwen 重问）得 0.7162；再让 D3 题在场景拟合置信度 ≥ 0.3 时用拟合值，得 0.7210。早先的 0.7230 是旧 VLM 文件上的早期实验，降为参考。当时视频页用的是 <code>outputs/val_mh3_valcur3_routed.csv</code>。见 <a href="#tools-1023">工具层迭代</a> 第 12 轮。</p>
+  <p><b>0.6983 → 0.7078 / 0.7230：</b>几何流水线 v9 的值只用来补几何走了回退常数的题（0.7078，D2 0.741）；再对 a / b 两组提示和 v9 补位取 3 路中位数得到 0.7230（D2 0.803）。0.7230 的提升集中在 simulation_0196 三题，样本小，需要谨慎，所以 2 路 0.7078 作为更稳的并列方案。见 <a href="#tools-1023">工具层迭代</a> 第 6–8 轮。</p>
   <p><b>0.7008 → 0.6983：</b>默认开关全开后加了运动退化保护（prior 物体不动时不从它定尺度），D2 −0.016。撤掉的是错误轨迹给出的提示，这是正确行为，所以保留；数字略低于 0.7008 在噪声内。</p>
   <p>0.681 → 0.6885：Qwen 的答案和 s2d_v3 完全相同，提升全部来自路由门控（2D 场景值置信度 ≥ 0.85 时直接用；S3 按场景拟合置信度 ≥ 0.6 在几何值和拟合值之间选）。0.6885 → 0.6996：门控路由和 refmeasure 标定改为默认，几何流水线 0.481 → 0.502，提示值随之重算，Qwen 两次作答分别重问了 20 题和 31 题。见 <a href="#tools-1023">工具层迭代</a>。</p>
-  <p>0.668（s2d_v2）和 0.666（r7）差 0.002，在重跑噪声内（单个类别 ±0.03）；r7 的提升在 3D 场景拟合本身（见 <a href="#sf-v7">10-23 迭代</a>），还没传到最终答案。<a href="videos.html">视频与问题</a> 页的逐题结果来自当前最好（<code>outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv</code>），3D 视频的三维视图来自场景拟合 r7。</p>
-  <p><small>0.620 → 0.656 → 0.668 → 0.681 来自 2D 图层场景 r1、r2、r3（只影响 S2、D2，见 <a href="#s2d-layers">r1</a>、<a href="#s2d-v2">r2</a>、<a href="#s2d-v3">r3</a>）；更早的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
+  <p>0.668（s2d_v2）和 0.666（v7）差 0.002，在重跑噪声内（单个类别 ±0.03）；v7 的提升在 3D 场景拟合本身（见 <a href="#sf-v7">10-23 迭代</a>），还没传到最终答案。<a href="videos.html">视频与问题</a> 页的逐题结果来自当前最好（<code>outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv</code>），3D 视频的三维视图来自场景拟合 v7。</p>
+  <p><small>0.620 → 0.656 → 0.668 → 0.681 来自 2D 图层场景 v1、v2、v3（只影响 S2、D2，见 <a href="#s2d-layers">v1</a>、<a href="#s2d-v2">v2</a>、<a href="#s2d-v3">v3</a>）；更早的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
   <h3 id="pipe3d">流程</h3>
   <p>一段视频和一道题经过：物体清单 → 场景图 → 在场性 → 两路跟踪并合并 → 按帧场景图 → 几何三路（只作提示）→ 2D 图层场景 / 3D 场景拟合 → 场景 agent 回路（默认开启，v8 未带）→ Qwen 三路带提示作答 → 路由（2D 场景值 conf ≥ 0.1 直接作答，3D 拟合值按 conf 门控，否则 Qwen 三路中位数）→ 提交文件。每一步的模块、命令、缓存和耗时见 <b><a href="pipeline.html">完整流程</a></b>。</p>
   <details><summary class="muted">旧的分步说明（历史记录，以完整流程页为准）</summary>
@@ -680,7 +685,7 @@
     <tr><td>1 解析</td><td>规则解析器从问题和已知条件里提取物理量、物体名、时间、单位。</td><td><code>parse.py</code></td></tr>
     <tr><td>2 跟踪</td><td>Grounding DINO 找物体，Qwen 检查提示框，SAM 2 做视频跟踪；验证集和测试集的缓存分开存。</td><td><code>perceive.py</code></td></tr>
     <tr><td>3 几何测量</td><td>根据 depth_info 给的物体到相机距离和物体的视大小，估计焦距和逐帧深度；实验室视频估计失败时，用按帧宽缩放的焦距先验。得到每题的"几何值"。测不出来时用手写常识值兜底，交给 Qwen 作答。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
-    <tr><td>4 3D 场景拟合</td><td>Depth Anything 给出稠密深度；拟合地面平面和相机；把每个物体拟合成解析几何体（盒子、球、圆柱等；10-24 起不再用 Meshy 网格）；拟合尺寸、位置和匀加速轨迹；弹跳的球用 ballistic 模型（重力 + 碰撞恢复系数 + 滚动阻力），屋顶这类顶部结构从深度单独拟合（overhead）。得到每题的"场景拟合值"和逐题置信度（固定规则的乘积，见 <a href="#sf-v8">r8 迭代</a>）。</td><td><code>scene_fit.py</code> <code>fit3d.py</code></td></tr>
+    <tr><td>4 3D 场景拟合</td><td>Depth Anything 给出稠密深度；拟合地面平面和相机；把每个物体拟合成解析几何体（盒子、球、圆柱等；10-24 起不再用 Meshy 网格）；拟合尺寸、位置和匀加速轨迹；弹跳的球用 ballistic 模型（重力 + 碰撞恢复系数 + 滚动阻力），屋顶这类顶部结构从深度单独拟合（overhead）。得到每题的"场景拟合值"和逐题置信度（固定规则的乘积，见 <a href="#sf-v8">v8 迭代</a>）。</td><td><code>scene_fit.py</code> <code>fit3d.py</code></td></tr>
     <tr><td>5 Qwen 作答</td><td>本地 Qwen3.8-27B 看 16 帧，加上提示值作答。提示值一般用几何值，网格拟合的物体改用场景拟合值。两种跟踪（普通、Qwen 检查过提示框）各问一次，取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
     <tr><td>6 路由</td><td>S3 用几何值，D3 用 Qwen 的答案；Qwen 没给出有效数字时退回几何值。</td><td><code>route.py</code></td></tr>
     <tr><td>7 置信度路由</td><td>S3 题如果场景拟合给出的逐题置信度 ≥ 0.6，用拟合值代替几何值（默认开启）。</td><td><code>route.py --fit --fit-conf</code></td></tr>
@@ -699,23 +704,23 @@
     <summary><span class="d">10-24</span>Meshy 整体移除：物体形状只用解析几何体（commit 619b74f） <span class="yes">采用</span></summary>
     <div class="iter-body">
   <p>用户 10-24 决定不再依赖网格库：删掉 <code>meshgen.py</code> 和 <code>eval_fpose.py</code>，scene_fit 里的网格选项由 3D 侧随后删除。原因：当前的场景拟合不依赖网格，Meshy credits 也已停用。</p>
-  <p>用户在知道代价后选择彻底删除网格库（commit 095820b）。对 3D 场景拟合的影响见 <a href="#sf-v8">3D r8 条目</a>第 20 轮：保留网格时 0.6671，去网格后的默认 c_v10c2 为 0.6388。10-22 的网格库和 CAD 对比条目保留原文，作为历史记录。</p>
+  <p>用户在知道代价后选择彻底删除网格库（commit 095820b）。对 3D 场景拟合的影响见 <a href="#sf-v8">3D v8 条目</a>第 20 轮：保留网格时 0.6671，去网格后的默认 c_v10c2 为 0.6388。10-22 的网格库和 CAD 对比条目保留原文，作为历史记录。</p>
     </div>
   </details>
 
   <details class="iter" id="sf-v8">
-    <summary><span class="d">10-24</span>3D 场景拟合 r8：逐题置信度 + ballistic 弹跳模型 + contact / typmatch / overhead + 可见区间 + 焦距先投票 · 同一代码状态下场景拟合 0.553→0.593（r8b）→0.603（r8c）→0.613（r8e） <span class="yes">采用（场景拟合）</span></summary>
+    <summary><span class="d">10-24</span>3D 场景拟合 v8：逐题置信度 + ballistic 弹跳模型 + contact / typmatch / overhead + 可见区间 + 焦距先投票 · 同一代码状态下场景拟合 0.553→0.593（v8b）→0.603（v8c）→0.613（v8e） <span class="yes">采用（场景拟合）</span></summary>
     <div class="iter-body">
   <h4>版本与消融（验证集 3D 90 题，同一代码状态）</h4>
   <table>
     <tr><th>配置</th><th>3D macro</th><th>S3</th><th>D3</th><th>结论</th></tr>
-    <tr><td>r7 参数</td><td>0.553</td><td>0.530</td><td>0.577</td><td>基线</td></tr>
-    <tr><td><b>r8b</b>（typmatch + contact + overhead + ballistic）</td><td><b>0.593</b></td><td><b>0.609</b></td><td>0.577</td><td>采用</td></tr>
-    <tr><td>r8b 换跟踪缓存 tracks_m</td><td>0.586</td><td>0.595</td><td>0.577</td><td>—</td></tr>
-    <tr><td>r8b + visibility 约束</td><td>0.597</td><td>0.598</td><td>0.596</td><td>没采用：差距在噪声内，且 captured_0021x、simulation_0060 下降</td></tr>
-    <tr><td>r7 + 地平线校验（hgate）</td><td>0.531</td><td>0.558</td><td>0.504</td><td>没采用</td></tr>
+    <tr><td>v7 参数</td><td>0.553</td><td>0.530</td><td>0.577</td><td>基线</td></tr>
+    <tr><td><b>v8b</b>（typmatch + contact + overhead + ballistic）</td><td><b>0.593</b></td><td><b>0.609</b></td><td>0.577</td><td>采用</td></tr>
+    <tr><td>v8b 换跟踪缓存 tracks_m</td><td>0.586</td><td>0.595</td><td>0.577</td><td>—</td></tr>
+    <tr><td>v8b + visibility 约束</td><td>0.597</td><td>0.598</td><td>0.596</td><td>没采用：差距在噪声内，且 captured_0021x、simulation_0060 下降</td></tr>
+    <tr><td>v7 + 地平线校验（hgate）</td><td>0.531</td><td>0.558</td><td>0.504</td><td>没采用</td></tr>
   </table>
-  <p>表里各行是同一代码状态下跑的（summary.json）。绝对值低于之前的 0.604（r7），是因为期间共享模块变了（在场性校验的误判、parse 的改动），不是场景拟合退步；同一代码状态下 r8b 比 r7 参数高 0.040。参数：<code>--fixes … typmatch contact overhead --motion ballistic</code>（见各场景 json 的 <code>args</code>）。</p>
+  <p>表里各行是同一代码状态下跑的（summary.json）。绝对值低于之前的 0.604（v7），是因为期间共享模块变了（在场性校验的误判、parse 的改动），不是场景拟合退步；同一代码状态下 v8b 比 v7 参数高 0.040。参数：<code>--fixes … typmatch contact overhead --motion ballistic</code>（见各场景 json 的 <code>args</code>）。</p>
 
   <h4>逐题质量与置信度</h4>
   <p>每道场景拟合的答案带 <code>quality</code> 字段和一个置信度 conf（0–1），是固定规则的乘积，不看答案。路由 <code>--fit</code> 用它：S3 题 conf ≥ 0.6 时用拟合值。</p>
@@ -743,7 +748,7 @@
   <h4>ballistic 弹跳模型（captured_0061）</h4>
   <p>球在空中只受重力 a = −g·n（n 为地面法向）；碰到地面时法向速度乘 −e（恢复系数），切向速度乘 kt；贴地后按滚动阻力 μ_r 减速。碰撞时刻由参数解析算出，不靠检测。e、kt、μ_r 和直径 D、初始位置 p0、初速度 v0 一起拟合，范围 e ∈ [0.3, 0.95]、kt ∈ [0.5, 1]、μ_r ∈ [0, 0.5]。</p>
   <table>
-    <tr><th>题目</th><th class="n">真值</th><th class="n">r7<sup>*</sup></th><th class="n">自由分段<sup>†</sup></th><th class="n">ballistic<sup>†</sup></th></tr>
+    <tr><th>题目</th><th class="n">真值</th><th class="n">v7<sup>*</sup></th><th class="n">自由分段<sup>†</sup></th><th class="n">ballistic<sup>†</sup></th></tr>
     <tr><td>yoga 球直径 (cm)</td><td class="n">52.2</td><td class="n">37.9 · 0.7</td><td class="n">26.1 · 0.5</td><td class="n">37.0 · 0.7</td></tr>
     <tr><td>足球直径 (cm)</td><td class="n">17.5</td><td class="n">14.6 · 0.8</td><td class="n">13.7 · 0.7</td><td class="n">15.8 · 0.9</td></tr>
     <tr><td>足球–篮球距离 @2.0 s (m)</td><td class="n">1.95</td><td class="n">2.45 · 0.7</td><td class="n">3.21 · 0.3</td><td class="n">0.99 · 0.5</td></tr>
@@ -759,14 +764,14 @@
 
   <h4>contact、typmatch、overhead</h4>
   <ul>
-    <li><b>contact（simulation_0170 宇航员）：</b>轨迹的几何证据（贴着地面）优先于场景图的 airborne 判断。视频平均 MRA 0.44 → 0.50。逐题（预测 · MRA，r7 → r8b；r7 取自旧目录 <code>c_support_v7</code>，修复前的代码状态）：0.5 s 加速度 4.79 · 0.7 → 3.89 · 0.6；1 s 速度 10.35 · 0.2 → 9.51 · 0.3；1 s 加速度 4.79 · 0.6 → 3.89 · 0.9；2 s 速度 5.66 · 0.8 → 5.72 · 0.8；3 s 速度 1.63 · 0.6 → 2.28 · 0.9；3 s 加速度 4.79 · 0.6 → 3.89 · 0.5；0.5 s 速度和 2 s 加速度两题都是 0。</li>
+    <li><b>contact（simulation_0170 宇航员）：</b>轨迹的几何证据（贴着地面）优先于场景图的 airborne 判断。视频平均 MRA 0.44 → 0.50。逐题（预测 · MRA，v7 → v8b；v7 取自旧目录 <code>c_support_v7</code>，修复前的代码状态）：0.5 s 加速度 4.79 · 0.7 → 3.89 · 0.6；1 s 速度 10.35 · 0.2 → 9.51 · 0.3；1 s 加速度 4.79 · 0.6 → 3.89 · 0.9；2 s 速度 5.66 · 0.8 → 5.72 · 0.8；3 s 速度 1.63 · 0.6 → 2.28 · 0.9；3 s 加速度 4.79 · 0.6 → 3.89 · 0.5；0.5 s 速度和 2 s 加速度两题都是 0。</li>
     <li><b>typmatch（captured_0034as 笔袋）：</b>典型尺寸表改为整词匹配，去掉 18 个子串误命中（例如 "credit card" 命中 car、"cabin floor" 命中 bin）。笔袋高 13.07 → 5.23 cm（真值 6.7），长 32.6 → 19.7 cm（真值 21.0）。副作用：simulation_0060 黄车 −0.2。</li>
     <li><b>overhead（simulation_0015 屋顶）：</b>顶部结构从深度单独拟合。净高 9.24 m（真值 12.9，MRA 0 → 0.7），厚度 0.82 m（真值 0.72，MRA 0.1 → 0.8）。</li>
   </ul>
 
-  <h4>r8c 与后续（10-24）</h4>
+  <h4>v8c 与后续（10-24）</h4>
   <ul>
-    <li><b>r8c：</b>overhead 结构改从场景图取，在场性用 r3。3D 场景拟合 0.593 → 0.603；路由不变。</li>
+    <li><b>v8c：</b>overhead 结构改从场景图取，在场性用 v3。3D 场景拟合 0.593 → 0.603；路由不变。</li>
     <li><b>solve 的 3D 两物体距离改为反投影：</b>两物体各自沿视线放到自己的 depth_info 距离上，再求欧氏距离，不再按像面算。captured_0061 篮球–瑜伽球距离 0.40 → 1.34 m（真值 1.66），MRA 0.2 → 0.8；测试集有 117 题受影响。</li>
     <li><b>重力抛物线焦距投票：</b>用球的抛物线和已知 g 反推焦距：足球 440、篮球 580 / 428，f 从 657 降到 577。降得不够，根因是速度 prior 把尺度拉住了，下一步改。</li>
     <li><b>captured_0013 分段支撑面：</b>球按 斜坡 → 桌面 → 空中 分段换支撑面。逐帧场景图下 1.5 s 速度 165.7 → 75.3（真值 102.65），MRA 0.3 → 0.7；但这个结果依赖逐帧场景图（pf）。</li>
@@ -774,7 +779,7 @@
   <p>评估员建议的五个开关逐个单开，都在噪声内或变差，没有进默认：</p>
   <table>
     <tr><th>开关</th><th class="n">3D 场景拟合</th></tr>
-    <tr><td>r8c 基线</td><td class="n">0.603</td></tr>
+    <tr><td>v8c 基线</td><td class="n">0.603</td></tr>
     <tr><td>range</td><td class="n">0.5938</td></tr>
     <tr><td>focalvote</td><td class="n">0.6024</td></tr>
     <tr><td>rest + blur</td><td class="n">0.5900</td></tr>
@@ -783,7 +788,7 @@
     <tr><td>五个全开</td><td class="n">0.5910</td></tr>
   </table>
 
-  <h4>r8e：焦距先由投票定（focalfirst）</h4>
+  <h4>v8e：焦距先由投票定（focalfirst）</h4>
   <ul>
     <li><b>focalfirst：</b>有速度 prior 时，先用焦距投票（重力抛物线、尺寸先验、实验室先验等）定焦距，再用速度 prior。captured_0061 的 f 从 657 降到 482，相机高 0.88 m，篮球的第一个事件在 1.25 s。3D 场景拟合 0.603 → 0.613。</li>
     <li>每个场景 json 写入 <code>focal_votes</code>（来源、值、权重）；视频页的场景表下面显示焦距投票表。</li>
@@ -795,7 +800,7 @@
   <ul>
     <li>三条收窄版开关不进默认。</li>
     <li>新增离线稳定性 conf_stab（同一题在参数扰动下拟合值是否稳定）。</li>
-    <li><b>depth_info 解析找回的 3 个锚点反而让 simulation_0015 的深度对齐变差：</b>r8e 同参数 0.613 → 0.597。稳健的深度对齐还在做。</li>
+    <li><b>depth_info 解析找回的 3 个锚点反而让 simulation_0015 的深度对齐变差：</b>v8e 同参数 0.613 → 0.597。稳健的深度对齐还在做。</li>
   </ul>
 
   <h4>第 7–8 轮</h4>
@@ -807,7 +812,7 @@
 
   <h4>第 9–11 轮</h4>
   <ul>
-    <li><b>r8g（3D 场景拟合 0.5992 → 0.6059）：</b>
+    <li><b>v8g（3D 场景拟合 0.5992 → 0.6059）：</b>
       <ul>
         <li>supportconf：主支撑面按置信度选。simulation_0009 的主支撑面改为水面，船宽 / 高 1.22 / 0.76 m。</li>
         <li>离地高度这类题如果和物体自身尺寸同义反复，标为退化。</li>
@@ -846,7 +851,7 @@
     <li>默认用按帧场景图。</li>
   </ul>
 
-  <h4>第 16 轮：scene_fit r9（commit 7b5a5d6）</h4>
+  <h4>第 16 轮：scene_fit v9（commit 7b5a5d6）</h4>
   <p><code>--fixes direct directkin supportface</code>：每道 3D 题都在拟合内部给出答案（89 / 90）。</p>
   <table>
     <tr><th>几何流水线赢场景拟合的题</th><th class="n">题数</th></tr>
@@ -868,7 +873,7 @@
     <li>永不整体失败：captured_0006、simulation_0144 这两个测试视频现在也能给出答案。</li>
   </ul>
 
-  <h4>第 17 轮：scene_fit r9b（commit 763e25d）</h4>
+  <h4>第 17 轮：scene_fit v9b（commit 763e25d）</h4>
   <ul>
     <li>场景拟合单独 0.6811（S3 0.730 / D3 0.632）。视频页的 3D 视图已切到 <code>c_v9b</code>。</li>
     <li>simulation_0300、simulation_0060：直接值和拟合一致，但都偏 20%，已派场景级尺度一致性检查。</li>
@@ -890,7 +895,7 @@
     <tr><td>c_v9b，no-geo</td><td class="n">0.7424</td><td class="n">0.721</td><td class="n">0.662</td></tr>
     <tr><td>c_v9_dk_sf，no-geo</td><td class="n">0.7372</td><td class="n">0.700</td><td class="n">0.662</td></tr>
   </table>
-  <p>换成 scene2d r8 后，c_v9b 当前路由 0.7479、no-geo 0.7463。</p>
+  <p>换成 scene2d v8 后，c_v9b 当前路由 0.7479、no-geo 0.7463。</p>
   <p><b>captured_0021x 按题分组标定：</b>组 1 的 prior 写作 "40 mm"（1 题），组 2 写作 "40mm"（4 题）；值相同，焦距也相同。</p>
   <table>
     <tr><th>组</th><th>题</th><th class="n">值</th><th class="n">真值</th><th class="n">MRA</th></tr>
@@ -939,12 +944,12 @@
   <p>场景 json 新增每个物体的 <code>visible</code> / <code>out_of_frame</code> 区间和 <code>visibility</code>（拟合位置是否在画内，和跟踪是否可见的一致度）。12 个视频的一致度都 ≥ 0.96；captured_0041x 的球用 ballistic 后 41/41 帧在画内（之前出画后仍投影在画内）；simulation_0015 现在 6/6。视频页的 3D 视图按这些区间显示物体，弹跳的球按 ballistic 轨迹采样播放。</p>
 
   <h4>文件</h4>
-  <p>主 repo commit 1080f91（scene_fit r8）；场景 json <code>outputs/scene_fit_eval/c_support_v8b/</code>（含 <code>visible</code>、<code>out_of_frame</code>、<code>visibility</code>、<code>ballistic</code>、逐题 <code>quality</code>）；消融目录 <code>c_v8_bal</code>、<code>c_v8_seg</code>、<code>c_v8_contact</code>、<code>c_v8_typ</code>、<code>c_v8_over</code>、<code>c_v8_plusvis</code>、<code>c_support_v8b_tm</code>、<code>c_v7_hgate</code>。视频页的 3D 场景已切到 r8e（<code>c_support_v8e</code>，含焦距投票）。</p>
+  <p>主 repo commit 1080f91（scene_fit v8）；场景 json <code>outputs/scene_fit_eval/c_support_v8b/</code>（含 <code>visible</code>、<code>out_of_frame</code>、<code>visibility</code>、<code>ballistic</code>、逐题 <code>quality</code>）；消融目录 <code>c_v8_bal</code>、<code>c_v8_seg</code>、<code>c_v8_contact</code>、<code>c_v8_typ</code>、<code>c_v8_over</code>、<code>c_v8_plusvis</code>、<code>c_support_v8b_tm</code>、<code>c_v7_hgate</code>。视频页的 3D 场景已切到 v8e（<code>c_support_v8e</code>，含焦距投票）。</p>
     </div>
   </details>
 
   <details class="iter" id="sf-v7">
-    <summary><span class="d">10-23</span>3D 场景重建正确版（r7）：物体清单 + 场景图 + 支撑面与重力 + 尺寸来源 · 3D 场景拟合 0.513→0.604，0 分题 14→11；完整 harness 0.666（与 0.668 在噪声内） <span class="yes">采用（场景拟合）</span></summary>
+    <summary><span class="d">10-23</span>3D 场景重建正确版（v7）：物体清单 + 场景图 + 支撑面与重力 + 尺寸来源 · 3D 场景拟合 0.513→0.604，0 分题 14→11；完整 harness 0.666（与 0.668 在噪声内） <span class="yes">采用（场景拟合）</span></summary>
     <div class="iter-body">
   <h4>做法</h4>
   <ul>
@@ -967,9 +972,9 @@
     <tr><td>c_support_v2</td><td>0.602</td><td>0.572</td><td>0.632</td><td>10</td></tr>
     <tr><td><b>c_support_v7（采用）</b></td><td><b>0.604</b></td><td>0.586</td><td><b>0.621</b></td><td>11</td></tr>
   </table>
-  <p>数字来自 <code>outputs/scene_fit_eval/&lt;run&gt;/summary.json</code> 和 <code>scores.csv</code>（r7 答了 88/90 题）。</p>
+  <p>数字来自 <code>outputs/scene_fit_eval/&lt;run&gt;/summary.json</code> 和 <code>scores.csv</code>（v7 答了 88/90 题）。</p>
 
-  <h4>逐视频变化（场景拟合，qa_all → r7）</h4>
+  <h4>逐视频变化（场景拟合，qa_all → v7）</h4>
   <table>
     <tr><th>视频</th><th class="n">变化</th><th>说明</th></tr>
     <tr><td>captured_0027s</td><td class="n">+0.43</td><td>—</td></tr>
@@ -983,7 +988,7 @@
   </table>
 
   <h4>为什么完整 harness 没涨</h4>
-  <p>完整 harness 里 S3 用几何值，D3 只把网格物体的场景拟合值当作 Qwen 的提示，所以场景拟合的提升基本没传到最终答案：r7 总分 0.6656（S2 0.672 / D2 0.651 / S3 0.686 / D3 0.653），和 0.668 在噪声内。qp-tools 正在改提示和路由，让场景拟合值进入更多题。</p>
+  <p>完整 harness 里 S3 用几何值，D3 只把网格物体的场景拟合值当作 Qwen 的提示，所以场景拟合的提升基本没传到最终答案：v7 总分 0.6656（S2 0.672 / D2 0.651 / S3 0.686 / D3 0.653），和 0.668 在噪声内。qp-tools 正在改提示和路由，让场景拟合值进入更多题。</p>
 
   <h4>没采用</h4>
   <ul>
@@ -1299,7 +1304,7 @@ python -m pipeline.route --split test --geo outputs/test_geo_detailed.csv --vlm 
   <ul>
     <li><b>原版路线跑不通：</b>抽样 8 个验证视频，第 2 阶段全部失败。QuantiPhy 没有专属路线，走的是 CLEVRER 路线：SAM 3 的文本提示固定为 "all visible objects"，普通视频里什么都检测不到；分割视频能检测和跟踪，但网格换算到米制尺度（mesh conditioning）全部失败。</li>
     <li><b>改造后（变体 B）：</b>用题目里的物体名做 SAM 3 概念提示，并且每个概念单独开一个 SAM 3 会话（同一会话只保留最后一个文本提示，已验证）。5 个视频完整重建，35 题中 PhysMind 实际测量了 17 题，其余回退到 VLM。</li>
-    <li>这 17 题上 PhysMind 的平均 MRA 为 <b>0.25</b>，同一 VLM 直接作答为 0.55，我们更简单的 r1（SAM 3 掩码中心 + 度量深度）为 0.44。</li>
+    <li>这 17 题上 PhysMind 的平均 MRA 为 <b>0.25</b>，同一 VLM 直接作答为 0.55，我们更简单的 v1（SAM 3 掩码中心 + 度量深度）为 0.44。</li>
   </ul>
   <p><b>交互查看：</b><a href="case/physmind/index.html">PhysMind 三维场景查看器</a>，5 个视频，左边是视频叠加按位姿投影的网格，右边是相机坐标系下的三维场景，可拖动旋转、逐帧播放。</p>
   <h4 id="pm-d1">诊断 1：深度（尺度）</h4>
@@ -1340,7 +1345,7 @@ python -m pipeline.route --split test --geo outputs/test_geo_detailed.csv --vlm 
     <tr><td>+ 用 depth_info 校正尺度（只用题目给的信息）</td><td>0.489</td><td>0.312</td><td>0.162</td></tr>
     <tr><td>+ 理想尺度（按其余题的真值，分尺寸 / 运动分别校准，留一法）</td><td>0.486</td><td>0.306</td><td>0.213</td></tr>
     <tr><td>+ 轨迹按匀加速拟合后再求导</td><td>0.437</td><td>0.206</td><td>0.112</td></tr>
-    <tr><td>换掉 FoundationPose：r1（SAM 3 掩码中心 + 深度）</td><td>0.483</td><td>0.441</td><td>0.338</td></tr>
+    <tr><td>换掉 FoundationPose：v1（SAM 3 掩码中心 + 深度）</td><td>0.483</td><td>0.441</td><td>0.338</td></tr>
     <tr><td>Gemini 3 Flash 直接作答</td><td>0.603</td><td>0.547</td><td>0.512</td></tr>
   </table>
   <ul>
@@ -1357,7 +1362,7 @@ python -m pipeline.route --split test --geo outputs/test_geo_detailed.csv --vlm 
   </details>
 
   <details class="iter" id="approach">
-    <summary><span class="d">10-04</span>几何流水线 r0 / r1（Grounding DINO + SAM 2 + 标定 + 物理拟合）· 0.436 / 0.514 <span class="yes">采用，至今是提示来源</span></summary>
+    <summary><span class="d">10-04</span>几何流水线 v0 / v1（Grounding DINO + SAM 2 + 标定 + 物理拟合）· 0.436 / 0.514 <span class="yes">采用，至今是提示来源</span></summary>
     <div class="iter-body">
   <p><b>思路：</b>QuantiPhy 本质上是测量问题，题目都是“已知一个物理量，求另一个”。我们把像素轨迹换算成物理量：静态量靠比例尺，动态量靠对轨迹平滑和微分。物理模型（匀速、匀加速、抛体）只作为拟合约束，不做前向仿真。VLM 只负责理解问题和指认物体；模型只用 Grounding DINO 和 SAM 2，两者都开源，Track B 可用。</p>
 
@@ -1376,10 +1381,10 @@ python -m pipeline.route --split test --geo outputs/test_geo_detailed.csv --vlm 
   <table>
     <tr><th></th><th>macro MRA</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>无效答案</th></tr>
     <tr><td>官方 GPT-5.1 基线</td><td>0.486</td><td>0.569</td><td>0.354</td><td>0.456</td><td>0.564</td><td>6.3%</td></tr>
-    <tr><td>流水线 r0（Grounding DINO 逐帧检测）</td><td>0.436</td><td>0.413</td><td>0.368</td><td>0.651</td><td>0.311</td><td>0%</td></tr>
-    <tr><td><b>流水线 r1（SAM 2 跟踪 + 度量三维）</b></td><td><b>0.514</b></td><td>0.463</td><td>0.341</td><td>0.707</td><td>0.545</td><td>0%</td></tr>
+    <tr><td>流水线 v0（Grounding DINO 逐帧检测）</td><td>0.436</td><td>0.413</td><td>0.368</td><td>0.651</td><td>0.311</td><td>0%</td></tr>
+    <tr><td><b>流水线 v1（SAM 2 跟踪 + 度量三维）</b></td><td><b>0.514</b></td><td>0.463</td><td>0.341</td><td>0.707</td><td>0.545</td><td>0%</td></tr>
   </table>
-  <p>r1 按视频来源：分割掩码视频 0.87，实验室 0.62，仿真 0.46，互联网 0.35。r0 到 r1 的提升主要来自三处：SAM 2 跟踪、度量三维运动、实验室相机焦距先验（细节见附录）。</p>
+  <p>v1 按视频来源：分割掩码视频 0.87，实验室 0.62，仿真 0.46，互联网 0.35。v0 到 v1 的提升主要来自三处：SAM 2 跟踪、度量三维运动、实验室相机焦距先验（细节见附录）。</p>
 
   <h4 id="已知失败模式">失败模式与下一步</h4>
   <ul>
@@ -1422,7 +1427,7 @@ python -m pipeline.run --split test --out outputs/submission.csv   # 填好官�
     <tr><th>步骤</th><th>做法</th><th>代码</th></tr>
     <tr><td>1 解析、跟踪</td><td>和 <a href="#pipe3d">3D 流程</a>的第 1、2 步相同。</td><td><code>parse.py</code> <code>perceive.py</code></td></tr>
     <tr><td>2 几何测量</td><td>m/px = 已知量 ÷ 它的像素量，再换算成目标量，得到几何值。几何走回退常数的题不给这个提示。</td><td><code>calibrate.py</code> <code>physics.py</code> <code>solve.py</code></td></tr>
-    <tr><td>3 图层场景</td><td><b>物体清单</b>（<code>objects.py</code>）把题目和 prior 里提到的物体合并别名，得到 canonical 名，每个一层；<b>场景图</b>（<code>scenegraph.py --dim2</code>）给出 on / airborne / held 关系，并判断两个名字是否同一实例：不同实例却共用一条跟踪的，拒绝较弱的那一层。背景层是采样帧的中位数，每层从两份 SAM 2 跟踪缓存里选匹配最好、不退化的那条。尺寸在<b>掩码凸包</b>（<code>extents2d.py</code>）上量：length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向。用 prior 在对应图层上量出像素量，标定一个统一的 m/px（透视模型默认关）。每层按时间分段（碰撞、停下处切开），每段用 BIC 在静止、匀速、匀加速、匀速圆周里自动选模型；场景图说放在支撑面上的，先试约束到支撑线上的模型，轨迹不符时否决约束。逐题从模型算出"场景值"，两物体距离也直接从两层算。r3 起：车道、地砖这类场景结构按场景里运动物体或支撑面的方向定朝向；线状结构和刻度类 prior 改用帧级参考测量（<code>refmeasure</code>）；场景图的 in / on 关系用来剔除不一致的跟踪候选。r5 起（commit 4300ff2）：图层的轨迹由物体清单解析（在场性校验后，不在场的物体不建层）；成对物体（"两个 X"）各取一条轨迹；场景图逐帧，关系检查按阶段进行（例如先 on 再 airborne），并检查尺寸顺序；参考测量量不到时不作答，不再用掩码硬量；prior 所在的层要通过刚体一致性检查（掩码大小和形状要稳定）才用来定尺度。验证集 12 个 2D 视频约 15 秒。</td><td><code>scene2d.py</code> <code>extents2d.py</code> <code>objects.py</code> <code>scenegraph.py</code></td></tr>
+    <tr><td>3 图层场景</td><td><b>物体清单</b>（<code>objects.py</code>）把题目和 prior 里提到的物体合并别名，得到 canonical 名，每个一层；<b>场景图</b>（<code>scenegraph.py --dim2</code>）给出 on / airborne / held 关系，并判断两个名字是否同一实例：不同实例却共用一条跟踪的，拒绝较弱的那一层。背景层是采样帧的中位数，每层从两份 SAM 2 跟踪缓存里选匹配最好、不退化的那条。尺寸在<b>掩码凸包</b>（<code>extents2d.py</code>）上量：length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向。用 prior 在对应图层上量出像素量，标定一个统一的 m/px（透视模型默认关）。每层按时间分段（碰撞、停下处切开），每段用 BIC 在静止、匀速、匀加速、匀速圆周里自动选模型；场景图说放在支撑面上的，先试约束到支撑线上的模型，轨迹不符时否决约束。逐题从模型算出"场景值"，两物体距离也直接从两层算。v3 起：车道、地砖这类场景结构按场景里运动物体或支撑面的方向定朝向；线状结构和刻度类 prior 改用帧级参考测量（<code>refmeasure</code>）；场景图的 in / on 关系用来剔除不一致的跟踪候选。v5 起（commit 4300ff2）：图层的轨迹由物体清单解析（在场性校验后，不在场的物体不建层）；成对物体（"两个 X"）各取一条轨迹；场景图逐帧，关系检查按阶段进行（例如先 on 再 airborne），并检查尺寸顺序；参考测量量不到时不作答，不再用掩码硬量；prior 所在的层要通过刚体一致性检查（掩码大小和形状要稳定）才用来定尺度。验证集 12 个 2D 视频约 15 秒。</td><td><code>scene2d.py</code> <code>extents2d.py</code> <code>objects.py</code> <code>scenegraph.py</code></td></tr>
     <tr><td>4 Qwen 作答</td><td>Qwen3.8-27B 看 16 帧作答，提示里同时给几何值和场景值（<code>--hint2d &lt;run&gt;/val_pred.csv --hint2d-mode second</code>），并说明场景值在图层跟错物体时会错。两种跟踪各问一次，取几何平均。</td><td><code>vlm_hint.py --direct</code></td></tr>
     <tr><td>5 路由</td><td>S2、D2 都用 Qwen 的答案；Qwen 没给出有效数字时先用场景值，再退回几何值。</td><td><code>route.py</code></td></tr>
     <tr><td>6 置信度门控</td><td>场景值的逐题置信度 ≥ 0.85 时不经 Qwen，直接用场景值（默认开启）。</td><td><code>route.py --scene2d-direct</code></td></tr>
@@ -1436,7 +1441,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
     --vlm outputs/vlm/val_defaults_a_pred.csv outputs/vlm/val_defaults_b_pred.csv \
     --scene2d outputs/scene2d_eval/s2d_v5/val_pred.csv --scene2d-column \
     --fit outputs/scene_fit_eval/c_support_v8b --out outputs/val_defaults_routed.csv   # → 0.6983</code></pre>
-  <p><small>命令照 <code>docs/WORKING_RULES.md</code> 的复现一节（<code>pipeline/scene2d.py</code> 的 docstring 还没有 r5 这一段）。注意 Qwen 的第二个提示仍用 s2d_v3 的场景值，路由时的场景值和置信度用 s2d_v5；route 必须带 <code>--fit &lt;目录&gt;</code> 或 <code>--no-fit</code>。</small></p>
+  <p><small>命令照 <code>docs/WORKING_RULES.md</code> 的复现一节（<code>pipeline/scene2d.py</code> 的 docstring 还没有 v5 这一段）。注意 Qwen 的第二个提示仍用 s2d_v3 的场景值，路由时的场景值和置信度用 s2d_v5；route 必须带 <code>--fit &lt;目录&gt;</code> 或 <code>--no-fit</code>。</small></p>
   <p>验证集结果（当前最好 0.7632，2D 场景值直接作答）：S2 <b>0.797</b>、D2 <b>0.892</b>。每个 2D 视频的图层（掩码凸包、运动模型轨迹、比例尺、prior 标注）以及物体清单和场景图，可以在 <a href="videos.html">视频与问题</a> 里和原视频联动查看。测试集提交 v7 已包含这一步。</p>
   </details>
   <h3 id="pipe2d-track2d">队友的 2D 方案</h3>
@@ -1448,7 +1453,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
   <p>只针对 2D 题（S2、D2）的迭代，按时间倒序。</p>
 
   <details class="iter" id="s2d-v9b">
-    <summary><span class="d">10-24</span>scene2d r9.1：几何观测吸收进场景 + 加速度重力线索 + 边界对称拟合 · S2 0.722→0.797（s2d_v9） <span class="yes">采用（验证集）</span></summary>
+    <summary><span class="d">10-24</span>scene2d v9.1：几何观测吸收进场景 + 加速度重力线索 + 边界对称拟合 · S2 0.722→0.797（s2d_v9） <span class="yes">采用（验证集）</span></summary>
     <div class="iter-body">
   <ul>
     <li><b>几何观测吸收进 scene2d：</b>有歧义的读法（例如 length / width 指哪一维）由多种观测投票决定。simulation_0089 的四题改为从场景作答，S2 0.722 → 0.766。</li>
@@ -1461,7 +1466,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
   </details>
 
   <details class="iter" id="s2d-v9">
-    <summary><span class="d">10-24</span>2D 图层场景 r9：图层跨帧对应规则 + measure 接口 · S2 0.722 / D2 0.892（commit 046bc48）</summary>
+    <summary><span class="d">10-24</span>2D 图层场景 v9：图层跨帧对应规则 + measure 接口 · S2 0.722 / D2 0.892（commit 046bc48）</summary>
     <div class="iter-body">
   <ul>
     <li><b>刚体常量尺寸：</b>在 ±15% 的窗口里取逐帧尺寸的众数作为常量（<code>stable_extent_px</code>，<code>rigid_constant</code>）；视频页的图层视图对刚体层画一个不随帧变的稳定框。例：internet_0004 木块 489 × 246.5 px，不再闪。</li>
@@ -1476,7 +1481,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
   </details>
 
   <details class="iter" id="s2d-v6">
-    <summary><span class="d">10-24</span>2D 图层场景 r6：刚体一致性用跟踪掩码 + refmeasure 合理性交叉检查 · simulation_0196 终于有尺度（四题 0.25→0.425） <span class="yes">采用（tracks_v9pc）</span></summary>
+    <summary><span class="d">10-24</span>2D 图层场景 v6：刚体一致性用跟踪掩码 + refmeasure 合理性交叉检查 · simulation_0196 终于有尺度（四题 0.25→0.425） <span class="yes">采用（tracks_v9pc）</span></summary>
     <div class="iter-body">
   <h4>做法</h4>
   <ul>
@@ -1528,7 +1533,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
     <li><b>有阴影的球体用等效直径：</b>四颗卫星 5.84–6.25 px（真值 5.91）；光度法直径 conf 0.65。</li>
   </ul>
   <p>simulation_0193 视频平均 MRA 0.60 → 0.917；D2 0.703 → 0.805（2 路）。另修了 <code>--base-hint2d</code> 门控的一个 bug。</p>
-  <h4>scene2d r7：每题必答</h4>
+  <h4>scene2d v7：每题必答</h4>
   <div class="callout"><b>中心思想：</b>一个场景拟合视频和问题，几何测量都进场景，Qwen 是先验 / 评审 / 回退。</div>
   <ul>
     <li>每题必答：69 / 69 题都有场景值，场景值 MRA 0.799。</li>
@@ -1536,7 +1541,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
     <li>模拟"场景值直接作答，只有 conf &lt; 0.1 才问 Qwen"：2D 0.800，总分约 0.743。</li>
     <li>simulation_0171 的加速度改法用到全部 2D 加速度题：7 道题的 MRA 合计 3.9 → 4.5，2 路 0.7282。</li>
   </ul>
-  <h4>scene2d r8（commit 4b6bb24、dc23bf6）</h4>
+  <h4>scene2d v8（commit 4b6bb24、dc23bf6）</h4>
   <ul>
     <li><b>出画 / 外推 / 覆盖率降 conf：</b>simulation_0089 两只鸟的速度 conf 0.405 → 0.09 / 0.05，交给 Qwen 后 MRA 0.2 / 0.1 → 0.9 / 1.0。</li>
     <li>prior 约定有歧义时，conf 按歧义的比例乘一个系数。</li>
@@ -1552,12 +1557,12 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
     <tr><td>题数</td><td class="n">7</td><td class="n">7</td><td class="n">8</td><td class="n">32</td><td class="n">14</td></tr>
   </table>
   <p>视频页的 2D 图层已切到 <code>scene2d_eval/s2d_v8/</code>。</p>
-  <p>逐帧场景图（pfc）对 2D 不比 grid 差（pfc ≥ grid），和 3D 相反（见 <a href="#sf-v8">r8e</a>）。</p>
+  <p>逐帧场景图（pfc）对 2D 不比 grid 差（pfc ≥ grid），和 3D 相反（见 <a href="#sf-v8">v8e</a>）。</p>
     </div>
   </details>
 
   <details class="iter" id="s2d-v3">
-    <summary><span class="d">10-23</span>2D 图层场景 r3：结构朝向 + 参考测量（refmeasure）+ 关系一致性 + 噪声下限 · 验证集 0.671→0.681，D2 0.676→0.714 <span class="yes">采用（验证集）</span></summary>
+    <summary><span class="d">10-23</span>2D 图层场景 v3：结构朝向 + 参考测量（refmeasure）+ 关系一致性 + 噪声下限 · 验证集 0.671→0.681，D2 0.676→0.714 <span class="yes">采用（验证集）</span></summary>
     <div class="iter-body">
   <h4>做法</h4>
   <ul>
@@ -1575,7 +1580,7 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
   </table>
   <h4>逐视频变化（视频内 2D 题的平均 MRA，s2d_v2 重跑 → s2d_v3）</h4>
   <table>
-    <tr><th>视频</th><th class="n">r2 重跑</th><th class="n">r3</th><th class="n">变化</th></tr>
+    <tr><th>视频</th><th class="n">v2 重跑</th><th class="n">v3</th><th class="n">变化</th></tr>
     <tr><td>simulation_0196</td><td class="n">0.000</td><td class="n">0.250</td><td class="n">+0.250</td></tr>
     <tr><td>internet_0013</td><td class="n">0.717</td><td class="n">0.783</td><td class="n">+0.067</td></tr>
     <tr><td>internet_0001</td><td class="n">0.633</td><td class="n">0.667</td><td class="n">+0.033</td></tr>
@@ -1592,15 +1597,15 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
   </details>
 
   <details class="iter" id="s2d-v2">
-    <summary><span class="d">10-23</span>2D 图层场景 r2：物体清单 + 场景图 + 掩码主轴尺寸，Qwen 无数字时回退到场景值 · 验证集 0.656→0.668，S2 0.609→0.669 <span class="yes">采用（验证集）</span></summary>
+    <summary><span class="d">10-23</span>2D 图层场景 v2：物体清单 + 场景图 + 掩码主轴尺寸，Qwen 无数字时回退到场景值 · 验证集 0.656→0.668，S2 0.609→0.669 <span class="yes">采用（验证集）</span></summary>
     <div class="iter-body">
   <p class="muted"><small>注：<code>outputs/scene2d_eval/s2d_v2/</code> 目录和 <code>val_s2d_v2_routed.csv</code> 后来被 0.671 那次重跑覆盖了；本条的数字、图和例子描述的是得出 0.668 的那次运行。</small></p>
   <h4>做法</h4>
   <ul>
     <li><b>图层来自物体清单：</b>题目和 prior 里提到的物体先合并别名（例如 "the balck ball" 和 "the black ball"），每个 canonical 名一层；标为场景结构的（车道、地砖等）只量尺寸，不当运动物体。</li>
     <li><b>场景图：</b>给出 on（支撑面）、airborne、held 关系，以及两个名字是否同一实例。不同实例却共用同一条跟踪的，拒绝较弱的那一层（internet_0027：orange ball 和 yellow ball 被判为不同的球，但跟踪是同一条，orange ball 层被拒绝）。放在支撑面上的物体先试约束在支撑线上的运动模型，轨迹不符时否决约束（simulation_0171 宇航员 "on floor" 被否决：4 段都离开地面线，在跳）。侧视且有 airborne 物体时，重力方向取图像向下。</li>
-    <li><b>掩码主轴尺寸：</b>在每个关键帧的掩码凸包上量尺寸：length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向，height = 竖直方向。r1 用的是包围框的宽和高。</li>
-    <li><b>尺度：</b>透视模型默认关，所有视频都用统一的 m/px（r1 的对数线性透视模型在退化跟踪上会误触发）。</li>
+    <li><b>掩码主轴尺寸：</b>在每个关键帧的掩码凸包上量尺寸：length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向，height = 竖直方向。v1 用的是包围框的宽和高。</li>
+    <li><b>尺度：</b>透视模型默认关，所有视频都用统一的 m/px（v1 的对数线性透视模型在退化跟踪上会误触发）。</li>
     <li><b>两物体距离：</b>直接从两层在该时刻的位置算。</li>
     <li><b>路由：</b>Qwen 没给数字时，先用场景值，再退回几何值（<code>route --scene2d ... --scene2d-column</code>）。</li>
   </ul>
@@ -1613,24 +1618,24 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
   <table>
     <tr><th>配置</th><th>总分</th><th>S2</th><th>D2</th><th>S3</th><th>D3</th><th>2D 题 MRA=0</th></tr>
     <tr><td>基线：不用场景值</td><td>0.6195</td><td>0.594</td><td>0.551</td><td>0.686</td><td>0.647</td><td>12</td></tr>
-    <tr><td>r1（场景值作为第二个提示）</td><td>0.6558</td><td>0.609</td><td>0.681</td><td>0.686</td><td>0.647</td><td>8</td></tr>
-    <tr><td>r1 + Qwen 无数字时回退到场景值</td><td>0.6636</td><td>0.641</td><td>0.681</td><td>0.686</td><td>0.647</td><td>7</td></tr>
-    <tr><td><b>r2（采用）</b></td><td><b>0.6680</b></td><td><b>0.669</b></td><td>0.670</td><td>0.686</td><td>0.647</td><td>8</td></tr>
-    <tr><td>r2 直接用场景值作答（<code>route --scene2d</code>）</td><td>0.6515</td><td>0.622</td><td>0.651</td><td>0.686</td><td>0.647</td><td>13</td></tr>
+    <tr><td>v1（场景值作为第二个提示）</td><td>0.6558</td><td>0.609</td><td>0.681</td><td>0.686</td><td>0.647</td><td>8</td></tr>
+    <tr><td>v1 + Qwen 无数字时回退到场景值</td><td>0.6636</td><td>0.641</td><td>0.681</td><td>0.686</td><td>0.647</td><td>7</td></tr>
+    <tr><td><b>v2（采用）</b></td><td><b>0.6680</b></td><td><b>0.669</b></td><td>0.670</td><td>0.686</td><td>0.647</td><td>8</td></tr>
+    <tr><td>v2 直接用场景值作答（<code>route --scene2d</code>）</td><td>0.6515</td><td>0.622</td><td>0.651</td><td>0.686</td><td>0.647</td><td>13</td></tr>
   </table>
-  <p>r1 → r1 + 回退的 +0.008 全部来自 simulation_0163（Qwen 对"1 s 时球的加速度"没给数字，r1 场景值 0.337，真值 0.339；r2 的场景值是 0.388，所以这个视频在 r2 里低了 0.033）。r2 再 +0.004；S2 +0.028，D2 −0.011 在噪声范围内（单个类别重跑一次会波动 ±0.03）。直接用场景值作答 S2、D2 都更低，2D 题 MRA=0 多 5 题，没采用。</p>
+  <p>v1 → v1 + 回退的 +0.008 全部来自 simulation_0163（Qwen 对"1 s 时球的加速度"没给数字，v1 场景值 0.337，真值 0.339；v2 的场景值是 0.388，所以这个视频在 v2 里低了 0.033）。v2 再 +0.004；S2 +0.028，D2 −0.011 在噪声范围内（单个类别重跑一次会波动 ±0.03）。直接用场景值作答 S2、D2 都更低，2D 题 MRA=0 多 5 题，没采用。</p>
 
-  <h4>逐视频变化（视频内 2D 题的平均 MRA，r1 + 回退 → r2）</h4>
+  <h4>逐视频变化（视频内 2D 题的平均 MRA，v1 + 回退 → v2）</h4>
   <table>
-    <tr><th>视频</th><th class="n">题数</th><th class="n">r1 + 回退</th><th class="n">r2</th><th class="n">变化</th><th>说明</th></tr>
+    <tr><th>视频</th><th class="n">题数</th><th class="n">v1 + 回退</th><th class="n">v2</th><th class="n">变化</th><th>说明</th></tr>
     <tr><td>simulation_0089</td><td class="n">6</td><td class="n">0.467</td><td class="n">0.633</td><td class="n">+0.167</td><td>length / width 语义修正，见下</td></tr>
-    <tr><td>internet_0004</td><td class="n">4</td><td class="n">0.375</td><td class="n">0.500</td><td class="n">+0.125</td><td>prior 是尺子刻度，r2 不再用它定尺度，场景值不再误导 Qwen</td></tr>
+    <tr><td>internet_0004</td><td class="n">4</td><td class="n">0.375</td><td class="n">0.500</td><td class="n">+0.125</td><td>prior 是尺子刻度，v2 不再用它定尺度，场景值不再误导 Qwen</td></tr>
     <tr><td>internet_0019</td><td class="n">7</td><td class="n">0.843</td><td class="n">0.914</td><td class="n">+0.071</td><td>—</td></tr>
     <tr><td>internet_0013</td><td class="n">6</td><td class="n">0.717</td><td class="n">0.717</td><td class="n">0</td><td>—</td></tr>
     <tr><td>simulation_0098_segmented</td><td class="n">4</td><td class="n">0.925</td><td class="n">0.925</td><td class="n">0</td><td>—</td></tr>
     <tr><td>simulation_0196</td><td class="n">4</td><td class="n">0.000</td><td class="n">0.000</td><td class="n">0</td><td>气泡只动几个像素，尺度不可靠</td></tr>
     <tr><td>simulation_0171</td><td class="n">8</td><td class="n">0.675</td><td class="n">0.662</td><td class="n">−0.013</td><td>—</td></tr>
-    <tr><td>simulation_0163</td><td class="n">6</td><td class="n">0.783</td><td class="n">0.750</td><td class="n">−0.033</td><td>Qwen 无数字回退的那题，r2 场景值 0.388（真值 0.339，r1 为 0.337）</td></tr>
+    <tr><td>simulation_0163</td><td class="n">6</td><td class="n">0.783</td><td class="n">0.750</td><td class="n">−0.033</td><td>Qwen 无数字回退的那题，v2 场景值 0.388（真值 0.339，v1 为 0.337）</td></tr>
     <tr><td>internet_0001</td><td class="n">3</td><td class="n">0.667</td><td class="n">0.633</td><td class="n">−0.033</td><td>—</td></tr>
     <tr><td>internet_0027</td><td class="n">5</td><td class="n">0.820</td><td class="n">0.780</td><td class="n">−0.040</td><td>—</td></tr>
     <tr><td>internet_0005</td><td class="n">4</td><td class="n">0.700</td><td class="n">0.650</td><td class="n">−0.050</td><td>—</td></tr>
@@ -1638,9 +1643,9 @@ python -m pipeline.route --split val --geo outputs/val_geo_defaults_a.csv --fall
   </table>
 
   <h4>length / width 语义修正（simulation_0089）</h4>
-  <p>r1 把包围框的宽当 length、高当 width。鸟水平飞、翅膀上下展开，所以"宽"（翼展）其实在竖直方向。r2 按朝向量：length 沿飞行方向，width 垂直于它。</p>
+  <p>v1 把包围框的宽当 length、高当 width。鸟水平飞、翅膀上下展开，所以"宽"（翼展）其实在竖直方向。v2 按朝向量：length 沿飞行方向，width 垂直于它。</p>
   <table>
-    <tr><th>题目</th><th class="n">r1 场景值</th><th class="n">r2 场景值</th><th class="n">真值</th></tr>
+    <tr><th>题目</th><th class="n">v1 场景值</th><th class="n">v2 场景值</th><th class="n">真值</th></tr>
     <tr><td>大鸟的宽 (m)</td><td class="n">0.97</td><td class="n">2.38</td><td class="n">2.04</td></tr>
     <tr><td>小鸟的宽 (m)</td><td class="n">0.60</td><td class="n">1.51</td><td class="n">1.30</td></tr>
   </table>
