@@ -87,7 +87,7 @@
 <main class="wrap">
 <nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
 <h1>QuantiPhy agent harness</h1>
-<p class="lede">当前实现v59 / 最新完整GPT high对照v50，agent配对v32 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
+<p class="lede">当前实现v59 / 最新完整GPT high配对v50-v54 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
 <div class="callout"><b>最近完整GPT配对 v32：control 0.75938 / agent 0.76258，非重叠43题均0.65982。Qwen v26为0.75116 / 0.75169，非重叠0.66756。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
 <div class="callout"><b>验证阶段记录：</b>v22 代码 <code>da51368</code>，<b>103 项 CPU 测试通过</b>；完整 <b>159 题 / 24 视频</b> control：S2 <b>0.78125</b> / D2 <b>0.89459</b> / S3 <b>0.66512</b> / D3 <b>0.63617</b>，1 unresolved 按零分计入；非重叠 <b>43 题 0.60923</b>（同题历史 <b>0.64613</b>）。agent macro <b>0.74747</b>（D3 0.64894，其余相同），非重叠同为 <b>0.60923</b>，同样 1 unresolved。25组51轮、5轮尝试修复、1轮接受；43次观察工具调用成功。4题prior→scene平均MRA 0.450→0.425，净上涨主要来自另3个prior回复变化，不能宣称几何收益。历史 v21 的 5 视频 smoke：control <b>0.62125</b>，agent <b>0.61292</b>，子集没有 D2；0 次接受修复，1 次无效 <code>mark_absent</code> 被拒绝，没有证明 agent 收益。</div>
 <div class="callout"><b>v24：159 项 CPU 测试通过；全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。51轮中1轮接受，无执行失败。</b>轨迹验证绑定内容，变更会使场景 / 答案失效；有限观察后必须完成决策；contact 按对象、目标及时间窗编辑。3D 新增共享相机与释放前观测实验，均默认关闭。v24 3D专项：0013默认/onset/再加sharedcamera的8题拟合MRA为0.4125/0.4750/0.4750，球框RMS 19.81→13.35px；0009三配置9题均0.5000。两次joint候选都因护栏拒绝。这不是完整harness分数。</div>
@@ -113,7 +113,8 @@
 <div class="callout"><b>v49平面矩形原型。</b>5项专项合成测试通过，但真实角点对.5px扰动敏感、f范围很宽，桌面遮挡返回null；只读诊断、未接入harness，不把偶然接近标注的数值当高置信度测量。</div>
 <div class="callout"><b>v51边线细化原型（未接harness）。</b>v49角点附近以原图RGB梯度拟合边线并求交点，3项专项测试通过。真实角点移动.34–2px后正交性和焦距稳定性仍不足，128扰动只有23正f；保持只读诊断，不提高置信度、不改变默认。</div>
 <div class="callout"><b>v52距离锚点绑定候选。</b>native严格token导致pingpong与ping pong ball不匹配、原始距离未进入拟合。新规则只做相邻字母词的精确空格等价，保留颜色/左右/编号，新增多实例歧义不绑定；depth-map track定位共用规则，保存raw_key审计。259项CPU测试；27题 .68680556与同题基线相同，0无效、11/11 prior回放。两条距离已进入native，full159输入审计新规则仅影响该已测视频；v53作为正确性修复采纳。</div>
-<div class="callout"><b>v63结构化track_reselect候选。</b>排除框绑定指定源帧/pixel hash，候选中心在排除矩形内即过滤；显式prior重选绕过旧DINO优先，空候选不退回旧框。合并后同帧命名轨迹仍需满足约束，否则回滚并报告原因；语义身份仍须另验。默认关闭、进入续跑签名；282测试通过，六题agent验证运行中。v62十题S2 .85 / D2 .31666667、0无效：局部身份yes/no/yes仍误确认坏轨迹，未采用。</div>
+<div class="callout"><b>完整Astra high配对v54。</b>159题macro .77583893（control .76974047），非重叠43题 .70714286（.66547619），0无效、54轮2接受；17道直接测量全不变。非重叠增益全来自一道prior：两次首请求体完全相同，control返回0未缓存，agent重取得1.9并避开旧重试。因此不归因agent几何、不切默认。v64/v65同.py完整159题配对正在比较给定多锚点距离优先与尺寸推断；276测试。v66补可执行帧/框建议及缺省帧重选，284测试，六题agent运行中。</div>
+<div class="callout"><b>v63结构化track_reselect候选。</b>排除框绑定指定源帧/pixel hash，候选中心在排除矩形内即过滤；显式prior重选绕过旧DINO优先，空候选不退回旧框。合并后同帧命名轨迹仍需满足约束，否则回滚并报告原因；语义身份仍须另验。默认关闭、进入续跑签名；282测试通过，六题已完成、实际t_hint=null未触发约束；v66补齐建议/默认帧。v62十题S2 .85 / D2 .31666667、0无效：局部身份yes/no/yes仍误确认坏轨迹，未采用。</div>
 <div class="callout"><b>v62核验视角上下文候选。</b>最终视角字段缺失时回退已有grid，保存有效视角/hash/producer来源；新增显式fresh verify在逐帧图后重核验轨迹，保持inventory presence缓存。默认关闭；280测试通过，10题固定视觉重核验已完成、未采用。v61六题agent MRA .9同control，2轮0接受，未恢复物理尺度；候选仍覆盖排除区域且对齐更差，发现exclude_box只是文字提示，待落实结构化约束。单组六题.9不是完整目标达成。</div>
 <div class="callout"><b>v60负身份prior标定候选。</b>绑定身份明确false的2D轨迹不能提供尺度，覆盖普通物体/class/gravity/layer override；独立refmeasure保持资格，unknown与false分开。序列化身份依据与重选轨迹诊断；guard默认关闭，进入续跑签名。277测试通过；69题完成S2 .74375（基线 .746875）、D2 .92972973（.83783784），0无效。六题坏尺度改走prior，尚非物理修复；v61六题agent配对运行中。发现track核验早于逐帧图、漏读已有grid俯视信息，guard暂不采纳。未改冻结证据或接受门槛。</div>
 <div class="callout"><b>v59固定seed身份预检。</b>要求merged tracks身份sidecar绑定当前split/video/kind/轨迹hash；缺失/旧schema/失效在模型调用前报错，绑定unknown/false仍合法。271项CPU测试通过。v58补齐输入27题 .68680556同基线、0无效，9/12 prior回放；直接depth-series候选未采纳。v43 fresh GPT+严格身份完整159题 .73404313、非重叠43题 .63154762、0无效，低于固定视觉对照，不采用；发现2D明确负身份prior仍进入尺度标定，待修复。</div>
@@ -192,7 +193,9 @@
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；仅成功有限正数，agent / control 可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
-<tr><td>v63显式重选约束</td><td colspan="2">指定帧与排除区域实际生效；过滤候选，合并结果不满足就回滚</td><td>候选；282测试，六题agent运行中</td></tr>
+<tr><td>v64/v65完整距离序列配对</td><td colspan="2">同.py/固定视觉/原响应库，provided_linear vs size；range/Z语义未统一</td><td>276测试；两次159题运行中</td></tr>
+<tr><td>v66诊断到动作的参数闭环</td><td colspan="2">已有观测帧/框进入重选建议；省略时间也执行显式选择</td><td>284测试；六题agent运行中</td></tr>
+<tr><td>v63显式重选约束</td><td colspan="2">指定帧与排除区域实际生效；过滤候选，合并结果不满足就回滚</td><td>v63未触发约束；v66继续验证</td></tr>
 <tr><td>v62核验视角与阶段顺序</td><td colspan="2">grid视角回退、上下文来源；逐帧图后显式重核验轨迹</td><td>候选未采用；280测试，10题完成</td></tr>
 <tr><td>v60 2D prior身份资格</td><td colspan="2">明确负身份不能供尺度，保留独立参考测量并给出重选建议</td><td>候选；69题已完成，v61 agent运行中</td></tr>
 <tr><td>v59固定seed输入完整性</td><td colspan="2">物理像素与身份sidecar都必须完整且绑定；未知身份与缺文件分开</td><td>已采纳；271测试，v58对照无MRA增益</td></tr>
