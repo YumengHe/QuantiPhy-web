@@ -102,6 +102,7 @@
 <div class="callout"><b>v30：GPT后端实验。</b>统一Qwen/GPT请求和代理鉴权；端点进入运行与prior缓存身份。GPT文本连通成功；固定Qwen视觉缓存后比较GPT评审/先验，v30首轮因seed缺raw停止；v31以完整v26_control重跑，新增严格seed预检。四视频22题GPT agent macro .66667，同题Qwen v26 .67083；10轮/1 accepted、0无效，未见收益。GPT control .64792，agent增加.01875但仍低于Qwen；v32已冻结实现，完整159题GPT对照先control后agent；尚无完整GPT分数，0.9目标未达到。</div>
 <div class="callout"><b>v33：全链GPT观测实验已启动。</b>独立工作区QuantiPhy-gpt-fresh与独立outputs；从清单、场景图、跟踪复核、参考点与ground重新生成观测后进入同一harness。仅共享视频与模型权重，不读取主工作区视觉缓存；四视频22题结果待完成。v32继续固定Qwen视觉seed的完整159题对照，两种实验分开解释。</div>
 <div class="callout"><b>v34候选：完整JSON数值解析。</b>修复e+指数被截短、截断JSON数字前缀被误当成功的问题；坏返回进入既有重试且不缓存，245项CPU测试通过。抽查13条缓存数值不变，尚无MRA收益；独立分支，不修改在跑v32/v33。离线误差分解：v26仅将prior题答满分的理论macro约.861，仅将物理来源题答满分约.891，0.9需要两边共同改进。</div>
+<div class="callout"><b>v35候选：局部运动导数，默认关闭。</b>原始metric轨迹以共同中心观测留出选择窗宽与阶数，单位与轨迹descriptor可重放；247项CPU测试通过。合成快速运动的平滑衰减减小，但真实两视频7题初查有升有降，未采用、不宣称MRA收益。v32完整对照和v33独立全链GPT实验继续运行。</div>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
   <div class="node"><div class="hd"><b>输入与运行编排</b><span class="st done">已实现</span></div><span class="m">视频、题目、本题 prior / depth_info。多个视频并行，同场景变体按背景 C 优先。actor 不读 answer / MRA。每视频独立落盘、失败记录与续跑。</span></div>
