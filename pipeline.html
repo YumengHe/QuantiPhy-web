@@ -97,7 +97,7 @@
 <div class="callout"><b>v26：237项CPU测试通过；完整159题control/agent为0.75116 / 0.75169，非重叠43题均0.66756。</b>52轮评审接受2次恢复静止观测，24视频无执行失败，1 unresolved计零；相对control增加0.00053不足以证明有效收益。受限策略绑定题组、证据、输入及代码；共同物理约束固定分母并从runtime重算。视频卡展示本次v26实际产物。继承相机策略仍保守跳过。</div>
 <div class="callout"><b>v27候选：276项CPU测试通过，完整对照未见收益。</b>补输入依赖闭包、split与相机继承隔离；去除同源置信度加分，prior置信度未知。四视频25题control/agent均0.59208，同题v26 control为0.67854；6题从场景值转为prior，准确率下降。完整159题control/agent均0.73602，非重叠43题0.62321，1 unresolved；候选未合入主分支，不替换视频卡结果。</div>
 <div class="callout"><b>v28候选：五视频34题control/agent均0.59613，无MRA收益。</b>结构对象的真实框纳入冻结证据；SAM传播保留提示帧和身份投票；可疑身份保持unknown。相关帧按时间块汇总，part/whole共用证据族，族内取最差对象、族间等权。相机继承必须证明生成输入仍有效，缺少或过期producer回执时跳过继承。13轮评审接受1次修改，无执行失败。主分支与视频卡仍为v26。</div>
-<div class="callout"><b>v29候选：294项CPU测试通过，全部2D 69题验证完成。</b>标定与作答使用同一个尺寸算子，长边/短边替代解释只作歧义诊断；旧selected_px不能再掩盖prior读回不一致。control/agent均S2 0.71875、D2 0.89459，0无效、0 accepted，未见MRA收益；完整159题对照运行中。保留原置信度门槛。</div>
+<div class="callout"><b>v29候选：294项CPU测试通过，全部2D 69题验证完成。</b>标定与作答使用同一个尺寸算子，长边/短边替代解释只作歧义诊断；旧selected_px不能再掩盖prior读回不一致。control/agent均S2 0.71875、D2 0.89459，0无效、0 accepted，未见MRA收益；完整159题control为0.73708，非重叠43题0.62321，1 unresolved；agent仍运行中。保留原置信度门槛。</div>
 <h2 id="flow">流程图：一个视频一次走完</h2>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
