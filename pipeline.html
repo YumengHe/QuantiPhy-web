@@ -112,6 +112,7 @@
 <div class="callout"><b>v48/v50显式Astra high。</b>按SPARK2 high与官方兼容参数发送reasoning_effort，省略temperature；effort进入backend/cache/resume，默认配置不变。257项CPU测试；22题 .67395833 vs默认Astra同题 .65520833，13道物理值不变，单道prior题贡献全部增益。v50完整159题对照运行中，尚无稳健收益结论。</div>
 <div class="callout"><b>v49平面矩形原型。</b>5项专项合成测试通过，但真实角点对.5px扰动敏感、f范围很宽，桌面遮挡返回null；只读诊断、未接入harness，不把偶然接近标注的数值当高置信度测量。</div>
 <div class="callout"><b>v51边线细化原型（未接harness）。</b>v49角点附近以原图RGB梯度拟合边线并求交点，3项专项测试通过。真实角点移动.34–2px后正交性和焦距稳定性仍不足，128扰动只有23正f；保持只读诊断，不提高置信度、不改变默认。</div>
+<div class="callout"><b>v52距离锚点绑定候选。</b>native严格token导致pingpong与ping pong ball不匹配、原始距离未进入拟合。新规则只做相邻字母词的精确空格等价，保留颜色/左右/编号，新增多实例歧义不绑定；depth-map track定位共用规则，保存raw_key审计。259项CPU测试，五视频27题固定视觉+prior bank运行中，未采用。</div>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
   <div class="node"><div class="hd"><b>输入与运行编排</b><span class="st done">已实现</span></div><span class="m">视频、题目、本题 prior / depth_info。多个视频并行，同场景变体按背景 C 优先。actor 不读 answer / MRA。每视频独立落盘、失败记录与续跑。</span></div>
@@ -185,6 +186,7 @@
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；仅成功有限正数，agent / control 可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
+<tr><td>v52 depth名称绑定候选</td><td>不变</td><td>精确闭合词空格等价，保留颜色/左右/编号；native与depth-map定位一致，raw_key审计</td><td><span class="st wip">259测试、27题运行中</span> 未采用</td></tr>
 <tr><td>v48显式推理强度候选</td><td colspan="2">GPT reasoning_effort与兼容采样参数绑定HTTP/body/backend/cache/resume；v50固定视觉完整对照</td><td><span class="st wip">257测试、22题完成、全量运行中</span> 未采用</td></tr>
 <tr><td>v49/v51矩形几何原型</td><td>不变</td><td>四角/正交vanishing-point与ray+range条件重建；显式像素敏感性与不可辨识f</td><td><span class="st wip">5项几何+3项边线专项测试</span> 真实角点仍不可靠，未接harness</td></tr>
 <tr><td>v47 range候选</td><td>不变</td><td>原生depth_info锚点按相机欧氏距离；已有开关单独消融，其他语义分支尚未统一</td><td><span class="st wip">全量完成</span> 几何改善混合，未采用</td></tr>
