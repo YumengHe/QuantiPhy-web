@@ -2,7 +2,8 @@
 (function () {
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
-  const SRC_LABEL = { geo: '几何', vlm: 'Qwen', s2d: '2D 场景值', fit: '拟合值' };
+  const SRC_LABEL = { scene: '场景重放', measurement: '独立测量', prior: '显式先验', unresolved: '未解决',
+    geo: '旧几何', vlm: '旧 Qwen', s2d: '旧 2D 场景值', fit: '旧拟合值' };
   const SHAPE_LABEL = { box: '长方体', sphere: '球', cylinder: '圆柱', prism: '三棱柱', mesh: '网格（画包围盒）' };
   const PALETTE = ['#3b6fd8', '#d9622b', '#2e9b5f', '#b03fa8', '#c79a12', '#1b9aaa', '#d6455d', '#6d5bd0', '#7a8b2a', '#8a5a3c'];
   let DATA = null;
@@ -40,9 +41,10 @@
     const all = val.videos.flatMap((v) => v.questions);
     const m = macro(all);
     $('val-macro').textContent = fmt(m.macro, 4);
-    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}。3D 视图为场景拟合 c_v10c2（无网格），2D 图层为 scene2d v9（s2d_v9）`;
+    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}。` +
+      (val.harness_tag ? `${esc(val.harness_tag)} 的独立 prior / depth 组；逐题 runtime 图与诊断按精确 scene_id 绑定。` : '历史产物；场景版本见各视频卡片。');
     // per answer source: how many questions took their final prediction from it and their MRA
-    const SRCS = [['geo', '几何'], ['fit', '拟合'], ['s2d', '2D 场景'], ['vlm', 'Qwen']].filter(([k]) => all.some((q) => q.src === k));
+    const SRCS = Object.entries(SRC_LABEL).filter(([k]) => all.some((q) => q.src === k));
     let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th>' + SRCS.map(([, l]) => `<th class="n">${l} 题数</th><th class="n">${l} MRA</th>`).join('') + '</tr>';
     const row = (label, qs, strong) => {
       const s = (x) => (strong ? `<b>${x}</b>` : x);
@@ -103,6 +105,11 @@
         (v.version && v.version.label ? `<span title="${esc(versionTitle(v.version))}">${esc(v.version.label)}</span>` + (v.run_at ? ' · ' : '') : '') +
         (v.run_at ? `<span title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</span>' : '') + '</div></summary>';
     let built = false, viewer = null, video = null;
+    const original = v;
+    const groups = (v.groups || []).filter((g) => qs.some((q) => q.group === g.group));
+    const unavailable = qs.some((q) => q.group == null);
+    let selectedGroup = groups.length ? groups[0].group : '__unavailable__';
+    let activeQuestions = qs;
     const onToggle = () => {
       // test-set scenes live in one file per video (data/scenes/test/<id>.json) and are fetched when the card opens
       if (d.open && v.scene_ref && !v._loaded) {
@@ -114,13 +121,32 @@
       }
       if (d.open && !built) {
         built = true;
+        let selector = '', critique = '';
+        if (original.harness) {
+          const group = groups.find((g) => g.group === selectedGroup);
+          v = { ...original, scene: (group && group.scene) || null, scene2d: (group && group.scene2d) || null };
+          activeQuestions = qs.filter((q) => group ? q.group === group.group : q.group == null);
+          selector = '<div class="controls"><label>独立 prior / depth 组 <select class="group-select">' +
+            groups.map((g) => `<option value="${esc(g.group)}"${g.group === selectedGroup ? ' selected' : ''}>组 ${esc(g.group)} · ${esc((g.prior || '无 prior').slice(0, 85))}</option>`).join('') +
+            (unavailable ? `<option value="__unavailable__"${!group ? ' selected' : ''}>scene_id 无法绑定的题目</option>` : '') + '</select></label></div>' +
+            (group ? `<div class="known-shared">${esc(group.prior)}${group.depth_info ? '\ndepth_info: ' + esc(group.depth_info) : ''}\nscene_id: ${esc(group.scene_id)}</div>` :
+              '<p class="fwarn">scene_id 缺失或不唯一；不选择其他组代替。</p>');
+          critique = group ? harnessCritique(group.critique) : '';
+        }
         const body = document.createElement('div');
         body.className = 'vbody';
-        body.innerHTML = mediaBlock(v, split) + evalBlock(v) + questionTable(qs, split, v.dim === 2 && !!v.scene2d) +
-          (v.dim === 3 ? sceneTables(v, split) : v.scene2d ? layerTables(v) : '');
+        body.innerHTML = selector + mediaBlock(v, split) + evalBlock(v) + questionTable(activeQuestions, split, v.dim === 2 && !!v.scene2d) +
+          critique + (v.dim === 3 ? sceneTables(v, split) : v.scene2d ? layerTables(v) : '');
         d.appendChild(body);
         video = body.querySelector('video');
-        tqMarks(body, v, qs);
+        tqMarks(body, v, activeQuestions);
+        const groupSelect = body.querySelector('.group-select');
+        if (groupSelect) groupSelect.addEventListener('change', (e) => {
+          selectedGroup = e.target.value;
+          if (viewer) { viewer.then((x) => x && x.dispose()); viewer = null; }
+          if (video) { video.pause(); video.removeAttribute('src'); video.load(); video = null; }
+          body.remove(); built = false; onToggle();
+        });
         body.addEventListener('click', (e) => {
           const b = e.target.closest('.tq-btn');
           if (b) jumpTo(body, v, b.dataset.t === '' ? null : Number(b.dataset.t));
@@ -223,7 +249,49 @@
     if (media) media.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  function harnessQuestionTable(qs) {
+    const rows = qs.map((q) => {
+      const binding = q.binding_status === 'matched';
+      const images = binding ? (q.runtime_overlays || []).filter((im) => im.scene_id === q.scene_id) : [];
+      const previews = images.map((im) => im.path ? `<figure class="runtime-frame"><a href="${esc(im.path)}" target="_blank" rel="noopener">` +
+        `<img loading="lazy" src="${esc(im.path)}" alt="本题 scene_id 的 runtime 叠加图，t=${esc(im.t)}s"></a>` +
+        `<figcaption>t=${fmt(im.t, 3)} s · ${esc(im.renderer)} / ${esc(im.renderer_version)} 显示代码</figcaption></figure>` :
+        `<p class="fwarn">t=${fmt(im.t, 3)} s 图不可用：${esc(im.unavailable)}</p>`).join('');
+      const info = binding ? `<details class="runtime-diagnostics"><summary>本题诊断与来源</summary><pre>${esc(JSON.stringify({
+        scene_id: q.scene_id, row: q.row, version: q.version, method: q.method, source: q.src, status: q.status,
+        execution_status: q.execution_status, measurement: q.measurement, measurement_id: q.measurement_id,
+        measurement_record: q.measurement_record, quality: q.quality, provenance: q.provenance
+      }, null, 2))}</pre></details>` : `<p class="fwarn">图与场景诊断 unavailable：${esc(q.binding_error)}</p>`;
+      const independent = q.src === 'measurement' || ((q.measurement || {}).reasons || []).includes('direct_observation_not_rendered_geometry');
+      return `<tr><td>${esc(q.cat)}<br><span class="muted">row ${q.row}</span></td>` +
+        `<td class="q">${esc(q.q)}<div class="known">prior: ${esc(q.prior)}${q.depth ? '\ndepth_info: ' + esc(q.depth) : ''}</div>` +
+        `<div class="scene-id">scene_id: <code>${esc(q.scene_id || 'unavailable')}</code></div>` +
+        (independent ? '<p class="muted">此量来自独立测量记录，不是渲染几何；图像对齐本身不能证明该数值。</p>' : '') +
+        `<div class="runtime-frames">${previews}</div>${info}</td>` +
+        `<td class="n">${fmtNum(q.answer)}</td><td class="n pred">${fmtNum(q.pred)}</td>` +
+        `<td>${esc(SRC_LABEL[q.src] || q.src)}<br><code>${esc(q.status || 'unavailable')}</code><br>conf ${fmt(q.conf, 3)}</td>` +
+        `<td class="n">${mraBadge(q.mra)}</td>${tqCells(qs, q)}</tr>`;
+    }).join('');
+    return '<h4>本组逐题答案与 canonical runtime 图</h4><div class="scroll-x"><table class="qtable">' +
+      '<tr><th>类别 / 行号</th><th>问题、精确场景与诊断</th><th>验证答案</th><th>最终预测</th><th>来源 / 状态</th><th>MRA</th>' +
+      tqHead(qs) + `</tr>${rows}</table></div>`;
+  }
+
+  function harnessCritique(critique) {
+    const iterations = (critique || {}).iterations || [];
+    return `<details class="sfres"><summary>本组 agent 回路：${iterations.length} 轮，${iterations.filter((i) => i.accepted).length} 轮接受；${esc(((critique || {}).status || {}).stop_reason || '未记录')}</summary>` +
+      '<div class="scroll-x"><table><tr><th>轮次</th><th>诊断</th><th>动作</th><th>结果 / 停止原因</th></tr>' +
+      iterations.map((i) => `<tr><td>${i.iter}</td><td>${esc(i.diagnosis || '')}</td><td><pre>${esc(JSON.stringify(i.tool_calls || [], null, 2))}</pre></td>` +
+        `<td>${i.accepted ? '接受' : '未接受'} · ${esc(i.why || '')}<br>${esc(i.execution_status || '执行状态未记录')}` +
+        `${i.decision_status ? ' / ' + esc(i.decision_status) : ''}${i.budget_exhausted ? ' / 观察预算耗尽' : ''}` +
+        `<details><summary>工具执行记录</summary><pre>${esc(JSON.stringify({observations: i.observations, results: i.results, rejected_calls: i.rejected_calls,
+          deferred_calls: i.deferred_calls, failure_stage: i.failure_stage}, null, 2))}</pre></details></td></tr>`).join('') +
+      '</table></div></details>';
+  }
+
   function questionTable(qs, split, s2d) {
+    if (qs.some((q) => q.harness)) return harnessQuestionTable(qs);
+    if (!qs.length) return '<p class="muted">当前组没有匹配筛选条件的题目。</p>';
     const kn = (q) => (q.prior ? `已知：${esc(q.prior)}` : '') + (q.depth ? `\ndepth_info：${esc(q.depth)}` : '');
     // when every question of the video has the same prior / depth_info, show it once above the table
     const shared = qs.every((q) => q.prior === qs[0].prior && q.depth === qs[0].depth);
@@ -321,7 +389,8 @@
         '模型类型和残差见下方图层表。左下角是比例尺和尺度来源' + (s.gravity_dir ? '，右上角箭头是重力方向' : '') + '。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
     }
-    return `<div class="media"><div>${vid}</div>${scene}</div>`;
+    return (v.harness ? '<p class="muted">交互 3D / 图层视图使用旧版 JavaScript 简化投影，只作近似浏览。逐题检查请使用下方由 Python canonical runtime 生成的叠加图；独立 measurement 不等于渲染几何。</p>' : '') +
+      `<div class="media"><div>${vid}</div>${scene}</div>`;
   }
 
   // focal-length votes of the scene fit (scene_fit_eval json "focal_votes": gravity parabolas, size priors, lab prior …)
@@ -409,7 +478,7 @@
     let res = '';
     const hasConf = s.results.some((r) => r.conf != null);
     if (s.results.length) {
-      res = `<details class="sfres"><summary>场景拟合自己的答案（${s.results.length} 题；S3 题置信度 ≥ 0.6 时作为最终预测）</summary><div class="scroll-x"><table><tr><th>问题</th><th>物体</th><th>方法</th><th class="n">预测</th>` +
+      res = `<details class="sfres"><summary>${v.harness ? '本组保存的场景测量（最终答案见题表）' : '历史场景拟合自己的答案'}（${s.results.length} 题）</summary><div class="scroll-x"><table><tr><th>问题</th><th>物体</th><th>方法</th><th class="n">预测</th>` +
         (hasConf ? '<th title="压低置信度的信号：自有平面、支撑不确定、支撑不一致、看不见的维度（bound）、塌缩、静态结构">信号</th>' : '') +
         (hasConf ? '<th class="n" title="逐题置信度：固定规则的乘积（残差、深度锚点、尺寸来源、焦距来源、地面、时刻是否在可见区间、可见性一致度、结构、塌缩），悬停看各项">置信度</th>' : '') +
         (split === 'val' ? '<th class="n">答案</th><th class="n">MRA</th>' : '') + '</tr>';

@@ -208,8 +208,8 @@
     </ul>
   </div>
   <div class="callout" id="direction"><b>当前方向：一条流水线、一个 agent harness。</b>
-    v24：按 prior/depth 隔离场景，观察 → 测量诊断 → 修改 → 固定证据验收 → 当前状态重放答案。
-    新增轨迹验证内容绑定、缓存失效、预算终结决策与contact编辑；159项CPU测试通过，4视频agent smoke通过；3D保留静止观测在首例改善，sharedcamera两例均被拒绝，新选项仍默认关闭。v24全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。v22完整对照：完整 159 题 control macro 0.74428，非重叠 43 题 0.60923（历史同题 0.64613），1 unresolved 计零；agent macro 0.74747，非重叠同为0.60923；51轮中1轮接受，净上涨主要来自prior回复变化，几何收益未证实。
+    v25：按 prior/depth 隔离场景，观察 → 测量诊断 → 修改 → 固定证据验收 → 当前状态重放答案。
+    v25新增静态模型选择实验、prior逐次尝试审计和真实HTTP错误传播，195项CPU测试；专项结果与局限见完整流程。已有轨迹验证内容绑定、缓存失效、预算终结决策与contact编辑；159项CPU测试通过，4视频agent smoke通过；3D保留静止观测在首例改善，sharedcamera两例均被拒绝，新选项仍默认关闭。v24全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。v22完整对照：完整 159 题 control macro 0.74428，非重叠 43 题 0.60923（历史同题 0.64613），1 unresolved 计零；agent macro 0.74747，非重叠同为0.60923；51轮中1轮接受，净上涨主要来自prior回复变化，几何收益未证实。
     答案明确记录 scene / measurement / prior / unresolved，缺题保留在分母；相同 prior 请求可复用响应以控制对照误差。
     v8 旧链保留到既有任务结束，旧链 v12 的 0.7632 是历史参考。见 <a href="pipeline.html#flow">完整流程与实现状态</a>。</div>
 </header>
@@ -221,6 +221,7 @@
 <!-- versions:begin -->
   <table>
     <tr><th>版本</th><th>日期</th><th>改动</th><th>验证集</th><th>测试集 / 官方分</th></tr>
+    <tr><td>v25</td><td>10-24</td><td>静止刚体模型选择（staticmodel默认关），独立yaw、移除v/a自由度，静止假设下显式绑定timeless depth；prior对象时刻解析、每次先验尝试审计、真实HTTP错误传播；独立离线compare_harness；195项CPU测试</td><td>六组专项（均含onsetevidence）：0013 control/static/+joint = .4750/.4750/.4125，0009 = .5000/.54444/.54444；首例joint内部接受但数值下降，需外层固定证据验收；不是完整harness分数，未改变默认3D参数</td><td>未跑</td></tr>
     <tr><td>v24</td><td>10-24</td><td>保留释放前观测（onsetevidence默认关）；加速度prior绑定真实时刻；拒绝共享相机候选可重放。轨迹验证绑定及scene/answer依赖失效；观察预算终结决策与contact区间编辑；159项CPU测试通过</td><td>4视频23题agent smoke通过（无D2，非全量macro）；全量control 0.75116（S2 .78125 / D2 .89459 / S3 .68837 / D3 .64043），非重叠43题.66756，1unresolved计零；agent 0.75435（D3 .65319，其余同control），非重叠同.66756；51轮/1accepted，无执行失败。3D专项：0013默认/onset/加sharedcamera=0.4125/0.4750/0.4750；0009三者0.5000，两次joint均被拒绝；新参数未进默认</td><td>未跑</td></tr>
     <tr><td>v23</td><td>10-24</td><td>共享相机与支撑平面联合细化（sharedcamera默认关），秩与逐对象观测护栏；独立prior组全局状态清理。代码c58ec7e，116项CPU测试</td><td>captured_0013 8题3D专项：control/candidate均0.4125。优化改善4静态物体但运动球投影恶化，候选被拒绝；未证明MRA收益</td><td>未跑</td></tr>
     <tr><td>v22</td><td>10-24</td><td>修复轨迹查询、短可见段证据采样、重复首帧时序；测量驱动prompt、无效动作跳过与重拟超时；同输入prior响应缓存</td><td>control 159题 macro 0.74428（S2 0.78125 / D2 0.89459 / S3 0.66512 / D3 0.63617）；非重叠43题0.60923，历史同题0.64613；1 unresolved计零。agent 0.74747（D3 0.64894，其余同control），非重叠同0.60923；51轮/1accepted，净上涨主要来自prior回复变化，几何收益未证实</td><td>未跑</td></tr>
@@ -647,7 +648,7 @@
     <tr><td><small>参考：几何流水线 <code>pipeline.run</code></small></td><td><small>0.497</small></td><td><small>0.462</small></td><td><small>0.341</small></td><td><small>0.707</small></td><td><small>0.477</small></td></tr>
     <tr><td><small>参考：官方 GPT-5.1 基线</small></td><td><small>0.486</small></td><td><small>0.569</small></td><td><small>0.354</small></td><td><small>0.456</small></td><td><small>0.564</small></td></tr>
   </table>
-  <p><b>当前最好 v12：0.7632</b>（S2 0.797 / D2 0.892 / S3 0.705 / D3 0.660；43 题子集 0.6917）：旧链路由，3D 用删除网格库后的场景拟合 c_v10c2，2D 用 scene2d 场景 s2d_v9（16:08）。这是新 harness 的替换门槛，口径是两者用同一版 scene2d。中间值 0.7554 用的是 15:51 版 s2d_v8。视频页的逐题结果来自 <code>outputs/val_oldchain_v10c2_s2dv9_routed.csv</code>，3D 视图来自 <code>scene_fit_eval/c_v10c2/</code>，2D 图层来自 <code>scene2d_eval/s2d_v9/</code>。</p>
+  <p><b>当前最好 v12：0.7632</b>（S2 0.797 / D2 0.892 / S3 0.705 / D3 0.660；43 题子集 0.6917）：旧链路由，3D 用删除网格库后的场景拟合 c_v10c2，2D 用 scene2d 场景 s2d_v9（16:08）。这是新 harness 的替换门槛，口径是两者用同一版 scene2d。中间值 0.7554 用的是 15:51 版 s2d_v8。以上是历史参照。视频页当前验证结果来自 <code>outputs/val_v24_answers.csv</code>（macro 0.75435），按独立prior/depth组及scene_id展示答案、诊断和Python runtime叠加图。</p>
   <p><b>历史：0.7489（含网格；no-geo 路由（几何 csv 只作提示）；旧路由（几何直接作答）0.7500，在噪声内）：</b>Qwen 的答案沿用 valcur11，场景值换成 scene2d v8，场景拟合换成 c_v9b，路由用 mh3 的默认 <code>--no-geo</code>。各步的差都在噪声内：</p>
   <table>
     <tr><th>配置</th><th class="n">总分</th><th class="n">43 题子集（参考）</th></tr>

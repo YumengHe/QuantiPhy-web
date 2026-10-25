@@ -77,6 +77,11 @@
   .vbody h4 { margin: 14px 0 6px; font-size: 15px; }
   .vbody h4:first-child { margin-top: 0; }
   .qtable td.q { min-width: 260px; }
+  .runtime-frames { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .runtime-frame { width: min(360px, 100%); margin: 0; }
+  .runtime-frame img { width: 100%; border: 1px solid var(--border); border-radius: 5px; }
+  .runtime-frame figcaption, .scene-id { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .runtime-diagnostics pre, .sfres pre { max-width: 640px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
   .qtable .known { color: var(--muted); font-size: 12.5px; white-space: pre-wrap; margin-top: 3px; }
   .known-shared { white-space: pre-wrap; font-size: 13px; color: var(--muted); background: var(--code-bg); border-radius: 6px; padding: 8px 10px; margin: 0 0 8px; }
   .qtable td.pred { font-weight: 600; }
@@ -175,7 +180,7 @@
 <div class="wrap">
 <header>
   <h1>视频与问题</h1>
-  <p>验证集逐题看当前最好结果的预测和准确度（版本按一条全局版本线 vN 编号，见 <a href="index.html#versions">版本表</a>：本页验证集是 v12，测试集是 v7 的提交，v8 跑完后切到 v8；每张卡片右上角标产生该场景的版本，悬停看 commit 和场景目录；当前最好 0.7632：旧链 + 场景拟合 c_v10c2（无网格）+ scene2d 场景 s2d_v9，2D 场景值 conf ≥ 0.1 直接作答；3D 视频的三维视图来自场景拟合 c_v10c2（无网格），2D 视频的图层来自 s2d_v9；题目表可跳到问到的帧，并显示 t_q 对齐），每个视频带评估员的结论（主因层、根因），测试集看最新提交的预测值；展开视频可以看原视频，3D 视频还有场景拟合的三维视图，验证集的 2D 视频还有图层场景（都和视频时间联动）。<a href="index.html">返回文档主页</a> · <a href="pipeline.html">完整流程</a></p>
+  <p>验证集展示已完成的 harness 产物：实际版本、逐题来源与状态、独立 prior / depth 组及其 scene_id。叠加图由 Python runtime 从对应组状态生成；旧交互 3D / 图层视图仅作近似浏览。测试集保留已有提交数据，版本以各卡片为准。<a href="index.html">返回文档主页</a> · <a href="pipeline.html">完整流程</a></p>
   <p id="gen" class="muted"></p>
 </header>
 
@@ -193,14 +198,14 @@
         <div class="muted" id="val-src-file"></div>
         <p class="legend">MRA 着色：
           <span class="mra m4">≥ 0.8</span><span class="mra m3">0.6–0.8</span><span class="mra m2">0.4–0.6</span><span class="mra m1">0.2–0.4</span><span class="mra m0">&lt; 0.2</span>
-          　最终预测 = 着色的那一列：<span class="srcdot src-geo"></span>几何值　<span class="srcdot src-fit"></span>拟合值　<span class="srcdot src-s2d"></span>2D 场景值　<span class="srcdot src-vlm"></span>Qwen 值</p>
+          　答案来源：scene = 场景重放；measurement = 独立测量；prior = 显式先验；unresolved = 未解决。</p>
       </div>
       <div class="scroll-x"><table id="val-sum"></table></div>
     </div>
   </div>
   <div class="controls">
     <label>类别 <select id="v-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
-    <label>答案来源 <select id="v-src"><option value="">全部</option><option value="geo">几何</option><option value="vlm">Qwen</option><option value="fit">拟合值</option><option value="s2d">2D 场景值</option></select></label>
+    <label>答案来源 <select id="v-src"><option value="">全部</option><option value="scene">场景重放</option><option value="measurement">独立测量</option><option value="prior">显式先验</option><option value="unresolved">未解决</option><option value="geo">旧几何</option><option value="vlm">旧 Qwen</option><option value="fit">旧拟合值</option><option value="s2d">旧 2D 场景值</option></select></label>
     <label>视频来源 <select id="v-vsrc"><option value="">全部</option></select></label>
     <label>题目 MRA <select id="v-mra"><option value="">全部</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
     <label>排序 <select id="v-sort"><option value="mra-asc" selected>平均 MRA 从低到高</option><option value="id">视频名</option><option value="mra-desc">平均 MRA 从高到低</option><option value="n-desc">题数从多到少</option></select></label>

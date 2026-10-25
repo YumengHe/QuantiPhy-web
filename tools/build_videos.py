@@ -2,6 +2,13 @@
 
 Reads only existing outputs; never runs the pipeline.
 
+Current harness validation (preserves the existing test tab and does not update index.html):
+  python -B QuantiPhy-web/tools/build_videos.py --val-harness-tag v24 --val-only
+
+This reads a completed full CSV, per-video answers, and independent saved group scenes. Runtime overlays are
+offline renderings, under data/runtime/<tag>/; their renderer version is recorded separately from scene version.
+The legacy defaults below remain available for historical rebuilds.
+
   /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
 
 Inputs (relative to the QuantiPhy repo root):
@@ -24,6 +31,7 @@ The page plays the original videos from media/val and media/test (git-ignored sy
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import math
@@ -602,14 +610,16 @@ def question_times(q: str, meta: dict | None, scene: dict | None, is3d: bool):
     return [num(t, 4) for t in times], num(jump, 4)
 
 
-def scene_fit(split: str, vid: str):
-    p = SCENE_DIRS[split] / f"{vid}.json"
-    if not p.exists():
-        return None
-    try:
-        j = json.load(open(p))
-    except (OSError, json.JSONDecodeError):
-        return None
+def scene_fit(split: str, vid: str, *, state=None, source_path=None):
+    p = source_path or SCENE_DIRS[split] / f"{vid}.json"
+    if state is None:
+        if not p.exists():
+            return None
+        try:
+            state = json.loads(p.read_text())
+        except (OSError, json.JSONDecodeError):
+            return None
+    j = state
     pl = j.get("plane") or {}
     plane = {k: vec(pl.get(k)) for k in ("normal", "u1", "u2")} | {"dist": num(pl.get("dist"), 5)} if pl else None
     objs = []
@@ -722,21 +732,23 @@ def scene2d_checks(j: dict) -> dict:
     return out
 
 
-def scene2d(split: str, vid: str):
+def scene2d(split: str, vid: str, *, state=None, source_path=None, asset_tag=None):
     """Compact copy of the 2D layered scene (pipeline/scene2d.py docstring); pixel coordinates of that json's width/height."""
     d = SCENE2D_DIRS.get(split)
-    p = d / f"{vid}.json" if d else None
-    if p is None or not p.exists():
-        return None
-    try:
-        j = json.load(open(p))
-    except (OSError, json.JSONDecodeError):
-        return None
+    p = source_path or (d / f"{vid}.json" if d else None)
+    if state is None:
+        if p is None or not p.exists():
+            return None
+        try:
+            state = json.loads(p.read_text())
+        except (OSError, json.JSONDecodeError):
+            return None
+    j = state
     bg = None
     bgname = (j.get("background") or {}).get("image")
     if bgname and (d / bgname).exists():
         # val keeps data/scene2d/<name>; test (same video ids, higher resolution) goes to data/scene2d/test/, shrunk
-        out_dir = SCENE2D_WEB if split == "val" else SCENE2D_WEB / split
+        out_dir = SCENE2D_WEB / asset_tag if asset_tag else SCENE2D_WEB if split == "val" else SCENE2D_WEB / split
         out_dir.mkdir(parents=True, exist_ok=True)
         out = out_dir / bgname
         img = cv2.imread(str(d / bgname))
@@ -920,7 +932,7 @@ def fourcc(p: Path) -> str:
     return "".join(chr((code >> (8 * k)) & 0xFF) for k in range(4)).strip("\x00").lower()
 
 
-def video_info(split: str, vid: str) -> dict:
+def video_info(split: str, vid: str, *, allow_test_copy=True) -> dict:
     """Page-relative URL of the original mp4 (media/<split> are git-ignored symlinks to the video dirs of video_path()).
 
     Browsers only decode H.264 here. All validation mp4s are MPEG-4 Part 2 ('mp4v'); the test set has the same
@@ -930,7 +942,7 @@ def video_info(split: str, vid: str) -> dict:
     orig = f"media/{split}/{video_path(split, vid).name}"
     codec = fourcc(video_path(split, vid))
     info = {"orig": orig, "codec": codec, "video": orig if codec in ("avc1", "h264") else None, "video_from": split}
-    if info["video"] is None and split == "val" and video_path("test", vid).exists():
+    if allow_test_copy and info["video"] is None and split == "val" and video_path("test", vid).exists():
         if fourcc(video_path("test", vid)) in ("avc1", "h264"):
             info.update(video=f"media/test/{video_path('test', vid).name}", video_from="test")
     return info
@@ -957,7 +969,7 @@ def build_val(make_thumb: bool):
         sc2 = None if is3d else scene2d("val", vid)
         qmeta = ((scene or sc2) or {}).get("q_meta") or {}
         qs = [{"cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
-               "depth": text(r.depth_info), "answer": num(r.answer), "geo": num(r.geo), "vlm": num(r.vlm),
+               "depth": text(r.depth_info), "answer": num(r.answer), "geo": num(getattr(r, "geo", None)), "vlm": num(getattr(r, "vlm", None)),
                "pred": num(r.pred), "src": r.source, "mra": num(r.mra, 3), "s2d": num(getattr(r, "s2d", None)),
                "s2d_conf": num(getattr(r, "s2d_conf", None), 3), "fit": num(getattr(r, "fit", None)),
                "fit_conf": num(getattr(r, "fit_conf", None), 3),
@@ -977,6 +989,195 @@ def build_val(make_thumb: bool):
     print(f"eval: {len(verdicts)} videos with a verdict from {eval_src}")
     return {"file": str(VAL_CSV.relative_to(ROOT)), "macro": num(ev["average"], 6),
             "per_cat": {c: num(ev[c], 6) for c in CATEGORIES}, "eval_source": eval_src, "videos": videos}
+
+
+def harness_groups(saved: dict) -> list[dict]:
+    """Never substitute an aggregate's last scene for a missing group scene."""
+    if saved.get("groups"):
+        return [{"group": str(g.get("group", i)), "prior": text(g.get("prior")),
+                 "depth_info": text(g.get("depth_info")), "state": g.get("scene") or {}}
+                for i, g in enumerate(saved["groups"])]
+    context = saved.get("question_context") or [{}]
+    return [{"group": "0", "prior": text(context[0].get("prior", saved.get("constraint_prior"))),
+             "depth_info": text(context[0].get("depth_info", saved.get("depth_info"))), "state": saved}]
+
+
+def bind_harness_question(row: dict, answers: list[dict], groups: list[dict]) -> tuple[dict | None, dict | None, str | None]:
+    """Bind row identity and scene_id exactly, including same text under different priors."""
+    candidates = [a for a in answers if a.get("row") == row.get("row") and a.get("question") == row.get("question")
+                  and text(a.get("prior")) == text(row.get("prior"))]
+    if len(candidates) != 1:
+        return None, None, "answer identity missing or duplicated"
+    answer = candidates[0]
+    scene_id = answer.get("scene_id")
+    if not scene_id or text(row.get("scene_id")) != scene_id:
+        return answer, None, "scene_id missing or differs between CSV and answer record"
+    matches = [g for g in groups if g["state"].get("scene_id") == scene_id]
+    if len(matches) != 1:
+        return answer, None, "scene_id missing or duplicated among independent group scenes"
+    group = matches[0]
+    contexts = [c for c in group["state"].get("question_context") or []
+                if c.get("row") == row.get("row") and c.get("question") == row.get("question")
+                and text(c.get("prior")) == text(row.get("prior"))
+                and text(c.get("depth_info")) == text(row.get("depth_info"))]
+    if len(contexts) != 1:
+        return answer, None, "row/prior/depth identity not unique in the matched scene"
+    return answer, group, None
+
+
+def runtime_overlays(tag: str, vid: str, scene: dict, dim: int, question: str, fps: float, duration: float) -> list[dict]:
+    """Render saved state only; no fitting, assembly, model requests or GT inputs."""
+    from pipeline.data import Video
+    try:
+        times = list(parse_question(question).times or [])
+    except (TypeError, ValueError):
+        times = []
+    times = list(dict.fromkeys(float(t) for t in times))[:2] or [0.]
+    if dim == 2:
+        from pipeline.scene2d import render_overlay
+        sources = ("scene2d.py", "scene_state2d.py")
+    else:
+        from pipeline.scene_state3d import render_overlay
+        sources = ("scene_state3d.py",)
+    renderer_hash = hashlib.sha256(b"".join((ROOT / "pipeline" / name).read_bytes() for name in sources)).hexdigest()[:16]
+    renderer_version = (ROOT / "pipeline/VERSION").read_text().strip()
+    out_dir = WEB / "data/runtime" / tag / vid
+    out_dir.mkdir(parents=True, exist_ok=True)
+    outputs, video = [], None
+    try:
+        for t in times:
+            entry = {"t": t, "scene_id": scene.get("scene_id"), "renderer": f"scene_state{dim}d",
+                     "renderer_version": renderer_version, "renderer_hash": renderer_hash}
+            if not math.isfinite(t) or t < 0 or (duration and t > duration + 1 / max(fps, 1)):
+                entry["unavailable"] = "asked time outside the recorded video"
+            else:
+                frame = round(t * fps)
+                identity = hashlib.sha256(f"{scene['scene_id']}:{renderer_hash}:{t:.9g}".encode()).hexdigest()[:24]
+                path = out_dir / f"{identity}_f{frame}.jpg"
+                try:
+                    if not path.exists():
+                        if video is None:
+                            video = Video(video_path("val", vid), fps=fps)
+                        image = render_overlay(scene, t, frame=video.frame_at(t))
+                        if image is None or not cv2.imwrite(str(path), image[:, :, ::-1], [cv2.IMWRITE_JPEG_QUALITY, 86]):
+                            raise ValueError("runtime produced no image")
+                    entry["path"] = str(path.relative_to(WEB))
+                except Exception as exc:
+                    entry["unavailable"] = f"{type(exc).__name__}: {exc}"[:240]
+            outputs.append(entry)
+    finally:
+        if video is not None:
+            video.close()
+    return outputs
+
+
+def critique_summary(scene: dict) -> dict:
+    keep = ("iter", "diagnosis", "layer", "observations", "tool_calls", "results", "accepted", "why", "execution_status",
+            "decision_status", "budget_exhausted", "rejected_calls", "deferred_calls", "failure_stage")
+    return {"status": {k: v for k, v in (scene.get("agent_status") or {}).items() if k != "self_check"},
+            "iterations": [{k: i[k] for k in keep if k in i} for i in (scene.get("critique") or {}).get("iterations") or []]}
+
+
+def validate_harness_csv(frame: pd.DataFrame, manifest: pd.DataFrame) -> pd.DataFrame:
+    """Require the complete ordered manifest; labels always come from that manifest."""
+    frame, manifest = frame.reset_index(drop=True).copy(), manifest.reset_index(drop=True)
+    if len(frame) != len(manifest) or "row" not in frame:
+        raise ValueError("harness CSV is incomplete or lacks row identities")
+    rows = pd.to_numeric(frame["row"], errors="coerce")
+    if not np.array_equal(rows.to_numpy(), np.arange(len(manifest))):
+        raise ValueError("harness CSV row identities differ from manifest order")
+    for key in ("video_id", "question", "prior", "depth_info"):
+        actual = frame[key].map(text) if key in frame else pd.Series([""] * len(frame))
+        expected = manifest[key].map(text) if key in manifest else pd.Series([""] * len(manifest))
+        if not actual.equals(expected):
+            raise ValueError(f"harness CSV {key} identities differ from manifest")
+    for key in ("answer", "category", "dim", "fps", "video_type", "video_source", "inference_type"):
+        if key in manifest:
+            frame[key] = manifest[key]
+    return frame
+
+
+def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
+    """Display a completed harness CSV and its saved answers/groups without re-running anything."""
+    if not re.fullmatch(r"v\d+(?:_control)?", tag):
+        raise ValueError("harness tag must be vN or vN_control")
+    csv_path = ROOT / "outputs" / f"val_{tag}_answers.csv"
+    if not csv_path.exists():
+        raise ValueError(f"completed full harness CSV is unavailable: {csv_path}")
+    df = validate_harness_csv(pd.read_csv(csv_path), load_split("val"))
+    df["mra"] = [mra_row(p, g) for p, g in zip(df["pred"], df["answer"])]
+    ev = evaluate(df)
+    SCENE_DIRS["val"] = ROOT / "outputs/scene_fit_eval" / f"h_{tag}"
+    SCENE2D_DIRS["val"] = ROOT / "outputs/scene2d_eval" / f"h_{tag}"
+    TRACKS_KIND["val"] = f"tracks_{tag}"
+    videos = []
+    for vid, rows in df.groupby("video_id", sort=True):
+        first = rows.iloc[0]
+        dim = int(first.dim)
+        answer_path = ROOT / "outputs/harness" / tag / "answers" / f"{vid}.json"
+        record = json.loads(answer_path.read_text()) if answer_path.exists() else {}
+        version = record.get("version") or {}
+        if record and version.get("pipeline") != tag:
+            raise ValueError(f"{vid}: answer artifact version differs from requested {tag}")
+        scene_path = (SCENE_DIRS if dim == 3 else SCENE2D_DIRS)["val"] / "agent" / f"{vid}.json"
+        saved = json.loads(scene_path.read_text()) if scene_path.exists() else {}
+        groups = harness_groups(saved) if saved else []
+        duration, width, height, thumb = video_meta("val", vid, make_thumb)
+        compact = []
+        for group in groups:
+            state = group["state"]
+            has_state = bool(state.get("scene_id"))
+            view = (scene_fit("val", vid, state=state, source_path=scene_path) if dim == 3 else
+                    scene2d("val", vid, state=state, source_path=scene_path, asset_tag=tag)) if has_state else None
+            compact.append({"group": group["group"], "prior": group["prior"], "depth_info": group["depth_info"],
+                            "scene_id": state.get("scene_id"), "version": state.get("version") or version,
+                            "scene": view if dim == 3 else None, "scene2d": view if dim == 2 else None,
+                            "critique": critique_summary(state), "display_projection": "approximate_legacy_viewer"})
+        questions = []
+        for row in rows.to_dict("records"):
+            answer, group, error = bind_harness_question(row, record.get("answers") or [], groups)
+            answer = answer or {}
+            state = group["state"] if group else {}
+            results = [r for r in state.get("results") or [] if r.get("question") == row["question"]
+                       and (r.get("row") is None or r["row"] == row["row"])]
+            result = results[0] if len(results) == 1 else {}
+            quality = result.get("quality") or {}
+            alignment = align(quality.get("align_tq") or result.get("align_tq"))
+            diagnostic = (answer.get("measurement") or quality.get("measurement")) if group else None
+            overlays = runtime_overlays(tag, vid, state, dim, row["question"], float(first.fps), duration) if group else []
+            query = {"harness": True, "row": int(row["row"]), "cat": row["category"], "type": row["inference_type"],
+                     "q": row["question"], "prior": text(row.get("prior")), "depth": text(row.get("depth_info")),
+                     "answer": num(row.get("answer")), "pred": num(row.get("pred")), "mra": num(row["mra"], 6),
+                     "src": text(answer.get("source", row.get("source"))), "conf": num(answer.get("conf", row.get("conf")), 6),
+                     "status": text(answer.get("status", row.get("status"))), "method": answer.get("method", row.get("method")),
+                     "scene_id": answer.get("scene_id") or text(row.get("scene_id")), "group": group["group"] if group else None,
+                     "binding_status": "matched" if group else "unavailable", "binding_error": error,
+                     "measurement": diagnostic, "measurement_id": result.get("measurement_id"),
+                     "measurement_record": (state.get("measurements") or {}).get(result.get("measurement_id")),
+                     "provenance": answer.get("provenance"), "quality": quality, "align": alignment,
+                     "runtime_overlays": overlays, "version": version,
+                     "execution_status": record.get("execution_status", "unavailable")}
+            query["tq"], query["tjump"] = question_times(query["q"], {"align": alignment}, None, dim == 3)
+            questions.append(query)
+        # No aggregate geometry: the browser must choose a complete independent group explicitly.
+        videos.append({"id": vid, "harness": True, "source": first.video_source, "video_type": first.video_type,
+                       "fps": num(first.fps), "dim": dim, "cats": sorted(set(rows.category)), "duration": duration,
+                       "size": [width, height], "thumb": thumb, **video_info("val", vid), "groups": compact,
+                       "scene": None, "scene2d": None, "has_scene": dim == 3 and bool(compact),
+                       "has_scene2d": dim == 2 and bool(compact), "questions": questions,
+                       "version": {"label": version.get("pipeline", tag), "module": str(scene_path.relative_to(ROOT)),
+                                   "detail": version}, "execution_status": record.get("execution_status", "unavailable"),
+                       "run_at": version.get("time"), "eval": None, "objtab": None, "stree": None})
+    print(f"harness {tag}: {len(df)} questions, {len(videos)} videos, macro {ev['average']:.6f}")
+    return {"file": str(csv_path.relative_to(ROOT)), "harness_tag": tag, "macro": num(ev["average"], 8),
+            "per_cat": {c: num(ev[c], 8) for c in CATEGORIES}, "videos": videos}
+
+
+def replace_validation(existing: dict, validation: dict) -> dict:
+    """Preserve the existing test value and all other top-level data in --val-only mode."""
+    if "test" not in existing:
+        raise ValueError("--val-only requires existing data/videos.json with a test block")
+    return {**existing, "generated": date.today().isoformat(), "val": validation}
 
 
 TRACKS_KIND = {"val": "tracks", "test": "tracks"}   # track cache kind for the visible intervals (--test-tracks)
@@ -1099,6 +1300,8 @@ def build_test(make_thumb: bool):
 def main():
     global TEST_CSV, TEST_ROUTE, TEST_AUDIT2D
     ap = argparse.ArgumentParser()
+    ap.add_argument("--val-harness-tag", help="completed harness validation tag, e.g. v24; read saved CSV/answers/group scenes")
+    ap.add_argument("--val-only", action="store_true", help="replace only val in existing videos.json; preserve test and skip index updates")
     ap.add_argument("--rethumb", action="store_true", help="regenerate thumbnails that already exist")
     ap.add_argument("--count-check", type=Path, default=COUNT_CHECK_VAL,
                     help="validation count_check results {video: {frames: [{t, n_video, n_scene, ...}], ...}} merged into "
@@ -1117,8 +1320,14 @@ def main():
     ap.add_argument("--test-audit2d", type=Path, help="2D test audit *_pred.csv for the no-answer list (default: %s)" % TEST_AUDIT2D)
     ap.add_argument("--versions-only", action="store_true", help="only regenerate the version table in index.html from docs/VERSIONS.md")
     args = ap.parse_args()
-    n = write_versions()
-    print(f"versions: {n} rows from {VERSIONS_MD} into {INDEX_HTML.name}")
+    if args.val_only and args.versions_only:
+        ap.error("--val-only cannot be combined with --versions-only")
+    existing = json.loads(OUT.read_text()) if args.val_only and OUT.exists() else {}
+    if args.val_only and "test" not in existing:
+        ap.error("--val-only requires an existing videos.json test block")
+    if not args.val_only:
+        n = write_versions()
+        print(f"versions: {n} rows from {VERSIONS_MD} into {INDEX_HTML.name}")
     if args.versions_only:
         return
     TEST_CSV = args.test_sub or TEST_CSV
@@ -1133,13 +1342,15 @@ def main():
     PIPE_VERSION.update(val=args.val_version, test=args.test_version_label)
     if args.test_version and args.test_version.exists():
         TEST_VERSION.update(json.load(open(args.test_version)))
-    if args.count_check and args.count_check.exists():
+    if not args.val_harness_tag and args.count_check and args.count_check.exists():
         COUNT_CHECK.update(json.load(open(args.count_check)))
         print(f"count_check: {len(COUNT_CHECK)} videos from {args.count_check}")
     THUMBS.mkdir(parents=True, exist_ok=True)
-    data = {"generated": date.today().isoformat(), "val": build_val(args.rethumb), "test": build_test(args.rethumb)}
+    validation = build_harness_val(args.val_harness_tag, args.rethumb) if args.val_harness_tag else build_val(args.rethumb)
+    data = replace_validation(existing, validation) if args.val_only else {
+        "generated": date.today().isoformat(), "val": validation, "test": build_test(args.rethumb)}
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+    OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
     sizes = [p.stat().st_size for p in THUMBS.glob("*.jpg")]
     print(f"wrote {OUT} ({OUT.stat().st_size / 1e6:.2f} MB); {len(sizes)} thumbs, {sum(sizes) / 1e6:.2f} MB, max {max(sizes, default=0)} B")
 

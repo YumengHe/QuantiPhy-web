@@ -87,12 +87,13 @@
 <main class="wrap">
 <nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
 <h1>QuantiPhy agent harness</h1>
-<p class="lede">v24 开发状态 · 2026-10-24 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
-<div class="callout"><b>v22 全量 macro MRA：control 0.74428 / agent 0.74747。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
+<p class="lede">v25 开发状态 · 2026-10-24 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
+<div class="callout"><b>最近完整验证 v24：control 0.75116 / agent 0.75435。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
 <div class="callout"><b>验证阶段记录：</b>v22 代码 <code>da51368</code>，<b>103 项 CPU 测试通过</b>；完整 <b>159 题 / 24 视频</b> control：S2 <b>0.78125</b> / D2 <b>0.89459</b> / S3 <b>0.66512</b> / D3 <b>0.63617</b>，1 unresolved 按零分计入；非重叠 <b>43 题 0.60923</b>（同题历史 <b>0.64613</b>）。agent macro <b>0.74747</b>（D3 0.64894，其余相同），非重叠同为 <b>0.60923</b>，同样 1 unresolved。25组51轮、5轮尝试修复、1轮接受；43次观察工具调用成功。4题prior→scene平均MRA 0.450→0.425，净上涨主要来自另3个prior回复变化，不能宣称几何收益。历史 v21 的 5 视频 smoke：control <b>0.62125</b>，agent <b>0.61292</b>，子集没有 D2；0 次接受修复，1 次无效 <code>mark_absent</code> 被拒绝，没有证明 agent 收益。</div>
 <div class="callout"><b>v24：159 项 CPU 测试通过；全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。51轮中1轮接受，无执行失败。</b>轨迹验证绑定内容，变更会使场景 / 答案失效；有限观察后必须完成决策；contact 按对象、目标及时间窗编辑。3D 新增共享相机与释放前观测实验，均默认关闭。v24 3D专项：0013默认/onset/再加sharedcamera的8题拟合MRA为0.4125/0.4750/0.4750，球框RMS 19.81→13.35px；0009三配置9题均0.5000。两次joint候选都因护栏拒绝。这不是完整harness分数。</div>
 <div class="callout"><b>v8 旧链仍保留。</b>不删除正在运行的 v8 及其依赖，不启动新的 mh3 / route 实验。旧链迁出当前流程，清理需另行安排。图上的“已实现”表示代码已落地，不表示已通过端到端 MRA 验证。</div>
 
+<div class="callout"><b>v25：195项CPU测试通过。</b>静态模型专项（均含onsetevidence）control / static / 再加joint：0013为0.4750 / 0.4750 / 0.4125，0009为0.5000 / 0.54444 / 0.54444。内层残差改善仍可能使数值变差，不能代替外层验收；这些不是全量harness分数，新拟合选项仍默认关。终端prior保留逐次尝试审计，真实HTTP错误按执行失败报告；离线比较固定159题分母。视频页已绑定v24的逐题scene_id、独立组和Python runtime图。</div>
 <h2 id="flow">流程图：一个视频一次走完</h2>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
@@ -115,7 +116,7 @@
     <div class="col c3"><p class="colhd">右列 · 3D</p>
       <div class="node d3"><div class="hd"><b>depth / ground / 端点观测</b><span class="st done">已实现</span></div><span class="m">深度、支撑面、接触点、参考测量与本组 depth_info；物体只用解析几何体，网格库不参与新流程。</span></div>
       <div class="arrow"></div>
-      <div class="node d3"><div class="hd"><b>相机、支撑面、几何与运动</b><span class="st done">已实现</span></div><span class="m"><code>scene_fit / fit3d</code>：按组拟合完整场景；保留运动模型、相机状态与直接测量记录。sharedcamera 默认关闭，联合细化焦距 / 支撑平面 / 对象，并检查秩与逐对象残差；多非平行支撑面和跨阶段运动仍未完成。</span></div>
+      <div class="node d3"><div class="hd"><b>相机、支撑面、几何与运动</b><span class="st done">已实现</span></div><span class="m"><code>scene_fit / fit3d</code>：按组拟合完整场景；保留运动模型、相机状态与直接测量记录。sharedcamera 默认关闭，联合细化焦距 / 支撑平面 / 对象，并检查秩与逐对象残差；staticmodel 默认关闭，以时间块证据选择真正移除速度 / 加速度自由度的静态模型；多非平行支撑面和跨阶段运动仍未完成。</span></div>
       <div class="arrow"></div>
       <div class="node d3"><div class="hd"><b>scene_state3d runtime</b><span class="st done">已实现</span></div><span class="m">位置、导数、轨迹长度、投影与渲染共用模型；答案从场景表达式或具名 measurement 重放。onsetevidence 默认关闭，保留释放前静止观测并统一时间映射；加速度 prior 保留绝对时刻。稳定性仍主要是条件探测。</span></div>
     </div>
@@ -148,11 +149,12 @@
 <tr><td>前向模型</td><td>scene_state2d：位置、速度、投影、数值重放；检测驱动的重复首帧 hold 共用时间映射</td><td>scene_state3d：完整运动、解析几何投影与重放</td><td><span class="st done">已实现</span></td></tr>
 <tr><td>轨迹验证依赖</td><td>unknown 保留框与对象，沿用未验证权重</td><td>unknown 不成为可信可见性证据；直接测量置信门控</td><td><span class="st done">v24 已实现</span></td></tr>
 <tr><td>决策与关系工具</td><td colspan="2">有限观察后明确act/done；未完成规划单独失败；contact按精确对象/目标/时间窗set或clear</td><td><span class="st done">v24 已实现</span></td></tr>
-<tr><td>3D优化实验</td><td>维持已有图层模型</td><td>sharedcamera联合细化；onsetevidence保留静止段；时刻prior；拒绝候选可重放</td><td><span class="st done">已实现</span> 新选项默认关，实测中</td></tr>
+<tr><td>3D优化实验</td><td>维持已有图层模型</td><td>sharedcamera联合细化；onsetevidence保留静止段；staticmodel静态模型选择及条件timeless depth；拒绝候选可重放</td><td><span class="st done">已实现</span> 新选项默认关，实测中</td></tr>
 <tr><td>证据采样</td><td colspan="2">均匀网格 + 连续可见段首 / 中 / 末 + 题目时刻附近观测；记录覆盖与预算，超预算失败</td><td><span class="st done">v22 已实现</span></td></tr>
 <tr><td>工具契约</td><td colspan="2">tracks_summary 返回真实连续段；观察失败显式记录；无适用改动不触发 refit</td><td><span class="st done">v22 已实现</span></td></tr>
 <tr><td>稳定性诊断</td><td>定位噪声、运动拟合、尺度解释、出画 / 遮挡</td><td>固定其他参数的 extent ±10% 条件探测；未联合焦距 / 深度求区间</td><td><span class="st done">已实现</span> 局部诊断，非严格区间</td></tr>
 <tr><td>工具修复</td><td>原 issue 系统保留；drop_frames 需 merge / 孤立尖峰证据</td><td>关系、支撑、跟踪与运动假设修复</td><td><span class="st done">已实现</span></td></tr>
+<tr><td>终端先验审计</td><td colspan="2">逐次记录阶段、耗时、响应摘要和有效性；HTTP/连接/超时错误传播为执行失败</td><td><span class="st done">v25 已实现</span></td></tr>
 <tr><td>验收与终端作答</td><td>共享固定证据裁判 + issue_accept；runtime replay</td><td>共享固定证据裁判；runtime / measurement replay</td><td><span class="st done">已实现</span> 效果待验证</td></tr>
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；仅成功有限正数，agent / control 可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
@@ -220,7 +222,7 @@
 
 <h2 id="limits">还不能由这套结构保证的事</h2>
 <div class="lgrid">
-<div class="lbox"><b>共享相机联合优化 <span class="st wip">实现中</span></b>sharedcamera 已作为默认关闭的实验实现，首个候选因球投影恶化被拒绝；不放宽护栏。多非平行支撑面、跨支撑面的运动段与可靠静止模型选择仍未完成。</div>
+<div class="lbox"><b>共享相机联合优化 <span class="st wip">实现中</span></b>sharedcamera 已作为默认关闭的实验实现，首个候选因球投影恶化被拒绝；不放宽护栏。静止模型已加入默认关闭实验，多非平行支撑面与跨支撑面的运动段仍未完成。</div>
 <div class="lbox"><b>强可辨识区间 <span class="st wip">实现中</span></b>2D 为局部噪声传播；3D 主要是固定其他参数的 extent ±10% 条件探测，未做焦距 / 深度联合 profile likelihood，仍需多假设与区间覆盖率验证。</div>
 <div class="lbox"><b>独立新观测入场 <span class="st wip">实现中</span></b>初始跟踪也可能错。新参考点、标注或时间片需要独立来源与证据版本协议，不能直接替换裁判。</div>
 <div class="lbox"><b>MRA 效果 <span class="st wip">待验证</span></b>v21 smoke 未显示 agent 收益；v22 control 全量 0.74428，非重叠 43 题 0.60923，agent 全量 0.74747，非重叠仍为 0.60923；几何收益未证实。seed 漏带 trackcheck 导致置信门控退化已定位；后续修复不能回退正确的平均速率公式。仍需同代码、同初始观测、同预算的对照及逐类分析。</div>
