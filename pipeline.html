@@ -87,7 +87,7 @@
 <main class="wrap">
 <nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
 <h1>QuantiPhy agent harness</h1>
-<p class="lede">当前实现v56 / 最新完整GPT high对照v50，agent配对v32 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
+<p class="lede">当前实现v59 / 最新完整GPT high对照v50，agent配对v32 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
 <div class="callout"><b>最近完整GPT配对 v32：control 0.75938 / agent 0.76258，非重叠43题均0.65982。Qwen v26为0.75116 / 0.75169，非重叠0.66756。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
 <div class="callout"><b>验证阶段记录：</b>v22 代码 <code>da51368</code>，<b>103 项 CPU 测试通过</b>；完整 <b>159 题 / 24 视频</b> control：S2 <b>0.78125</b> / D2 <b>0.89459</b> / S3 <b>0.66512</b> / D3 <b>0.63617</b>，1 unresolved 按零分计入；非重叠 <b>43 题 0.60923</b>（同题历史 <b>0.64613</b>）。agent macro <b>0.74747</b>（D3 0.64894，其余相同），非重叠同为 <b>0.60923</b>，同样 1 unresolved。25组51轮、5轮尝试修复、1轮接受；43次观察工具调用成功。4题prior→scene平均MRA 0.450→0.425，净上涨主要来自另3个prior回复变化，不能宣称几何收益。历史 v21 的 5 视频 smoke：control <b>0.62125</b>，agent <b>0.61292</b>，子集没有 D2；0 次接受修复，1 次无效 <code>mark_absent</code> 被拒绝，没有证明 agent 收益。</div>
 <div class="callout"><b>v24：159 项 CPU 测试通过；全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。51轮中1轮接受，无执行失败。</b>轨迹验证绑定内容，变更会使场景 / 答案失效；有限观察后必须完成决策；contact 按对象、目标及时间窗编辑。3D 新增共享相机与释放前观测实验，均默认关闭。v24 3D专项：0013默认/onset/再加sharedcamera的8题拟合MRA为0.4125/0.4750/0.4750，球框RMS 19.81→13.35px；0009三配置9题均0.5000。两次joint候选都因护栏拒绝。这不是完整harness分数。</div>
@@ -113,6 +113,7 @@
 <div class="callout"><b>v49平面矩形原型。</b>5项专项合成测试通过，但真实角点对.5px扰动敏感、f范围很宽，桌面遮挡返回null；只读诊断、未接入harness，不把偶然接近标注的数值当高置信度测量。</div>
 <div class="callout"><b>v51边线细化原型（未接harness）。</b>v49角点附近以原图RGB梯度拟合边线并求交点，3项专项测试通过。真实角点移动.34–2px后正交性和焦距稳定性仍不足，128扰动只有23正f；保持只读诊断，不提高置信度、不改变默认。</div>
 <div class="callout"><b>v52距离锚点绑定候选。</b>native严格token导致pingpong与ping pong ball不匹配、原始距离未进入拟合。新规则只做相邻字母词的精确空格等价，保留颜色/左右/编号，新增多实例歧义不绑定；depth-map track定位共用规则，保存raw_key审计。259项CPU测试；27题 .68680556与同题基线相同，0无效、11/11 prior回放。两条距离已进入native，full159输入审计新规则仅影响该已测视频；v53作为正确性修复采纳。</div>
+<div class="callout"><b>v59固定seed身份预检。</b>要求merged tracks身份sidecar绑定当前split/video/kind/轨迹hash；缺失/旧schema/失效在模型调用前报错，绑定unknown/false仍合法。271项CPU测试通过。v58补齐输入27题 .68680556同基线、0无效，9/12 prior回放；直接depth-series候选未采纳。v43 fresh GPT+严格身份完整159题 .73404313、非重叠43题 .63154762、0无效，低于固定视觉对照，不采用；发现2D明确负身份prior仍进入尺度标定，待修复。</div>
 <div class="callout"><b>v57直接深度序列绑定候选。</b>唯一精确分词等价补回此前漏用的时间锚点，保存raw key/track/匹配/时间来源；不改平滑、导数或range/Z语义。275项CPU测试通过；v57漏复制身份sidecar造成路由混杂，不能归因MRA。v58补强require-seed并补齐输入重跑27题，276测试通过，未采用；完整最好macro仍为v50的 .76974047。</div>
 <div class="callout"><b>v55验证通过，v56采纳视觉错误传播。</b>共用ground/point/visible/selector的HTTP/格式失败不得变成None/visible=true或无候选；新的错误族透传旧fallback，由harness记录失败、固定分母计零。只有显式null才缓存未定位到，绑定像素/语义/backend/producer，旧无类型null重确认。主分支270项CPU测试通过；22题预测/conf/source/method/MRA与基线全部一致、0无效、9/9 prior回放，4条旧null重新确认。真实selector/visible/point调用通过；不宣称MRA提升。</div>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
@@ -188,6 +189,7 @@
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；仅成功有限正数，agent / control 可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
+<tr><td>v59固定seed输入完整性</td><td colspan="2">物理像素与身份sidecar都必须完整且绑定；未知身份与缺文件分开</td><td>已采纳；271测试，v58对照无MRA增益</td></tr>
 <tr><td>v57直接深度序列</td><td colspan="2">补唯一精确分词绑定，第二锚点参与已有尺度估计，保留多实例歧义与来源审计</td><td>v57输入混杂；v58补齐身份输入重跑中</td></tr>
 <tr><td>v56视觉错误传播</td><td colspan="2">请求/格式失败显式透传；显式null绑定原像素/语义/backend/producer；不可用不当物理不存在，失败题不缩分母</td><td><span class="st wip">v56采纳、270测试</span> 22题逐项同基线</td></tr>
 <tr><td>v52 depth名称绑定候选</td><td>不变</td><td>精确闭合词空格等价，保留颜色/左右/编号；native与depth-map定位一致，raw_key审计</td><td><span class="st wip">v53采纳、主分支262测试</span> 27题同分，锚点恢复</td></tr>
