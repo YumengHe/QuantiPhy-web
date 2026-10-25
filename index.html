@@ -212,6 +212,36 @@
     过渡期 v8 提交仍用旧流水线；新 harness 在验证集达到 ≥ 0.7489 后替换旧流程并删掉旧代码。流程图（目标流水线，每步标状态）见 <a href="pipeline.html#flow">完整流程</a>。</div>
 </header>
 
+<section id="versions">
+  <h2>版本表</h2>
+  <p>每完整跑一次流水线（验证集或测试集）就占一个版本号 vN，编号单调递增。只有跑了测试集的版本才有提交文件 <code>outputs/submission_vN.csv</code>，所以有些版本没有提交。原来的 h1 / h2 / h3 对应 v9 / v10 / v11。缓存目录不改名，例如 <code>objects_h1</code>、<code>tracks_h3</code> 仍按原名读。</p>
+  <table>
+    <tr><th>版本</th><th>日期</th><th>流水线</th><th class="n">验证集（总分 · S2 / D2 / S3 / D3）</th><th>跑测试集</th><th>提交文件</th><th class="n">官方分</th></tr>
+    <tr><td>v12</td><td>—</td><td>harness（<code>--tag v12</code>）</td><td class="n">下一次运行</td><td>—</td><td>—</td><td class="n">—</td></tr>
+    <tr><td>v11（原 h3）</td><td>10-24</td><td>harness</td><td class="n">运行中</td><td>否</td><td>无</td><td class="n">—</td></tr>
+    <tr><td>v10（原 h2）</td><td>10-24</td><td>harness</td><td class="n">待定（首遍 0.7095 无效：运行中途删网格参数，7 个 3D 视频拟合失败，正在补跑）</td><td>否</td><td>无</td><td class="n">—</td></tr>
+    <tr><td>v9（原 h1）</td><td>10-24</td><td>harness 第一版</td><td class="n">0.7373 · 0.675 / 0.892 / 0.719 / 0.664<br><small>qwen_prior 新规则 0.7172</small></td><td>否</td><td>无</td><td class="n">—</td></tr>
+    <tr><td>v8</td><td>10-24</td><td>旧链 mh3（commit 874b7d6）</td><td class="n">valcur11 一线：0.7434<br><small>换 s2d v8 + c_v9b 后 0.7489</small></td><td>是（运行中）</td><td><code>submission_v8.csv</code>（未出）</td><td class="n">待上传</td></tr>
+    <tr><td><b>v7</b></td><td>10-24</td><td>3D harness v7 + scene2d v2 + 路由（commit 05bf3fd）</td><td class="n">0.6656</td><td>是</td><td><code>submission_v7.csv</code></td><td class="n"><b>0.630</b></td></tr>
+    <tr><td>v6</td><td>10-23</td><td>旧版流程</td><td class="n">0.620</td><td>是</td><td><code>submission_v6.csv</code>（已清理）</td><td class="n">0.603</td></tr>
+    <tr><td>v5</td><td>10-22</td><td>旧版流程</td><td class="n">0.639（含样本内泄漏）</td><td>是</td><td>已清理</td><td class="n">—</td></tr>
+    <tr><td>v1–v4</td><td>—</td><td>早期版本</td><td class="n">—</td><td>是</td><td>已清理</td><td class="n">—</td></tr>
+  </table>
+  <details class="appx"><summary>历史：v8 之前旧链（mh3）的验证集运行 valcurN（都没跑测试集）</summary>
+  <table>
+    <tr><th>运行</th><th class="n">验证集总分</th><th>说明</th></tr>
+    <tr><td>valcur11</td><td class="n">0.7434</td><td>2D 场景值 conf ≥ 0.1 直接作答（commit 1e92899）；v8 的验证集参照</td></tr>
+    <tr><td>valcur10</td><td class="n">0.7237</td><td>3D 用 fr3 + groundgeom 的场景拟合</td></tr>
+    <tr><td>valcur9 + fr2</td><td class="n">0.7196</td><td></td></tr>
+    <tr><td>valcur7</td><td class="n">0.7218</td><td>所有新默认全开</td></tr>
+    <tr><td>valfinal</td><td class="n">0.7173</td><td>3D 用 pfc2_fr 配置</td></tr>
+    <tr><td>valcur4</td><td class="n">0.7206</td><td>毫米级提示格式</td></tr>
+    <tr><td>valcur3</td><td class="n">0.7211</td><td>mh3 三路流程 + D3 按拟合置信度路由</td></tr>
+  </table>
+  </details>
+  <p class="muted" style="font-size:13px">v10 的分数从 <code>outputs/val_h2_answers.csv</code> 的 mra 列算出：先求四类各自的平均，再对四类取平均（用同一算法核对过 0.7632）。v9 的 0.7373 是"场景值作提示"的规则；同一版本按 qwen_prior 新规则算是 0.7172，这也是现在 <code>val_h1_answers.csv</code> 里的结果。当前验证集最好的 0.7632 是旧链换场景后的组合（旧链 + c_v10c2 + s2d_v9），不是一次完整运行，所以没有单独的版本号，见<a href="#best">当前最好</a>。</p>
+</section>
+
 <section id="eval">
   <h2>评估记录</h2>
   <p>评估员（qp-evaluator）像看网页一样，从分数最低的视频开始逐个检查原帧、跟踪框、重建叠加图、场景 json 和各来源的数值，判断问题出在哪一层，再把通用修改派给对应的负责人。每个视频的结论显示在 <a href="videos.html">视频与问题</a> 的卡片里。</p>
@@ -317,12 +347,12 @@
   <p>2D、3D 都调用的共享工具（解析、物体清单、场景图、跟踪候选、参考测量、在场性、评审、路由）的迭代。</p>
 
   <details class="iter" id="harness-h1">
-    <summary><span class="d">10-24</span>统一 harness 第一版 h1 首次全量 · 验证集 0.7373（基线旧链 0.7489） <span class="muted">实现中，未替换旧链</span></summary>
+    <summary><span class="d">10-24</span>统一 harness 第一版 v9（原 h1）首次全量 · 验证集 0.7373（基线旧链 0.7489） <span class="muted">实现中，未替换旧链</span></summary>
     <div class="iter-body">
   <p>新 harness（一条流水线 + 场景 agent 回路，答案只从场景出：source = scene / prior）第一次在验证集全量跑。</p>
   <table>
     <tr><th>配置</th><th class="n">总分</th><th class="n">S2</th><th class="n">D2</th><th class="n">S3</th><th class="n">D3</th></tr>
-    <tr><td>h1</td><td class="n">0.7373</td><td class="n">0.675</td><td class="n">0.892</td><td class="n">0.719</td><td class="n">0.664</td></tr>
+    <tr><td>v9</td><td class="n">0.7373</td><td class="n">0.675</td><td class="n">0.892</td><td class="n">0.719</td><td class="n">0.664</td></tr>
     <tr><td>基线：旧链（mh3，no-geo）</td><td class="n">0.7489</td><td class="n">0.719</td><td class="n">0.892</td><td class="n">0.721</td><td class="n">0.664</td></tr>
   </table>
   <table>

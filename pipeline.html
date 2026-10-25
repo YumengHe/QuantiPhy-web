@@ -88,7 +88,7 @@
 <p class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#answers">答案从哪来</a><a href="#outputs">产物目录</a></p>
 <h1>完整流程</h1>
 <p class="lede">主图始终画<b>已批准的目标流水线</b>：一条流水线、一个 agent harness（<code>pipeline/harness.py</code>，实现中），每个方框右上角标状态。流水线每改一次，这张图跟着改一次。</p>
-<div class="callout"><b>harness 状态：实现中，未替换旧链。</b>10-24 Meshy / 网格库移除：物体形状只用解析几何体（commit 619b74f）。第一版 h1 首次验证集全量 0.7373（S2 0.675 / D2 0.892 / S3 0.719 / D3 0.664），旧链基线 0.7489；答案来源 scene 113 题（MRA 0.809）、prior 46 题（MRA 0.550）。替换门槛 0.7632（旧链 + c_v10c2 + s2d_v9；口径：两者用同一版 scene2d）。</div>
+<div class="callout"><b>harness 状态：实现中，未替换旧链。</b>10-24 Meshy / 网格库移除：物体形状只用解析几何体（commit 619b74f）。第一版 v9（原 h1）首次验证集全量 0.7373（S2 0.675 / D2 0.892 / S3 0.719 / D3 0.664），旧链基线 0.7489；答案来源 scene 113 题（MRA 0.809）、prior 46 题（MRA 0.550）。替换门槛 0.7632（旧链 + c_v10c2 + s2d_v9；口径：两者用同一版 scene2d）。</div>
 <div class="callout">现状：v8 测试集提交和当前验证集最好 0.7632 都是用<b>旧链</b>（<code>pipeline/mh3.py</code>：三路几何 + 三路 Qwen + route）跑的，v8 没有带场景 agent 回路（时间不够）。旧链的步骤只在下面步骤表的"v8 用的旧步骤"一列和折叠块里列出；新 harness 在验证集达到 ≥ 0.7489 后替换旧链并删除旧代码。内容取自代码：<code>pipeline/mh3.py</code>、<code>pipeline/route.py</code>、<code>pipeline/scene_agent.py</code>、<code>pipeline/critic_loop.py</code>、<code>docs/WORKING_RULES.md</code>、<code>docs/TEST_RUN_v8.md</code>。</div>
 
 <h2 id="flow">流程图（目标：harness.py）</h2>
@@ -97,6 +97,15 @@
   <span><span class="sw d2"></span>2D 视频（S2 / D2）</span>
   <span><span class="sw d3"></span>3D 视频（S3 / D3）</span>
   <span>状态：<span class="st done">已实现</span> <span class="st wip">实现中</span> <span class="st del">待删</span></span>
+</div>
+<div class="callout" id="runmode"><b>运行方式：按视频走全链路</b> <span class="st wip">实现中</span>
+  <ul style="margin:6px 0 0;padding-left:20px">
+    <li>每个视频一条链：下面这张图从物体清单到答案输出，一个视频一次走完（同一场景的变体按背景 C 优先）。</li>
+    <li>多个视频并行跑；Qwen 和 GPU 各有一个全局并发上限。</li>
+    <li>每个视频的答案单独落盘到 <code>answers/&lt;video&gt;.json</code>。续跑时已有答案的视频直接跳过；某个视频失败，只影响它自己。</li>
+    <li><code>assemble</code> 随时把已有的逐视频答案组装成验证集 csv 或测试集 <code>submission_vN.csv</code>。</li>
+  </ul>
+  <p class="muted" style="margin:6px 0 0;font-size:13px">现状：harness 的作答仍要等全部视频跑完后统一做，改成逐视频作答由 qp-tools 在做。旧链 mh3 是分步批处理（每一步把所有视频跑完再进下一步），只留给正在跑的 v8，见下方折叠块，<span class="st del">旧链（v8 在用），待删</span>。</p>
 </div>
 <div class="flow">
   <div class="node"><div class="hd"><b>输入</b><span class="st done">已实现</span></div><span class="m">视频、题目、prior（已知量）、depth_info（部分 3D 题给物体到相机的距离）。每题独立作答，不用同视频其他题的 prior。</span></div>
@@ -177,6 +186,7 @@
 <details class="fold"><summary>旧链（mh3）独有、待删的步骤 <span class="st del">待删</span></summary>
 <div class="scroll-x" style="margin-top:8px"><table>
   <tr><th>旧步骤</th><th>做什么</th><th>在新 harness 里</th></tr>
+  <tr><td>分步批处理（<code>pipeline.mh3</code> 的运行方式）<br><span class="st del">旧链（v8 在用），待删</span></td><td>每一步把所有视频跑完，再进入下一步</td><td>改成按视频走全链路（见<a href="#runmode">运行方式</a>）</td></tr>
   <tr><td>geo_a / geo_b / geo_v9（<code>pipeline.run --no-gdino</code>，三份跟踪）</td><td>三路几何值，作为 Qwen 的提示</td><td>删除：几何测量变成场景里的观测项</td></tr>
   <tr><td>vlm_a / vlm_b / vlm_v9（<code>pipeline.vlm_hint --direct</code>）</td><td>Qwen 带提示作答三次</td><td>回路里的 <code>qwen_prior</code> 工具</td></tr>
   <tr><td>route（<code>pipeline.route --no-geo</code>）</td><td>2D 场景值 conf ≥ 0.1 直用，3D 拟合值按 conf 门控（S3 ≥ 0.6，D3 ≥ 0.3），否则 Qwen 三路对数中位数，不在场物体用 Qwen</td><td>删除：答案只从场景出</td></tr>
