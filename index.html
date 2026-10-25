@@ -207,9 +207,11 @@
       <li>验证集 159 题中有 115 题与测试集精确重叠；之后的评估会另外列出"非重叠子集"的分数。</li>
     </ul>
   </div>
-  <div class="callout" id="direction"><b>方向变更（用户 10-24 决定）：只有一条流水线、一个 agent harness。</b>
-    清单 → 场景图 → 跟踪（一条）→ 搭场景（几何测量是场景里的观测项）→ 场景 agent 回路（2–10 轮）→ 答案只从场景出（source = scene / prior）。Qwen 变成回路里的两个工具 <code>qwen_review</code> / <code>qwen_prior</code>；不再有三路中位数、route 多路选择和回退链。
-    过渡期 v8 提交仍用旧流水线；新 harness 在验证集达到 ≥ 0.7489 后替换旧流程并删掉旧代码。流程图（目标流水线，每步标状态）见 <a href="pipeline.html#flow">完整流程</a>。</div>
+  <div class="callout" id="direction"><b>当前方向：一条流水线、一个 agent harness。</b>
+    v21 将每个 prior/depth 组隔离为独立场景；观察 → 诊断 → 修改 → 固定证据验收 → 当前状态重放答案。
+    答案明确记录 scene / measurement / prior / unresolved，缺题保留在评分分母中。代码已实现并在隔离验证集上测试，MRA 尚待实测。
+    后续只迭代 harness；v8 旧链保留到既有任务结束。旧链 v12 的 0.7632 是历史参考。
+    见 <a href="pipeline.html#flow">完整流程与当前实现状态</a>。</div>
 </header>
 
 <section id="versions">
@@ -219,14 +221,17 @@
 <!-- versions:begin -->
   <table>
     <tr><th>版本</th><th>日期</th><th>改动</th><th>验证集</th><th>测试集 / 官方分</th></tr>
+    <tr><td>v21（开发中）</td><td>10-24</td><td>统一 agent harness（代码 <code>d698721</code>）：按 prior / depth_info 分组并隔离状态与修复；2D / 3D 序列化 runtime 统一投影、渲染和终端答案重放；frozen evidence 与 unknown 可见性；硬条件 + 联合损失采纳 / 回滚；显式 finalize scene / measurement / prior / unresolved；源码内容签名续跑、完整题目分母、跨进程 Qwen 限流。共享相机联合优化、强可辨识区间、独立新证据扩展仍待完成。详见 [HARNESS.md](HARNESS.md)</td><td><b>全量 MRA 待验证，不声称提升或达到 0.9</b>。79 项 CPU 测试通过；本次记录时 5 视频 no-agent smoke 完成 4 个、无执行失败，simulation_0015 拟合中。基线：harness v19 CSV 实测 0.74335 / v11 0.7428；旧链 v12 0.7632 仅历史参照。&gt;0.9 目标限开发验证集，不保证隐藏测试集</td><td>未运行；v8 运行与依赖保留，不启动新 mh3</td></tr>
+    <tr><td>v20</td><td>10-24</td><td>scene_fit：类别比例模板挂到 --fixes template（默认关，不开时与 c_v10c2 逐题一致），另加开关 ratiofix（比例只推次维度）、templategate（模板拉坏框残差时不用）、indepagree（"无法观测"的直接测量不算一致证据）、reinit（坏局部最优重拟），默认都不开</td><td>默认不变；全开 c_tpl_full：3D 单独 0.6548，旧链路由 0.7638，harness 离线估计 S3 0.705 / D3 0.651（+0.001，噪声内，不进默认）</td><td>—</td></tr>
+    <tr><td>v19</td><td>10-24</td><td>harness：按视频跑全链路（作答进每个视频的链、逐视频落盘、续跑、--assemble、progress.json、Qwen 全局并发上限）；version_info 读 pipeline/VERSION；2D issue 接 critic_loop / scene_agent（reselect_moving，issue_accept 为必要条件）；清单 reference-only 规则、parse 开放时间窗（after / to the end）</td><td>v11 快照 0.7428；新流程重建 24 视频 0.7433（门槛 0.7632，未过）</td><td>—</td></tr>
     <tr><td>v18</td><td>10-24</td><td>scene2d：不再有自己的版本号，场景 json 的 version 只写全局版本（pipeline/VERSION）和 commit</td><td>不变</td><td>—</td></tr>
-    <tr><td>v17</td><td>10-24</td><td>scene_fit：类别比例模板（车宽高、矮框船宽、高框船=帆船不约束）。commit 0cfffb0；mh3 默认拟合目录仍为 c_v10c2（c9e422f），模板待挂开关</td><td>3D 单独 0.6548，路由后 0.7531（未进默认）</td><td>—</td></tr>
+    <tr><td>v17</td><td>10-24</td><td>scene_fit：类别比例模板（车宽高、矮框船宽、高框船=帆船不约束）。commit 0cfffb0；v20 起挂在 --fixes template 后，默认关</td><td>3D 单独 0.6548，路由后 0.7531（未进默认）</td><td>—</td></tr>
     <tr><td>v16</td><td>10-24</td><td>scene2d：删掉未验证的 CLI 选项（--perspective / --no-shared-center / --length-longer / --tq-weight）。9618fc6</td><td>不变</td><td>—</td></tr>
     <tr><td>v15</td><td>10-24</td><td>scene2d：删掉死开关（clean-run 等）。b010a82</td><td>不变</td><td>—</td></tr>
     <tr><td>v14</td><td>10-24</td><td>scene2d：重选候选过尺度一致性，轨迹键归属，no_layer 挂清单名。77d741c</td><td>不变（注入检验 12/18 恢复）</td><td>—</td></tr>
     <tr><td>v13</td><td>10-24</td><td>scene2d：结构化场景 issue + reselect_moving + issue_accept。b89198e</td><td>不变（注入检验 16/18 检出）</td><td>—</td></tr>
     <tr><td>v12</td><td>10-24</td><td>旧链 + scene_fit c_v10c2（去网格）+ scene2d s2d_v9（几何观测、重力线索、边界对称拟合，至 84c7062）</td><td><b>0.7632</b>（S2 0.797 / D2 0.892 / S3 0.705 / D3 0.660），harness 替换门槛</td><td>—</td></tr>
-    <tr><td>v11</td><td>10-24</td><td>harness 第三次验证集运行（原 h3，3D 用 c_v10c2 参数）</td><td>运行中</td><td>—</td></tr>
+    <tr><td>v11</td><td>10-24</td><td>harness 第三次验证集运行（原 h3，3D 用 c_v10c2 参数）</td><td>0.7428（S2 0.753 / D2 0.895 / S3 0.674 / D3 0.649），未过门槛 0.7632</td><td>—</td></tr>
     <tr><td>v10</td><td>10-24</td><td>harness 第二次验证集运行（原 h2，agent 回路四项修复）</td><td>待定（首遍 7 个 3D 视频拟合失败，补跑中）</td><td>—</td></tr>
     <tr><td>v9</td><td>10-24</td><td>harness 第一次验证集全量（原 h1，a8c90f5）</td><td>0.7373（qwen_prior 新规则 0.7172）</td><td>—</td></tr>
     <tr><td>v8</td><td>10-24</td><td>旧链测试运行：745ca11 + null 坐标修复（d9c1110 / 64bc6df / ce3d058），新清单 + 方位词跟踪 + refmeasure</td><td>valcur11 一线 0.7434（换 scene2d / scene_fit 新版后 0.7489）</td><td>运行中，submission_v8.csv</td></tr>
@@ -668,7 +673,7 @@
   <p>0.668（s2d_v2）和 0.666（v7）差 0.002，在重跑噪声内（单个类别 ±0.03）；v7 的提升在 3D 场景拟合本身（见 <a href="#sf-v7">10-23 迭代</a>），还没传到最终答案。<a href="videos.html">视频与问题</a> 页的逐题结果来自当前最好（<code>outputs/val_mh3_valcur11_s2dv8_v9b_routed.csv</code>），3D 视频的三维视图来自场景拟合 v7。</p>
   <p><small>0.620 → 0.656 → 0.668 → 0.681 来自 2D 图层场景 v1、v2、v3（只影响 S2、D2，见 <a href="#s2d-layers">v1</a>、<a href="#s2d-v2">v2</a>、<a href="#s2d-v3">v3</a>）；更早的 0.639 含样本内泄漏，见 <a href="#sf-zero">10-22 迭代</a>。</small></p>
   <h3 id="pipe3d">流程</h3>
-  <p>一段视频和一道题经过：物体清单 → 场景图 → 在场性 → 两路跟踪并合并 → 按帧场景图 → 几何三路（只作提示）→ 2D 图层场景 / 3D 场景拟合 → 场景 agent 回路（默认开启，v8 未带）→ Qwen 三路带提示作答 → 路由（2D 场景值 conf ≥ 0.1 直接作答，3D 拟合值按 conf 门控，否则 Qwen 三路中位数）→ 提交文件。每一步的模块、命令、缓存和耗时见 <b><a href="pipeline.html">完整流程</a></b>。</p>
+  <p>当前 v21：物体清单 → 场景图 → 一条跟踪及在场性检查 → 参考观测 → 独立 prior/depth 组的 2D / 3D 场景 → agent 观察与修复 → 固定证据验收 → 当前状态重放或显式 prior 作答 → 逐视频落盘及完整题集评分。每一步的模块、命令、缓存和耗时见 <b><a href="pipeline.html">完整流程</a></b>。</p>
   <details><summary class="muted">旧的分步说明（历史记录，以完整流程页为准）</summary>
   <h4>3D 流程（S3、D3）</h4>
   <ol class="flow" aria-label="3D 流程">

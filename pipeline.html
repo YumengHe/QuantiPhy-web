@@ -84,140 +84,137 @@
 </style>
 </head>
 <body>
-<div class="wrap">
-<p class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#answers">答案从哪来</a><a href="#outputs">产物目录</a></p>
-<h1>完整流程</h1>
-<p class="lede">主图始终画<b>已批准的目标流水线</b>：一条流水线、一个 agent harness（<code>pipeline/harness.py</code>，实现中），每个方框右上角标状态。流水线每改一次，这张图跟着改一次。</p>
-<div class="callout"><b>harness 状态：实现中，未替换旧链。</b>10-24 Meshy / 网格库移除：物体形状只用解析几何体（commit 619b74f）。第一版 v9（原 h1）首次验证集全量 0.7373（S2 0.675 / D2 0.892 / S3 0.719 / D3 0.664），旧链基线 0.7489；答案来源 scene 113 题（MRA 0.809）、prior 46 题（MRA 0.550）。替换门槛 0.7632（旧链 + c_v10c2 + s2d_v9；口径：两者用同一版 scene2d）。</div>
-<div class="callout">现状：v8 测试集提交和当前验证集最好 0.7632 都是用<b>旧链</b>（<code>pipeline/mh3.py</code>：三路几何 + 三路 Qwen + route）跑的，v8 没有带场景 agent 回路（时间不够）。旧链的步骤只在下面步骤表的"v8 用的旧步骤"一列和折叠块里列出；新 harness 在验证集达到 ≥ 0.7489 后替换旧链并删除旧代码。内容取自代码：<code>pipeline/mh3.py</code>、<code>pipeline/route.py</code>、<code>pipeline/scene_agent.py</code>、<code>pipeline/critic_loop.py</code>、<code>docs/WORKING_RULES.md</code>、<code>docs/TEST_RUN_v8.md</code>。</div>
+<main class="wrap">
+<nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
+<h1>QuantiPhy agent harness</h1>
+<p class="lede">v21 开发状态 · 2026-10-24 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
+<div class="callout"><b>v21 的全量 MRA 待验证。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
+<div class="callout"><b>验证阶段记录：</b>实现代码 <code>d698721</code>，79 项 CPU 契约测试通过。本页更新时，5 视频 no-agent smoke 已完成 4 个、无执行失败，第 5 个 <code>simulation_0015</code> 仍在拟合；这不构成全量 MRA 或 agent 收益结论。</div>
+<div class="callout"><b>v8 旧链仍保留。</b>不删除正在运行的 v8 及其依赖，不启动新的 mh3 / route 实验。旧链迁出当前流程，清理需另行安排。图上的“已实现”表示代码已落地，不表示已通过端到端 MRA 验证。</div>
 
-<h2 id="flow">流程图（目标：harness.py）</h2>
-<div class="legend">
-  <span><span class="sw sh"></span>共享（2D、3D 都走）</span>
-  <span><span class="sw d2"></span>2D 视频（S2 / D2）</span>
-  <span><span class="sw d3"></span>3D 视频（S3 / D3）</span>
-  <span>状态：<span class="st done">已实现</span> <span class="st wip">实现中</span> <span class="st del">待删</span></span>
-</div>
-<div class="callout" id="runmode"><b>运行方式：按视频走全链路</b> <span class="st wip">实现中</span>
-  <ul style="margin:6px 0 0;padding-left:20px">
-    <li>每个视频一条链：下面这张图从物体清单到答案输出，一个视频一次走完（同一场景的变体按背景 C 优先）。</li>
-    <li>多个视频并行跑；Qwen 和 GPU 各有一个全局并发上限。</li>
-    <li>每个视频的答案单独落盘到 <code>answers/&lt;video&gt;.json</code>。续跑时已有答案的视频直接跳过；某个视频失败，只影响它自己。</li>
-    <li><code>assemble</code> 随时把已有的逐视频答案组装成验证集 csv 或测试集 <code>submission_vN.csv</code>。</li>
-  </ul>
-  <p class="muted" style="margin:6px 0 0;font-size:13px">现状：harness 的作答仍要等全部视频跑完后统一做，改成逐视频作答由 qp-tools 在做。旧链 mh3 是分步批处理（每一步把所有视频跑完再进下一步），只留给正在跑的 v8，见下方折叠块，<span class="st del">旧链（v8 在用），待删</span>。</p>
-</div>
+<h2 id="flow">流程图：一个视频一次走完</h2>
+<div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
-  <div class="node"><div class="hd"><b>输入</b><span class="st done">已实现</span></div><span class="m">视频、题目、prior（已知量）、depth_info（部分 3D 题给物体到相机的距离）。每题独立作答，不用同视频其他题的 prior。</span></div>
+  <div class="node"><div class="hd"><b>输入与运行编排</b><span class="st done">已实现</span></div><span class="m">视频、题目、本题 prior / depth_info。多个视频并行，同场景变体按背景 C 优先。actor 不读 answer / MRA。每视频独立落盘、失败记录与续跑。</span></div>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>物体清单 objects</b><span class="st done">已实现</span></div><span class="m">Qwen 从题目和 prior 列出被问到的物体、别名、角色（object / structure / class）、数量、形状提示、part_of。<code>pipeline.objects</code></span>
-    <span class="m" style="margin-top:4px"><span class="st wip">实现中</span> 结构类 prior 标 <code>measure_as: line_spacing</code>（例如刻度、车道线间距）。</span></div>
+  <div class="node"><div class="hd"><b>物体清单 → grid 场景图</b><span class="st done">已实现</span></div><span class="m">只覆盖题目、prior 提到的对象及必要支撑结构；记录别名、数量、角色、身份与关系。<code>objects</code>、<code>scenegraph</code></span></div>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>场景图（grid）scenegraph</b><span class="st done">已实现</span></div><span class="m">Qwen 给 on / in / attached_to / airborne / above 关系和同一实例判断。<code>pipeline.scenegraph</code>（<code>scenegraph_v3grid</code>）</span></div>
+  <div class="node"><div class="hd"><b>候选跟踪 → raw → merge / presence → 按帧关系</b><span class="st done">已实现</span></div><span class="m">GDINO / SAM 2 与 Qwen 复核；新轨迹先写 raw，经同一后处理进入场景。按帧关系提供支撑、接触与运动阶段。初始视觉观测可复用。</span></div>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>跟踪（一条）</b><span class="st wip">实现中</span></div><span class="m">GDINO + SAM 2；候选选择、Qwen 复核运动的 prior 物体、在场性分段核对，合成一个跟踪步（旧链里是 verify / track_v8 / track_rc / merge_v9 / verify_v9 五步，各部分已实现，合并实现中）。</span>
-    <span class="m" style="margin-top:4px"><span class="st wip">实现中</span> 运动类问题的候选必须在该时段有运动。</span></div>
-  <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>按帧场景图 scenegraph_pfc</b><span class="st done">已实现</span></div><span class="m">在 grid 图上按帧问关系、合并成段、边界吸附到轨迹事件。<code>pipeline.scenegraph --per-frame</code></span></div>
+  <div class="node"><div class="hd"><b>按 prior / depth_info 分组，建立独立状态</b><span class="st done">已实现</span></div><span class="m"><code>groups[*].scene</code> 保存完整组场景；<code>question_context</code> 与 <code>question_scope</code> 限定本组输入。每组 agent 从相同初始观测恢复，上一组接受的编辑不成为下一组的证据。</span></div>
   <div class="arrow"></div>
   <div class="cols">
-    <div class="col c2"><p class="colhd">左列 · 2D 视频</p>
-      <div class="node d2"><div class="hd"><b>refmeasure 结构测量</b><span class="st done">已实现</span></div><span class="m">帧级参考测量：车道宽（沿法向剖面）、刻度周期、地砖边长。<code>pipeline.refmeasure</code>（<code>refmeasure_v8</code>）</span>
-        <span class="m" style="margin-top:4px"><span class="st wip">实现中</span> 成为显式步骤（现在靠 <code>run.py</code> 顺带生成，<code>ask=False</code>）。</span></div>
+    <div class="col c2"><p class="colhd">左列 · 2D</p>
+      <div class="node d2"><div class="hd"><b>refmeasure + 掩码凸包</b><span class="st done">已实现</span></div><span class="m">结构参考测量、原始框、凸包、稳定尺寸与遮挡记录。观测带来源；缺跟踪保留未知。</span></div>
       <div class="arrow"></div>
-      <div class="node d2"><div class="hd"><b>extents2d 掩码凸包</b><span class="st done">已实现</span></div><span class="m">SAM 2 图像模型取每层的掩码凸包。<code>pipeline.extents2d</code></span></div>
+      <div class="node d2"><div class="hd"><b>图层与运动、统一度量尺度</b><span class="st done">已实现</span></div><span class="m"><code>scene2d</code>：静止 / 匀速 / 匀加速 / 圆周分段模型，每组只使用自己的 prior；尺寸与运动测量保留明确解释。</span></div>
       <div class="arrow"></div>
-      <div class="node d2"><div class="hd"><b>scene2d 图层场景</b><span class="st done">已实现</span></div><span class="m">每个物体一层，prior 标定统一 m/px，分段运动模型，几何测量作为场景里的观测项，逐题给场景值和 conf。<code>pipeline.scene2d</code>（几何观测吸收进场景，v12）</span></div>
-      <div class="arrow"></div>
-      <div class="node d2"><div class="hd"><b>2D 工具</b><span class="st done">已实现</span></div><span class="m">回路可调的 2D 场景动作：rescale、set_extent、drop_frames 等（<code>scene2d.apply_critique</code>）。</span></div>
+      <div class="node d2"><div class="hd"><b>scene_state2d runtime</b><span class="st done">已实现</span></div><span class="m">统一位置与完整投影框、overlay、测量重放。逐题记录尺度与运动敏感性、约束残差、可观测性；对原始框计算 t_q 对齐。</span></div>
     </div>
-    <div class="col c3"><p class="colhd">右列 · 3D 视频</p>
-      <div class="node d3"><div class="hd"><b>depth / ground 地面与墙</b><span class="st done">已实现</span></div><span class="m">Depth Anything 深度（缓存 <code>depth</code>）；地面掩码、墙脚 / 墙顶点（<code>pipeline.ground</code>）。</span></div>
+    <div class="col c3"><p class="colhd">右列 · 3D</p>
+      <div class="node d3"><div class="hd"><b>depth / ground / 端点观测</b><span class="st done">已实现</span></div><span class="m">深度、支撑面、接触点、参考测量与本组 depth_info；物体只用解析几何体，网格库不参与新流程。</span></div>
       <div class="arrow"></div>
-      <div class="node d3"><div class="hd"><b>scene_fit 场景拟合</b><span class="st done">已实现（<code>c_v10c2</code>，v12）</span></div><span class="m">地面与相机 + 解析几何体（盒子、球、圆柱等）+ 运动模型（匀加速、单摆等），每道 3D 题在拟合内作答并给 conf。去掉网格后的默认版本 c_v10c2：典型尺寸只约束主维度 + classprior + 静止刚体阶段 A；3D 基线 0.6388。<code>pipeline.eval_scene_fit</code></span>
-        <span class="m" style="margin-top:4px"><span class="st wip">实现中</span> 几何体模板：车的比例先验、帆船的船体 + 桅杆。</span></div>
+      <div class="node d3"><div class="hd"><b>相机、支撑面、几何与运动</b><span class="st done">已实现</span></div><span class="m"><code>scene_fit / fit3d</code>：按组拟合完整场景；保留运动模型、相机状态与直接测量记录。全变量联合优化仍未完成。</span></div>
       <div class="arrow"></div>
-      <div class="node d3"><div class="hd"><b>3D 工具</b><span class="st done">已实现</span></div><span class="m">回路可调的 3D 场景动作：fix_extent、set_plane、set_focal 等（<code>scene_fit.apply_critique</code>）。</span></div>
+      <div class="node d3"><div class="hd"><b>scene_state3d runtime</b><span class="st done">已实现</span></div><span class="m">位置、导数、轨迹长度、投影与渲染共用模型；答案从场景表达式或具名 measurement 重放。稳定性主要探测 extent ±10%，其余参数固定。</span></div>
     </div>
   </div>
   <div class="arrow"></div>
-  <div class="loop" id="agent">
-    <div class="hd"><b>场景 agent 回路（2D、3D 共享）</b><span class="st done">已实现（第一版）· 默认开启 · 2–10 轮</span></div>
-    <p class="cycle">观察 → 诊断 → 动作 → 只重跑受影响的步骤 → 自检采纳 / 回滚 → 下一轮</p>
+  <div class="node"><div class="hd"><b>冻结原始证据 frozen evidence</b><span class="st done">已实现</span></div><span class="m">快照轨迹、检查、对象、固定题目集及来源 hash；每次候选对同一证据评分。unknown ≠ absent；完整投影框与画面相交才定义 in_frustum，中心不是可见性的替代。</span></div>
+  <div class="arrow"></div>
+  <section class="loop" aria-label="场景 agent 回路">
+    <div class="hd"><b>观察 → 诊断 → 动作 → 验收 / 回滚</b><span class="st done">已实现 · 默认 2–10 轮</span></div>
     <div class="lgrid">
-      <div class="lbox"><b>观察工具</b>frames、crop、overlay、tracks_summary、depth_at、scene_json、self_check、question_values、visible_count、reference_measure（每轮最多 6 次）</div>
-      <div class="lbox"><b>动作工具</b>objects_set_count、objects_set_track、track_reselect、track_split_instance、scenegraph_set_relation、set_main_support，以及左右两列的 2D / 3D 工具</div>
-      <div class="lbox"><b>Qwen 两个工具 <span class="st wip">实现中</span></b><code>qwen_review</code>：看叠加图找问题；<code>qwen_prior</code>：给常识先验（取代旧链的三路 Qwen 作答）</div>
-      <div class="lbox"><b>自检采纳 / 回滚</b>没有指标变差且至少一项变好才保留：问到帧对齐 IoU、可见性一致（count_check）、支撑一致、拟合残差、作答比例</div>
+      <div class="lbox"><b>观察</b>原帧、crop、runtime overlay、轨迹、depth、t_q 对齐、逐题测量与可观测性。Qwen 在回路内读取这些证据。</div>
+      <div class="lbox"><b>动作</b>修复对象 / 跟踪 / 关系或运动模型，只重跑受影响步骤。身份删除需要观测支持；纯尺度任意调节不开放。</div>
+      <div class="lbox"><b>候选验收</b>固定 evidence hash、题目分母与硬条件；再比较联合软损失。2D 另过已有 issue_accept。</div>
+      <div class="lbox"><b>继续或停止</b>接受则更新状态，拒绝则恢复缓存；同状态同动作不重复。连续两轮无改善停止，执行失败单独记录。</div>
     </div>
-    <div class="scroll-x" style="margin-top:8px"><table class="back">
-      <tr><th>动作</th><th>↩ 回到哪一步重跑</th></tr>
-      <tr><td>objects_set_count、objects_set_track</td><td>↩ 跟踪（之后重搭场景）</td></tr>
-      <tr><td>track_reselect、track_split_instance</td><td>↩ 跟踪</td></tr>
-      <tr><td>scenegraph_set_relation、set_main_support</td><td>↩ 搭场景（scene2d / scene_fit）</td></tr>
-      <tr><td>2D / 3D 场景动作</td><td>↩ 搭场景</td></tr>
-    </table></div>
-    <p class="muted" style="font-size:13px;margin:6px 0 0">在自己的缓存（objects_crit、scenegraph_crit、tracks_crit）里工作，不改主缓存。v8 测试集提交没有带回路（时间不够）。</p>
-  </div>
+    <p class="cycle">每轮记录：state_id、evidence_hash、工具参数、执行结果、前后指标、接受 / 拒绝原因。</p>
+  </section>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>答案输出</b><span class="st wip">实现中</span></div><span class="m">答案只从场景出（source = scene / prior），没有三路中位数、没有 route 多路选择、没有回退链。验证集：<code>outputs/val_&lt;tag&gt;_routed.csv</code>；测试集：<code>outputs/submission_vN.csv</code>（3289 行）。</span></div>
+  <div class="node"><div class="hd"><b>终端 finalize_scene</b><span class="st done">已实现</span></div><span class="m">先从最终状态重放 scene / measurement；不可用时显式调用本题 answer_prior；仍无有效数值则 unresolved。记录 scene_id、来源、provenance 与状态。</span></div>
+  <div class="arrow"></div>
+  <div class="node"><div class="hd"><b>逐视频 answers → assemble → 评分</b><span class="st done">已实现</span></div><span class="m">组装阶段不推理、不补常数。缺题与失败仍按零分计入所请求题目集的分母；报告四类 macro MRA 和非重叠子集。测试提交要求全部预期行完整有效。</span></div>
 </div>
 
-<h2 id="steps">步骤表</h2>
-<p class="muted">缓存目录在 <code>outputs/</code> 下，测试集加 <code>_test</code>。测试集耗时取 v8 运行（<code>outputs/logs/mh3_v8_test/</code>）已跑完的步骤，其余待 v8 跑完补；验证集耗时来自 <code>docs/TEST_RUN_v8.md</code> 和模块文档，没有记录的写"—"。</p>
+<h2 id="steps">步骤与状态：2D / 3D 对照</h2>
 <div class="scroll-x"><table>
-  <tr><th>步骤</th><th>状态</th><th>模块与命令</th><th>读</th><th>写</th><th>做什么</th><th>模型</th><th>验证集耗时</th><th>测试集耗时</th><th>v8 用的旧步骤（mh3）</th></tr>
-  <tr class="grp"><td colspan="10">共享</td></tr>
-  <tr><td>物体清单</td><td><span class="st done">已实现</span></td><td><code>pipeline.objects</code></td><td>题目、prior</td><td><code>objects</code></td><td>物体清单</td><td>Qwen</td><td>—</td><td>6 min</td><td>objects；objects_check（只作诊断）</td></tr>
-  <tr><td>场景图（grid）</td><td><span class="st done">已实现</span></td><td><code>QP_SCENEGRAPH=scenegraph_v3grid pipeline.scenegraph --grid-same-instance</code></td><td><code>objects</code></td><td><code>scenegraph_v3grid</code></td><td>关系与同一实例</td><td>Qwen</td><td>—</td><td>418 s</td><td>scenegraph</td></tr>
-  <tr><td>跟踪（一条）</td><td><span class="st wip">实现中</span></td><td>合并 <code>pipeline.presence</code> + <code>pipeline.run --choose --recheck-prior --presence-from tracks</code> + <code>presence --merge-by-dim</code></td><td><code>objects</code>、<code>scenegraph_v3grid</code>、<code>tracks</code>、<code>tracks_qwen</code></td><td><code>tracks_v8p</code>、<code>tracks_rcp</code>、<code>tracks_v9p</code>、<code>trackcheck</code>、在场性</td><td>候选选择、prior 复核、在场性分段核对</td><td>GDINO、SAM 2、Qwen</td><td>verify 41 s；track_v8 569 s；track_rc 453 s</td><td>verify 1056 s；其余待 v8 跑完补</td><td>verify、track_v8、track_rc、merge_v9、verify_v9</td></tr>
-  <tr><td>按帧场景图</td><td><span class="st done">已实现</span></td><td><code>QP_SCENEGRAPH=scenegraph_pfc pipeline.scenegraph --per-frame --grid-from scenegraph_v3grid</code></td><td><code>scenegraph_v3grid</code>、跟踪</td><td><code>scenegraph_pfc</code></td><td>按帧关系（默认图）</td><td>Qwen</td><td>—</td><td>待 v8 跑完补</td><td>scenegraph_pf</td></tr>
-  <tr><td>场景 agent 回路</td><td><span class="st done">已实现（第一版）· 默认开启</span></td><td><code>pipeline.scene_agent --min-iter 2 --max-iter 10</code></td><td>场景目录、各缓存（复制进 *_crit）</td><td><code>s2d_critic_&lt;tag&gt;</code>、<code>c_critic_&lt;tag&gt;</code></td><td>观察 → 动作 → 重跑 → 自检</td><td>Qwen（qwen_review / qwen_prior 实现中）</td><td>—</td><td>v8 没带回路（时间不够）</td><td>critic（v8 未跑）</td></tr>
-  <tr><td>答案输出</td><td><span class="st wip">实现中</span></td><td>harness.py（答案只从场景出）</td><td>场景、Qwen 先验</td><td><code>*_routed.csv</code> / <code>submission_vN.csv</code></td><td>每题的答案与来源</td><td>—</td><td>—</td><td>—</td><td>vlm_a / vlm_b / vlm_v9、route（待删，见下）</td></tr>
-  <tr class="grp g2d"><td colspan="10">2D</td></tr>
-  <tr><td>refmeasure</td><td><span class="st done">已实现</span></td><td><code>pipeline.refmeasure</code>（跟踪步里首次生成）</td><td>视频、跟踪</td><td><code>refmeasure_v8</code></td><td>车道宽、刻度、地砖等参考长度</td><td>—</td><td>—</td><td>待 v8 跑完补</td><td>track_v8 内</td></tr>
-  <tr><td>extents2d</td><td><span class="st done">已实现</span></td><td><code>pipeline.extents2d --caches tracks_v9p</code></td><td><code>tracks_v9p</code></td><td><code>extents2d</code></td><td>掩码凸包</td><td>SAM 2</td><td>约 80 s / 缓存</td><td>待 v8 跑完补</td><td>extents2d</td></tr>
-  <tr><td>scene2d</td><td><span class="st done">已实现</span></td><td><code>QP_TRACKS=tracks_v9p pipeline.scene2d --scenegraph scenegraph_pfc</code></td><td><code>tracks_v9p</code>、<code>extents2d</code>、<code>scenegraph_pfc</code>、<code>refmeasure_v8</code></td><td><code>scene2d_eval/s2d_v9</code></td><td>图层场景与场景值</td><td>—</td><td>约 15 s</td><td>待 v8 跑完补</td><td>scene2d</td></tr>
-  <tr class="grp g3d"><td colspan="10">3D</td></tr>
-  <tr><td>depth / ground</td><td><span class="st done">已实现</span></td><td>深度缓存；<code>pipeline.ground</code></td><td>视频</td><td><code>depth</code>、<code>ground</code></td><td>深度、地面掩码、墙脚 / 墙顶</td><td>Depth Anything、GDINO、SAM 2（顶部结构时 Qwen）</td><td>—</td><td>待 v8 跑完补</td><td>ground</td></tr>
-  <tr><td>scene_fit</td><td><span class="st done">已实现（<code>c_v10c2</code>，v12；3D 单独 0.6388）</span>；几何体模板 <span class="st wip">实现中</span></td><td><code>pipeline.eval_scene_fit --dim3 --two-pass</code></td><td><code>depth</code>、<code>ground</code>、<code>scenegraph_pfc</code>、跟踪</td><td><code>scene_fit_eval/c_v10c2</code></td><td>3D 场景拟合与拟合值</td><td>—</td><td>—</td><td>待 v8 跑完补</td><td>scene_fit</td></tr>
-</table></div>
+<thead><tr><th>阶段</th><th>左：2D</th><th>右：3D</th><th>状态</th></tr></thead>
+<tbody>
+<tr><td>允许输入与组隔离</td><td>本组 prior 标定；完整 layers / scale / results</td><td>本组 prior / depth_info；完整 camera / objects / results</td><td><span class="st done">已实现</span></td></tr>
+<tr><td>观测</td><td>refmeasure、凸包、原始框、稳定尺寸、遮挡</td><td>refmeasure、深度、ground、端点、接触</td><td><span class="st done">已实现</span></td></tr>
+<tr><td>前向模型</td><td>scene_state2d：位置、投影、数值重放</td><td>scene_state3d：完整运动、解析几何投影与重放</td><td><span class="st done">已实现</span></td></tr>
+<tr><td>稳定性诊断</td><td>定位噪声、运动拟合、尺度解释、出画 / 遮挡</td><td>固定其他参数的 extent ±10% 条件探测；未联合焦距 / 深度求区间</td><td><span class="st done">已实现</span> 局部诊断，非严格区间</td></tr>
+<tr><td>工具修复</td><td>原 issue 系统保留；drop_frames 需 merge / 孤立尖峰证据</td><td>关系、支撑、跟踪与运动假设修复</td><td><span class="st done">已实现</span></td></tr>
+<tr><td>验收与终端作答</td><td>共享固定证据裁判 + issue_accept；runtime replay</td><td>共享固定证据裁判；runtime / measurement replay</td><td><span class="st done">已实现</span> 效果待验证</td></tr>
+<tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
+<tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
+<tr><td>独立新证据进入裁判</td><td colspan="2">当前冻结证据防止自证；来源可审计的新观测入场协议仍需完成</td><td><span class="st wip">实现中</span></td></tr>
+<tr><td>旧 mh3 / route</td><td colspan="2">退出新工作入口；仍保留 v8 正在运行所需代码与缓存，不能现在删除</td><td><span class="st del">待删</span> 保留 v8 依赖</td></tr>
+</tbody></table></div>
 
-<details class="fold"><summary>旧链（mh3）独有、待删的步骤 <span class="st del">待删</span></summary>
-<div class="scroll-x" style="margin-top:8px"><table>
-  <tr><th>旧步骤</th><th>做什么</th><th>在新 harness 里</th></tr>
-  <tr><td>分步批处理（<code>pipeline.mh3</code> 的运行方式）<br><span class="st del">旧链（v8 在用），待删</span></td><td>每一步把所有视频跑完，再进入下一步</td><td>改成按视频走全链路（见<a href="#runmode">运行方式</a>）</td></tr>
-  <tr><td>geo_a / geo_b / geo_v9（<code>pipeline.run --no-gdino</code>，三份跟踪）</td><td>三路几何值，作为 Qwen 的提示</td><td>删除：几何测量变成场景里的观测项</td></tr>
-  <tr><td>vlm_a / vlm_b / vlm_v9（<code>pipeline.vlm_hint --direct</code>）</td><td>Qwen 带提示作答三次</td><td>回路里的 <code>qwen_prior</code> 工具</td></tr>
-  <tr><td>route（<code>pipeline.route --no-geo</code>）</td><td>2D 场景值 conf ≥ 0.1 直用，3D 拟合值按 conf 门控（S3 ≥ 0.6，D3 ≥ 0.3），否则 Qwen 三路对数中位数，不在场物体用 Qwen</td><td>删除：答案只从场景出</td></tr>
-  <tr><td>objects_check（<code>pipeline.objects --check-splits</code>）</td><td>验证集 / 测试集清单对照</td><td>只作诊断</td></tr>
-</table></div>
-</details>
+<h2 id="judge">怎样判断修复有用</h2>
+<p><b>硬条件先行：</b>候选有效、证据 hash 不变；已观察对象缺失、可见性冲突、2D issue 数不增加；固定题目集的测量 coverage 不下降；已有指标不能消失，已可观测的题不能变成不可观测。</p>
+<p><b>随后比较联合软损失：</b>IoU、可见性、支撑、相对框残差、约束残差、相对敏感性、可观测比例和 coverage。允许软指标之间的小幅取舍，但必须有实质整体改善。权重是工程容差，未由验证答案拟合。它是候选验收目标，不表示全部物理变量已经进入同一个优化器。</p>
+<div class="callout"><b>不让重建验证自己。</b>删掉难题不改变分母，删掉可靠观测中的物体会受罚；重跟后的新框不能覆盖 frozen evidence。共享轨迹 / 尺度导出的两个值不算两份独立证据；标定 prior 的零残差不证明目标答案正确。</div>
+<p>逐题 <code>quality.measurement</code> 含 <code>constraint_residuals</code>、<code>sensitivity.relative / absolute</code>、<code>observable: true / false / null</code> 与 reasons。未知指标留空；敏感性不是正确概率，也不是经过校准的置信区间。</p>
 
-<h2 id="answers">每道题的答案从哪来</h2>
-<h3>目标 harness</h3>
-<p>答案只从场景出：source = scene（场景值 / 拟合值）或 prior（<code>qwen_prior</code> 给的常识先验）。不再有三路中位数和回退链。</p>
-<h3>当前旧链（v8 提交、验证集 0.7489）</h3>
-<div class="cols">
-  <div class="node d2"><div class="hd"><b>2D 题（S2 / D2）</b></div><span class="m" style="font-size:14px">① 场景值 conf ≥ 0.1 直接作答；② 否则 Qwen 三路对数中位数；③ Qwen 也没数字时用任意 conf 的场景值，再没有用常识典型值。</span></div>
-  <div class="node d3"><div class="hd"><b>3D 题（S3 / D3）</b></div><span class="m" style="font-size:14px">① 拟合值按 conf 门控（S3 ≥ 0.6，D3 ≥ 0.3；D3 只来自直接测量的值只作提示）；② 否则 Qwen 三路对数中位数；③ Qwen 没数字时用任意 conf 的拟合值，再没有用常识典型值。被问物体判为不在场（conf ≥ 0.9）时不用几何 / 场景值。</span></div>
-</div>
-<div class="callout"><b>绝对不用验证集答案。</b>回退常数、合理范围、先验都是手写常识，不从验证集的 answer 列计算（<code>docs/WORKING_RULES.md</code>）。</div>
-<p><b>当前最好 0.7632</b>（S2 0.797 / D2 0.892 / S3 0.705 / D3 0.660；43 题子集 0.6917）：旧链路由，3D 用删除网格库后的场景拟合 <code>scene_fit_eval/c_v10c2</code>，2D 用 <code>scene2d_eval/s2d_v9</code>；这也是新 harness 的替换门槛。逐题结果 <code>outputs/val_oldchain_v10c2_s2dv9_routed.csv</code>。中间值 0.7554（15:51 版 s2d_v8）；历史 0.7489（含网格，c_v9b）。</p>
-
-<h2 id="outputs">产物目录</h2>
-<p>保留的最新结果就是下面这些目录（都在 <code>outputs/</code> 下，测试集加 <code>_test</code>）；更早的版本目录会清理，只在 <a href="index.html">迭代记录</a> 里保留文字。</p>
+<h2 id="answers">每个答案的来源</h2>
 <div class="scroll-x"><table>
-  <tr><th>类别</th><th>目录</th></tr>
-  <tr><td>物体清单</td><td><code>objects</code></td></tr>
-  <tr><td>场景图</td><td><code>scenegraph_v3grid</code>、<code>scenegraph_pfc</code></td></tr>
-  <tr><td>跟踪</td><td><code>tracks</code>、<code>tracks_qwen</code>、<code>tracks_v8(p)</code>、<code>tracks_rc(p)</code>、<code>tracks_v9(p)</code>、<code>trackcheck</code></td></tr>
-  <tr><td>2D 中间量</td><td><code>extents2d</code>、<code>refmeasure_v8</code></td></tr>
-  <tr><td>3D 中间量</td><td><code>ground</code>、<code>depth</code></td></tr>
-  <tr><td>场景</td><td><code>scene2d_eval/s2d_v9</code>、<code>scene_fit_eval/c_v10c2</code></td></tr>
-  <tr><td>旧链的 Qwen 作答</td><td><code>vlm/</code></td></tr>
-  <tr><td>结果</td><td><code>*_routed.csv</code>（验证集）、<code>submission_vN.csv</code>（测试集）</td></tr>
-</table></div>
+<thead><tr><th>source / 状态</th><th>含义</th></tr></thead><tbody>
+<tr><td><code>scene</code></td><td>由当前组序列化场景重放；不直接信任缓存 pred。</td></tr>
+<tr><td><code>measurement</code></td><td>由当前场景中的具名测量记录重放，保留来源与适用性门槛。</td></tr>
+<tr><td><code>prior</code></td><td>agent 终端显式调用 answer_prior，只使用本题输入、视频和本组场景摘要。</td></tr>
+<tr><td><code>unresolved</code></td><td>未得到可用数值，保留原因；不默默填典型常数。</td></tr>
+<tr><td>执行失败</td><td>单独记录 execution_status；组装中缺失 / 过期答案按失败处理，不能以丢行改善分数。</td></tr>
+</tbody></table></div>
+<p>最终记录包含 row、question、prior、scene_id、source、status、测量诊断与重放 provenance。<code>answer_video</code> 仅序列化已完成的终态，<code>assemble</code> 仅组装和评估，两者都不调用模型。</p>
+
+<h2 id="run">复现与运行边界</h2>
+<p>在 repo 根目录、coordinator 冻结的代码上执行。下列是可复现命令，不表示这些 v21 实验已经完成。先查看 <code>nvidia-smi</code>，将示例 GPU <code>3</code> 换成当前允许使用的空闲卡。Qwen 服务沿用既有 8001–8004 服务，不启动或停止它们。</p>
+<pre style="overflow:auto;background:var(--code-bg);padding:14px;border-radius:8px;font-size:13px"><code>export QWEN_URLS=http://localhost:8001/v1/chat/completions,http://localhost:8002/v1/chat/completions,http://localhost:8003/v1/chat/completions,http://localhost:8004/v1/chat/completions
+
+# CPU 契约测试
+/home/yumenghe/miniconda3/envs/quantiphy/bin/python -B -m unittest discover -s tests -v
+
+# 完整验证集；同命令可续跑
+/home/yumenghe/miniconda3/envs/quantiphy/bin/python -m pipeline.harness \
+  --split val --tag v21 --seed-from h3 \
+  --gpus 3 --per-gpu 1 --workers 2 --qwen-concurrency 4
+
+# 只组装，不推理
+/home/yumenghe/miniconda3/envs/quantiphy/bin/python -m pipeline.harness \
+  --split val --tag v21 --assemble
+
+# 验证集受控消融，自动隔离到 v21_control
+/home/yumenghe/miniconda3/envs/quantiphy/bin/python -m pipeline.harness \
+  --split val --tag v21 --seed-from h3 --experiment no-agent \
+  --gpus 3 --per-gpu 1 --workers 2 --qwen-concurrency 4</code></pre>
+<p><code>h3</code> 仅是 v11 的历史缓存名。<code>--experiment no-agent</code> 只允许 val：跳过 actor 修复，但仍走终端重放 / 显式先验，用于同预算对照，不是第二条生产流水线。测试集只由 coordinator 明确安排，使用已提交的冻结代码与新文件名。</p>
+<p><b>续跑：</b>核对 pipeline Python 源码内容 hash、run_signature、版本字段、完整题目身份和有限答案；源码运行中变化会使该视频失败，过期产物不得混合评分。<b>并发：</b>同一次运行的主进程与子进程通过 POSIX 文件锁共享 Qwen 请求预算，带排队 / HTTP 超时；不同运行的预算仍需协调。</p>
+<p><b>评估：</b>按 S2 / D2 / S3 / D3 报 macro MRA，并报非测试重叠子集。缺题、失败和 unresolved 按零分进入所请求题目集的完整分母；指定视频子集单独标记，不能冒充全量结果。</p>
+
+<h2 id="outputs">产物与排查入口</h2>
+<div class="scroll-x"><table><thead><tr><th>产物</th><th>验证集 v21 路径（相对 outputs/）</th></tr></thead><tbody>
+<tr><td>清单 / 图 / 跟踪</td><td><code>objects_v21/</code>、<code>scenegraph_v3grid_v21/</code>、<code>scenegraph_v21/</code>、<code>tracks_v21raw/</code>、<code>tracks_v21/</code></td></tr>
+<tr><td>2D / 3D 初始场景</td><td><code>scene2d_eval/h_v21/</code>、<code>scene_fit_eval/h_v21/</code></td></tr>
+<tr><td>独立组与固定证据</td><td>场景目录内 <code>agent/groups/&lt;video&gt;_&lt;group&gt;/</code>：evidence、iterN 与终态 JSON</td></tr>
+<tr><td>最终状态</td><td>场景目录内 <code>agent/&lt;video&gt;.json</code>：groups、answers、answer_actions、critique</td></tr>
+<tr><td>答案 / 进度</td><td><code>harness/v21/answers/&lt;video&gt;.json</code>、<code>harness/v21/progress.json</code></td></tr>
+<tr><td>执行日志 / 步骤签名</td><td><code>logs/harness_v21/&lt;video&gt;.log</code>、<code>*.steps.json</code></td></tr>
+<tr><td>评估</td><td><code>val_v21_answers.csv</code>；子集为 <code>val_v21_answers_subset.csv</code>；消融使用 <code>v21_control</code></td></tr>
+</tbody></table></div>
+<p class="muted">测试集路径由 split-aware cache_root 隔离。排查顺序：输入身份与 group → 执行状态 → 原始证据 → runtime 重放 → 可观测性 → 动作与验收理由 → 最后读取验证标签分析误差。修通用根因，不按 video_id 特判。</p>
+
+<h2 id="limits">还不能由这套结构保证的事</h2>
+<div class="lgrid">
+<div class="lbox"><b>共享相机联合优化 <span class="st wip">实现中</span></b>统一状态已存在，求解仍有分阶段、逐对象或固定相机假设；相机、形状与运动的全部耦合尚未共同优化。</div>
+<div class="lbox"><b>强可辨识区间 <span class="st wip">实现中</span></b>2D 为局部噪声传播；3D 主要是固定其他参数的 extent ±10% 条件探测，未做焦距 / 深度联合 profile likelihood，仍需多假设与区间覆盖率验证。</div>
+<div class="lbox"><b>独立新观测入场 <span class="st wip">实现中</span></b>初始跟踪也可能错。新参考点、标注或时间片需要独立来源与证据版本协议，不能直接替换裁判。</div>
+<div class="lbox"><b>MRA 效果 <span class="st wip">待验证</span></b>需要同代码、同初始观测、同预算的 agent / no-agent 对照及逐类分析。v21 目前没有 MRA 结论。</div>
 </div>
+<div class="callout"><b>对齐不等于无限精度。</b>单目投影存在尺度、深度和形状歧义；像素与时间采样有限，导数会放大定位误差。只有度量约束正确、目标量可辨识、模型误差受控，更好的重建才会可靠改善数值。开发验证集超过 0.9 是实验目标，不保证隐藏测试集表现。</div>
+</main>
 </body>
 </html>
