@@ -209,7 +209,7 @@
   </div>
   <div class="callout" id="direction"><b>当前方向：一条流水线、一个 agent harness。</b>
     v22：按 prior/depth 隔离场景，观察 → 测量诊断 → 修改 → 固定证据验收 → 当前状态重放答案。
-    已修复短可见段采样、重复首帧时序和轨迹查询，103 项 CPU 测试通过；完整 159 题 control / agent 对照运行中，尚无 MRA 提升结论。
+    已修复短可见段采样、重复首帧时序和轨迹查询，103 项 CPU 测试通过；完整 159 题 control macro 0.74428，非重叠 43 题 0.60923（历史同题 0.64613），1 unresolved 计零；agent 对照运行中，尚无 agent 收益结论。
     答案明确记录 scene / measurement / prior / unresolved，缺题保留在分母；相同 prior 请求可复用响应以控制对照误差。
     v8 旧链保留到既有任务结束，旧链 v12 的 0.7632 是历史参考。见 <a href="pipeline.html#flow">完整流程与实现状态</a>。</div>
 </header>
@@ -221,7 +221,7 @@
 <!-- versions:begin -->
   <table>
     <tr><th>版本</th><th>日期</th><th>改动</th><th>验证集</th><th>测试集 / 官方分</th></tr>
-    <tr><td>v22（开发中）</td><td>10-24</td><td>修复轨迹查询、短可见段证据采样、重复首帧时序；测量驱动prompt、无效动作跳过与重拟超时；同输入prior响应缓存</td><td>待完整验证集对照</td><td>未跑</td></tr>
+    <tr><td>v22</td><td>10-24</td><td>修复轨迹查询、短可见段证据采样、重复首帧时序；测量驱动prompt、无效动作跳过与重拟超时；同输入prior响应缓存</td><td>control 159题 macro 0.74428（S2 0.78125 / D2 0.89459 / S3 0.66512 / D3 0.63617）；非重叠43题0.60923，历史同题0.64613；1 unresolved计零。agent运行中</td><td>未跑</td></tr>
     <tr><td>v21</td><td>10-24</td><td>统一2D/3D运行态与答案重放；prior/depth独立状态；固定证据验收；失败与缺题完整计分；跨进程Qwen限流。代码 d698721；79项CPU测试通过</td><td>5视频34题smoke（三类macro，无D2）：control 0.62125，agent 0.61292；同题历史0.62875。不能当作完整159题macro；0 accepted，测量值不变，差额来自prior重新作答。暴露的轨迹查询接口与采样问题转v22修复</td><td>未跑</td></tr>
     <tr><td>v20</td><td>10-24</td><td>scene_fit：类别比例模板挂到 --fixes template（默认关，不开时与 c_v10c2 逐题一致），另加开关 ratiofix（比例只推次维度）、templategate（模板拉坏框残差时不用）、indepagree（"无法观测"的直接测量不算一致证据）、reinit（坏局部最优重拟），默认都不开</td><td>默认不变；全开 c_tpl_full：3D 单独 0.6548，旧链路由 0.7638，harness 离线估计 S3 0.705 / D3 0.651（+0.001，噪声内，不进默认）</td><td>—</td></tr>
     <tr><td>v19</td><td>10-24</td><td>harness：按视频跑全链路（作答进每个视频的链、逐视频落盘、续跑、--assemble、progress.json、Qwen 全局并发上限）；version_info 读 pipeline/VERSION；2D issue 接 critic_loop / scene_agent（reselect_moving，issue_accept 为必要条件）；清单 reference-only 规则、parse 开放时间窗（after / to the end）</td><td>v11 快照 0.7428；新流程重建 24 视频 0.7433（门槛 0.7632，未过）</td><td>—</td></tr>
