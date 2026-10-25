@@ -1118,7 +1118,7 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
         answer_path = ROOT / "outputs/harness" / tag / "answers" / f"{vid}.json"
         record = json.loads(answer_path.read_text()) if answer_path.exists() else {}
         version = record.get("version") or {}
-        if record and version.get("pipeline") != tag:
+        if record and version.get("pipeline") != tag.removesuffix("_control"):
             raise ValueError(f"{vid}: answer artifact version differs from requested {tag}")
         scene_path = (SCENE_DIRS if dim == 3 else SCENE2D_DIRS)["val"] / "agent" / f"{vid}.json"
         saved = json.loads(scene_path.read_text()) if scene_path.exists() else {}
@@ -1150,6 +1150,8 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
                      "q": row["question"], "prior": text(row.get("prior")), "depth": text(row.get("depth_info")),
                      "answer": num(row.get("answer")), "pred": num(row.get("pred")), "mra": num(row["mra"], 6),
                      "src": text(answer.get("source", row.get("source"))), "conf": num(answer.get("conf", row.get("conf")), 6),
+                     "scene_conf": num(answer.get("scene_conf", row.get("scene_conf")), 6),
+                     "confidence_kind": text(answer.get("confidence_kind", row.get("confidence_kind"))) or None,
                      "status": text(answer.get("status", row.get("status"))), "method": answer.get("method", row.get("method")),
                      "scene_id": answer.get("scene_id") or text(row.get("scene_id")), "group": group["group"] if group else None,
                      "binding_status": "matched" if group else "unavailable", "binding_error": error,

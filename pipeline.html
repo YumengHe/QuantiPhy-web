@@ -88,13 +88,14 @@
 <nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
 <h1>QuantiPhy agent harness</h1>
 <p class="lede">v26 开发状态 · 2026-10-24 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
-<div class="callout"><b>最近完整验证 v24：control 0.75116 / agent 0.75435。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
+<div class="callout"><b>最近完整验证 v26：control 0.75116 / agent 0.75169（v24 agent 0.75435）。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
 <div class="callout"><b>验证阶段记录：</b>v22 代码 <code>da51368</code>，<b>103 项 CPU 测试通过</b>；完整 <b>159 题 / 24 视频</b> control：S2 <b>0.78125</b> / D2 <b>0.89459</b> / S3 <b>0.66512</b> / D3 <b>0.63617</b>，1 unresolved 按零分计入；非重叠 <b>43 题 0.60923</b>（同题历史 <b>0.64613</b>）。agent macro <b>0.74747</b>（D3 0.64894，其余相同），非重叠同为 <b>0.60923</b>，同样 1 unresolved。25组51轮、5轮尝试修复、1轮接受；43次观察工具调用成功。4题prior→scene平均MRA 0.450→0.425，净上涨主要来自另3个prior回复变化，不能宣称几何收益。历史 v21 的 5 视频 smoke：control <b>0.62125</b>，agent <b>0.61292</b>，子集没有 D2；0 次接受修复，1 次无效 <code>mark_absent</code> 被拒绝，没有证明 agent 收益。</div>
 <div class="callout"><b>v24：159 项 CPU 测试通过；全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。51轮中1轮接受，无执行失败。</b>轨迹验证绑定内容，变更会使场景 / 答案失效；有限观察后必须完成决策；contact 按对象、目标及时间窗编辑。3D 新增共享相机与释放前观测实验，均默认关闭。v24 3D专项：0013默认/onset/再加sharedcamera的8题拟合MRA为0.4125/0.4750/0.4750，球框RMS 19.81→13.35px；0009三配置9题均0.5000。两次joint候选都因护栏拒绝。这不是完整harness分数。</div>
 <div class="callout"><b>v8 旧链仍保留。</b>不删除正在运行的 v8 及其依赖，不启动新的 mh3 / route 实验。旧链迁出当前流程，清理需另行安排。图上的“已实现”表示代码已落地，不表示已通过端到端 MRA 验证。</div>
 
-<div class="callout"><b>v25：195项CPU测试通过。</b>静态模型专项（均含onsetevidence）control / static / 再加joint：0013为0.4750 / 0.4750 / 0.4125，0009为0.5000 / 0.54444 / 0.54444。内层残差改善仍可能使数值变差，不能代替外层验收；这些不是全量harness分数，新拟合选项仍默认关。终端prior保留逐次尝试审计，真实HTTP错误按执行失败报告；离线比较固定159题分母。视频页已绑定v24的逐题scene_id、独立组和Python runtime图。</div>
-<div class="callout"><b>v26：237项CPU测试通过，完整control/agent验证运行中。</b>受限模型策略进入agent回路；option_id绑定题组、固定证据、实际输入和代码，已试或过期请求不重拟。冻结共同物理约束身份并从runtime重算，不接受元数据自证。新版本完整control/agent验证尚未完成；页面视频卡仍展示已完成的v24产物。继承相机策略保守跳过；通用续跑依赖指纹尚未覆盖所有观测缓存。</div>
+<div class="callout"><b>v25：195项CPU测试通过。</b>静态模型专项（均含onsetevidence）control / static / 再加joint：0013为0.4750 / 0.4750 / 0.4125，0009为0.5000 / 0.54444 / 0.54444。内层残差改善仍可能使数值变差，不能代替外层验收；这些不是全量harness分数，新拟合选项仍默认关。终端prior保留逐次尝试审计，真实HTTP错误按执行失败报告；离线比较固定159题分母。视频页已绑定完整运行的逐题scene_id、独立组和Python runtime图。</div>
+<div class="callout"><b>v26：237项CPU测试通过；完整159题control/agent为0.75116 / 0.75169，非重叠43题均0.66756。</b>52轮评审接受2次恢复静止观测，24视频无执行失败，1 unresolved计零；相对control增加0.00053不足以证明有效收益。受限策略绑定题组、证据、输入及代码；共同物理约束固定分母并从runtime重算。视频卡展示本次v26实际产物。继承相机策略仍保守跳过。</div>
+<div class="callout"><b>v27候选：276项CPU测试通过，完整对照未见收益。</b>补输入依赖闭包、split与相机继承隔离；去除同源置信度加分，prior置信度未知。四视频25题control/agent均0.59208，同题v26 control为0.67854；6题从场景值转为prior，准确率下降。完整159题control/agent均0.73602，非重叠43题0.62321，1 unresolved；候选未合入主分支，不替换视频卡结果。</div>
 <h2 id="flow">流程图：一个视频一次走完</h2>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
@@ -150,7 +151,7 @@
 <tr><td>前向模型</td><td>scene_state2d：位置、速度、投影、数值重放；检测驱动的重复首帧 hold 共用时间映射</td><td>scene_state3d：完整运动、解析几何投影与重放</td><td><span class="st done">已实现</span></td></tr>
 <tr><td>轨迹验证依赖</td><td>unknown 保留框与对象，沿用未验证权重</td><td>unknown 不成为可信可见性证据；直接测量置信门控</td><td><span class="st done">v24 已实现</span></td></tr>
 <tr><td>决策与关系工具</td><td colspan="2">有限观察后明确act/done；未完成规划单独失败；contact按精确对象/目标/时间窗set或clear。3D先读model_options，再以绑定输入的option_id单独尝试一种拟合策略</td><td><span class="st done">v24 已实现</span></td></tr>
-<tr><td>受限模型工具</td><td>保留已有issue工具</td><td>恢复释放前观测、静态模型、共享相机三策略；配置白名单、过期/重复/不适用跳过；内层优化和外层验收分别记状态</td><td><span class="st wip">v26 验证中</span></td></tr>
+<tr><td>受限模型工具</td><td>保留已有issue工具</td><td>恢复释放前观测、静态模型、共享相机三策略；配置白名单、过期/重复/不适用跳过；内层优化和外层验收分别记状态</td><td><span class="st done">v26 已验证</span> 未见有效收益</td></tr>
 <tr><td>3D优化实验</td><td>维持已有图层模型</td><td>sharedcamera联合细化；onsetevidence保留静止段；staticmodel静态模型选择及条件timeless depth；拒绝候选可重放</td><td><span class="st done">已实现</span> 新选项默认关，实测中</td></tr>
 <tr><td>证据采样</td><td colspan="2">均匀网格 + 连续可见段首 / 中 / 末 + 题目时刻附近观测；记录覆盖与预算，超预算失败</td><td><span class="st done">v22 已实现</span></td></tr>
 <tr><td>工具契约</td><td colspan="2">tracks_summary 返回真实连续段；观察失败显式记录；无适用改动不触发 refit</td><td><span class="st done">v22 已实现</span></td></tr>
@@ -167,7 +168,7 @@
 
 <h2 id="judge">怎样判断修复有用</h2>
 <p><b>硬条件先行：</b>候选有效、证据 hash 不变；已观察对象缺失、可见性冲突、2D issue 数不增加；固定题目集的测量 coverage 不下降；已有指标不能消失，已可观测的题不能变成不可观测。</p>
-<p><b>随后比较联合软损失：</b>IoU、可见性、支撑、相对框残差、约束残差、相对敏感性、可观测比例和 coverage。允许软指标之间的小幅取舍，但必须有实质整体改善。权重是工程容差，未由验证答案拟合。它是候选验收目标，不表示全部物理变量已经进入同一个优化器。</p>
+<p><b>随后比较联合软损失：</b>IoU、可见性、相对框残差，以及固定定义后从runtime重算的物理约束残差。coverage、支撑、相对敏感性和可观测比例仅为不退化护栏，不提供收益；必须达到至少1%的归一化改善。权重是工程容差，未由验证答案拟合。它是候选验收目标，不表示全部物理变量已经进入同一个优化器。</p>
 <div class="callout"><b>不让重建验证自己。</b>删掉难题不改变分母，删掉可靠观测中的物体会受罚；重跟后的新框不能覆盖 frozen evidence。共享轨迹 / 尺度导出的两个值不算两份独立证据；标定 prior 的零残差不证明目标答案正确。</div>
 <p>逐题 <code>quality.measurement</code> 含 <code>constraint_residuals</code>、<code>sensitivity.relative / absolute</code>、<code>observable: true / false / null</code> 与 reasons。未知指标留空；敏感性不是正确概率，也不是经过校准的置信区间。重复首帧的播放导数为零，不证明物理静止；其瞬时动力学量标为不可观测。</p>
 
@@ -185,7 +186,7 @@
 <p><b>终端 prior 的 exact-request cache：</b>键包含 model、完整 HTTP 请求体 hash（提示词、图像字节与生成参数）、源码 source_hash 和 split。只保存成功且可解析为有限正数的响应；文件锁与原子写入支持并发复用。同代码 agent / control 的完全相同请求可复用，避免重复回答差异；场景摘要或其他请求内容变化会换键。命中仍是 prior，不是新证据，不提高可信度，也不进入 actor 的固定证据。</p>
 
 <h2 id="run">复现与运行边界</h2>
-<p>在 repo 根目录、coordinator 冻结的代码上执行。下列是可复现命令，不表示这些 v22 实验已经完成。先查看 <code>nvidia-smi</code>，将示例 GPU <code>3</code> 换成当前允许使用的空闲卡。Qwen 服务沿用既有 8001–8004 服务，不启动或停止它们。</p>
+<p>在 repo 根目录、coordinator 冻结的代码上执行。下列是入口示例；新实验需使用新版本与冻结代码。先查看 <code>nvidia-smi</code>，将示例 GPU <code>4</code> 换成当前允许使用的空闲卡。Qwen 服务沿用既有 8001–8004 服务，不启动或停止它们。</p>
 <pre style="overflow:auto;background:var(--code-bg);padding:14px;border-radius:8px;font-size:13px"><code>export QWEN_URLS=http://localhost:8001/v1/chat/completions,http://localhost:8002/v1/chat/completions,http://localhost:8003/v1/chat/completions,http://localhost:8004/v1/chat/completions
 
 # CPU 契约测试

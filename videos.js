@@ -259,6 +259,7 @@
         `<p class="fwarn">t=${fmt(im.t, 3)} s 图不可用：${esc(im.unavailable)}</p>`).join('');
       const info = binding ? `<details class="runtime-diagnostics"><summary>本题诊断与来源</summary><pre>${esc(JSON.stringify({
         scene_id: q.scene_id, row: q.row, version: q.version, method: q.method, source: q.src, status: q.status,
+        scene_conf: q.scene_conf, confidence_kind: q.confidence_kind,
         execution_status: q.execution_status, measurement: q.measurement, measurement_id: q.measurement_id,
         measurement_record: q.measurement_record, quality: q.quality, provenance: q.provenance
       }, null, 2))}</pre></details>` : `<p class="fwarn">图与场景诊断 unavailable：${esc(q.binding_error)}</p>`;
@@ -269,7 +270,9 @@
         (independent ? '<p class="muted">此量来自独立测量记录，不是渲染几何；图像对齐本身不能证明该数值。</p>' : '') +
         `<div class="runtime-frames">${previews}</div>${info}</td>` +
         `<td class="n">${fmtNum(q.answer)}</td><td class="n pred">${fmtNum(q.pred)}</td>` +
-        `<td>${esc(SRC_LABEL[q.src] || q.src)}<br><code>${esc(q.status || 'unavailable')}</code><br>conf ${fmt(q.conf, 3)}</td>` +
+        `<td>${esc(SRC_LABEL[q.src] || q.src)}<br><code>${esc(q.status || 'unavailable')}</code><br>` +
+        (q.src === 'prior' ? `prior 置信度未知<br>场景参考 conf ${fmt(q.scene_conf == null ? q.conf : q.scene_conf, 3)}` :
+          `conf ${fmt(q.conf, 3)}`) + '</td>' +
         `<td class="n">${mraBadge(q.mra)}</td>${tqCells(qs, q)}</tr>`;
     }).join('');
     return '<h4>本组逐题答案与 canonical runtime 图</h4><div class="scroll-x"><table class="qtable">' +
