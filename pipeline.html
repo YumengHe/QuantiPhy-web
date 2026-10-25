@@ -87,13 +87,14 @@
 <main class="wrap">
 <nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
 <h1>QuantiPhy agent harness</h1>
-<p class="lede">v25 开发状态 · 2026-10-24 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
+<p class="lede">v26 开发状态 · 2026-10-24 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
 <div class="callout"><b>最近完整验证 v24：control 0.75116 / agent 0.75435。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
 <div class="callout"><b>验证阶段记录：</b>v22 代码 <code>da51368</code>，<b>103 项 CPU 测试通过</b>；完整 <b>159 题 / 24 视频</b> control：S2 <b>0.78125</b> / D2 <b>0.89459</b> / S3 <b>0.66512</b> / D3 <b>0.63617</b>，1 unresolved 按零分计入；非重叠 <b>43 题 0.60923</b>（同题历史 <b>0.64613</b>）。agent macro <b>0.74747</b>（D3 0.64894，其余相同），非重叠同为 <b>0.60923</b>，同样 1 unresolved。25组51轮、5轮尝试修复、1轮接受；43次观察工具调用成功。4题prior→scene平均MRA 0.450→0.425，净上涨主要来自另3个prior回复变化，不能宣称几何收益。历史 v21 的 5 视频 smoke：control <b>0.62125</b>，agent <b>0.61292</b>，子集没有 D2；0 次接受修复，1 次无效 <code>mark_absent</code> 被拒绝，没有证明 agent 收益。</div>
 <div class="callout"><b>v24：159 项 CPU 测试通过；全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。51轮中1轮接受，无执行失败。</b>轨迹验证绑定内容，变更会使场景 / 答案失效；有限观察后必须完成决策；contact 按对象、目标及时间窗编辑。3D 新增共享相机与释放前观测实验，均默认关闭。v24 3D专项：0013默认/onset/再加sharedcamera的8题拟合MRA为0.4125/0.4750/0.4750，球框RMS 19.81→13.35px；0009三配置9题均0.5000。两次joint候选都因护栏拒绝。这不是完整harness分数。</div>
 <div class="callout"><b>v8 旧链仍保留。</b>不删除正在运行的 v8 及其依赖，不启动新的 mh3 / route 实验。旧链迁出当前流程，清理需另行安排。图上的“已实现”表示代码已落地，不表示已通过端到端 MRA 验证。</div>
 
 <div class="callout"><b>v25：195项CPU测试通过。</b>静态模型专项（均含onsetevidence）control / static / 再加joint：0013为0.4750 / 0.4750 / 0.4125，0009为0.5000 / 0.54444 / 0.54444。内层残差改善仍可能使数值变差，不能代替外层验收；这些不是全量harness分数，新拟合选项仍默认关。终端prior保留逐次尝试审计，真实HTTP错误按执行失败报告；离线比较固定159题分母。视频页已绑定v24的逐题scene_id、独立组和Python runtime图。</div>
+<div class="callout"><b>v26：237项CPU测试通过，完整control/agent验证运行中。</b>受限模型策略进入agent回路；option_id绑定题组、固定证据、实际输入和代码，已试或过期请求不重拟。冻结共同物理约束身份并从runtime重算，不接受元数据自证。新版本完整control/agent验证尚未完成；页面视频卡仍展示已完成的v24产物。继承相机策略保守跳过；通用续跑依赖指纹尚未覆盖所有观测缓存。</div>
 <h2 id="flow">流程图：一个视频一次走完</h2>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
@@ -129,7 +130,7 @@
     <div class="lgrid">
       <div class="lbox"><b>观察</b>原帧、crop、runtime overlay、depth、逐题诊断。tracks_summary 正确返回连续段帧范围、时间与观测数；工具错误明确记录，不能解释为无轨迹。最多6次观察后给一次最终决策请求；仍无act/done则记规划失败。</div>
       <div class="lbox"><b>动作</b>修复对象 / 跟踪 / 关系或运动模型，只重跑受影响步骤。身份删除需要观测支持；纯尺度任意调节不开放。contact 支持 set / clear，只编辑指定对象 / 目标与时间窗，保留窗外片段；没有适用改动时跳过 refit。</div>
-      <div class="lbox"><b>候选验收</b>固定 evidence hash、题目分母与硬条件；再比较联合软损失。2D 另过已有 issue_accept。</div>
+      <div class="lbox"><b>候选验收</b>固定 evidence hash、题目分母与原物理约束；从运行态重算共同残差，新条件锚点不改变分母。元数据仅作不可退化门槛，观测损失至少改善1%。2D另过issue_accept。</div>
       <div class="lbox"><b>继续或停止</b>接受则更新状态，拒绝则恢复缓存；同状态同动作不重复。连续两轮无改善停止，执行失败单独记录。</div>
     </div>
     <p class="cycle">每轮记录：state_id、evidence_hash、工具参数、执行结果、前后指标、接受 / 拒绝原因。</p>
@@ -148,7 +149,8 @@
 <tr><td>观测</td><td>refmeasure、凸包、原始框、稳定尺寸、遮挡</td><td>refmeasure、深度、ground、端点、接触</td><td><span class="st done">已实现</span></td></tr>
 <tr><td>前向模型</td><td>scene_state2d：位置、速度、投影、数值重放；检测驱动的重复首帧 hold 共用时间映射</td><td>scene_state3d：完整运动、解析几何投影与重放</td><td><span class="st done">已实现</span></td></tr>
 <tr><td>轨迹验证依赖</td><td>unknown 保留框与对象，沿用未验证权重</td><td>unknown 不成为可信可见性证据；直接测量置信门控</td><td><span class="st done">v24 已实现</span></td></tr>
-<tr><td>决策与关系工具</td><td colspan="2">有限观察后明确act/done；未完成规划单独失败；contact按精确对象/目标/时间窗set或clear</td><td><span class="st done">v24 已实现</span></td></tr>
+<tr><td>决策与关系工具</td><td colspan="2">有限观察后明确act/done；未完成规划单独失败；contact按精确对象/目标/时间窗set或clear。3D先读model_options，再以绑定输入的option_id单独尝试一种拟合策略</td><td><span class="st done">v24 已实现</span></td></tr>
+<tr><td>受限模型工具</td><td>保留已有issue工具</td><td>恢复释放前观测、静态模型、共享相机三策略；配置白名单、过期/重复/不适用跳过；内层优化和外层验收分别记状态</td><td><span class="st wip">v26 验证中</span></td></tr>
 <tr><td>3D优化实验</td><td>维持已有图层模型</td><td>sharedcamera联合细化；onsetevidence保留静止段；staticmodel静态模型选择及条件timeless depth；拒绝候选可重放</td><td><span class="st done">已实现</span> 新选项默认关，实测中</td></tr>
 <tr><td>证据采样</td><td colspan="2">均匀网格 + 连续可见段首 / 中 / 末 + 题目时刻附近观测；记录覆盖与预算，超预算失败</td><td><span class="st done">v22 已实现</span></td></tr>
 <tr><td>工具契约</td><td colspan="2">tracks_summary 返回真实连续段；观察失败显式记录；无适用改动不触发 refit</td><td><span class="st done">v22 已实现</span></td></tr>
@@ -191,31 +193,31 @@
 
 # 完整验证集；同命令可续跑
 /home/yumenghe/miniconda3/envs/quantiphy/bin/python -m pipeline.harness \
-  --split val --tag v22 --seed-from h3 \
-  --gpus 3 --per-gpu 1 --workers 2 --qwen-concurrency 4
+  --split val --tag "$(cat pipeline/VERSION)" --seed-from v24_control \
+  --gpus 4 --per-gpu 1 --workers 2 --qwen-concurrency 4
 
 # 只组装，不推理
 /home/yumenghe/miniconda3/envs/quantiphy/bin/python -m pipeline.harness \
-  --split val --tag v22 --assemble
+  --split val --tag "$(cat pipeline/VERSION)" --assemble
 
-# 验证集受控消融，自动隔离到 v22_control
+# 验证集受控消融，自动隔离到 v26_control
 /home/yumenghe/miniconda3/envs/quantiphy/bin/python -m pipeline.harness \
-  --split val --tag v22 --seed-from h3 --experiment no-agent \
-  --gpus 3 --per-gpu 1 --workers 2 --qwen-concurrency 4</code></pre>
-<p><code>h3</code> 仅是 v11 的历史缓存名。<code>--experiment no-agent</code> 只允许 val：跳过 actor 修复，但仍走终端重放 / 显式先验，用于同预算对照，不是第二条生产流水线。测试集只由 coordinator 明确安排，使用已提交的冻结代码与新文件名。</p>
+  --split val --tag "$(cat pipeline/VERSION)" --seed-from v24_control --experiment no-agent \
+  --gpus 4 --per-gpu 1 --workers 2 --qwen-concurrency 4</code></pre>
+<p><code>v24_control</code> 是已完成对照的视觉缓存种子。GPU编号按协调分配填写；新运行使用当前冻结代码版本。<code>--experiment no-agent</code> 只允许 val：跳过 actor 修复，但仍走终端重放 / 显式先验，用于同预算对照，不是第二条生产流水线。测试集只由 coordinator 明确安排，使用已提交的冻结代码与新文件名。</p>
 <p><b>续跑：</b>v24 额外核对基线轨迹及验证文件hash；变更或缺失→出现会使场景 / 答案失效。核对 pipeline Python 源码内容 hash、run_signature、版本字段、完整题目身份和有限答案；源码运行中变化会使该视频失败，过期产物不得混合评分。<b>并发：</b>同一次运行的主进程与子进程通过 POSIX 文件锁共享 Qwen 请求预算，带排队 / HTTP 超时；不同运行的预算仍需协调。</p>
 <p><b>prior 缓存：</b>harness 默认使用 <code>outputs/prior_responses/</code>，<code>QP_INFERENCE_SIGNATURE</code> 为源码签名。<code>QP_PRIOR_RESPONSE_CACHE_DIR</code> 可改目录，设为空则禁用；开关进入运行签名。同代码对照保持相同模型与缓存开关，val / test 分开存储。</p>
 <p><b>评估：</b>按 S2 / D2 / S3 / D3 报 macro MRA，并报非测试重叠子集。缺题、失败和 unresolved 按零分进入所请求题目集的完整分母；指定视频子集单独标记，不能冒充全量结果。</p>
 
 <h2 id="outputs">产物与排查入口</h2>
-<div class="scroll-x"><table><thead><tr><th>产物</th><th>验证集 v22 路径（相对 outputs/）</th></tr></thead><tbody>
-<tr><td>清单 / 图 / 跟踪</td><td><code>objects_v22/</code>、<code>scenegraph_v3grid_v22/</code>、<code>scenegraph_v22/</code>、<code>tracks_v22raw/</code>、<code>tracks_v22/</code></td></tr>
-<tr><td>2D / 3D 初始场景</td><td><code>scene2d_eval/h_v22/</code>、<code>scene_fit_eval/h_v22/</code></td></tr>
+<div class="scroll-x"><table><thead><tr><th>产物</th><th>验证集 v26 路径（相对 outputs/）</th></tr></thead><tbody>
+<tr><td>清单 / 图 / 跟踪</td><td><code>objects_v26/</code>、<code>scenegraph_v3grid_v26/</code>、<code>scenegraph_v26/</code>、<code>tracks_v26raw/</code>、<code>tracks_v26/</code></td></tr>
+<tr><td>2D / 3D 初始场景</td><td><code>scene2d_eval/h_v26/</code>、<code>scene_fit_eval/h_v26/</code></td></tr>
 <tr><td>独立组与固定证据</td><td>场景目录内 <code>agent/groups/&lt;video&gt;_&lt;group&gt;/</code>：evidence、iterN 与终态 JSON</td></tr>
 <tr><td>最终状态</td><td>场景目录内 <code>agent/&lt;video&gt;.json</code>：groups、answers、answer_actions、critique</td></tr>
-<tr><td>答案 / 进度</td><td><code>harness/v22/answers/&lt;video&gt;.json</code>、<code>harness/v22/progress.json</code></td></tr>
-<tr><td>执行日志 / 步骤签名</td><td><code>logs/harness_v22/&lt;video&gt;.log</code>、<code>*.steps.json</code></td></tr>
-<tr><td>评估</td><td><code>val_v22_answers.csv</code>；子集为 <code>val_v22_answers_subset.csv</code>；消融使用 <code>v22_control</code></td></tr>
+<tr><td>答案 / 进度</td><td><code>harness/v26/answers/&lt;video&gt;.json</code>、<code>harness/v26/progress.json</code></td></tr>
+<tr><td>执行日志 / 步骤签名</td><td><code>logs/harness_v26/&lt;video&gt;.log</code>、<code>*.steps.json</code></td></tr>
+<tr><td>评估</td><td><code>val_v26_answers.csv</code>；子集为 <code>val_v26_answers_subset.csv</code>；消融使用 <code>v26_control</code></td></tr>
 <tr><td>终端 prior 请求缓存</td><td><code>prior_responses/&lt;split&gt;/&lt;key-prefix&gt;/&lt;key&gt;.json</code>；相同代码的完全相同请求可跨 agent / control 复用</td></tr>
 </tbody></table></div>
 <p class="muted">测试集路径由 split-aware cache_root 隔离。排查顺序：输入身份与 group → 执行状态 → 原始证据 → runtime 重放 → 可观测性 → 动作与验收理由 → 最后读取验证标签分析误差。修通用根因，不按 video_id 特判。</p>

@@ -1073,7 +1073,8 @@ def runtime_overlays(tag: str, vid: str, scene: dict, dim: int, question: str, f
 
 def critique_summary(scene: dict) -> dict:
     keep = ("iter", "diagnosis", "layer", "observations", "tool_calls", "results", "accepted", "why", "execution_status",
-            "decision_status", "budget_exhausted", "rejected_calls", "deferred_calls", "failure_stage")
+            "decision_status", "budget_exhausted", "rejected_calls", "deferred_calls", "failure_stage",
+            "model_policy_results", "control_before", "control_after")
     return {"status": {k: v for k, v in (scene.get("agent_status") or {}).items() if k != "self_check"},
             "iterations": [{k: i[k] for k in keep if k in i} for i in (scene.get("critique") or {}).get("iterations") or []]}
 

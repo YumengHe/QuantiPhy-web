@@ -285,7 +285,8 @@
         `<td>${i.accepted ? '接受' : '未接受'} · ${esc(i.why || '')}<br>${esc(i.execution_status || '执行状态未记录')}` +
         `${i.decision_status ? ' / ' + esc(i.decision_status) : ''}${i.budget_exhausted ? ' / 观察预算耗尽' : ''}` +
         `<details><summary>工具执行记录</summary><pre>${esc(JSON.stringify({observations: i.observations, results: i.results, rejected_calls: i.rejected_calls,
-          deferred_calls: i.deferred_calls, failure_stage: i.failure_stage}, null, 2))}</pre></details></td></tr>`).join('') +
+          deferred_calls: i.deferred_calls, failure_stage: i.failure_stage, model_policy_results: i.model_policy_results,
+          control_before: i.control_before, control_after: i.control_after}, null, 2))}</pre></details></td></tr>`).join('') +
       '</table></div></details>';
   }
 
