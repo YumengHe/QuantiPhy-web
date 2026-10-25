@@ -87,7 +87,7 @@
 <main class="wrap">
 <nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
 <h1>QuantiPhy agent harness</h1>
-<p class="lede">当前实现v45 / 最新完整GPT模型对照v42，agent配对v32 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
+<p class="lede">当前实现v53 / 最新完整GPT high对照v50，agent配对v32 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
 <div class="callout"><b>最近完整GPT配对 v32：control 0.75938 / agent 0.76258，非重叠43题均0.65982。Qwen v26为0.75116 / 0.75169，非重叠0.66756。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
 <div class="callout"><b>验证阶段记录：</b>v22 代码 <code>da51368</code>，<b>103 项 CPU 测试通过</b>；完整 <b>159 题 / 24 视频</b> control：S2 <b>0.78125</b> / D2 <b>0.89459</b> / S3 <b>0.66512</b> / D3 <b>0.63617</b>，1 unresolved 按零分计入；非重叠 <b>43 题 0.60923</b>（同题历史 <b>0.64613</b>）。agent macro <b>0.74747</b>（D3 0.64894，其余相同），非重叠同为 <b>0.60923</b>，同样 1 unresolved。25组51轮、5轮尝试修复、1轮接受；43次观察工具调用成功。4题prior→scene平均MRA 0.450→0.425，净上涨主要来自另3个prior回复变化，不能宣称几何收益。历史 v21 的 5 视频 smoke：control <b>0.62125</b>，agent <b>0.61292</b>，子集没有 D2；0 次接受修复，1 次无效 <code>mark_absent</code> 被拒绝，没有证明 agent 收益。</div>
 <div class="callout"><b>v24：159 项 CPU 测试通过；全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。51轮中1轮接受，无执行失败。</b>轨迹验证绑定内容，变更会使场景 / 答案失效；有限观察后必须完成决策；contact 按对象、目标及时间窗编辑。3D 新增共享相机与释放前观测实验，均默认关闭。v24 3D专项：0013默认/onset/再加sharedcamera的8题拟合MRA为0.4125/0.4750/0.4750，球框RMS 19.81→13.35px；0009三配置9题均0.5000。两次joint候选都因护栏拒绝。这不是完整harness分数。</div>
@@ -109,10 +109,10 @@
 <div class="callout"><b>v44复现通过，v45采纳可选工具。</b>v41与v32有9组完全相同的模型请求，其中7组重新生成后的数值不同。候选冻结单一源码签名的原始响应；完整请求/模型/后端/split精确匹配，bank sha256绑定缓存和续跑，仅val可用，仍为prior而非新观测。主分支254项CPU测试通过；22题预测/来源/方法/conf与v32基线全部一致，9/9 prior回放、0无效，macro .64791667；默认关闭，不宣称MRA提升。</div>
 <div class="callout"><b>v46类型化端点候选。</b>端点不再用whole-object bbox中心替代；点观测绑定源帧/语义/backend，ray+题目range的距离由runtime重算，缺点或模糊点不以range差冒充精确长度。坏返回/HTTP失败显式失败，不提高旧置信度。262项CPU测试通过，22题macro .64791667与基线相同，0无效；7/9 prior回放，仅桌面/斜坡数值变动、分数不变，未采用。</div>
 <div class="callout"><b>v47原生range语义对照。</b>仅开启已有range拟合开关，depth_info原生锚点用norm(P)而非P_z；固定v26_control视觉与v32冻结prior bank，完整159题已完成：macro .76470390，非重叠43题 .67857143，0无效；30/47 prior回放，几何改善混合，未采用。不混入身份/端点候选，direct/depth-series旧实现未改，主分支仍v45。</div>
-<div class="callout"><b>v48/v50显式Astra high。</b>按SPARK2 high与官方兼容参数发送reasoning_effort，省略temperature；effort进入backend/cache/resume，默认配置不变。257项CPU测试；22题 .67395833 vs默认Astra同题 .65520833，13道物理值不变，单道prior题贡献全部增益。v50完整159题对照运行中，尚无稳健收益结论。</div>
+<div class="callout"><b>v48/v50显式Astra high。</b>按SPARK2 high与官方兼容参数发送reasoning_effort，省略temperature；effort进入backend/cache/resume，默认配置不变。257项CPU测试；22题 .67395833 vs默认Astra同题 .65520833，13道物理值不变，单道prior题贡献全部增益。v50完整159题 .76974047，非重叠43题 .66547619，0无效；112物理值不变，31个prior变化。v53采纳可选effort接口但不切默认；v54 high agent全量配对运行中，尚无稳健收益结论。</div>
 <div class="callout"><b>v49平面矩形原型。</b>5项专项合成测试通过，但真实角点对.5px扰动敏感、f范围很宽，桌面遮挡返回null；只读诊断、未接入harness，不把偶然接近标注的数值当高置信度测量。</div>
 <div class="callout"><b>v51边线细化原型（未接harness）。</b>v49角点附近以原图RGB梯度拟合边线并求交点，3项专项测试通过。真实角点移动.34–2px后正交性和焦距稳定性仍不足，128扰动只有23正f；保持只读诊断，不提高置信度、不改变默认。</div>
-<div class="callout"><b>v52距离锚点绑定候选。</b>native严格token导致pingpong与ping pong ball不匹配、原始距离未进入拟合。新规则只做相邻字母词的精确空格等价，保留颜色/左右/编号，新增多实例歧义不绑定；depth-map track定位共用规则，保存raw_key审计。259项CPU测试，五视频27题固定视觉+prior bank运行中，未采用。</div>
+<div class="callout"><b>v52距离锚点绑定候选。</b>native严格token导致pingpong与ping pong ball不匹配、原始距离未进入拟合。新规则只做相邻字母词的精确空格等价，保留颜色/左右/编号，新增多实例歧义不绑定；depth-map track定位共用规则，保存raw_key审计。259项CPU测试；27题 .68680556与同题基线相同，0无效、11/11 prior回放。两条距离已进入native，full159输入审计新规则仅影响该已测视频；v53作为正确性修复采纳。</div>
 <div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span><span class="st wip">实现中</span><span class="st del">待删（保留 v8 依赖）</span></div>
 <div class="flow">
   <div class="node"><div class="hd"><b>输入与运行编排</b><span class="st done">已实现</span></div><span class="m">视频、题目、本题 prior / depth_info。多个视频并行，同场景变体按背景 C 优先。actor 不读 answer / MRA。每视频独立落盘、失败记录与续跑。</span></div>
@@ -186,8 +186,8 @@
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；仅成功有限正数，agent / control 可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
-<tr><td>v52 depth名称绑定候选</td><td>不变</td><td>精确闭合词空格等价，保留颜色/左右/编号；native与depth-map定位一致，raw_key审计</td><td><span class="st wip">259测试、27题运行中</span> 未采用</td></tr>
-<tr><td>v48显式推理强度候选</td><td colspan="2">GPT reasoning_effort与兼容采样参数绑定HTTP/body/backend/cache/resume；v50固定视觉完整对照</td><td><span class="st wip">257测试、22题完成、全量运行中</span> 未采用</td></tr>
+<tr><td>v52 depth名称绑定候选</td><td>不变</td><td>精确闭合词空格等价，保留颜色/左右/编号；native与depth-map定位一致，raw_key审计</td><td><span class="st wip">v53采纳、主分支262测试</span> 27题同分，锚点恢复</td></tr>
+<tr><td>v48显式推理强度候选</td><td colspan="2">GPT reasoning_effort与兼容采样参数绑定HTTP/body/backend/cache/resume；v50固定视觉完整对照</td><td><span class="st wip">v53采纳可选接口</span> high全量control已完成，v54 agent运行中</td></tr>
 <tr><td>v49/v51矩形几何原型</td><td>不变</td><td>四角/正交vanishing-point与ray+range条件重建；显式像素敏感性与不可辨识f</td><td><span class="st wip">5项几何+3项边线专项测试</span> 真实角点仍不可靠，未接harness</td></tr>
 <tr><td>v47 range候选</td><td>不变</td><td>原生depth_info锚点按相机欧氏距离；已有开关单独消融，其他语义分支尚未统一</td><td><span class="st wip">全量完成</span> 几何改善混合，未采用</td></tr>
 <tr><td>v46命名端点候选</td><td>不变</td><td>具体point与题目range重建；同帧/像素/语义绑定；descriptor运行时重算，未知不作精确长度</td><td><span class="st wip">262测试、22题完成</span> 无MRA收益，未采用</td></tr>
