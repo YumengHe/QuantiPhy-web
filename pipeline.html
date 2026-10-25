@@ -87,7 +87,7 @@
 <main class="wrap">
 <nav class="nav"><a href="index.html">← 文档主页</a><a href="videos.html">视频与问题</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#judge">验收</a><a href="#answers">答案</a><a href="#run">复现</a><a href="#limits">未完成项</a></nav>
 <h1>QuantiPhy agent harness</h1>
-<p class="lede">当前实现v72 / 最新完整GPT high配对v50-v54 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
+<p class="lede">当前实现v75 / 最新完整GPT high配对v50-v54 / 几何基线v26 · 2026-10-25 · 当前代码的流程与边界。<code>pipeline.harness</code> 是新工作的唯一运行入口；完整说明见 repo 的 <code>docs/HARNESS.md</code>。</p>
 <div class="callout"><b>最近完整GPT配对 v32：control 0.75938 / agent 0.76258，非重叠43题均0.65982。Qwen v26为0.75116 / 0.75169，非重叠0.66756。</b>已实现状态隔离、统一 runtime、固定证据验收与终端答案重放；尚无准确率提升结论。超过 0.9 是<b>开发验证集</b>目标，未达成，也不保证隐藏测试集。历史基线：v19 当前 CSV 实测 <b>0.74335</b>，v11 <b>0.7428</b>；旧链 v12 <b>0.7632</b> 只作历史参照。</div>
 <div class="callout"><b>验证阶段记录：</b>v22 代码 <code>da51368</code>，<b>103 项 CPU 测试通过</b>；完整 <b>159 题 / 24 视频</b> control：S2 <b>0.78125</b> / D2 <b>0.89459</b> / S3 <b>0.66512</b> / D3 <b>0.63617</b>，1 unresolved 按零分计入；非重叠 <b>43 题 0.60923</b>（同题历史 <b>0.64613</b>）。agent macro <b>0.74747</b>（D3 0.64894，其余相同），非重叠同为 <b>0.60923</b>，同样 1 unresolved。25组51轮、5轮尝试修复、1轮接受；43次观察工具调用成功。4题prior→scene平均MRA 0.450→0.425，净上涨主要来自另3个prior回复变化，不能宣称几何收益。历史 v21 的 5 视频 smoke：control <b>0.62125</b>，agent <b>0.61292</b>，子集没有 D2；0 次接受修复，1 次无效 <code>mark_absent</code> 被拒绝，没有证明 agent 收益。</div>
 <div class="callout"><b>v24：159 项 CPU 测试通过；全量control / agent macro 0.75116 / 0.75435，非重叠43题均0.66756，1 unresolved计零。51轮中1轮接受，无执行失败。</b>轨迹验证绑定内容，变更会使场景 / 答案失效；有限观察后必须完成决策；contact 按对象、目标及时间窗编辑。3D 新增共享相机与释放前观测实验，均默认关闭。v24 3D专项：0013默认/onset/再加sharedcamera的8题拟合MRA为0.4125/0.4750/0.4750，球框RMS 19.81→13.35px；0009三配置9题均0.5000。两次joint候选都因护栏拒绝。这不是完整harness分数。</div>
@@ -114,6 +114,7 @@
 <div class="callout"><b>v51边线细化原型（未接harness）。</b>v49角点附近以原图RGB梯度拟合边线并求交点，3项专项测试通过。真实角点移动.34–2px后正交性和焦距稳定性仍不足，128扰动只有23正f；保持只读诊断，不提高置信度、不改变默认。</div>
 <div class="callout"><b>v52距离锚点绑定候选。</b>native严格token导致pingpong与ping pong ball不匹配、原始距离未进入拟合。新规则只做相邻字母词的精确空格等价，保留颜色/左右/编号，新增多实例歧义不绑定；depth-map track定位共用规则，保存raw_key审计。259项CPU测试；27题 .68680556与同题基线相同，0无效、11/11 prior回放。两条距离已进入native，full159输入审计新规则仅影响该已测视频；v53作为正确性修复采纳。</div>
 <div class="callout"><b>v72可选完整响应回放已采纳。</b>raw policy只用于val，保留0/空/非数字模型内容以复现原重试；HTTP/队列/坏envelope仍是执行失败，默认usable不变。279测试；v70/v71真实22题pred/conf/source/method/MRA及9个prior重试记录逐项一致，独立空cache 9/9冷回放、0无效/partial；本次真实响应均有效，零值路径由CPU/历史内容离线测试覆盖。v73完整Astra high raw control已启动，后续再严格配对agent。</div>
+<div class="callout"><b>v75深度残差审计修复已采纳。</b>三类native拟合结果按anchor_range报告相机距离或Z误差，与优化目标一致；281测试，两种语义/运动起始及loss逐项核对。只改诊断记录，无新MRA，几何默认策略保持v26。</div>
 <div class="callout"><b>v74运动约束候选未采纳。</b>自身正2D速度prior已接通结构化重选运动窗，替代框遵守同帧排除，合并后复核；297测试通过。但真实v68原始轨迹位移5.05785px仍过原门槛，未修复身份/尺度；未按案例调阈值，无新MRA。</div>
 <div class="callout"><b>v67原图不可变修复已采纳。</b>v66已触发同帧排除约束，但frames观察工具原来直接向缓存源图写时间戳，导致pixel hash检查失败。现_stamp先copy，273测试；真实frame198观察后缓存不变，seek/sequence逐像素相同，未降低绑定门槛。v68闭环286测试，六题已正常完成、排除生效但新轨迹运动不足，仍全prior；v66是execution partial，不能把终端prior .9当成功。</div>
 <div class="callout"><b>完整Astra high配对v54。</b>159题macro .77583893（control .76974047），非重叠43题 .70714286（.66547619），0无效、54轮2接受；17道直接测量全不变。非重叠增益全来自一道prior：两次首请求体完全相同，control返回0未缓存，agent重取得1.9并避开旧重试。因此不归因agent几何、不切默认。v64/v65同.py完整159题已完成：.75566134 vs .75938475，非重叠 .64732143 vs .65982143，均0无效/partial；线性距离候选未采用。v66参数链已触发但暴露原图污染；v68正常结束未恢复测量。</div>
@@ -197,6 +198,7 @@
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>v72完整模型响应回放 / v73全量control</td><td colspan="2">验证raw policy保存成功HTTP中的无效模型内容，严格重放重试；默认usable不变</td><td>v72采纳279测试；22题冷回放一致，v73运行中</td></tr>
+<tr><td>v75深度残差语义</td><td>不适用</td><td>已实现：误差按拟合使用的相机距离或Z记录</td><td>已采纳281测试；无新MRA</td></tr>
 <tr><td>v74自身prior运动窗</td><td>候选已实现：正速度prior进入重选，替代框与合并结果受约束</td><td>不适用</td><td>297测试；真实坏轨迹仍通过；未采纳</td></tr>
 <tr><td>v67观察原图不可变 / v68闭环</td><td colspan="2">时间戳只绘制到copy，保留缓存原图与严格pixel绑定</td><td>v67采纳273测试；v68 286测试，正常结束</td></tr>
 <tr><td>v64/v65完整距离序列配对</td><td colspan="2">同.py/固定视觉/原响应库，provided_linear vs size；range/Z语义未统一</td><td>完整配对完成；v64未采用</td></tr>
