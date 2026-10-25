@@ -166,7 +166,7 @@
     <p class="cycle">每轮记录：state_id、evidence_hash、工具参数、执行结果、前后指标、接受 / 拒绝原因。</p>
   </section>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>终端 finalize_scene</b><span class="st done">已实现</span></div><span class="m">先重放 scene / measurement；不可用时显式调用本题 answer_prior，完全相同请求可复用缓存；仍无有效数值则 unresolved。v45可使用显式冻结响应库作配对验证，完整请求精确匹配且仅val，来源/hash进入审计。缓存命中仍是 prior，不增加可信度。保留 scene_id 与 provenance。v39已采纳完整JSON数值解析与重试预算续跑签名；247项CPU测试通过。v37定量首答降低22题分数，保留direct首答。</span></div>
+  <div class="node"><div class="hd"><b>终端 finalize_scene</b><span class="st done">已实现</span></div><span class="m">先重放 scene / measurement；不可用时显式调用本题 answer_prior，完全相同请求可复用缓存；仍无有效数值则 unresolved。v45可使用显式冻结响应库作配对验证，完整请求精确匹配且仅val，来源/hash进入审计。缓存命中仍是 prior，不增加可信度。保留 scene_id 与 provenance。v39已采纳完整JSON数值解析与重试预算续跑签名；247项CPU测试通过。v37定量首答降低22题分数，保留direct首答。待实现候选：只给本题与自身prior的轨迹观测包，显式保留身份矛盾，并补自身prior时刻；尚未接入默认。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>逐视频 answers → assemble → 评分</b><span class="st done">已实现</span></div><span class="m">组装阶段不推理、不补常数。缺题与失败仍按零分计入所请求题目集的分母；报告四类 macro MRA 和非重叠子集。测试提交要求全部预期行完整有效。</span></div>
 </div>
@@ -195,7 +195,8 @@
 <tr><td>v45冻结响应</td><td colspan="2">仅验证集的完整wire request回放；库hash、原始signature/cache key可追溯；变化使续跑失效，未匹配正常请求</td><td><span class="st wip">254测试、真实复现通过</span> 默认关闭</td></tr>
 <tr><td>终端先验审计</td><td colspan="2">逐次记录阶段、耗时、响应摘要和有效性；HTTP/连接/超时错误传播为执行失败</td><td><span class="st done">v25 已实现</span></td></tr>
 <tr><td>验收与终端作答</td><td>共享固定证据裁判 + issue_accept；runtime replay</td><td>共享固定证据裁判；runtime / measurement replay</td><td><span class="st done">已实现</span> 效果待验证</td></tr>
-<tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；仅成功有限正数，agent / control 可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
+<tr><td>prior观测包与自身时刻（候选）</td><td>只含本题/自身prior的假设轨迹，保留身份不确定性</td><td>同样限于本组输入，不把框当真实对象</td><td>待实现；覆盖审计47回退题，无新MRA</td></tr>
+<tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；默认usable仅成功有限正数；val可选raw保留无效模型内容，agent / control可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
 <tr><td>全变量联合求解</td><td>多尺度 / 运动解释的联合搜索仍不完整</td><td>共享相机、几何体、运动仍有分阶段与固定变量</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>强可辨识区间</td><td>多假设、系统误差与区间覆盖率验证</td><td>多假设、相机退化与区间覆盖率验证</td><td><span class="st wip">实现中</span></td></tr>
 <tr><td>v72完整模型响应回放 / v73全量control</td><td colspan="2">验证raw policy保存成功HTTP中的无效模型内容，严格重放重试；默认usable不变</td><td>v72采纳279测试；v73完整 .77037134，v76严格agent配对运行中</td></tr>
@@ -207,7 +208,7 @@
 <tr><td>v66诊断到动作的参数闭环</td><td colspan="2">已有观测帧/框进入重选建议；省略时间也执行显式选择</td><td>v66 execution partial；v68 286测试，正常结束</td></tr>
 <tr><td>v63显式重选约束</td><td colspan="2">指定帧与排除区域实际生效；过滤候选，合并结果不满足就回滚</td><td>v63未触发约束；v66继续验证</td></tr>
 <tr><td>v62核验视角与阶段顺序</td><td colspan="2">grid视角回退、上下文来源；逐帧图后显式重核验轨迹</td><td>候选未采用；280测试，10题完成</td></tr>
-<tr><td>v60 2D prior身份资格</td><td colspan="2">明确负身份不能供尺度，保留独立参考测量并给出重选建议</td><td>候选；69题已完成，v61 agent运行中</td></tr>
+<tr><td>v60 2D prior身份资格</td><td colspan="2">明确负身份不能供尺度，保留独立参考测量并给出重选建议</td><td>候选未采纳；69题及v61/v63/v68六题实验已完成，未恢复测量</td></tr>
 <tr><td>v59固定seed输入完整性</td><td colspan="2">物理像素与身份sidecar都必须完整且绑定；未知身份与缺文件分开</td><td>已采纳；271测试，v58对照无MRA增益</td></tr>
 <tr><td>v57直接深度序列</td><td colspan="2">补唯一精确分词绑定，第二锚点参与已有尺度估计，保留多实例歧义与来源审计</td><td>v57输入混杂；v58补齐身份输入重跑中</td></tr>
 <tr><td>v56视觉错误传播</td><td colspan="2">请求/格式失败显式透传；显式null绑定原像素/语义/backend/producer；不可用不当物理不存在，失败题不缩分母</td><td><span class="st wip">v56采纳、270测试</span> 22题逐项同基线</td></tr>
@@ -238,7 +239,7 @@
 </tbody></table></div>
 <p>最终记录包含 row、question、prior、scene_id、source、status、测量诊断与重放 provenance。<code>answer_video</code> 仅序列化已完成的终态，<code>assemble</code> 仅组装和评估，两者都不调用模型。</p>
 
-<p><b>终端 prior 的 exact-request cache：</b>键包含 model、完整 HTTP 请求体 hash（提示词、图像字节与生成参数）、源码 source_hash 和 split。只保存成功且可解析为有限正数的响应；文件锁与原子写入支持并发复用。同代码 agent / control 的完全相同请求可复用，避免重复回答差异；场景摘要或其他请求内容变化会换键。命中仍是 prior，不是新证据，不提高可信度，也不进入 actor 的固定证据。</p>
+<p><b>终端 prior 的 exact-request cache：</b>键包含 model、完整 HTTP 请求体 hash（提示词、图像字节与生成参数）、源码 source_hash 和 split。默认usable只保存成功且可解析为有限正数的响应；v72可选val raw还保存合法HTTP/envelope里的零值、空或非数字内容，保持原重试，执行失败不缓存。文件锁与原子写入支持并发复用。同代码 agent / control 的完全相同请求可复用，避免重复回答差异；场景摘要或其他请求内容变化会换键。命中仍是 prior，不是新证据，不提高可信度，也不进入 actor 的固定证据。</p>
 
 <h2 id="run">复现与运行边界</h2>
 <p>在 repo 根目录、coordinator 冻结的代码上执行。下列是入口示例；新实验需使用新版本与冻结代码。先查看 <code>nvidia-smi</code>，将示例 GPU <code>4</code> 换成当前允许使用的空闲卡。Qwen 服务沿用既有 8001–8004 服务，不启动或停止它们。</p>
