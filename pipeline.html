@@ -158,7 +158,7 @@
   <div class="arrow"></div>
   <div class="callout"><b>v90结构化grounding候选（运行中）。</b>新Qwen ground/point可选受约束JSON，默认prompt；模式绑定negative cache与续跑，传输/schema错误仍是失败。289测试，4服务框/点/null实测通过；22题运行中，v91相同初始252文件/29raw库对照已准备，无MRA或身份准确率结论。</div>
 <section class="loop" aria-label="场景 agent 回路">
-  <div class="callout"><b>v88运行态上下文候选。</b>question_values / 首轮提示 / t_q文字共享终端场景重放，明确source/use与实际阻断条件；不改变阈值或prior请求。287测试，159题终端行为保持、planner一致；22题Astra control .66145833、与v73同题pred/source全同、9/9raw回放；v89 agent .68020833，0无效/partial，10轮/1接受；与旧v76同题物理值/来源全同，新prior采样有差异，无planner独立收益证据，未采用。</div>
+  <div class="callout"><b>v92采纳运行态上下文一致性修复（来自v88）。</b>question_values / 首轮提示 / t_q文字共享终端场景重放，明确source/use与实际阻断条件；不改变阈值或prior请求。287测试，159题终端行为保持、planner一致；22题Astra control .66145833、与v73同题pred/source全同、9/9raw回放；v89 agent .68020833，0无效/partial，10轮/1接受；与旧v76同题物理值/来源全同，新prior采样有差异，无planner独立收益证据；v92仅作为一致性修复采纳，不宣称准确率提升。</div>
     <div class="hd"><b>观察 → 诊断 → 动作 → 验收 / 回滚</b><span class="st done">已实现 · 默认 2–10 轮</span></div>
     <div class="lgrid">
       <div class="lbox"><b>观察</b>原帧、crop、runtime overlay、depth、逐题诊断。tracks_summary 正确返回连续段帧范围、时间与观测数；工具错误明确记录，不能解释为无轨迹。最多6次观察后给一次最终决策请求；仍无act/done则记规划失败。</div>
@@ -199,7 +199,7 @@
 <tr><td>终端先验审计</td><td colspan="2">逐次记录阶段、耗时、响应摘要和有效性；HTTP/连接/超时错误传播为执行失败</td><td><span class="st done">v25 已实现</span></td></tr>
 <tr><td>验收与终端作答</td><td>共享固定证据裁判 + issue_accept；runtime replay</td><td>共享固定证据裁判；runtime / measurement replay</td><td><span class="st done">已实现</span> 效果待验证</td></tr>
 <tr><td>v90 Qwen结构化grounding（实现中）</td><td>新框/点请求使用nullable坐标schema</td><td>深度/端点定位同样约束；prose不能写negative cache</td><td>289测试；4端点实测通过；22题与v91配对中，默认prompt</td></tr>
-<tr><td>v88 agent运行态诊断（实现中）</td><td>重放当前图层/标尺，明确终端use与门控</td><td>重放原生场景/绑定测量，显示D3 direct阻断</td><td>287测试、159题行为一致；v88/v89配对中，未采用默认</td></tr>
+<tr><td>v92 agent运行态诊断（已实现）</td><td>重放当前图层/标尺，明确终端use与门控</td><td>重放原生场景/绑定测量，显示D3 direct阻断</td><td>主分支287测试、159题终端行为一致；v88/v89完成，作为一致性修复采纳，无新全量分数</td></tr>
 <tr><td>v84 prior长度归一化（候选未采用）</td><td>仅自身prior标尺，时间与像素不变</td><td>本题深度同尺度换算，不引入其他题数据</td><td>304测试；v84 .61771低于v85 .66979；HTTP408续跑完成，未采用</td></tr>
 <tr><td>v79 prior观测包与自身时刻（候选）</td><td>只含本题/自身prior的假设轨迹，保留身份不确定性</td><td>同样限于本组输入，不把框当真实对象</td><td>290测试；v79 .61979低于v80 .64792，未采纳；v81时刻消融完成，v82全量 .76310815，v83完整 .75938475 / 非重叠 .65982143，无稳定收益</td></tr>
 <tr><td>相同 prior 请求缓存</td><td colspan="2">model + 完整请求体 hash + source_hash + split；默认usable仅成功有限正数；val可选raw保留无效模型内容，agent / control可复用</td><td><span class="st done">v22 已实现</span> 不算新证据</td></tr>
