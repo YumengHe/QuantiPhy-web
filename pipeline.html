@@ -156,7 +156,7 @@
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>冻结原始证据 frozen evidence</b><span class="st done">已实现</span></div><span class="m">保留全部原始记录与来源 hash；采样合并均匀网格、每个可信可见连续段首 / 中 / 末帧、题目时刻及其两侧观测。超预算报错，不丢覆盖。所有候选共用证据；unknown ≠ absent，in_frustum 使用完整投影框。v28候选纳入结构真实框，排除身份冲突，并按时间块与part/whole证据族汇总，避免重复计权。</span></div>
   <div class="arrow"></div>
-  <div class="callout"><b>v90结构化grounding候选（运行中）。</b>新Qwen ground/point可选受约束JSON，默认prompt；模式绑定negative cache与续跑，传输/schema错误仍是失败。289测试，4服务框/点/null实测通过；22题运行中，v91相同初始252文件/29raw库对照已准备，无MRA或身份准确率结论。</div>
+  <div class="callout"><b>v90结构化grounding候选（运行中）。</b>新Qwen ground/point可选受约束JSON，默认prompt；模式绑定negative cache与续跑，传输/schema错误仍是失败。289测试，4服务框/点/null实测通过；v90 22题 .66770833，0无效/partial，13物理值同历史v26；v91相同初始252文件/29raw库对照运行中，共享精确terminal cache，未证明配对MRA收益或身份准确率。</div>
 <section class="loop" aria-label="场景 agent 回路">
   <div class="callout"><b>v92采纳运行态上下文一致性修复（来自v88）。</b>question_values / 首轮提示 / t_q文字共享终端场景重放，明确source/use与实际阻断条件；不改变阈值或prior请求。287测试，159题终端行为保持、planner一致；22题Astra control .66145833、与v73同题pred/source全同、9/9raw回放；v89 agent .68020833，0无效/partial，10轮/1接受；与旧v76同题物理值/来源全同，新prior采样有差异，无planner独立收益证据；v92仅作为一致性修复采纳，不宣称准确率提升。</div>
     <div class="hd"><b>观察 → 诊断 → 动作 → 验收 / 回滚</b><span class="st done">已实现 · 默认 2–10 轮</span></div>
