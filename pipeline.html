@@ -66,10 +66,10 @@
     <span class="m">检测并逐帧跟踪清单里的每个物体，得到像素轨迹和掩码；轨迹身份经过复核，不确定时记为未知。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>观测</b></div>
-    <span class="m">地面（支撑面）和深度；refmeasure 给出物体端点，用于长度测量；掩码范围给出每帧物体在画面里的大小和位置。</span></div>
+    <span class="m">地面（支撑面）、深度、refmeasure 端点、掩码范围（每帧掩码的定向范围，即物体在画面里的大小、位置和朝向）。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>3D 场景拟合</b></div>
-    <span class="m">拟合相机、支撑面、物体形状和运动，使投影和跟踪、深度、prior 一致。</span></div>
+    <span class="m">拟合相机、支撑面、物体形状和运动，使投影和跟踪、深度、prior 一致。平面视频也用这个优化器，只是相机换成平面模式，见下文。</span></div>
   <div class="arrow"></div>
   <div class="loop">
     <div class="hd"><b>agent 回路：每组 2–10 轮</b></div>
@@ -85,7 +85,15 @@
 </div>
 
 <h3 id="planar">平面视频</h3>
-<p>固定相机、物体在一个平面里运动的视频不另起一条流程，按 3D 场景的特例处理：支撑面近似正对相机，尺度由 prior 定。焦距这时无法从画面里辨识，场景里会明确标出来。</p>
+<p>题目里没有 depth_info 的视频按平面视频处理。它不另走一条流程，而是 3D 场景拟合的一种相机模式（场景 json 里 <code>camera.model = "planar"</code>）。</p>
+<ul>
+  <li><b>相机和支撑面：</b>焦距取名义值，f = 图像宽度；支撑面正对相机。</li>
+  <li><b>尺度：</b>先由 prior 标定每像素对应的米数（m/px），平面深度 = f × m/px。这一步就是平面模式的 Stage A。</li>
+  <li><b>物体厚度：</b>取 0。</li>
+  <li><b>标注：</b>焦距、支撑面朝向、平面深度和厚度都无法从画面辨识，在场景 json 的 <code>camera</code> 块里标为 <code>fixed</code>、<code>identifiable: false</code>。</li>
+</ul>
+<p>其余部分和其他视频共用：同一个优化器，同样的物体拟合，同一套分段运动模型（静止 / 匀速 / 匀加速 / 圆周）。</p>
+<p>观测项也一样。掩码范围（extents2d）和 refmeasure 端点对所有视频都能作为拟合观测：平面模式下始终使用，其他视频由开关 <code>--fixes hulls refmeasure</code> 打开（默认关）。</p>
 
 <h2 id="steps">步骤表</h2>
 <p>输入（视频、题目、prior、depth_info）不算步骤，处理链从物体清单开始。</p>
