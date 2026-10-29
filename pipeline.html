@@ -22,66 +22,60 @@
   .lbox { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; background: var(--sh-soft); }
   .lbox b { display: block; font-size: 14px; }
   .input { border: 2px solid var(--accent); border-radius: 10px; padding: 10px 12px; background: var(--accent-soft); }
-  .input .hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .input .hd b { font-size: 16px; }
-  .input .tag { font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 8px; }
-  .input .m { display: block; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .input > b { font-size: 16px; }
   .igrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 8px; }
   .ibox { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; background: var(--panel); }
   .ibox b { display: block; font-size: 14px; }
   .arrow.in { background: var(--accent); }
   .arrow.in::after { border-top-color: var(--accent); }
-  .chain-label { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
 </style>
 </head>
 <body>
 <main class="wrap">
-<nav class="nav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a><a href="#flow">流程图</a><a href="#planar">平面视频</a><a href="#steps">步骤表</a><a href="#answers">答案来源</a></nav>
+<nav class="nav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a><a href="#flow">流程图</a><a href="#planar">平面视频</a><a href="#answers">答案来源</a></nav>
 
 <h1>重建流水线</h1>
 <p class="lede">一个视频一次走完整条流程：先看清楚有哪些物体、它们怎么动，再建出带尺度的场景，由 agent 检查和修正，最后从场景里量出答案。</p>
-<p class="muted small">入口是 <code>python -m pipeline.harness</code>，代码说明见仓库的 <code>docs/HARNESS.md</code>。</p>
+<p class="muted small">入口是 <code>python -m pipeline.harness</code>，代码说明见仓库的 <code>pipeline/README.md</code>。</p>
 
 <h2 id="flow">流程图</h2>
 <div class="flow">
   <div class="input">
-    <div class="hd"><b>输入</b><span class="tag">不是处理步骤</span></div>
+    <b>输入</b>
     <div class="igrid">
-      <div class="ibox"><b>视频</b>要重建的视频本身。</div>
-      <div class="ibox"><b>题目</b>要量的物理量和涉及的物体。</div>
-      <div class="ibox"><b>prior（已知事实）</b>本题给出的一个已知量，用来定尺度。</div>
-      <div class="ibox"><b>depth_info（距离锚点）</b>物体到相机的已知距离；只有部分视频有。</div>
+      <div class="ibox"><b>视频</b></div>
+      <div class="ibox"><b>题目</b>要量的物理量和涉及的物体</div>
+      <div class="ibox"><b>prior</b>本题给出的一个已知量，定尺度</div>
+      <div class="ibox"><b>depth_info</b>物体到相机的已知距离，部分视频有</div>
     </div>
-    <span class="m">流程不读取答案。</span>
   </div>
   <div class="arrow in"></div>
-  <p class="chain-label">处理链</p>
   <div class="node"><div class="hd"><b>物体清单</b></div>
-    <span class="m">从题目和 prior 里列出要量的物体及必要的支撑物：名字、别名、数量、形状和位置提示。</span></div>
+    <span class="m">要量的物体及其支撑物：名字、别名、数量、形状、位置提示</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>场景图</b></div>
-    <span class="m">物体之间的关系：谁放在谁上面、谁和谁接触、谁在运动。</span></div>
+    <span class="m">支撑、接触、运动关系</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>跟踪</b></div>
-    <span class="m">检测并逐帧跟踪清单里的每个物体，得到像素轨迹和掩码；轨迹身份经过复核，不确定时记为未知。</span></div>
+    <span class="m">逐帧像素轨迹和掩码，轨迹身份复核</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>观测</b></div>
-    <span class="m">地面（支撑面）、深度、refmeasure 端点、掩码范围（每帧掩码的定向范围，即物体在画面里的大小、位置和朝向）。</span></div>
+    <span class="m">支撑面、深度、refmeasure 端点、掩码范围</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>3D 场景拟合</b></div>
-    <span class="m">拟合相机、支撑面、物体形状和运动，使投影和跟踪、深度、prior 一致。平面视频也用这个优化器，只是相机换成平面模式，见下文。</span></div>
+    <span class="m">相机、支撑面、物体形状和运动，投影与跟踪、深度、prior 一致</span></div>
   <div class="arrow"></div>
   <div class="loop">
     <div class="hd"><b>agent 回路：每组 2–10 轮</b></div>
     <div class="lgrid">
-      <div class="lbox"><b>观察</b>调用观察工具看原帧、叠加图和场景数值，找出场景和视频对不上的地方。</div>
-      <div class="lbox"><b>修改</b>调用修改工具：重选轨迹、改形状或运动模型、调整相机或支撑面，然后重建场景。</div>
-      <div class="lbox"><b>验收</b>修改后的场景用同一份固定证据重新检查，变好才接受，否则回滚到修改前。</div>
+      <div class="lbox"><b>观察</b>看原帧、叠加图和场景数值，找出与视频不符处</div>
+      <div class="lbox"><b>修改</b>重选轨迹、改形状或运动模型、调相机或支撑面</div>
+      <div class="lbox"><b>验收</b>同一份固定证据复查，变好才接受，否则回滚</div>
     </div>
   </div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>从场景作答</b></div>
-    <span class="m">在最终场景里量出题目问的量。场景量不到的题由模型估，答案标为 prior。</span></div>
+    <span class="m">从最终场景量出答案；量不到的由模型估，标 prior</span></div>
 </div>
 
 <h3 id="planar">平面视频</h3>
@@ -95,21 +89,8 @@
 <p>其余部分和其他视频共用：同一个优化器，同样的物体拟合，同一套分段运动模型（静止 / 匀速 / 匀加速 / 圆周）。</p>
 <p>观测项也一样。掩码范围（extents2d）和 refmeasure 端点对所有视频都能作为拟合观测：平面模式下始终使用，其他视频由开关 <code>--fixes hulls refmeasure</code> 打开（默认关）。</p>
 
-<h2 id="steps">步骤表</h2>
-<p>输入（视频、题目、prior、depth_info）不算步骤，处理链从物体清单开始。</p>
-<div class="scroll-x"><table>
-  <tr><th>步骤</th><th>做什么</th></tr>
-  <tr><td>物体清单</td><td>从题目和 prior 中提取物体、别名、数量、形状与位置提示</td></tr>
-  <tr><td>场景图</td><td>支撑、接触、运动关系，按帧更新</td></tr>
-  <tr><td>跟踪</td><td>逐帧像素轨迹与掩码，轨迹身份复核</td></tr>
-  <tr><td>观测</td><td>地面（支撑面）、深度、refmeasure 端点、掩码范围</td></tr>
-  <tr><td>3D 场景拟合</td><td>相机、支撑面、物体形状与运动</td></tr>
-  <tr><td>agent 回路</td><td>观察 / 修改工具，固定证据验收，不通过则回滚；2–10 轮</td></tr>
-  <tr><td>作答</td><td>从最终场景量出答案；量不到的题由模型估并标 prior</td></tr>
-</table></div>
-
 <h2 id="answers">答案来源</h2>
-<p>每道题的答案带一个来源标记，场景浏览页按它着色和筛选：</p>
+<p>每道题的答案带一个来源标记：</p>
 <div class="scroll-x"><table>
   <tr><th>来源</th><th>含义</th></tr>
   <tr><td>scene</td><td>从最终场景量出</td></tr>

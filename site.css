@@ -38,7 +38,6 @@ table { border-collapse: collapse; width: 100%; font-size: 14.5px; background: v
 th, td { border: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; }
 th { background: var(--accent-soft); font-weight: 600; white-space: nowrap; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-td.pending { color: var(--muted); }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 14px 0; }
 .card { display: block; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
   color: var(--text); text-decoration: none; }

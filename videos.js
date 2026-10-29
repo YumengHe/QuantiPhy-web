@@ -62,7 +62,7 @@
   function testSummary(test) {
     const all = test.videos.flatMap((v) => v.questions);
     const fit = test.videos.filter(hasScene).length;
-    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频的预测（按行号和 <code>load_split('test')</code> 对齐）。测试集没有答案，不显示准确度。${fit} 个视频有 3D 场景，其余待 v1 重跑。`;
+    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频的预测（按行号和 <code>load_split('test')</code> 对齐）。测试集没有答案，不显示准确度。${fit} / ${test.videos.length} 个视频有 3D 场景。`;
     let h = '<tr><th>类别</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '<th class="n">合计</th></tr>';
     h += '<tr><td>题数</td>' + CATS.map((c) => `<td class="n">${all.filter((q) => q.cat === c).length}</td>`).join('') + `<td class="n">${all.length}</td></tr>`;
     h += '<tr><td>视频数</td>' + CATS.map((c) => `<td class="n">${test.videos.filter((v) => v.cats.includes(c)).length}</td>`).join('') + `<td class="n">${test.videos.length}</td></tr>`;
@@ -91,14 +91,13 @@
   }
   function videoCard(v, qs, split) {
     const d = document.createElement('details');
-    d.className = 'vid';
+    d.className = hasScene(v) ? 'vid' : 'vid no-scene';
     d.dataset.id = v.id;
     const m = split === 'val' ? mean(qs.map((q) => q.mra)) : NaN;
-    const sceneTag = hasScene(v) ? '<span class="tag">3D 场景</span>' : '<span class="tag" style="opacity:.6">待 v1 重跑</span>';
     const thumb = v.thumb ? `<img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}">` : '<span class="thumb"></span>';
     d.innerHTML = `<summary>${thumb}<div class="vmeta"><div class="vid-id">${esc(v.id)}</div>` +
       `<div class="sub">${esc(v.source)} · ${esc(v.video_type)} · ${v.fps} fps${v.duration ? ' · ' + fmt(v.duration, 1) + ' s' : ''} · ${qs.length} 题 ` +
-      v.cats.map((c) => `<span class="tag">${c}</span>`).join('') + sceneTag + '</div></div>' +
+      v.cats.map((c) => `<span class="tag">${c}</span>`).join('') + '</div></div>' +
       '<div class="vright"><span class="vright-row">' +
       (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') + '</span>' +
       (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</div></summary>';
@@ -338,7 +337,7 @@
     } else {
       vid = `<h4>原视频</h4><div class="noscene">这个视频的编码是 MPEG-4 Part 2（<code>${esc(v.codec)}</code>），浏览器放不了，也没有可替代的 H.264 版本。<a href="${esc(v.orig)}">下载原文件</a></div>`;
     }
-    let scene = '<div><h4>3D 场景</h4><div class="noscene">还没有 3D 场景，待 v1 重跑。</div></div>';
+    let scene = '';
     if (v.scene) {
       scene = '<div><h4>3D 场景</h4>' +
         '<div class="viewbar"><span class="seg" role="group" aria-label="视角"><button type="button" data-view="free" aria-pressed="false">自由视角</button>' +
@@ -851,7 +850,7 @@
     const rs = na.by_reason.map(([r, n]) => `<tr><td>${esc(r)}</td><td class="n">${n}</td></tr>`).join('');
     return `<div class="noans-sum"><div><b>没有答案：${tot} / ${na.total} 题（${fmt((100 * tot) / na.total, 1)}%）</b><div class="scroll-x"><table><tr><th>类别</th><th class="n">没有答案</th><th class="n">总题数</th><th class="n">占比</th></tr>${cats}</table></div></div>` +
       `<div><b>原因分布</b><div class="scroll-x"><table><tr><th>原因</th><th class="n">题数</th></tr>${rs}</table></div></div></div>` +
-      `<p class="muted" style="font-size:12.5px">口径："没有答案" = 3D 场景没给出可用值的题：场景拟合没有给出该题的值，或整个视频还没有 3D 场景（待 v1 重跑）。"预测值"取测试集预测文件，来源列取各题的 source（vlm = 模型估计，geo = 几何）；来源列和"场景有没有值"不是一回事，这里的筛选按场景有没有值判断。</p>`;
+      `<p class="muted" style="font-size:12.5px">口径："没有答案" = 3D 场景没给出可用值的题：场景拟合没有给出该题的值，或整个视频还没有 3D 场景。"预测值"取测试集预测文件，来源列取各题的 source（vlm = 模型估计，geo = 几何）；来源列和"场景有没有值"不是一回事，这里的筛选按场景有没有值判断。</p>`;
   }
   function renderNoAnswer() {
     const na = DATA.test.noans, cat = $('t-cat').value, needle = $('t-q').value.trim().toLowerCase();

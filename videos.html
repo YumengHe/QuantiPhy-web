@@ -66,6 +66,7 @@
   .vmeta { flex: 1 1 auto; min-width: 0; }
   .vmeta .vid-id { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; }
   .vmeta .sub { color: var(--muted); font-size: 13px; }
+  details.vid.no-scene > summary { opacity: .5; }
   .tag { display: inline-block; font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-right: 4px; }
   .mra { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px; border-radius: 6px; font-variant-numeric: tabular-nums; font-weight: 600; }
   .m4 { background: var(--m4); color: var(--m4t); } .m3 { background: var(--m3); color: var(--m3t); }
@@ -149,7 +150,6 @@
   .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; }
   .muted { color: var(--muted); }
   .topnav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; margin-bottom: 14px; }
-  .notice { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--text) !important; }
   .noscene { color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 10px 12px; }
   .sfres { margin-top: 10px; }
   .sfres summary { cursor: pointer; color: var(--accent); font-size: 14px; }
@@ -178,7 +178,6 @@
   <nav class="topnav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a></nav>
   <h1>视频与场景</h1>
   <p>逐个视频看原视频、重建的 3D 场景、物体表和每道题的答案来源。验证集有标准答案，显示 MRA；测试集只有预测。</p>
-  <p class="notice">场景数据待 v1 重跑更新：现在显示的是重跑前的产物。</p>
   <p id="gen" class="muted"></p>
 </header>
 
@@ -221,7 +220,7 @@
   <div class="controls">
     <label>类别 <select id="t-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
     <label>视频来源 <select id="t-vsrc"><option value="">全部</option></select></label>
-    <label>3D 场景 <select id="t-fit"><option value="">全部</option><option value="yes">有</option><option value="no">没有（待 v1 重跑）</option></select></label>
+    <label>3D 场景 <select id="t-fit"><option value="">全部</option><option value="yes">有</option><option value="no">没有</option></select></label>
     <label>排序 <select id="t-sort"><option value="id">视频名</option><option value="n-desc">题数从多到少</option></select></label>
     <label><input type="search" id="t-q" placeholder="搜索视频名或问题"></label>
     <label title="只列出 3D 场景没给出可用值的题"><input type="checkbox" id="t-noans"> 只看没有答案的题</label>
