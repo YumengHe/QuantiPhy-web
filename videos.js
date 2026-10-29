@@ -3,7 +3,7 @@
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
   const SRC_LABEL = { scene: '场景重放', measurement: '独立测量', prior: '显式先验', unresolved: '未解决',
-    geo: '旧几何', vlm: '旧 Qwen', fit: '旧拟合值' };
+    execution_failed: '执行失败' };
   const SHAPE_LABEL = { box: '长方体', sphere: '球', cylinder: '圆柱', prism: '三棱柱', mesh: '网格（画包围盒）' };
   const PALETTE = ['#3b6fd8', '#d9622b', '#2e9b5f', '#b03fa8', '#c79a12', '#1b9aaa', '#d6455d', '#6d5bd0', '#7a8b2a', '#8a5a3c'];
   let DATA = null;
@@ -37,16 +37,13 @@
   }));
 
   // ---------- summary tables ----------
-  // validation scores stay hidden until the current code version's rerun is in data/videos.json
-  const SHOW_VAL_SCORE = false;
   function valSummary(val) {
-    if (!SHOW_VAL_SCORE) return;
     $('val-summary').hidden = false;
     const all = val.videos.flatMap((v) => v.questions);
     const m = macro(all);
-    $('val-macro').textContent = fmt(m.macro, 4);
-    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频；micro（逐题平均）${fmt(m.micro, 3)}。` +
-      (val.videos.some((v) => v.harness) ? '每组 prior 单独建场景；逐题叠加图与诊断按 scene_id 绑定。' : '');
+    // the headline is the build script's pipeline.metrics.evaluate value; the table recomputes from the per-question MRA
+    $('val-macro').textContent = fmt(val.macro != null ? val.macro : m.macro, 4);
+    $('val-src-file').textContent = `${m.n} 题、${val.videos.length} 个视频`;
     // per answer source: how many questions took their final prediction from it and their MRA
     const SRCS = Object.entries(SRC_LABEL).filter(([k]) => all.some((q) => q.src === k));
     let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th>' + SRCS.map(([, l]) => `<th class="n">${l} 题数</th><th class="n">${l} MRA</th>`).join('') + '</tr>';
@@ -56,7 +53,7 @@
         SRCS.map(([k]) => { const g = qs.filter((q) => q.src === k); return `<td class="n">${g.length}</td><td class="n">${g.length ? fmt(mean(g.map((q) => q.mra))) : '—'}</td>`; }).join('') + '</tr>';
     };
     CATS.forEach((c) => { h += row(c, all.filter((q) => q.cat === c)); });
-    h += `<tr><td><b>macro</b></td><td class="n">${all.length}</td><td class="n"><b>${fmt(m.macro, 4)}</b></td><td colspan="${2 * SRCS.length}" class="muted">四类 MRA 的平均</td></tr>`;
+    h += `<tr><td><b>macro</b></td><td class="n">${all.length}</td><td class="n"><b>${fmt(m.macro, 4)}</b></td><td colspan="${2 * SRCS.length}"></td></tr>`;
     $('val-sum').innerHTML = h;
   }
   function testSummary(test) {
@@ -278,19 +275,12 @@
     let h = '<h4>问题</h4>' + (shared && kn(qs[0]) ? `<div class="known-shared">${kn(qs[0])}</div>` : '') +
       '<div class="scroll-x"><table class="qtable"><tr><th>类别</th><th>' + (shared ? '问题' : '问题与已知条件') + '</th>';
     if (split === 'val') {
-      const hasFit = qs.some((q) => q.fit != null);
-      const confT = (c) => (c != null ? `置信度 ${fmt(c, 2)}` : '');
-      h += '<th class="n">答案</th><th class="n" title="着色的那一列就是最终预测（几何值蓝 / 拟合值紫 / Qwen 值橙）">几何值</th>' +
-        (hasFit ? '<th class="n" title="Physics-guided Fitting（scene_fit）的值；S3 题拟合置信度 ≥ 0.6 时作为最终预测">拟合值</th>' : '') +
-        '<th class="n">Qwen 值</th><th class="n">MRA</th>' + tqHead(qs) + '</tr>';
+      h += '<th class="n">答案</th><th class="n">预测</th><th>来源</th><th class="n">MRA</th>' + tqHead(qs) + '</tr>';
       qs.forEach((q) => {
         h += `<tr><td><span class="tag">${q.cat}</span><span class="muted">${esc(q.type)}</span></td>` +
           `<td class="q">${esc(q.q)}<div class="known">${known(q)}</div></td>` +
-          // the column the final prediction was taken from is tinted (geo / fit / vlm), so the route is visible at a glance
-          `<td class="n">${fmtNum(q.answer)}</td>` +
-          `<td class="n${q.src === 'geo' ? ' picked src-geo' : ''}" title="${q.src === 'geo' ? '最终预测取自几何值' : ''}">${fmtNum(q.geo)}</td>` +
-          (hasFit ? `<td class="n${q.src === 'fit' ? ' picked src-fit' : ''}" title="${[q.src === 'fit' ? '最终预测取自拟合值' : '', confT(q.fit_conf), q.unobs ? '这一维在侧拍画面里看不见（unobservable），路由对它用单独的门槛 --fit-conf-unobservable 0.3' : ''].filter(Boolean).join('；')}">${fmtNum(q.fit)}</td>` : '') +
-          `<td class="n${q.src === 'vlm' ? ' picked src-vlm' : ''}" title="${q.src === 'vlm' ? '最终预测取自 Qwen 值' : ''}">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td>` + tqCells(qs, q) + '</tr>';
+          `<td class="n">${fmtNum(q.answer)}</td><td class="n pred">${fmtNum(q.pred)}</td><td>${esc(SRC_LABEL[q.src] || q.src || '—')}</td>` +
+          `<td class="n">${mraBadge(q.mra)}</td>` + tqCells(qs, q) + '</tr>';
       });
     } else {
       h += '<th class="n">行号</th><th class="n">预测值</th>' + tqHead(qs) + '</tr>';
