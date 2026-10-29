@@ -281,7 +281,7 @@
       const hasFit = qs.some((q) => q.fit != null);
       const confT = (c) => (c != null ? `置信度 ${fmt(c, 2)}` : '');
       h += '<th class="n">答案</th><th class="n" title="着色的那一列就是最终预测（几何值蓝 / 拟合值紫 / Qwen 值橙）">几何值</th>' +
-        (hasFit ? '<th class="n" title="3D 场景拟合（scene_fit）的值；S3 题拟合置信度 ≥ 0.6 时作为最终预测">拟合值</th>' : '') +
+        (hasFit ? '<th class="n" title="Physics-guided Fitting（scene_fit）的值；S3 题拟合置信度 ≥ 0.6 时作为最终预测">拟合值</th>' : '') +
         '<th class="n">Qwen 值</th><th class="n">MRA</th>' + tqHead(qs) + '</tr>';
       qs.forEach((q) => {
         h += `<tr><td><span class="tag">${q.cat}</span><span class="muted">${esc(q.type)}</span></td>` +
@@ -343,7 +343,7 @@
         '<div class="viewbar"><span class="seg" role="group" aria-label="视角"><button type="button" data-view="free" aria-pressed="false">自由视角</button>' +
         '<button type="button" data-view="cam" aria-pressed="true" title="从原视频相机的位置和视野看，可以和左边的视频逐帧对比">相机视角</button></span>' +
         (v.video ? '<label class="off" title="相机视角下把原视频画面垫在渲染下面"><input type="checkbox" class="overlay" checked disabled> 叠加原视频</label>' : '') +
-        (v.scene.f ? '' : '<span class="fwarn" title="场景拟合没有给出焦距，用图像宽度代替">焦距为默认值（f = 图像宽度）</span>') + '</div>' +
+        (v.scene.f ? '' : '<span class="fwarn" title="Physics-guided Fitting 没有给出焦距，用图像宽度代替">焦距为默认值（f = 图像宽度）</span>') + '</div>' +
         '<div class="viewer"><div class="msg">加载 three.js …</div></div>' +
         '<div class="timebar"><button type="button" class="play">播放</button><span class="tq-track"><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tq-marks"></span></span><span class="tlabel">t = 0.00 s</span></div>' +
         '<p class="muted" style="font-size:12.5px;margin:6px 0 0">灰色网格 = 拟合出的地面；黑色线框 = 相机（原点）与视野；彩色 = 物体及其匀加速轨迹（虚线）。物体只在视频里跟踪到它的时段画出：相机视角下其余时段不画，自由视角下画成淡色轮廓。' +
@@ -412,7 +412,7 @@
           `<td style="font-size:13px">${sc ? esc(sc.motion || '') : ''}</td><td>${flags}</td></tr>`;
       });
     });
-    return `<h4>物体（清单 + 场景图 + 场景拟合）</h4><div class="scroll-x"><table class="objtab"><tr><th></th><th>物体（别名）</th><th>角色</th><th class="n">数量</th><th>在场性</th><th>形状提示</th><th>场景图关系</th>` +
+    return `<h4>物体（清单 + 场景图 + Physics-guided Fitting）</h4><div class="scroll-x"><table class="objtab"><tr><th></th><th>物体（别名）</th><th>角色</th><th class="n">数量</th><th>在场性</th><th>形状提示</th><th>场景图关系</th>` +
       `<th>拟合尺寸</th><th>支撑面 / 可见区间</th><th>运动 / 残差</th><th>自检标记</th></tr>${rows}</table></div>` +
       (t.unmatched && t.unmatched.length ? `<p class="fwarn" style="font-size:12.5px">场景里有、清单里没有的物体（按名字匹配不上）：${t.unmatched.map(esc).join('、')}</p>`
         : '<p class="muted" style="font-size:12.5px">场景里的物体都能和清单对上。</p>');
@@ -434,7 +434,7 @@
     let res = '';
     const hasConf = s.results.some((r) => r.conf != null);
     if (s.results.length) {
-      res = `<details class="sfres"><summary>${v.harness ? '本组保存的场景测量（最终答案见题表）' : '历史场景拟合自己的答案'}（${s.results.length} 题）</summary><div class="scroll-x"><table><tr><th>问题</th><th>物体</th><th>方法</th><th class="n">预测</th>` +
+      res = `<details class="sfres"><summary>${v.harness ? '本组保存的场景测量（最终答案见题表）' : '历史 Physics-guided Fitting 自己的答案'}（${s.results.length} 题）</summary><div class="scroll-x"><table><tr><th>问题</th><th>物体</th><th>方法</th><th class="n">预测</th>` +
         (hasConf ? '<th title="压低置信度的信号：自有平面、支撑不确定、支撑不一致、看不见的维度（bound）、塌缩、静态结构">信号</th>' : '') +
         (hasConf ? '<th class="n" title="逐题置信度：固定规则的乘积（残差、深度锚点、尺寸来源、焦距来源、地面、时刻是否在可见区间、可见性一致度、结构、塌缩），悬停看各项">置信度</th>' : '') +
         (split === 'val' ? '<th class="n">答案</th><th class="n">MRA</th>' : '') + '</tr>';
@@ -448,7 +448,7 @@
       res += '</table></div></details>';
     }
     const objBlock = v.objtab ? objectTable(v, s.objects.map((o) => o.name))
-      : `<h4>场景拟合的物体</h4><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th>` +
+      : `<h4>Physics-guided Fitting 的物体</h4><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th>` +
         (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th title="跟踪有框的时段；相机视角只在这些时段画出物体">视频里可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>`;
     return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, { tree: v.stree, order: s.objects.map((o) => o.name) }) + objBlock + '<div>' +
       `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px` + (s.f_source ? `（来源 ${esc(s.f_source)}）` : '') + (s.main_support ? `，主支撑面 ${esc(s.main_support)}` : '') + '。残差是拟合框与跟踪框的均方根误差。' +
@@ -843,14 +843,14 @@
     items.forEach((x) => list.appendChild(videoCard(x.v, x.qs, 'val')));
   }
   // test questions without a scene answer (tools/build_videos.test_noanswer): summary + one flat table
-  const SRC_ZH = { vlm: 'Qwen', geo: '几何', fit: '场景拟合' };
+  const SRC_ZH = { vlm: 'Qwen', geo: '几何', fit: 'Physics-guided Fitting' };
   function noAnswerSummary(na) {
     const tot = Object.values(na.by_cat).reduce((a, x) => a + x[0], 0);
     const cats = CATS.map((c) => `<tr><td>${c}</td><td class="n">${na.by_cat[c][0]}</td><td class="n">${na.by_cat[c][1]}</td><td class="n">${fmt((100 * na.by_cat[c][0]) / Math.max(na.by_cat[c][1], 1), 1)}%</td></tr>`).join('');
     const rs = na.by_reason.map(([r, n]) => `<tr><td>${esc(r)}</td><td class="n">${n}</td></tr>`).join('');
     return `<div class="noans-sum"><div><b>没有答案：${tot} / ${na.total} 题（${fmt((100 * tot) / na.total, 1)}%）</b><div class="scroll-x"><table><tr><th>类别</th><th class="n">没有答案</th><th class="n">总题数</th><th class="n">占比</th></tr>${cats}</table></div></div>` +
       `<div><b>原因分布</b><div class="scroll-x"><table><tr><th>原因</th><th class="n">题数</th></tr>${rs}</table></div></div></div>` +
-      `<p class="muted" style="font-size:12.5px">口径："没有答案" = 3D 场景没给出可用值的题：场景拟合没有给出该题的值，或整个视频还没有 3D 场景。"预测值"取测试集预测文件，来源列取各题的 source（vlm = 模型估计，geo = 几何）；来源列和"场景有没有值"不是一回事，这里的筛选按场景有没有值判断。</p>`;
+      `<p class="muted" style="font-size:12.5px">口径："没有答案" = 3D 场景没给出可用值的题：Physics-guided Fitting 没有给出该题的值，或整个视频还没有 3D 场景。"预测值"取测试集预测文件，来源列取各题的 source（vlm = 模型估计，geo = 几何）；来源列和"场景有没有值"不是一回事，这里的筛选按场景有没有值判断。</p>`;
   }
   function renderNoAnswer() {
     const na = DATA.test.noans, cat = $('t-cat').value, needle = $('t-q').value.trim().toLowerCase();

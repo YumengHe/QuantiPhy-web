@@ -61,7 +61,7 @@
   <div class="node"><div class="hd"><b>观测</b></div>
     <span class="m">支撑面、深度、refmeasure 端点、掩码范围</span></div>
   <div class="arrow"></div>
-  <div class="node"><div class="hd"><b>3D 场景拟合</b></div>
+  <div class="node"><div class="hd"><b>Physics-guided Fitting</b></div>
     <span class="m">相机、支撑面、物体形状和运动，投影与跟踪、深度、prior 一致</span></div>
   <div class="arrow"></div>
   <div class="loop">
@@ -78,7 +78,7 @@
 </div>
 
 <h3 id="planar">平面视频</h3>
-<p>prior 里没有距离锚点的视频按平面视频处理。它不另走一条流程，而是 3D 场景拟合的一种相机模式（场景 json 里 <code>camera.model = "planar"</code>）。</p>
+<p>prior 里没有距离锚点的视频按平面视频处理。它不另走一条流程，而是 Physics-guided Fitting 的一种相机模式（场景 json 里 <code>camera.model = "planar"</code>）。</p>
 <ul>
   <li><b>相机和支撑面：</b>焦距取名义值，f = 图像宽度；支撑面正对相机。</li>
   <li><b>尺度：</b>先由 prior 标定每像素对应的米数（m/px），平面深度 = f × m/px。这一步就是平面模式的 Stage A。</li>
