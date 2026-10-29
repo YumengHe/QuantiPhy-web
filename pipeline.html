@@ -21,6 +21,17 @@
   .lgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 8px; }
   .lbox { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; background: var(--sh-soft); }
   .lbox b { display: block; font-size: 14px; }
+  .input { border: 2px solid var(--accent); border-radius: 10px; padding: 10px 12px; background: var(--accent-soft); }
+  .input .hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .input .hd b { font-size: 16px; }
+  .input .tag { font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 8px; }
+  .input .m { display: block; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .igrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 8px; }
+  .ibox { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; background: var(--panel); }
+  .ibox b { display: block; font-size: 14px; }
+  .arrow.in { background: var(--accent); }
+  .arrow.in::after { border-top-color: var(--accent); }
+  .chain-label { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -33,9 +44,18 @@
 
 <h2 id="flow">流程图</h2>
 <div class="flow">
-  <div class="node"><div class="hd"><b>输入</b></div>
-    <span class="m">视频、题目，以及本题给的已知量（prior）和深度信息（depth_info，有的题才有）。不读取答案。</span></div>
-  <div class="arrow"></div>
+  <div class="input">
+    <div class="hd"><b>输入</b><span class="tag">不是处理步骤</span></div>
+    <div class="igrid">
+      <div class="ibox"><b>视频</b>要重建的视频本身。</div>
+      <div class="ibox"><b>题目</b>要量的物理量和涉及的物体。</div>
+      <div class="ibox"><b>prior（已知事实）</b>本题给出的一个已知量，用来定尺度。</div>
+      <div class="ibox"><b>depth_info（距离锚点）</b>物体到相机的已知距离；只有部分视频有。</div>
+    </div>
+    <span class="m">流程不读取答案。</span>
+  </div>
+  <div class="arrow in"></div>
+  <p class="chain-label">处理链</p>
   <div class="node"><div class="hd"><b>物体清单</b></div>
     <span class="m">从题目和 prior 里列出要量的物体及必要的支撑物：名字、别名、数量、形状和位置提示。</span></div>
   <div class="arrow"></div>
@@ -68,6 +88,7 @@
 <p>固定相机、物体在一个平面里运动的视频不另起一条流程，按 3D 场景的特例处理：支撑面近似正对相机，尺度由 prior 定。焦距这时无法从画面里辨识，场景里会明确标出来。</p>
 
 <h2 id="steps">步骤表</h2>
+<p>输入（视频、题目、prior、depth_info）不算步骤，处理链从物体清单开始。</p>
 <div class="scroll-x"><table>
   <tr><th>步骤</th><th>做什么</th></tr>
   <tr><td>物体清单</td><td>从题目和 prior 中提取物体、别名、数量、形状与位置提示</td></tr>
