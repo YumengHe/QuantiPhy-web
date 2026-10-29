@@ -16,10 +16,10 @@
 <p class="muted small">当前代码版本 v1。</p>
 
 <h2 id="pipeline">流水线</h2>
-<p>每个视频走同一条流程。2D 视频建成分层的平面场景，3D 视频拟合出相机、地面和物体。题目给的已知量（prior）用来定尺度；量不到的题由模型估，并标为 prior。</p>
+<p>每个视频走同一条流程，都拟合成 3D 场景：相机、地面和物体。固定相机拍的平面运动也按 3D 场景处理，支撑面近似正对相机。题目给的已知量（prior）用来定尺度；量不到的题由模型估，并标为 prior。</p>
 <div class="steps" aria-label="流程概览">
   <span class="s">物体清单</span><span class="ar">→</span><span class="s">场景图</span><span class="ar">→</span><span class="s">跟踪</span><span class="ar">→</span>
-  <span class="s">观测</span><span class="ar">→</span><span class="s">2D 图层场景 / 3D 场景拟合</span><span class="ar">→</span>
+  <span class="s">观测</span><span class="ar">→</span><span class="s">3D 场景拟合</span><span class="ar">→</span>
   <span class="s">agent 回路（2–10 轮）</span><span class="ar">→</span><span class="s">从场景作答</span>
 </div>
 <p><a href="pipeline.html">流程图和每一步的说明</a></p>
@@ -29,7 +29,7 @@
   <tr><th>数据集</th><th>内容</th><th class="n">测试集</th><th class="n">验证集</th><th>题型</th></tr>
   <tr><td>QuantiPhy</td><td>仿真、实拍和网络视频上的定量物理问答，每题给一个已知量（prior）</td>
     <td class="n">568 视频 · 3289 题</td><td class="n">24 视频 · 159 题</td>
-    <td>S2 / D2 / S3 / D3：S 问静态量（尺寸、距离），D 问运动量（速度、加速度），2 / 3 表示 2D 或 3D 场景</td></tr>
+    <td>S2 / D2 / S3 / D3：S 问静态量（尺寸、距离），D 问运动量（速度、加速度）；数字是数据集自带的题目类别，流程对四类一视同仁</td></tr>
   <tr><td>更多数据集</td><td class="pending" colspan="4">待加入</td></tr>
 </table></div>
 
@@ -42,8 +42,8 @@
 
 <h2 id="browse">场景浏览</h2>
 <div class="cards">
-  <a class="card" href="videos.html"><b>视频与场景</b><span>逐个视频看原视频、重建的 2D / 3D 场景、物体表和每道题的答案来源。</span></a>
-  <a class="card" href="pipeline.html"><b>流水线</b><span>流程图、2D / 3D 对照的步骤表。</span></a>
+  <a class="card" href="videos.html"><b>视频与场景</b><span>逐个视频看原视频、重建的 3D 场景、物体表和每道题的答案来源。</span></a>
+  <a class="card" href="pipeline.html"><b>流水线</b><span>流程图、步骤表和答案来源。</span></a>
 </div>
 
 <footer>版本记录见代码仓库的 <code>docs/VERSIONS.md</code>。</footer>

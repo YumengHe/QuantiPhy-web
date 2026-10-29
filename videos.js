@@ -3,7 +3,7 @@
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
   const SRC_LABEL = { scene: '场景重放', measurement: '独立测量', prior: '显式先验', unresolved: '未解决',
-    geo: '旧几何', vlm: '旧 Qwen', s2d: '旧 2D 场景值', fit: '旧拟合值' };
+    geo: '旧几何', vlm: '旧 Qwen', fit: '旧拟合值' };
   const SHAPE_LABEL = { box: '长方体', sphere: '球', cylinder: '圆柱', prism: '三棱柱', mesh: '网格（画包围盒）' };
   const PALETTE = ['#3b6fd8', '#d9622b', '#2e9b5f', '#b03fa8', '#c79a12', '#1b9aaa', '#d6455d', '#6d5bd0', '#7a8b2a', '#8a5a3c'];
   let DATA = null;
@@ -61,9 +61,8 @@
   }
   function testSummary(test) {
     const all = test.videos.flatMap((v) => v.questions);
-    const vids3d = test.videos.filter((v) => v.dim === 3);
-    const fit = vids3d.filter(hasScene).length;
-    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频的预测（按行号和 <code>load_split('test')</code> 对齐）。测试集没有答案，不显示准确度。3D 视频 ${vids3d.length} 个，其中 ${fit} 个有场景拟合结果。`;
+    const fit = test.videos.filter(hasScene).length;
+    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频的预测（按行号和 <code>load_split('test')</code> 对齐）。测试集没有答案，不显示准确度。${fit} 个视频有 3D 场景，其余待 v1 重跑。`;
     let h = '<tr><th>类别</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '<th class="n">合计</th></tr>';
     h += '<tr><td>题数</td>' + CATS.map((c) => `<td class="n">${all.filter((q) => q.cat === c).length}</td>`).join('') + `<td class="n">${all.length}</td></tr>`;
     h += '<tr><td>视频数</td>' + CATS.map((c) => `<td class="n">${test.videos.filter((v) => v.cats.includes(c)).length}</td>`).join('') + `<td class="n">${test.videos.length}</td></tr>`;
@@ -95,14 +94,12 @@
     d.className = 'vid';
     d.dataset.id = v.id;
     const m = split === 'val' ? mean(qs.map((q) => q.mra)) : NaN;
-    const sceneTag = v.dim === 3 ? (hasScene(v) ? '<span class="tag">场景拟合</span>' : '<span class="tag" style="opacity:.6">无场景拟合</span>')
-      : (v.scene2d || v.has_scene2d ? '<span class="tag">图层场景</span>' : '');
+    const sceneTag = hasScene(v) ? '<span class="tag">3D 场景</span>' : '<span class="tag" style="opacity:.6">待 v1 重跑</span>';
     const thumb = v.thumb ? `<img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}">` : '<span class="thumb"></span>';
     d.innerHTML = `<summary>${thumb}<div class="vmeta"><div class="vid-id">${esc(v.id)}</div>` +
       `<div class="sub">${esc(v.source)} · ${esc(v.video_type)} · ${v.fps} fps${v.duration ? ' · ' + fmt(v.duration, 1) + ' s' : ''} · ${qs.length} 题 ` +
       v.cats.map((c) => `<span class="tag">${c}</span>`).join('') + sceneTag + '</div></div>' +
       '<div class="vright"><span class="vright-row">' +
-      (v.eval && v.eval.layer && v.eval.layer !== '—' ? `<span class="evtag" title="评估员判断的主因层：${esc(v.eval.layer)}\n根因：${esc(v.eval.cause)}">${esc(shortLayer(v.eval.layer))}</span>` : '') +
       (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') + '</span>' +
       (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</div></summary>';
     let built = false, viewer = null, video = null;
@@ -115,7 +112,7 @@
       // test-set scenes live in one file per video (data/scenes/test/<id>.json) and are fetched when the card opens
       if (d.open && v.scene_ref && !v._loaded) {
         fetch(v.scene_ref).then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((j) => {
-          v.scene = j.scene || null; v.scene2d = j.scene2d || null; v._loaded = true;
+          v.scene = j.scene || null; v._loaded = true;
           if (d.open) onToggle();
         });
         return;
@@ -125,7 +122,7 @@
         let selector = '', critique = '';
         if (original.harness) {
           const group = groups.find((g) => g.group === selectedGroup);
-          v = { ...original, scene: (group && group.scene) || null, scene2d: (group && group.scene2d) || null };
+          v = { ...original, scene: (group && group.scene) || null };
           activeQuestions = qs.filter((q) => group ? q.group === group.group : q.group == null);
           selector = '<div class="controls"><label>独立 prior / depth 组 <select class="group-select">' +
             groups.map((g) => `<option value="${esc(g.group)}"${g.group === selectedGroup ? ' selected' : ''}>组 ${esc(g.group)} · ${esc((g.prior || '无 prior').slice(0, 85))}</option>`).join('') +
@@ -136,8 +133,7 @@
         }
         const body = document.createElement('div');
         body.className = 'vbody';
-        body.innerHTML = selector + mediaBlock(v, split) + evalBlock(v) + questionTable(activeQuestions, split, v.dim === 2 && !!v.scene2d) +
-          critique + (v.dim === 3 ? sceneTables(v, split) : v.scene2d ? layerTables(v) : '');
+        body.innerHTML = selector + mediaBlock(v, split) + questionTable(activeQuestions, split) + critique + sceneTables(v, split);
         d.appendChild(body);
         video = body.querySelector('video');
         tqMarks(body, v, activeQuestions);
@@ -155,7 +151,7 @@
       }
       // the <video> only holds a src while its card is open, so collapsed cards do not keep connections or buffers
       if (video) {
-        // preload="auto" + a tiny seek decodes the first frame right away, so the layer / overlay canvases
+        // preload="auto" + a tiny seek decodes the first frame right away, so the overlay canvas
         // can draw it before the user presses play (with metadata-only preload the canvas stays black)
         if (d.open && !video.getAttribute('src')) {
           video.preload = 'auto'; video.src = v.video;
@@ -163,12 +159,8 @@
         }
         if (!d.open) { video.pause(); video.removeAttribute('src'); video.load(); }
       }
-      if (v.dim === 3 && v.scene) {
+      if (v.scene) {
         if (d.open && !viewer) viewer = startViewer(d.querySelector('.viewer'), d.querySelector('.timebar'), v, video);
-        if (!d.open && viewer) { viewer.then((x) => x && x.dispose()); viewer = null; }
-      }
-      if (v.dim === 2 && v.scene2d) {
-        if (d.open && !viewer) viewer = Promise.resolve(startLayers(d.querySelector('.viewer'), d.querySelector('.timebar'), v, video));
         if (!d.open && viewer) { viewer.then((x) => x && x.dispose()); viewer = null; }
       }
     };
@@ -176,24 +168,10 @@
     return d;
   }
 
-  // list tag: the main layer without parentheticals and trailing clauses ("尺度（…）+ 拟合（…）；q1 …" -> "尺度 + 拟合")
-  function shortLayer(l) { return String(l).replace(/（[^）]*）|\([^)]*\)/g, '').split(/[；;]/)[0].replace(/\s*\+\s*/g, ' + ').trim(); }
-  // evaluator verdict: the per-video report (outputs/eval/<video>.md -> data/eval/<video>.html) wins, the overview row is the fallback
-  function evalBlock(v) {
-    const e = v.eval;
-    if (!e) return '';
-    const prog = e.progress && e.progress !== '—' ? `<span class="muted">修复进行中：${esc(e.progress)}</span>` : '';
-    const rep = e.report ? `<div class="ev-rep"><b>逐视频报告${e.report.title ? `（${esc(e.report.title)}）` : ''}：</b>${esc(e.report.excerpt)}${e.report.excerpt.length >= 400 ? '…' : ''} <a href="${esc(e.report.file)}" target="_blank" rel="noopener">全文</a></div>` : '';
-    return `<div class="evbox"><h4>评估</h4><div><b>主因层：</b>${esc(e.layer || '—')}　${prog}</div>` +
-      (e.cause && e.cause !== '—' ? `<div><b>根因：</b>${esc(e.cause)}</div>` : '') + rep +
-      `<div class="muted" style="font-size:12px">` + (e.from_report ? `主因层和根因取自逐视频报告；概览 <code>${esc(e.source || '')}</code> 兜底` : `来源 <code>${esc(e.source || '')}</code>`) +
-      `（评估员的视频平均 MRA ${esc(e.mra || '')}）</div></div>`;
-  }
-
   // ---------- question time t_q: jump button, alignment check, ticks on the time axis ----------
   const hasAlign = (qs) => qs.some((q) => q.align);
   function tqHead(qs) {
-    return '<th title="把原视频和 3D / 2D 视图跳到题目问的时刻 t_q（没写时刻的题跳到被问物体可见区间的中点），并切到相机视角、叠加原视频">问到的帧</th>' +
+    return '<th title="把原视频和 3D 视图跳到题目问的时刻 t_q（没写时刻的题跳到被问物体可见区间的中点），并切到相机视角、叠加原视频">问到的帧</th>' +
       (hasAlign(qs) ? '<th class="n" title="t_q 时刻拟合的物体和跟踪框的对齐：IoU / dc（中心偏差 ÷ 框尺寸）；红：IoU &lt; 0.3 或 dc &gt; 0.5，橙：IoU &lt; 0.6 或 dc &gt; 0.25">t_q 对齐</th>' : '');
   }
   // IoU < 0.3 or centre offset > 0.5 box sizes: the fitted object is not where the track is at t_q
@@ -214,12 +192,8 @@
     }
     return h;
   }
-  // scene time span of a card's viewer (the 3D view uses the video duration, the 2D view n_frames / fps)
-  function sceneT(v) {
-    const s = v.scene2d;
-    if (v.dim === 2 && s && s.n_frames && s.fps) return s.n_frames / s.fps;
-    return v.duration || 2;
-  }
+  // scene time span of a card's viewer: the video duration
+  function sceneT(v) { return v.duration || 2; }
   function tqMarks(body, v, qs) {
     const marks = body.querySelector('.tq-marks');
     if (!marks) return;
@@ -295,7 +269,7 @@
       '</table></div></details>';
   }
 
-  function questionTable(qs, split, s2d) {
+  function questionTable(qs, split) {
     if (qs.some((q) => q.harness)) return harnessQuestionTable(qs);
     if (!qs.length) return '<p class="muted">当前组没有匹配筛选条件的题目。</p>';
     const kn = (q) => (q.prior ? `已知：${esc(q.prior)}` : '') + (q.depth ? `\ndepth_info：${esc(q.depth)}` : '');
@@ -307,18 +281,16 @@
     if (split === 'val') {
       const hasFit = qs.some((q) => q.fit != null);
       const confT = (c) => (c != null ? `置信度 ${fmt(c, 2)}` : '');
-      h += '<th class="n">答案</th><th class="n" title="着色的那一列就是最终预测（几何值蓝 / 拟合值紫 / 2D 场景值绿 / Qwen 值橙）">几何值</th>' +
+      h += '<th class="n">答案</th><th class="n" title="着色的那一列就是最终预测（几何值蓝 / 拟合值紫 / Qwen 值橙）">几何值</th>' +
         (hasFit ? '<th class="n" title="3D 场景拟合（scene_fit）的值；S3 题拟合置信度 ≥ 0.6 时作为最终预测">拟合值</th>' : '') +
-        (s2d ? '<th class="n" title="图层场景（pipeline.scene2d）的值，作为第二个提示给 Qwen；置信度 ≥ 0.85 时直接作为最终预测">2D 场景值</th>' : '') +
         '<th class="n">Qwen 值</th><th class="n">MRA</th>' + tqHead(qs) + '</tr>';
       qs.forEach((q) => {
         h += `<tr><td><span class="tag">${q.cat}</span><span class="muted">${esc(q.type)}</span></td>` +
           `<td class="q">${esc(q.q)}<div class="known">${known(q)}</div></td>` +
-          // the column the final prediction was taken from is tinted (geo / s2d / vlm), so the route is visible at a glance
+          // the column the final prediction was taken from is tinted (geo / fit / vlm), so the route is visible at a glance
           `<td class="n">${fmtNum(q.answer)}</td>` +
           `<td class="n${q.src === 'geo' ? ' picked src-geo' : ''}" title="${q.src === 'geo' ? '最终预测取自几何值' : ''}">${fmtNum(q.geo)}</td>` +
           (hasFit ? `<td class="n${q.src === 'fit' ? ' picked src-fit' : ''}" title="${[q.src === 'fit' ? '最终预测取自拟合值' : '', confT(q.fit_conf), q.unobs ? '这一维在侧拍画面里看不见（unobservable），路由对它用单独的门槛 --fit-conf-unobservable 0.3' : ''].filter(Boolean).join('；')}">${fmtNum(q.fit)}</td>` : '') +
-          (s2d ? `<td class="n${q.src === 's2d' ? ' picked src-s2d' : ''}" title="${[q.src === 's2d' ? '最终预测取自 2D 场景值' : '', confT(q.s2d_conf)].filter(Boolean).join('；')}">${fmtNum(q.s2d)}</td>` : '') +
           `<td class="n${q.src === 'vlm' ? ' picked src-vlm' : ''}" title="${q.src === 'vlm' ? '最终预测取自 Qwen 值' : ''}">${fmtNum(q.vlm)}</td><td class="n">${mraBadge(q.mra)}</td>` + tqCells(qs, q) + '</tr>';
       });
     } else {
@@ -357,7 +329,7 @@
     return t;
   }
 
-  // top of an opened card: original video (left) and, for 3D videos with a scene fit, the 3D view (right)
+  // top of an opened card: original video (left) and the 3D scene view (right; a placeholder until the video has one)
   function mediaBlock(v, split) {
     let vid;
     if (v.video) {
@@ -366,8 +338,8 @@
     } else {
       vid = `<h4>原视频</h4><div class="noscene">这个视频的编码是 MPEG-4 Part 2（<code>${esc(v.codec)}</code>），浏览器放不了，也没有可替代的 H.264 版本。<a href="${esc(v.orig)}">下载原文件</a></div>`;
     }
-    let scene = '';
-    if (v.dim === 3 && v.scene) {
+    let scene = '<div><h4>3D 场景</h4><div class="noscene">还没有 3D 场景，待 v1 重跑。</div></div>';
+    if (v.scene) {
       scene = '<div><h4>3D 场景</h4>' +
         '<div class="viewbar"><span class="seg" role="group" aria-label="视角"><button type="button" data-view="free" aria-pressed="false">自由视角</button>' +
         '<button type="button" data-view="cam" aria-pressed="true" title="从原视频相机的位置和视野看，可以和左边的视频逐帧对比">相机视角</button></span>' +
@@ -379,23 +351,7 @@
         '左上角计数：视频可见 = 当前帧跟踪有框的物体数，场景视野内 = 拟合位置投影在原相机画面内的物体数，两者不等时标红。自由视角下拖动旋转，滚轮缩放；相机视角固定在原视频相机处，画面比例和原视频相同。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
     }
-    if (v.dim === 2 && v.scene2d) {
-      const s = v.scene2d;
-      scene = '<div><h4>图层场景</h4>' +
-        '<div class="viewbar"><span class="seg" role="group" aria-label="背景">' +
-        `<button type="button" data-bg="video" aria-pressed="${v.video ? 'true' : 'false'}"${v.video ? '' : ' disabled'} title="把原视频当前帧垫在图层下面">叠加原视频</button>` +
-        `<button type="button" data-bg="layers" aria-pressed="${v.video ? 'false' : 'true'}" title="背景换成静态背景层（采样帧的中位数）">只看图层</button></span>` +
-        '<label><input type="checkbox" class="raw"> 跟踪质心</label>' +
-        (s.scale.degenerate ? '<span class="fwarn">尺度退化：prior 量不出像素长度</span>' : '') + '</div>' +
-        '<div class="viewer cam l2d"><canvas></canvas></div>' +
-        '<div class="timebar"><button type="button" class="play">播放</button><span class="tq-track"><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tq-marks"></span></span><span class="tlabel">t = 0.00 s</span></div>' +
-        '<p class="muted" style="font-size:12.5px;margin:6px 0 0">每个物体一层、一个标签，颜色和下方图层表对应；标签第 1 行物体名，有尺寸题时第 2 行是题目问的尺寸（L 沿朝向、W 垂直朝向、H 竖直、D 直径），prior 所在的层再加一行黄字 prior；标签放在凸包外侧，不压任何物体。' +
-        '只画当前帧跟踪到的层，左上角计数"视频可见 / 画出"应相等。' +
-        '半透明填充 = 掩码凸包；刚体层画一个不随帧变的稳定框；虚线框 = 这一帧被遮挡；"合并" = 这一帧的掩码和别的物体合在一起。运动的层另画粗虚线轨迹（各分段运动模型，空心方块 = 分段起止点）和实心点（当前时刻的模型位置）。黄线 = prior 本身（尺寸画成带端线的标注线，速度画成 1 s 位移的箭头）。' +
-        '模型类型和残差见下方图层表。左下角是比例尺和尺度来源' + (s.gravity_dir ? '，右上角箭头是重力方向' : '') + '。' +
-        (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
-    }
-    return (v.harness ? '<p class="muted">交互 3D / 图层视图是网页里的简化投影，只作近似浏览；逐题检查看下方由流水线渲染的叠加图。独立 measurement 不等于渲染几何。</p>' : '') +
+    return (v.harness && v.scene ? '<p class="muted">交互 3D 视图是网页里的简化投影，只作近似浏览；逐题检查看下方由流水线渲染的叠加图。独立 measurement 不等于渲染几何。</p>' : '') +
       `<div class="media"><div>${vid}</div>${scene}</div>`;
   }
 
@@ -423,7 +379,7 @@
     return out;
   }
 
-  // one table per video: inventory + scene graph + 3D fit / 2D layers, one row per object (tools/build_videos.object_table)
+  // one table per video: inventory + scene graph + 3D fit, one row per object
   const ROLE_LABEL = { object: '物体', structure: '结构', class: '类别' };
   const PRES_LABEL = { visible: '在场', partial: '部分在场', absent: '不在场' };
   function objectTable(v, order) {
@@ -434,11 +390,6 @@
         const dimText = `${k} ${fmtNum(x)} m`;
         return src === 'bound' ? `<span class="dim-bound" title="看不见、靠先验">${dimText}<sup>看不见</sup></span>` : src === 'prior' ? `${dimText}<sup class="dim-prior">先验</sup>` : dimText;
       }).join(' × ');
-      if (sc.size_px) {
-        const [a, c, h] = sc.size_px;
-        const m = sc.mpp ? `<div class="muted">${fmtLen(a * sc.mpp)} × ${fmtLen(c * sc.mpp)}</div>` : '';
-        return `${fmtNum(a)} × ${fmtNum(c)} px <span class="muted">（高 ${fmtNum(h)}，${esc(sc.src || '')}）</span>${m}`;
-      }
       return '';
     };
     let rows = '';
@@ -462,14 +413,14 @@
           `<td style="font-size:13px">${sc ? esc(sc.motion || '') : ''}</td><td>${flags}</td></tr>`;
       });
     });
-    return `<h4>物体（清单 + 场景图 + ${t.dim === 3 ? '场景拟合' : '图层'}）</h4><div class="scroll-x"><table class="objtab"><tr><th></th><th>物体（别名）</th><th>角色</th><th class="n">数量</th><th>在场性</th><th>形状提示</th><th>场景图关系</th>` +
-      `<th>${t.dim === 3 ? '拟合尺寸' : '图层尺寸（沿朝向 × 垂直）'}</th><th>支撑面 / 可见区间</th><th>运动 / 残差</th><th>自检标记</th></tr>${rows}</table></div>` +
+    return `<h4>物体（清单 + 场景图 + 场景拟合）</h4><div class="scroll-x"><table class="objtab"><tr><th></th><th>物体（别名）</th><th>角色</th><th class="n">数量</th><th>在场性</th><th>形状提示</th><th>场景图关系</th>` +
+      `<th>拟合尺寸</th><th>支撑面 / 可见区间</th><th>运动 / 残差</th><th>自检标记</th></tr>${rows}</table></div>` +
       (t.unmatched && t.unmatched.length ? `<p class="fwarn" style="font-size:12.5px">场景里有、清单里没有的物体（按名字匹配不上）：${t.unmatched.map(esc).join('、')}</p>`
         : '<p class="muted" style="font-size:12.5px">场景里的物体都能和清单对上。</p>');
   }
 
   function sceneTables(v, split) {
-    if (!v.scene) return '<h4>3D 场景</h4><div class="noscene">无场景拟合（拟合失败或没有结果）。</div>';
+    if (!v.scene) return '';
     const s = v.scene;
     const hasSup = s.objects.some((o) => o.support), hasVis = s.objects.some((o) => o.visible);
     const hasSrc = s.objects.some((o) => o.dim_source);
@@ -500,14 +451,14 @@
     const objBlock = v.objtab ? objectTable(v, s.objects.map((o) => o.name))
       : `<h4>场景拟合的物体</h4><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th>` +
         (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th title="跟踪有框的时段；相机视角只在这些时段画出物体">视频里可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>`;
-    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, null, null, { tree: v.stree, order: s.objects.map((o) => o.name) }) + objBlock + '<div>' +
+    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, { tree: v.stree, order: s.objects.map((o) => o.name) }) + objBlock + '<div>' +
       `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px` + (s.f_source ? `（来源 ${esc(s.f_source)}）` : '') + (s.main_support ? `，主支撑面 ${esc(s.main_support)}` : '') + '。残差是拟合框与跟踪框的均方根误差。' +
       (hasSrc ? '尺寸来源：不加标记的是观测到的（框、深度）；<sup class="dim-prior">先验</sup> 来自尺寸先验；<span class="dim-bound">灰色<sup>看不见</sup></span> 表示框和深度都没看到这一维，只能靠先验（取防塌缩下限）。' : '') +
       `</p>${focalVotes(s)}${res}</div>`;
   }
 
 
-  // ---------- time axis shared by the 3D and 2D viewers ----------
+  // ---------- time axis of the 3D viewer ----------
   // Linked to the <video>: scene time is the same fraction of T as currentTime is of the video's duration
   // (the H.264 test copy of a validation video has the same frames but sometimes a different nominal fps).
   function linkTime(bar, video, T, setTime, signal) {
@@ -554,348 +505,7 @@
     };
   }
 
-  // ---------- 2D layered scene (pipeline/scene2d.py) ----------
-  const MODEL_LABEL = { static: '静止', const_vel: '匀速', const_acc: '匀加速', circle: '圆周' };
-  function segPos(s, t) {
-    const p = s.p, dt = t - s.t0;
-    if (s.model === 'static') return p.p;
-    if (s.model === 'const_vel') return [p.p0[0] + p.v[0] * dt, p.p0[1] + p.v[1] * dt];
-    if (s.model === 'const_acc') return [0, 1].map((k) => p.p0[k] + p.v0[k] * dt + 0.5 * p.a[k] * dt * dt);
-    if (s.model === 'circle') { const th = p.theta0 + p.omega * dt; return [p.center[0] + p.r * Math.cos(th), p.center[1] + p.r * Math.sin(th)]; }
-    return null;
-  }
-  function mPerPx(sc, y) {
-    if (!sc.m_per_px_ref) return NaN;
-    return sc.model === 'loglinear_y' ? sc.m_per_px_ref * Math.exp(-(sc.k_per_px || 0) * (y - sc.y_ref)) : sc.m_per_px_ref;
-  }
-  function niceLen(x) { // largest 1/2/5 x 10^k not above x
-    const e = Math.pow(10, Math.floor(Math.log10(x))), m = x / e;
-    return (m >= 5 ? 5 : m >= 2 ? 2 : 1) * e;
-  }
-  const PRIOR_COL = '#ffd400';
-  function noScaleReason(sc) {
-    const n = (sc.notes || []).join(' ');
-    if (/calibre|graduation/.test(n)) return '刻度不可跟踪';
-    if (/scene structure/.test(n)) return 'prior 物体是场景结构，图层尺寸不是它说的那个尺寸';
-    return n || '量不出像素长度';
-  }
-  function fmtLen(m) { return m >= 1 ? `${fmtNum(m)} m` : m >= 0.01 ? `${fmtNum(m * 100)} cm` : `${fmtNum(m * 1000)} mm`; }
-
-  function startLayers(box, bar, v, video) {
-    const s = v.scene2d, W = s.width, H = s.height, fps = s.fps || 30;
-    const T = s.n_frames && fps ? s.n_frames / fps : (v.duration || 2);
-    const canvas = box.querySelector('canvas'), ctx = canvas.getContext('2d');
-    const vbar = box.previousElementSibling;
-    const btns = [...vbar.querySelectorAll('.seg button')], rawBox = vbar.querySelector('.raw');
-    let mode = video ? 'video' : 'layers', k = 1, dpr = 1, tCur = 0;
-    const bg = new Image();
-    if (s.bg) { bg.onload = () => draw(tCur); bg.src = s.bg; }
-    const ac = new AbortController();
-
-    function resize() {
-      const bw = box.clientWidth, bh = box.clientHeight;
-      if (!bw || !bh) return;
-      k = Math.min(bw / W, bh / H);
-      dpr = Math.min(devicePixelRatio || 1, 2);
-      const cw = Math.round(W * k), ch = Math.round(H * k);
-      canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
-      canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
-      draw(tCur);
-    }
-    let placed = [];   // label boxes already drawn this frame: a new label moves down until it does not overlap
-    // light = true: white box with black text (prior annotations, so they stand apart from the layer colours)
-    function label(x, y, txt, col, fixed, light) {
-      ctx.font = '600 11.5px system-ui, sans-serif';
-      const w = ctx.measureText(txt).width + 8;
-      x = Math.max(0, Math.min(x, W * k - w)); y = Math.max(15, Math.min(y, H * k));
-      placed.push([x, y - 15, w, 16]);   // [left, top, width, height]
-      ctx.fillStyle = light ? 'rgba(255,255,255,.92)' : 'rgba(0,0,0,.62)'; ctx.fillRect(x, y - 15, w, 16);
-      if (light) { ctx.strokeStyle = PRIOR_COL; ctx.lineWidth = 1.5; ctx.strokeRect(x, y - 15, w, 16); }
-      ctx.fillStyle = light ? '#111' : col; ctx.fillText(txt, x + 4, y - 3);
-    }
-    // a dimension line from p0 to p1 (canvas px) with short end bars
-    function dimLine(p0, p1, col) {
-      const dx = p1[0] - p0[0], dy = p1[1] - p0[1], n = Math.hypot(dx, dy) || 1, nx = -dy / n * 6, ny = dx / n * 6;
-      ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.setLineDash([]);
-      ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]);
-      ctx.moveTo(p0[0] - nx, p0[1] - ny); ctx.lineTo(p0[0] + nx, p0[1] + ny);
-      ctx.moveTo(p1[0] - nx, p1[1] - ny); ctx.lineTo(p1[0] + nx, p1[1] + ny); ctx.stroke();
-    }
-    function arrow(x0, y0, x1, y1, col) {
-      const a = Math.atan2(y1 - y0, x1 - x0);
-      ctx.strokeStyle = ctx.fillStyle = col; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x1, y1);
-      ctx.lineTo(x1 - 9 * Math.cos(a - 0.45), y1 - 9 * Math.sin(a - 0.45)); ctx.lineTo(x1 - 9 * Math.cos(a + 0.45), y1 - 9 * Math.sin(a + 0.45));
-      ctx.closePath(); ctx.fill();
-    }
-    // one label per layer, up to three lines: object name (wrapped at word boundaries, ~160 px wide), the asked sizes,
-    // the prior (yellow). Every layer's hull / box is an obstacle: try just above / below / right / left of the own
-    // hull (6 px gap), then the free spot nearest to it with a thin leader; a label never covers a hull.
-    const LINE_H = 15, MAX_W = 160;
-    function wrapName(name) {
-      ctx.font = '600 11.5px system-ui, sans-serif';
-      const words = name.split(/\s+/), lines = [];
-      let cur = '';
-      words.forEach((wd) => {
-        const t = cur ? cur + ' ' + wd : wd;
-        if (cur && ctx.measureText(t).width > MAX_W) { lines.push(cur); cur = wd; } else cur = t;
-      });
-      if (cur) lines.push(cur);
-      return lines;
-    }
-    function placeLabel(lines, col, anchor, bb, obstacles) {
-      ctx.font = '600 11.5px system-ui, sans-serif';
-      const cw = W * k, ch = H * k;
-      const w = Math.max(...lines.map((l) => ctx.measureText(l.t).width)) + 8, h = lines.length * LINE_H + 3;
-      const hit = (x, y, r) => x < r[0] + r[2] && r[0] < x + w && y < r[1] + r[3] && r[1] < y + h;
-      const ok = (x, y) => x >= 0 && y >= 0 && x + w <= cw && y + h <= ch &&
-        !obstacles.some((r) => hit(x, y, r)) && !placed.some((r) => hit(x, y, r));
-      const cx = (bb[0] + bb[2]) / 2, cy = (bb[1] + bb[3]) / 2, g = 6;
-      const cands = [[cx - w / 2, bb[1] - g - h], [cx - w / 2, bb[3] + g], [bb[2] + g, cy - h / 2], [bb[0] - g - w, cy - h / 2]]
-        .map(([x, y]) => [Math.max(0, Math.min(x, cw - w)), Math.max(0, Math.min(y, ch - h))]);
-      let pos = cands.find(([x, y]) => ok(x, y)), lead = false;
-      // free spot nearest to the own hull; when hulls cover the whole frame (a road, a lane), only other labels count
-      const nearest = (test) => {
-        let best = null, bd = Infinity;
-        for (let y = 0; y + h <= ch; y += 6) {
-          for (let x = 0; x + w <= cw; x += 6) {
-            const d = Math.hypot(x + w / 2 - cx, y + h / 2 - cy);
-            if (d < bd && test(x, y)) { bd = d; best = [x, y]; }
-          }
-        }
-        return best;
-      };
-      if (!pos) {
-        pos = nearest(ok) || nearest((x, y) => !placed.some((r) => hit(x, y, r))) || cands[0];
-        lead = true;
-      }
-      const [x, y] = pos;
-      placed.push([x, y, w, h]);
-      if (lead) {
-        const lx = Math.max(x, Math.min(anchor[0], x + w)), ly = Math.max(y, Math.min(anchor[1], y + h));
-        ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = 0.85;
-        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(anchor[0], anchor[1]); ctx.stroke(); ctx.globalAlpha = 1;
-      }
-      ctx.fillStyle = 'rgba(0,0,0,.66)'; ctx.fillRect(x, y, w, h);
-      lines.forEach((l, i) => { ctx.fillStyle = l.kind === 'prior' ? PRIOR_COL : col; ctx.fillText(l.t, x + 4, y + (i + 1) * LINE_H - 2); });
-    }
-    const SIZE_KEY = { length: ['L', 'along'], width: ['W', 'across'], height: ['H', 'h'], diameter: ['D', 'diam'] };
-    function priorText(pr) {
-      if (pr.quantity === 'speed' || pr.quantity === 'velocity') {
-        const mt = /at\s*t\s*=\s*([\d.]+)/i.exec(pr.text);
-        return `prior v = ${fmtNum(pr.value_si)} m/s` + (mt ? ` @${mt[1]}s` : '');
-      }
-      if (pr.quantity === 'gravity') return `prior g = ${fmtNum(pr.value_si)} m/s²`;
-      if (SIZE_KEY[pr.quantity]) return `prior ${pr.quantity} = ${fmtLen(pr.value_si)}`;
-      return `prior ${pr.text}`;
-    }
-    function layerText(L, mpp) {
-      const lines = wrapName(L.name).map((t) => ({ t, kind: 'name' }));
-      const ext = L.extent || {};
-      if (isFinite(mpp)) {
-        const sz = (L.size_q || []).filter((q) => SIZE_KEY[q] && ext[SIZE_KEY[q][1]] != null)
-          .map((q) => `${SIZE_KEY[q][0]} ${fmtLen(ext[SIZE_KEY[q][1]] * mpp)}`);
-        if (sz.length) lines.push({ t: sz.join(' × '), kind: 'size' });
-      }
-      if (L.name === s.prior.layer && s.prior.value_si != null) lines.push({ t: priorText(s.prior), kind: 'prior' });
-      return lines;
-    }
-    function draw(t) {
-      tCur = t; placed = [];
-      let priorPose = null;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const cw = W * k, ch = H * k;
-      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cw, ch);
-      if (mode === 'video' && video && video.readyState >= 2) ctx.drawImage(video, 0, 0, cw, ch);
-      else if (bg.complete && bg.naturalWidth) ctx.drawImage(bg, 0, 0, cw, ch);
-      ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(0, 0, cw, ch);
-      const X = (p) => p[0] * k, Y = (p) => p[1] * k;
-      const half = 0.5 / fps + 1e-6;
-      const sc = s.scale, pr = s.prior;
-      const pending = [];   // labels are placed after all shapes, so the scale bar / g box can reserve their spots first
-      let nTracked = 0;
-      s.layers.forEach((L, i) => {
-        const col = PALETTE[i % PALETTE.length];
-        const still = !L.moving || L.segments.every((g) => g.model === 'static');
-        if (rawBox.checked) {
-          ctx.fillStyle = col; ctx.globalAlpha = 0.45;
-          L.c.forEach((c) => { ctx.beginPath(); ctx.arc(X(c), Y(c), 1.6, 0, 2 * Math.PI); ctx.fill(); });
-          ctx.globalAlpha = 1;
-        }
-        // model trajectories per segment (moving layers only)
-        if (!still) {
-          ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.setLineDash([7, 4]);
-          L.segments.forEach((sg) => {
-            if (sg.model === 'static') return;
-            ctx.beginPath();
-            const nS = 80;
-            for (let j = 0; j <= nS; j++) {
-              const p = segPos(sg, sg.t0 + ((sg.t1 - sg.t0) * j) / nS);
-              if (j) ctx.lineTo(X(p), Y(p)); else ctx.moveTo(X(p), Y(p));
-            }
-            ctx.stroke();
-            ctx.setLineDash([]); ctx.lineWidth = 1.5;
-            [sg.t0, sg.t1].forEach((tb) => { const q = segPos(sg, tb); ctx.strokeRect(X(q) - 3.5, Y(q) - 3.5, 7, 7); });
-            if (sg.model === 'circle') {
-              const c = sg.p.center; ctx.lineWidth = 1.4;
-              ctx.beginPath(); ctx.moveTo(X(c) - 6, Y(c)); ctx.lineTo(X(c) + 6, Y(c)); ctx.moveTo(X(c), Y(c) - 6); ctx.lineTo(X(c), Y(c) + 6); ctx.stroke();
-            }
-            ctx.setLineDash([7, 4]); ctx.lineWidth = 2.2;
-          });
-          ctx.setLineDash([]);
-        }
-        let bi = -1, bd = Infinity;
-        L.t.forEach((tt, j) => { const d = Math.abs(tt - t); if (d < bd) { bd = d; bi = j; } });
-        const sg = L.segments.find((x) => t >= x.t0 - half && t <= x.t1 + half);
-        let cur = null, bb = null, anchor = null;
-        if (bi >= 0 && bd <= half) {
-          const b = L.box[bi];
-          cur = { c: L.c[bi], box: b, hull: hullAt(L, bi) };
-          const occ = L.occ && L.occ.includes(bi), mrg = L.merged && L.merged.includes(bi);
-          if (L.stable) {
-            // rigid layer: one constant box for every frame (scene2d stable_extent_px), centred on the tracked centroid
-            const [sw, sh] = L.stable, c0 = L.c[bi];
-            const r = [(c0[0] - sw / 2) * k, (c0[1] - sh / 2) * k, sw * k, sh * k];
-            ctx.fillStyle = col; ctx.globalAlpha = 0.22; ctx.fillRect(...r); ctx.globalAlpha = 1;
-            ctx.strokeStyle = col; ctx.lineWidth = 2; if (occ) ctx.setLineDash([6, 4]);
-            ctx.strokeRect(...r); ctx.setLineDash([]);
-            bb = [r[0], r[1], r[0] + r[2], r[1] + r[3]]; anchor = [X(c0), Y(c0)];
-            cur.hull = null;
-          } else if (occ) {
-            ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
-            ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k); ctx.setLineDash([]);
-            bb = [b[0] * k, b[1] * k, b[2] * k, b[3] * k]; anchor = [X(cur.c), Y(cur.c)];
-            cur.hull = null;
-          }
-          if (bb) { /* drawn above */ } else if (cur.hull) {
-            ctx.fillStyle = col; ctx.globalAlpha = 0.3;
-            ctx.beginPath(); cur.hull.forEach((q, j) => (j ? ctx.lineTo(X(q), Y(q)) : ctx.moveTo(X(q), Y(q)))); ctx.closePath(); ctx.fill();
-            ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
-            const xs = cur.hull.map((q) => q[0] * k), ys = cur.hull.map((q) => q[1] * k);
-            bb = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
-            anchor = [xs.reduce((a, x) => a + x, 0) / xs.length, ys.reduce((a, y) => a + y, 0) / ys.length];
-          } else {
-            ctx.strokeStyle = col; ctx.lineWidth = 2;
-            ctx.strokeRect(b[0] * k, b[1] * k, (b[2] - b[0]) * k, (b[3] - b[1]) * k);
-            bb = [b[0] * k, b[1] * k, b[2] * k, b[3] * k]; anchor = [X(cur.c), Y(cur.c)];
-          }
-          // a frame where this layer's mask was merged with another object's (scene2d "merged")
-          if (mrg && bb) { ctx.fillStyle = col; ctx.font = '600 10.5px system-ui, sans-serif'; ctx.fillText('合并', bb[2] - 26, bb[3] - 4); }
-        } else if (sg) {
-          cur = { c: segPos(sg, t) };   // between tracked frames: the model dot only, no shape and no label
-        }
-        nTracked += bi >= 0 && bd <= half;
-        if (sg && !still) {
-          const p = segPos(sg, Math.min(Math.max(t, sg.t0), sg.t1));
-          ctx.fillStyle = col; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.arc(X(p), Y(p), 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
-        }
-        if (L.name === pr.layer) priorPose = { L, cur, sg };
-        if (bb) pending.push([layerText(L, sc.degenerate ? NaN : mPerPx(sc, cur.c[1])), col, anchor, bb]);
-      });
-      drawPrior(priorPose, t);
-      // one line at the bottom left: scale bar + where the scale comes from
-      const yb = 0.93 * H, mpp = mPerPx(sc, yb), x0 = 10, yy = yb * k;
-      ctx.font = '600 11.5px system-ui, sans-serif';
-      if (isFinite(mpp) && !sc.degenerate) {
-        const len = niceLen(0.22 * W * mpp), px = (len / mpp) * k;
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x0 + px, yy); ctx.moveTo(x0, yy - 5); ctx.lineTo(x0, yy + 5); ctx.moveTo(x0 + px, yy - 5); ctx.lineTo(x0 + px, yy + 5); ctx.stroke();
-        label(x0 + px + 8, yy + 6, fmtLen(len) + (pr.how ? ` · 尺度来自 prior：${pr.how}` : ''), '#fff', true);
-      } else {
-        let msg = `prior 不能定尺度（${noScaleReason(sc)}）`;
-        ctx.font = '600 11.5px system-ui, sans-serif';
-        while (msg.length > 12 && ctx.measureText(msg).width + 8 > W * k - x0) msg = msg.slice(0, -2) + '…';
-        label(x0, yy + 6, msg, '#ff8a80', true);
-      }
-      if (s.gravity_dir) {
-        const g = s.gravity_dir, cx = W * k - 40, cy = 40;
-        arrow(cx - g[0] * 22, cy - g[1] * 22, cx + g[0] * 22, cy + g[1] * 22, '#ffd43b');
-        label(cx + 8, cy - 20, 'g', '#ffd43b', true);
-      }
-      // consistency count: layers tracked in this frame vs layers drawn (should always agree)
-      label(8, 20, `视频可见 ${nTracked} / 画出 ${pending.length}`, nTracked === pending.length ? '#fff' : '#ff8a80', true);
-      const obstacles = pending.map((a) => [a[3][0], a[3][1], a[3][2] - a[3][0], a[3][3] - a[3][1]]);
-      pending.forEach((a) => placeLabel(a[0], a[1], a[2], a[3], obstacles));
-    }
-    // hull of the key frame nearest to tracked frame bi, shifted by the centroid motion between the two frames
-    function hullAt(L, bi) {
-      if (!L.hulls || !L.hulls.length) return null;
-      const t = L.t[bi];
-      let h = L.hulls[0];
-      L.hulls.forEach((x) => { if (Math.abs(x[0] - t) < Math.abs(h[0] - t)) h = x; });
-      let hj = 0;
-      L.t.forEach((tt, j) => { if (Math.abs(tt - h[0]) < Math.abs(L.t[hj] - h[0])) hj = j; });
-      const dx = L.c[bi][0] - L.c[hj][0], dy = L.c[bi][1] - L.c[hj][1];
-      return h[1].map((q) => [q[0] + dx, q[1] + dy]);
-    }
-    // the prior drawn on its own layer (its text is part of that layer's label): a dimension line for sizes,
-    // a 1 s displacement arrow for speeds (bright near the time the prior names, faint elsewhere)
-    function drawPrior(pp, t) {
-      const pr = s.prior;
-      if (!pp || !pp.cur || !pr.px || pr.quantity === 'gravity') return;
-      const { L, cur, sg } = pp, c = cur.c, ext = L.extent || {};
-      const o = L.orient && Math.hypot(L.orient[0], L.orient[1]) > 0 ? L.orient : [1, 0], perp = [-o[1], o[0]];
-      const P = (q) => [q[0] * k, q[1] * k];
-      if (SIZE_KEY[pr.quantity]) {
-        let d, off;
-        if (pr.quantity === 'height') { d = [0, 1]; off = [(ext.w || 0) / 2 + 8, 0]; }
-        else if (pr.quantity === 'length') { d = o; off = perp.map((v) => v * ((ext.across || ext.h || 0) / 2 + 8)); }
-        else if (pr.quantity === 'width') { d = perp; off = o.map((v) => v * ((ext.along || ext.w || 0) / 2 + 8)); }
-        else { d = [1, 0]; off = [0, (ext.h || 0) / 2 + 8]; }
-        if (pr.quantity !== 'height' && off[1] < 0) off = off.map((v) => -v);   // below the object: the label sits above it
-        const m = [c[0] + off[0], c[1] + off[1]], h = pr.px / 2;
-        dimLine(P([m[0] - d[0] * h, m[1] - d[1] * h]), P([m[0] + d[0] * h, m[1] + d[1] * h]), PRIOR_COL);
-        return;
-      }
-      if (pr.quantity === 'speed' || pr.quantity === 'velocity') {
-        let dir = o;
-        if (sg && sg.model !== 'static') {
-          const a = segPos(sg, Math.max(sg.t0, t - 0.02)), b = segPos(sg, Math.min(sg.t1, t + 0.02)), n = Math.hypot(b[0] - a[0], b[1] - a[1]);
-          if (n > 1e-6) dir = [(b[0] - a[0]) / n, (b[1] - a[1]) / n];
-        }
-        const mt = /at\s*t\s*=\s*([\d.]+)/i.exec(pr.text), tp = mt ? parseFloat(mt[1]) : NaN;
-        ctx.globalAlpha = !isFinite(tp) || Math.abs(t - tp) < 0.15 ? 1 : 0.35;
-        const p0 = P(c), p1 = P([c[0] + dir[0] * pr.px, c[1] + dir[1] * pr.px]);
-        arrow(p0[0], p0[1], p1[0], p1[1], PRIOR_COL);
-        ctx.globalAlpha = 1;
-      }
-    }
-    function setMode(m) {
-      mode = m;
-      btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.bg === m)));
-      draw(tCur);
-    }
-    btns.forEach((b) => { b.onclick = () => { if (!b.disabled) setMode(b.dataset.bg); }; });
-    rawBox.onchange = () => draw(tCur);
-    const tl = linkTime(bar, video, T, draw, ac.signal);
-    if (video) {
-      ['loadeddata', 'canplay', 'seeked'].forEach((ev) => video.addEventListener(ev, () => draw(tCur), { signal: ac.signal }));
-      video.addEventListener('error', () => { btns[0].disabled = true; setMode('layers'); }, { signal: ac.signal });
-    }
-    const ro = new ResizeObserver(resize); ro.observe(box);
-    resize(); tl.redraw();
-    return {
-      dispose() {
-        ac.abort(); tl.stop(); ro.disconnect();
-        btns.forEach((b) => { b.onclick = null; }); rawBox.onchange = null; bg.onload = null;
-        canvas.width = canvas.height = 0;
-      },
-    };
-  }
-
-  // ---------- object inventory + scene graph (2D scenes now; 3D scene fits once they carry them) ----------
-  function noteZh(n) {
-    const m = /(\d+) of (\d+) segment\(s\) leave the surface line/.exec(n || '');
-    if (m) return `${m[2]} 段里有 ${m[1]} 段离开支撑面那条线，自由模型拟合更好`;
-    if (/track is not along one line/.test(n || '')) return '轨迹不在一条直线上';
-    return n || '';
-  }
-  function rejectZh(r) {
-    const m = /duplicate track of '(.*)'/.exec(r || '');
-    return m ? `和 "${esc(m[1])}" 用的是同一条跟踪，而场景图判断两者不是同一个物体，所以拒绝较弱的这一层` : esc(r);
-  }
+  // ---------- object inventory + scene graph ----------
   // scene graph drawn as a tree (tools/build_videos.scene_tree): supports at the top, children below their parent;
   // a second parent (on the slope, then on the desk) and contact / above are extra edges (dashed for contact / above)
   function sceneTreeSvg(tree, order) {
@@ -967,21 +577,19 @@
       '<p class="muted" style="font-size:12.5px">父节点在上：子节点放在（或在里面、挂在）父节点上。边上写关系和时段；实线 = 第二个父节点（换了支撑面），虚线 = contact / above。灰色虚框 = 不在场、仅作参考或未重建。色条和物体表、视图里的颜色一致。</p>';
   }
 
-  function graphBlocks(inv, sg, rejected, layers, treeOpt) {
+  function graphBlocks(inv, sg, treeOpt) {
     let out = '';
     if (inv && inv.length) {
-      const o2 = (sg && sg.objects_2d) || {};
       let rows = '';
       inv.forEach((o) => {
         const al = o.aliases.filter((a) => a !== o.name);
         const role = [o.track === false ? '不跟踪（场景结构）' : '跟踪', o.dyn ? '动态' : (o.dyn === false ? '静态' : ''), o.role || ''].filter(Boolean).join(' · ');
-        const mp = o2[o.name] ? [o2[o.name].motion_plane, o2[o.name].surface].filter(Boolean).join(' / ') : '';
-        rows += `<tr><td>${esc(o.name)}${rejected && rejected[o.name] ? ' <span class="fwarn">（层被拒绝）</span>' : ''}</td><td>${al.length ? al.map(esc).join('；') : '<span class="muted">—</span>'}</td>` +
-          `<td>${esc(o.where.join(', '))}</td><td>${esc(role)}</td><td>${esc(mp)}</td></tr>`;
+        rows += `<tr><td>${esc(o.name)}</td><td>${al.length ? al.map(esc).join('；') : '<span class="muted">—</span>'}</td>` +
+          `<td>${esc(o.where.join(', '))}</td><td>${esc(role)}</td></tr>`;
       });
-      out += '<h4>物体清单</h4><div class="scroll-x"><table><tr><th>物体（canonical 名）</th><th>别名</th><th>出现在</th><th>角色</th><th>运动平面 / 支撑面</th></tr>' + rows + '</table></div>';
+      out += '<h4>物体清单</h4><div class="scroll-x"><table><tr><th>物体（canonical 名）</th><th>别名</th><th>出现在</th><th>角色</th></tr>' + rows + '</table></div>';
     }
-    if (sg || (rejected && Object.keys(rejected).length)) {
+    if (sg) {
       const items = [];
       ((sg && sg.edges) || []).forEach((e) => {
         const tr = e.t0 != null && e.t1 != null ? ` <span class="muted">${fmt(e.t0, 2)}–${fmt(e.t1, 2)} s</span>` : '';
@@ -989,65 +597,12 @@
         items.push(e.to ? `${esc(e.from)} <b>${esc(e.rel)}</b> ${esc(e.to)}${cf}${tr}` : `${esc(e.from)} — <b>${esc(e.rel)}</b>${cf}${tr}`);
       });
       ((sg && sg.same) || []).forEach((x) => items.push(`${esc(x.a)} <b>${x.same ? '=' : '≠'}</b> ${esc(x.b)}` + (x.conf != null ? ` <span class="muted">(conf ${fmt(x.conf, 2)})</span>` : '')));
-      Object.entries(rejected || {}).forEach(([k, r]) => items.push(`<span class="fwarn">拒绝的层</span> ${esc(k)}：${rejectZh(r)}`));
-      (layers || []).forEach((L) => {
-        const c = L.constraint || {};
-        if (!c.mode) return;
-        const rel = c.mode === 'surface' ? `on ${c.surface || '支撑面'}` : c.mode;
-        if (c.applied === false) items.push(`<span class="fwarn">约束被轨迹否决</span> ${esc(L.name)} ${esc(rel)}：${esc(noteZh(c.note))}`);
-        else if (c.applied === true) items.push(`约束已用于拟合：${esc(L.name)} ${esc(rel)}`);
-      });
       if (sg && sg.support && sg.support.length) items.push(`<span class="muted">支撑面节点：${sg.support.map(esc).join('、')}</span>`);
       const list = items.length ? `<ul class="sg-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>` : '<p class="muted">没有边。</p>';
       out += `<h4>场景图${sg && sg.source ? `<span class="muted" style="font-weight:400">（来源 ${esc(sg.source)}）</span>` : ''}</h4>` +
         (treeOpt && treeOpt.tree ? sceneTreeSvg(treeOpt.tree, treeOpt.order) + `<details class="sfres"><summary>关系文字（备查）</summary>${list}</details>` : list);
     }
     return out;
-  }
-
-  // s2d_v5 consistency checks (each block only when the scene json has it)
-  function checkBlocks(s) {
-    const ok = (x) => (x === false ? '<span class="fwarn">✗</span>' : x === true ? '✓' : '');
-    const items = [];
-    (s.relation_checks || []).forEach((r) => r.candidates.forEach((c) => c.checks.forEach((x) =>
-      items.push(`${ok(x.ok)} ${esc(r.from)} <b>${esc(x.rel)}</b> ${esc(x.to)} <span class="muted">（候选 ${esc(c.cache)}：${esc(x.why)}）</span>`))));
-    (s.size_checks || []).forEach((x) =>
-      items.push(`${ok(x.ok)} ${esc(x.smaller)} &lt; ${esc(x.larger)} <span class="muted">（${(x.px || []).map(fmtNum).join(' / ')} px，${esc(x.why)}）</span>`));
-    Object.entries(s.refmeasure || {}).forEach(([k, m]) =>
-      items.push(`参考测量 <b>${esc(k)}</b> = ${fmtNum(m.px)} px <span class="muted">（第 ${esc(m.frame)} 帧，${esc(m.relation)}，conf ${fmt(m.conf, 2)}${m.spread != null ? `，帧间离散 ${fmt(m.spread, 3)}` : ''}）</span>`));
-    if (s.critique) {
-      s.critique.applied.forEach((a) => items.push(`评审采纳：<code>${esc(a)}</code>`));
-      s.critique.rejected.forEach((a) => items.push(`<span class="muted">评审未采纳：<code>${esc(a)}</code></span>`));
-    }
-    return items.length ? `<h4>一致性检查</h4><ul class="sg-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>` : '';
-  }
-
-  function layerTables(v) {
-    const s = v.scene2d, sc = s.scale, pr = s.prior;
-    let rows = '';
-    s.layers.forEach((L, i) => {
-      const segs = L.segments.map((g) => `${MODEL_LABEL[g.model] || esc(g.model)} <span class="muted">${fmt(g.t0, 2)}–${fmt(g.t1, 2)} s · rms ${fmt(g.rms, 1)}</span>`).join('<br>');
-      const ext = L.extent || {}, mpp = sc.degenerate ? NaN : sc.m_per_px_ref;
-      const ext_m = ext.along != null && isFinite(mpp) ? `<div class="muted">${fmtLen(ext.along * mpp)} × ${fmtLen(ext.across * mpp)}</div>` : '';
-      rows += `<tr><td><span class="swatch" style="background:${PALETTE[i % PALETTE.length]}"></span></td><td>${esc(L.name)}` +
-        (L.flags.length ? `<div class="known">${L.flags.map(esc).join('；')}</div>` : '') + '</td>' +
-        `<td>${L.visible.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ')} s</td><td>${segs}</td>` +
-        `<td class="n">${fmtNum(ext.along)} × ${fmtNum(ext.across)}${ext_m}</td><td class="n">${fmtNum(ext.h)}</td><td>${esc(ext.src || '')}</td><td class="n">${fmt(L.rms, 2)}</td></tr>`;
-    });
-    const scaleTxt = !sc.m_per_px_ref || sc.degenerate ? `没有可用的尺度（${noScaleReason(sc)}）` : sc.model === 'loglinear_y'
-      ? `透视模型 m/px(y) = ${fmtNum(sc.m_per_px_ref)} · exp(−${fmtNum(sc.k_per_px)} · (y − ${fmtNum(sc.y_ref)}))`
-      : `均匀 ${fmtNum(sc.m_per_px_ref)} m/px`;
-    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, s.rejected, s.layers, { tree: v.stree, order: s.layers.map((L) => L.name) }) + checkBlocks(s) +
-      (v.objtab ? objectTable(v, s.layers.map((L) => L.name)) :
-        '<h4>图层</h4><div class="scroll-x"><table><tr><th></th><th>图层（物体）</th><th>可见时段</th><th>分段运动模型</th>' +
-        '<th class="n" title="length = 沿朝向（运动方向；静止物体取掩码主轴），width = 垂直朝向">length × width (px)</th><th class="n">竖直高度 (px)</th><th>尺寸来源</th><th class="n">残差 (px)</th></tr>' +
-        rows + '</table></div>') +
-      `<p class="muted" style="font-size:12.5px">尺度：${scaleTxt}（${s.width}×${s.height} px 坐标）；` +
-      (pr.layer ? `来自 prior "${esc(pr.text)}"，在图层 "${esc(pr.layer)}" 上量得 ${fmtNum(pr.px)} ${pr.quantity === 'speed' ? 'px/s' : pr.quantity === 'gravity' ? 'px/s²' : 'px'}（${esc(pr.how)}）。` : `prior "${esc(pr.text)}"。`) +
-      (sc.model !== 'loglinear_y' && sc.persp_reason ? `没用透视模型：${esc(sc.persp_reason)}。` : '') +
-      (sc.notes.length ? sc.notes.map(esc).join('；') + '。' : '') +
-      (s.gravity_dir ? `重力方向（图像坐标）(${fmt(s.gravity_dir[0], 3)}, ${fmt(s.gravity_dir[1], 3)})${s.gravity_source ? `，来自 ${esc(s.gravity_source)}` : ''}。` : '') +
-      '残差是该段模型位置与跟踪质心的均方根误差。</p>';
   }
 
   // ---------- three.js scene viewer ----------
@@ -1289,14 +844,14 @@
     items.forEach((x) => list.appendChild(videoCard(x.v, x.qs, 'val')));
   }
   // test questions without a scene answer (tools/build_videos.test_noanswer): summary + one flat table
-  const SRC_ZH = { vlm: 'Qwen', geo: '几何', s2d: '场景（2D）', fit: '场景（3D）' };
+  const SRC_ZH = { vlm: 'Qwen', geo: '几何', fit: '场景拟合' };
   function noAnswerSummary(na) {
     const tot = Object.values(na.by_cat).reduce((a, x) => a + x[0], 0);
     const cats = CATS.map((c) => `<tr><td>${c}</td><td class="n">${na.by_cat[c][0]}</td><td class="n">${na.by_cat[c][1]}</td><td class="n">${fmt((100 * na.by_cat[c][0]) / Math.max(na.by_cat[c][1], 1), 1)}%</td></tr>`).join('');
     const rs = na.by_reason.map(([r, n]) => `<tr><td>${esc(r)}</td><td class="n">${n}</td></tr>`).join('');
     return `<div class="noans-sum"><div><b>没有答案：${tot} / ${na.total} 题（${fmt((100 * tot) / na.total, 1)}%）</b><div class="scroll-x"><table><tr><th>类别</th><th class="n">没有答案</th><th class="n">总题数</th><th class="n">占比</th></tr>${cats}</table></div></div>` +
       `<div><b>原因分布</b><div class="scroll-x"><table><tr><th>原因</th><th class="n">题数</th></tr>${rs}</table></div></div></div>` +
-      `<p class="muted" style="font-size:12.5px">口径："没有答案" = 场景没给出可用值的题：2D 题看图层场景的值是否为空（原因取该题的 method / notes），3D 题看场景拟合是否给出该题的值或整个视频没有拟合。"预测值"取测试集预测文件，来源列取各题的 source（vlm = 模型估计，geo = 几何，s2d = 2D 场景）；来源列和"场景有没有值"不是一回事，这里的筛选按场景有没有值判断。</p>`;
+      `<p class="muted" style="font-size:12.5px">口径："没有答案" = 3D 场景没给出可用值的题：场景拟合没有给出该题的值，或整个视频还没有 3D 场景（待 v1 重跑）。"预测值"取测试集预测文件，来源列取各题的 source（vlm = 模型估计，geo = 几何）；来源列和"场景有没有值"不是一回事，这里的筛选按场景有没有值判断。</p>`;
   }
   function renderNoAnswer() {
     const na = DATA.test.noans, cat = $('t-cat').value, needle = $('t-q').value.trim().toLowerCase();
@@ -1318,7 +873,7 @@
     const cat = $('t-cat').value, vsrc = $('t-vsrc').value, fit = $('t-fit').value, sort = $('t-sort').value;
     const needle = $('t-q').value.trim().toLowerCase();
     let items = DATA.test.videos.filter((v) => (!vsrc || v.source === vsrc) &&
-      (!fit || (fit === 'yes' ? hasScene(v) : v.dim === 3 && !hasScene(v)))).map((v) => {
+      (!fit || (fit === 'yes' ? hasScene(v) : !hasScene(v)))).map((v) => {
       const qs = v.questions.filter((q) => (!cat || q.cat === cat) && matchText(v, q, needle));
       return { v, qs };
     }).filter((x) => x.qs.length);

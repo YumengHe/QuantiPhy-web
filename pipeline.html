@@ -7,47 +7,34 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="site.css">
 <style>
-  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13.5px; margin: 0 0 14px; align-items: center; }
-  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; border: 2px solid; }
-  .sw.sh { background: var(--sh-soft); border-color: var(--sh); }
-  .sw.d2 { background: var(--c2d-soft); border-color: var(--c2d); }
-  .sw.d3 { background: var(--c3d-soft); border-color: var(--c3d); }
   .flow { display: flex; flex-direction: column; }
   .node { border-radius: 8px; padding: 8px 12px; border: 2px solid var(--sh); background: var(--sh-soft); }
-  .node.d2 { border-color: var(--c2d); background: var(--c2d-soft); }
-  .node.d3 { border-color: var(--c3d); background: var(--c3d-soft); }
   .node .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
   .node .hd b { font-size: 15px; }
   .node .m { display: block; font-size: 13px; color: var(--muted); }
   .arrow { align-self: center; width: 2px; height: 16px; background: var(--muted); position: relative; margin: 2px 0 9px; }
   .arrow::after { content: ""; position: absolute; left: -5px; bottom: -8px; border-left: 6px solid transparent;
     border-right: 6px solid transparent; border-top: 8px solid var(--muted); }
-  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-  .col { display: flex; flex-direction: column; }
-  .colhd { font-size: 13px; font-weight: 700; margin: 0 0 6px; }
-  .col.c2 .colhd { color: var(--c2d); } .col.c3 .colhd { color: var(--c3d); }
   .loop { border: 2px dashed var(--sh); border-radius: 14px; padding: 10px 12px; background: var(--panel); }
   .loop .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
   .loop .hd b { font-size: 16px; }
   .lgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 8px; }
   .lbox { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; background: var(--sh-soft); }
   .lbox b { display: block; font-size: 14px; }
-  @media (max-width: 720px) { .cols { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
 <main class="wrap">
-<nav class="nav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#answers">答案来源</a></nav>
+<nav class="nav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a><a href="#flow">流程图</a><a href="#planar">平面视频</a><a href="#steps">步骤表</a><a href="#answers">答案来源</a></nav>
 
 <h1>重建流水线</h1>
 <p class="lede">一个视频一次走完整条流程：先看清楚有哪些物体、它们怎么动，再建出带尺度的场景，由 agent 检查和修正，最后从场景里量出答案。</p>
 <p class="muted small">入口是 <code>python -m pipeline.harness</code>，代码说明见仓库的 <code>docs/HARNESS.md</code>。</p>
 
 <h2 id="flow">流程图</h2>
-<div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span></div>
 <div class="flow">
   <div class="node"><div class="hd"><b>输入</b><span class="st done">已实现</span></div>
-    <span class="m">视频、题目，以及本题给的已知量（prior）和 3D 题的深度信息（depth_info）。不读取答案。</span></div>
+    <span class="m">视频、题目，以及本题给的已知量（prior）和深度信息（depth_info，有的题才有）。不读取答案。</span></div>
   <div class="arrow"></div>
   <div class="node"><div class="hd"><b>物体清单</b><span class="st done">已实现</span></div>
     <span class="m">从题目和 prior 里列出要量的物体及必要的支撑物：名字、别名、数量、形状和位置提示。</span></div>
@@ -58,24 +45,11 @@
   <div class="node"><div class="hd"><b>跟踪</b><span class="st done">已实现</span></div>
     <span class="m">检测并逐帧跟踪清单里的每个物体，得到像素轨迹和掩码；轨迹身份经过复核，不确定时记为未知。</span></div>
   <div class="arrow"></div>
-  <div class="cols">
-    <div class="col c2">
-      <div class="colhd">2D 视频</div>
-      <div class="node d2"><div class="hd"><b>观测</b><span class="st done">已实现</span></div>
-        <span class="m">掩码凸包给出每帧的像素尺寸和位置；refmeasure 给出物体端点，用于长度测量。</span></div>
-      <div class="arrow"></div>
-      <div class="node d2"><div class="hd"><b>2D 图层场景</b><span class="st done">已实现</span></div>
-        <span class="m">每个物体一层；用 prior 定出米 / 像素的尺度，运动按分段模型拟合。</span></div>
-    </div>
-    <div class="col c3">
-      <div class="colhd">3D 视频</div>
-      <div class="node d3"><div class="hd"><b>观测</b><span class="st done">已实现</span></div>
-        <span class="m">地面（支撑面）和深度；refmeasure 给出物体端点。</span></div>
-      <div class="arrow"></div>
-      <div class="node d3"><div class="hd"><b>3D 场景拟合</b><span class="st done">已实现</span></div>
-        <span class="m">拟合相机、支撑面、物体形状和运动，使投影和跟踪、深度、prior 一致。</span></div>
-    </div>
-  </div>
+  <div class="node"><div class="hd"><b>观测</b><span class="st done">已实现</span></div>
+    <span class="m">地面（支撑面）和深度；refmeasure 给出物体端点，用于长度测量；掩码范围给出每帧物体在画面里的大小和位置。</span></div>
+  <div class="arrow"></div>
+  <div class="node"><div class="hd"><b>3D 场景拟合</b><span class="st done">已实现</span></div>
+    <span class="m">拟合相机、支撑面、物体形状和运动，使投影和跟踪、深度、prior 一致。</span></div>
   <div class="arrow"></div>
   <div class="loop">
     <div class="hd"><b>agent 回路：每组 2–10 轮</b><span class="st done">已实现</span></div>
@@ -90,16 +64,19 @@
     <span class="m">在最终场景里量出题目问的量。场景量不到的题由模型估，答案标为 prior。</span></div>
 </div>
 
+<h3 id="planar">平面视频</h3>
+<p>固定相机、物体在一个平面里运动的视频不另起一条流程，按 3D 场景的特例处理：支撑面近似正对相机，尺度由 prior 定。焦距这时无法从画面里辨识，场景里会明确标出来。</p>
+
 <h2 id="steps">步骤表</h2>
 <div class="scroll-x"><table>
-  <tr><th>步骤</th><th>2D</th><th>3D</th><th>状态</th></tr>
-  <tr><td>物体清单</td><td colspan="2">从题目和 prior 中提取物体、别名、数量、形状与位置提示</td><td><span class="st done">已实现</span></td></tr>
-  <tr><td>场景图</td><td colspan="2">支撑、接触、运动关系，按帧更新</td><td><span class="st done">已实现</span></td></tr>
-  <tr><td>跟踪</td><td colspan="2">逐帧像素轨迹与掩码，轨迹身份复核</td><td><span class="st done">已实现</span></td></tr>
-  <tr><td>观测</td><td>掩码凸包；refmeasure 端点</td><td>地面与深度；refmeasure 端点</td><td><span class="st done">已实现</span></td></tr>
-  <tr><td>场景</td><td>2D 图层场景：prior 定尺度，分段运动模型</td><td>3D 场景拟合：相机、支撑面、形状与运动</td><td><span class="st done">已实现</span></td></tr>
-  <tr><td>agent 回路</td><td colspan="2">观察 / 修改工具，固定证据验收，不通过则回滚；2–10 轮</td><td><span class="st done">已实现</span></td></tr>
-  <tr><td>作答</td><td colspan="2">从最终场景量出答案；量不到的题由模型估并标 prior</td><td><span class="st done">已实现</span></td></tr>
+  <tr><th>步骤</th><th>做什么</th><th>状态</th></tr>
+  <tr><td>物体清单</td><td>从题目和 prior 中提取物体、别名、数量、形状与位置提示</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>场景图</td><td>支撑、接触、运动关系，按帧更新</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>跟踪</td><td>逐帧像素轨迹与掩码，轨迹身份复核</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>观测</td><td>地面（支撑面）、深度、refmeasure 端点、掩码范围</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>3D 场景拟合</td><td>相机、支撑面、物体形状与运动</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>agent 回路</td><td>观察 / 修改工具，固定证据验收，不通过则回滚；2–10 轮</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>作答</td><td>从最终场景量出答案；量不到的题由模型估并标 prior</td><td><span class="st done">已实现</span></td></tr>
 </table></div>
 
 <h2 id="answers">答案来源</h2>

@@ -13,7 +13,7 @@
   :root {
     --bg: #f7f7f5; --panel: #ffffff; --text: #1f2328; --muted: #656d76; --border: #d9dde2;
     --accent: #3b5bdb; --accent-soft: #e7ecfb; --code-bg: #f0f1f3;
-    --m4: #d3f0dc; --m4t: #14532d; --m3: #e8f3c8; --m3t: #3f5212;
+    --m4: #d3f0dc; --m4t: #14532e; --m3: #e8f3c8; --m3t: #3f5212;
     --m2: #fdebc8; --m2t: #7a4a06; --m1: #fbd5d0; --m1t: #8a1c12; --m0: #ecd3e6; --m0t: #6b1450;
     --scene-bg: #f2f3f5;
   }
@@ -85,15 +85,13 @@
   .qtable .known { color: var(--muted); font-size: 12.5px; white-space: pre-wrap; margin-top: 3px; }
   .known-shared { white-space: pre-wrap; font-size: 13px; color: var(--muted); background: var(--code-bg); border-radius: 6px; padding: 8px 10px; margin: 0 0 8px; }
   .qtable td.pred { font-weight: 600; }
-  /* the value column the final prediction came from: geometry = blue, 2D scene = green, Qwen = orange */
+  /* the value column the final prediction came from: geometry = blue, scene fit = purple, Qwen = orange */
   .qtable td.picked { font-weight: 600; border-radius: 4px; }
   .qtable td.picked.src-geo { background: rgba(59, 130, 246, .18); }
-  .qtable td.picked.src-s2d { background: rgba(34, 197, 94, .18); }
   .qtable td.picked.src-fit { background: rgba(147, 51, 234, .18); }
   .qtable td.picked.src-vlm { background: rgba(249, 115, 22, .18); }
   .srcdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
   .srcdot.src-geo { background: rgb(59, 130, 246); }
-  .srcdot.src-s2d { background: rgb(34, 197, 94); }
   .srcdot.src-fit { background: rgb(147, 51, 234); }
   .srcdot.src-vlm { background: rgb(249, 115, 22); }
   .media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 4px; }
@@ -160,10 +158,6 @@
   .vcount { position: absolute; left: 8px; top: 8px; z-index: 2; font: 600 12px system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.62); padding: 2px 7px; border-radius: 4px; pointer-events: none; }
   .vcount.bad { color: #ff8a80; }
   .vright-row { display: flex; align-items: center; gap: 6px; }
-  .evtag { font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--code-bg); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
-  .evbox { margin: 12px 0 4px; padding: 8px 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; font-size: 13.5px; line-height: 1.6; }
-  .evbox h4 { margin: 0 0 4px; }
-  .ev-rep { margin-top: 4px; }
   .vright { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: none; }
   .runat { font-size: 11.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .sg-list { margin: 0 0 6px; padding-left: 20px; font-size: 13.5px; line-height: 1.6; }
@@ -183,7 +177,7 @@
 <header>
   <nav class="topnav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a></nav>
   <h1>视频与场景</h1>
-  <p>逐个视频看原视频、重建的 2D 图层场景或 3D 场景、物体表和每道题的答案来源。验证集有标准答案，显示 MRA；测试集只有预测。</p>
+  <p>逐个视频看原视频、重建的 3D 场景、物体表和每道题的答案来源。验证集有标准答案，显示 MRA；测试集只有预测。</p>
   <p class="notice">场景数据待 v1 重跑更新：现在显示的是重跑前的产物。</p>
   <p id="gen" class="muted"></p>
 </header>
@@ -209,7 +203,7 @@
   </div>
   <div class="controls">
     <label>类别 <select id="v-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
-    <label>答案来源 <select id="v-src"><option value="">全部</option><option value="scene">场景重放</option><option value="measurement">独立测量</option><option value="prior">显式先验</option><option value="unresolved">未解决</option><option value="geo">旧几何</option><option value="vlm">旧 Qwen</option><option value="fit">旧拟合值</option><option value="s2d">旧 2D 场景值</option></select></label>
+    <label>答案来源 <select id="v-src"><option value="">全部</option><option value="scene">场景重放</option><option value="measurement">独立测量</option><option value="prior">显式先验</option><option value="unresolved">未解决</option><option value="geo">旧几何</option><option value="vlm">旧 Qwen</option><option value="fit">旧拟合值</option></select></label>
     <label>视频来源 <select id="v-vsrc"><option value="">全部</option></select></label>
     <label>题目 MRA <select id="v-mra"><option value="">全部</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
     <label>排序 <select id="v-sort"><option value="mra-asc" selected>平均 MRA 从低到高</option><option value="id">视频名</option><option value="mra-desc">平均 MRA 从高到低</option><option value="n-desc">题数从多到少</option></select></label>
@@ -227,10 +221,10 @@
   <div class="controls">
     <label>类别 <select id="t-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
     <label>视频来源 <select id="t-vsrc"><option value="">全部</option></select></label>
-    <label>场景拟合 <select id="t-fit"><option value="">全部</option><option value="yes">有</option><option value="no">3D 但没有</option></select></label>
+    <label>3D 场景 <select id="t-fit"><option value="">全部</option><option value="yes">有</option><option value="no">没有（待 v1 重跑）</option></select></label>
     <label>排序 <select id="t-sort"><option value="id">视频名</option><option value="n-desc">题数从多到少</option></select></label>
     <label><input type="search" id="t-q" placeholder="搜索视频名或问题"></label>
-    <label title="只列出场景（2D 图层场景 / 3D 拟合）没给出可用值的题"><input type="checkbox" id="t-noans"> 只看没有答案的题</label>
+    <label title="只列出 3D 场景没给出可用值的题"><input type="checkbox" id="t-noans"> 只看没有答案的题</label>
   </div>
   <div id="t-noans-sum"></div>
   <div class="status" id="t-status"></div>

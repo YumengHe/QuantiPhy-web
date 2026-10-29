@@ -5,8 +5,8 @@
 | 文件 | 内容 |
 |---|---|
 | `index.html` | 首页：项目定位、流水线概览、数据集、验证集结果表、场景浏览入口 |
-| `pipeline.html` | 流程图（2D 左、3D 右）、步骤表、答案来源 |
-| `videos.html` + `videos.js` | 逐视频浏览：原视频、2D 图层 / 3D 场景、逐题答案与来源 |
+| `pipeline.html` | 流程图（单条链）、平面视频的处理、步骤表、答案来源 |
+| `videos.html` + `videos.js` | 逐视频浏览：原视频、3D 场景（还没有的显示"待 v1 重跑"）、逐题答案与来源 |
 | `site.css` | 首页和流水线页共用的样式 |
 | `data/` | 场景浏览页的数据（`videos.json`、缩略图、场景、叠加图），由 `tools/build_videos.py` 生成 |
 | `media/val`、`media/test` | 指向原视频目录的软链（不入 git） |
@@ -26,7 +26,7 @@
 ```bash
 python -B web/tools/build_videos.py                    # 验证集：读当前代码版本（pipeline/VERSION）的 harness 运行结果
 python -B web/tools/build_videos.py --val-run <tag>    # 指定运行标签
-python -B web/tools/build_videos.py --test-sub <csv> --test-fit <dir> --test-s2d <dir>   # 同时重建测试集标签页
+python -B web/tools/build_videos.py --test-sub <csv> --test-fit <dir>   # 同时重建测试集标签页
 ```
 
 不给 `--test-sub` 时保留 `data/videos.json` 里已有的测试集数据。脚本只读已有产物，不运行流水线。
