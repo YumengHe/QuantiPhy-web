@@ -1,9 +1,117 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuantiPhy · 最终提交</title><style>
-:root{font-family:Inter,system-ui,sans-serif;color:#192b3c;background:#f4f6f8}body{max-width:1120px;margin:auto;padding:40px 24px}h1{font-size:36px;letter-spacing:-1px;margin:8px 0}h2{font-size:22px}p{line-height:1.7}.muted{color:#607184}.eyebrow{color:#31668a;font-size:13px;letter-spacing:2px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card,.flow{background:white;border:1px solid #dce3e9;border-radius:12px;padding:24px;margin:20px 0}.tag{display:inline-block;font-size:12px;border-radius:20px;background:#e8f1f6;padding:5px 10px}.value{font-size:34px;font-weight:650;margin:14px 0}.bar{height:7px;background:#e9edf0;border-radius:7px;overflow:hidden}.fill{height:100%;width:0;background:#377b9b}.button{display:inline-block;margin-top:20px;border-radius:6px;padding:11px 16px;background:#215b7b;color:white;text-decoration:none}.disabled{background:#b6c1c9;pointer-events:none}.flowline{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:18px 0}.node{border:1px solid #ccd9e2;border-radius:7px;padding:12px;background:#fafcfd}.arrow{color:#7c909e}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:13px 10px;border-bottom:1px solid #e4e9ed;text-align:left;vertical-align:top}code{font-size:12px;background:#edf1f4;padding:2px 5px}.notice{border-left:3px solid #377b9b;padding-left:16px}.small{font-size:13px}@media(max-width:720px){.grid{grid-template-columns:1fr}body{padding:24px 14px}h1{font-size:29px}table{font-size:12px}}
-</style></head><body><div class="eyebrow">QUANTIPHY / FINAL RELEASE</div><h1>两套模型，同一条最终流水线</h1><p class="muted">使用统一的几何重建与 agent 策略，分别生成开源和闭源提交。完整测试集：3289题，568个视频。</p><p class="notice">官网当前标注的截止时间为 2026-10-26 11:59 UTC，现已过期。能否补交请向主办方确认：<a href="https://quantiphy.stanford.edu/competition/index.html" target="_blank" rel="noopener">官方截止公告</a>。</p><p class="notice" id="preparation">正在准备最终测试集推理。</p>
-<div class="grid"><section class="card"><span class="tag">Track A · 闭源</span><h2>Astra high / v97</h2><p class="muted">严格验证参考：完整159题 MRA 0.77409；非重叠43题 0.66756。该分数不是测试集分数。</p><div class="value" id="closed-count">0 / 3289</div><div class="bar"><div class="fill" id="closed-bar"></div></div><p id="closed-state">准备中</p><p class="muted small" id="closed-detail"></p><a class="button disabled" id="closed-download" href="exports/submission_closed.csv" download>下载闭源提交 CSV</a></section>
-<section class="card"><span class="tag">Track B · 开源</span><h2>Qwen3.8-27B / v98</h2><p class="muted">结构化定位配置的完整159题参考 MRA 0.75116（1题未解计零）；最终推理启用同一 agent 回路。该分数不是测试集分数。</p><div class="value" id="open-count">0 / 3289</div><div class="bar"><div class="fill" id="open-bar"></div></div><p id="open-state">准备中</p><p class="muted small" id="open-detail"></p><a class="button disabled" id="open-download" href="exports/submission_open.csv" download>下载开源提交 CSV</a></section></div>
-<section class="flow"><h2>最终流水线 · 已实现</h2><div class="flowline"><span class="node">本题 / 自身 prior 与深度</span><span class="arrow">→</span><span class="node">清单、场景图、跟踪</span><span class="arrow">→</span><span class="node">2D图层 / 3D场景</span><span class="arrow">→</span><span class="node">agent观察与自检，2–10轮</span><span class="arrow">→</span><span class="node">场景重放或显式 prior</span><span class="arrow">→</span><span class="node">严格模板 CSV</span></div>
-<table><thead><tr><th>步骤</th><th>2D</th><th>3D</th><th>状态</th></tr></thead><tbody><tr><td>视觉观测</td><td>对象清单、像素轨迹与轮廓</td><td>对象清单、像素轨迹与深度锚点</td><td>已实现；不兼容缓存重新处理</td></tr><tr><td>场景拟合</td><td>自身 prior 标尺、图层和运动</td><td>相机、支撑面、解析形状和运动</td><td>保留已验证几何；不纳入三次轨迹等候选</td></tr><tr><td>agent回路</td><td>观察、修正、固定证据验收或回滚</td><td>观察、修正、固定证据验收或回滚</td><td>已实现；每组2–10轮</td></tr><tr><td>终端作答</td><td colspan="2">从最终场景重放；不可测时明确调用本题 prior 工具。缺失或无效值不填常数。</td><td>已实现</td></tr><tr><td>产物隔离</td><td colspan="2">开源与闭源使用独立定位、参考测量、场景和答案缓存。输入视频与开源视觉种子可共享。</td><td>已实现</td></tr></tbody></table></section>
-<section class="card"><h2>交付检查</h2><p>仅当CSV完整通过检查后开放下载：3289行、与官方模板列和顺序一致、每个预测为正且有限、没有缺项。网页每15秒更新。</p><p class="muted small" id="updated">尚未读取状态</p><p class="muted small">历史验证结果和实验归档保留在NAS；不再保留同级开发工作区。模型权重与原始测试集保留。目标0.9未达到，不将局部实验增益当作已实现结果。</p></section>
-<script>async function refresh(){try{let r=await fetch('final_status.json?t='+Date.now());if(!r.ok)return;let s=await r.json();document.getElementById('updated').textContent='更新：'+s.updated;document.getElementById('preparation').textContent=s.preparation;for(let name of ['closed','open']){let x=s.models[name];document.getElementById(name+'-count').textContent=x.resolved+' / 3289';document.getElementById(name+'-bar').style.width=(100*x.resolved/3289)+'%';document.getElementById(name+'-state').textContent=x.state;document.getElementById(name+'-detail').textContent=x.detail;if(x.artifact_ready)document.getElementById(name+'-download').classList.remove('disabled');}}catch(e){}}refresh();setInterval(refresh,15000);</script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>重建流水线</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="site.css">
+<style>
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13.5px; margin: 0 0 14px; align-items: center; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; border: 2px solid; }
+  .sw.sh { background: var(--sh-soft); border-color: var(--sh); }
+  .sw.d2 { background: var(--c2d-soft); border-color: var(--c2d); }
+  .sw.d3 { background: var(--c3d-soft); border-color: var(--c3d); }
+  .flow { display: flex; flex-direction: column; }
+  .node { border-radius: 8px; padding: 8px 12px; border: 2px solid var(--sh); background: var(--sh-soft); }
+  .node.d2 { border-color: var(--c2d); background: var(--c2d-soft); }
+  .node.d3 { border-color: var(--c3d); background: var(--c3d-soft); }
+  .node .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .node .hd b { font-size: 15px; }
+  .node .m { display: block; font-size: 13px; color: var(--muted); }
+  .arrow { align-self: center; width: 2px; height: 16px; background: var(--muted); position: relative; margin: 2px 0 9px; }
+  .arrow::after { content: ""; position: absolute; left: -5px; bottom: -8px; border-left: 6px solid transparent;
+    border-right: 6px solid transparent; border-top: 8px solid var(--muted); }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .col { display: flex; flex-direction: column; }
+  .colhd { font-size: 13px; font-weight: 700; margin: 0 0 6px; }
+  .col.c2 .colhd { color: var(--c2d); } .col.c3 .colhd { color: var(--c3d); }
+  .loop { border: 2px dashed var(--sh); border-radius: 14px; padding: 10px 12px; background: var(--panel); }
+  .loop .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .loop .hd b { font-size: 16px; }
+  .lgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 8px; }
+  .lbox { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; background: var(--sh-soft); }
+  .lbox b { display: block; font-size: 14px; }
+  @media (max-width: 720px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<main class="wrap">
+<nav class="nav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a><a href="#flow">流程图</a><a href="#steps">步骤表</a><a href="#answers">答案来源</a></nav>
+
+<h1>重建流水线</h1>
+<p class="lede">一个视频一次走完整条流程：先看清楚有哪些物体、它们怎么动，再建出带尺度的场景，由 agent 检查和修正，最后从场景里量出答案。</p>
+<p class="muted small">入口是 <code>python -m pipeline.harness</code>，代码说明见仓库的 <code>docs/HARNESS.md</code>。</p>
+
+<h2 id="flow">流程图</h2>
+<div class="legend"><span><span class="sw sh"></span>共享步骤</span><span><span class="sw d2"></span>2D：S2 / D2</span><span><span class="sw d3"></span>3D：S3 / D3</span><span class="st done">已实现</span></div>
+<div class="flow">
+  <div class="node"><div class="hd"><b>输入</b><span class="st done">已实现</span></div>
+    <span class="m">视频、题目，以及本题给的已知量（prior）和 3D 题的深度信息（depth_info）。不读取答案。</span></div>
+  <div class="arrow"></div>
+  <div class="node"><div class="hd"><b>物体清单</b><span class="st done">已实现</span></div>
+    <span class="m">从题目和 prior 里列出要量的物体及必要的支撑物：名字、别名、数量、形状和位置提示。</span></div>
+  <div class="arrow"></div>
+  <div class="node"><div class="hd"><b>场景图</b><span class="st done">已实现</span></div>
+    <span class="m">物体之间的关系：谁放在谁上面、谁和谁接触、谁在运动。</span></div>
+  <div class="arrow"></div>
+  <div class="node"><div class="hd"><b>跟踪</b><span class="st done">已实现</span></div>
+    <span class="m">检测并逐帧跟踪清单里的每个物体，得到像素轨迹和掩码；轨迹身份经过复核，不确定时记为未知。</span></div>
+  <div class="arrow"></div>
+  <div class="cols">
+    <div class="col c2">
+      <div class="colhd">2D 视频</div>
+      <div class="node d2"><div class="hd"><b>观测</b><span class="st done">已实现</span></div>
+        <span class="m">掩码凸包给出每帧的像素尺寸和位置；refmeasure 给出物体端点，用于长度测量。</span></div>
+      <div class="arrow"></div>
+      <div class="node d2"><div class="hd"><b>2D 图层场景</b><span class="st done">已实现</span></div>
+        <span class="m">每个物体一层；用 prior 定出米 / 像素的尺度，运动按分段模型拟合。</span></div>
+    </div>
+    <div class="col c3">
+      <div class="colhd">3D 视频</div>
+      <div class="node d3"><div class="hd"><b>观测</b><span class="st done">已实现</span></div>
+        <span class="m">地面（支撑面）和深度；refmeasure 给出物体端点。</span></div>
+      <div class="arrow"></div>
+      <div class="node d3"><div class="hd"><b>3D 场景拟合</b><span class="st done">已实现</span></div>
+        <span class="m">拟合相机、支撑面、物体形状和运动，使投影和跟踪、深度、prior 一致。</span></div>
+    </div>
+  </div>
+  <div class="arrow"></div>
+  <div class="loop">
+    <div class="hd"><b>agent 回路：每组 2–10 轮</b><span class="st done">已实现</span></div>
+    <div class="lgrid">
+      <div class="lbox"><b>观察</b>调用观察工具看原帧、叠加图和场景数值，找出场景和视频对不上的地方。</div>
+      <div class="lbox"><b>修改</b>调用修改工具：重选轨迹、改形状或运动模型、调整相机或支撑面，然后重建场景。</div>
+      <div class="lbox"><b>验收</b>修改后的场景用同一份固定证据重新检查，变好才接受，否则回滚到修改前。</div>
+    </div>
+  </div>
+  <div class="arrow"></div>
+  <div class="node"><div class="hd"><b>从场景作答</b><span class="st done">已实现</span></div>
+    <span class="m">在最终场景里量出题目问的量。场景量不到的题由模型估，答案标为 prior。</span></div>
+</div>
+
+<h2 id="steps">步骤表</h2>
+<div class="scroll-x"><table>
+  <tr><th>步骤</th><th>2D</th><th>3D</th><th>状态</th></tr>
+  <tr><td>物体清单</td><td colspan="2">从题目和 prior 中提取物体、别名、数量、形状与位置提示</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>场景图</td><td colspan="2">支撑、接触、运动关系，按帧更新</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>跟踪</td><td colspan="2">逐帧像素轨迹与掩码，轨迹身份复核</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>观测</td><td>掩码凸包；refmeasure 端点</td><td>地面与深度；refmeasure 端点</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>场景</td><td>2D 图层场景：prior 定尺度，分段运动模型</td><td>3D 场景拟合：相机、支撑面、形状与运动</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>agent 回路</td><td colspan="2">观察 / 修改工具，固定证据验收，不通过则回滚；2–10 轮</td><td><span class="st done">已实现</span></td></tr>
+  <tr><td>作答</td><td colspan="2">从最终场景量出答案；量不到的题由模型估并标 prior</td><td><span class="st done">已实现</span></td></tr>
+</table></div>
+
+<h2 id="answers">答案来源</h2>
+<p>每道题的答案带一个来源标记，场景浏览页按它着色和筛选：</p>
+<div class="scroll-x"><table>
+  <tr><th>来源</th><th>含义</th></tr>
+  <tr><td>scene</td><td>从最终场景量出</td></tr>
+  <tr><td>measurement</td><td>独立的直接测量（如端点之间的长度），不经过场景渲染</td></tr>
+  <tr><td>prior</td><td>场景量不到，由模型根据题目和已知量估计</td></tr>
+  <tr><td>unresolved</td><td>没有得到答案，评分时按零分计</td></tr>
+</table></div>
+<p class="muted small">同一视频里 prior / depth_info 不同的题各自建一组场景，组与组之间只共享像素观测，不共享物理参数。流程不读取验证集答案。</p>
+</main>
+</body>
+</html>

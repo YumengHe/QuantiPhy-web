@@ -1,38 +1,30 @@
-"""Build QuantiPhy-web/data/videos.json (+ first-frame thumbnails) for videos.html.
+"""Build web/data/videos.json (+ first-frame thumbnails) for videos.html.
 
 Reads only existing outputs; never runs the pipeline.
 
-Current harness validation (preserves the existing test tab and does not update index.html):
-  python -B QuantiPhy-web/tools/build_videos.py --val-harness-tag v24 --val-only
+  python -B web/tools/build_videos.py                      # validation from the current code version's harness run
+  python -B web/tools/build_videos.py --val-run <tag>      # a specific harness run tag
+  python -B web/tools/build_videos.py --test-sub <csv> [--test-fit <dir>] [--test-s2d <dir>] [--test-route <csv>]
+                                      [--test-audit2d <csv>] [--test-tracks <kind>]
 
-This reads a completed full CSV, per-video answers, and independent saved group scenes. Runtime overlays are
-offline renderings, under data/runtime/<tag>/; their renderer version is recorded separately from scene version.
-The legacy defaults below remain available for historical rebuilds.
+Validation (inputs relative to the repo root, <tag> defaults to pipeline/VERSION):
+  outputs/val_<tag>_answers.csv                       completed harness CSV
+  outputs/harness/<tag>/answers/<video>.json           per-video answer records
+  outputs/scene_fit_eval/h_<tag>/agent/, outputs/scene2d_eval/h_<tag>/agent/   saved independent group scenes
+Runtime overlays are offline renderings written under data/runtime/<tag>/.
 
-  /home/yumenghe/miniconda3/envs/quantiphy/bin/python QuantiPhy-web/tools/build_videos.py
-
-Inputs (relative to the QuantiPhy repo root):
-  outputs/val_oldchain_v10c2_s2dv9_routed.csv    validation predictions shown (0.7632: old chain + scene fit c_v10c2 + scene2d v9;
-                                                 s2d / s2d_conf = 2D-scene value and its confidence, fit / fit_conf = 3D
-                                                 scene-fit value and its confidence; source geo / vlm / s2d / fit)
-  outputs/submission_v7.csv                      test predictions shown on the test tab (row-aligned with load_split('test'))
-  outputs/scene_fit_eval/c_v10c2/<video>.json    validation scene fits (scene graph, supports, dimension sources,
-                                                 visible intervals, per-question quality / conf, ballistic paths)
-  outputs/scene2d_eval/s2d_v9/<video>.json       validation 2D layered scenes (+ <video>_bg.jpg, copied to data/scene2d/);
-                                                 object inventory, scene graph, rejected layers, constraints, mask hulls
-  outputs/tracks[_test]/<video>.json             per-object visible intervals for the 3D viewer
-  outputs/eval/overview_*.md, <video>.md         evaluator verdicts (summary table row; per-video report copied to data/eval/)
-  outputs/scene_fit_eval/c_support_v7_test/, outputs/scene2d_eval/s2d_v7_test/  test scenes behind submission_v7
-                                                 (written per video to data/scenes/test/<video>.json)
-  data/QuantiPhy*/...mp4                         only to grab the first frame and duration
+Test: without --test-sub the existing test block of videos.json is kept. With it, the predictions are row-aligned
+with load_split('test'); per-video scenes are written to data/scenes/test/<video>.json and fetched when a card opens.
 
 The page plays the original videos from media/val and media/test (git-ignored symlinks, see video_info).
+
+Note: the "v0" keys below (and o.v0 / p.v0 in videos.js) are the initial-velocity field of the scene json written by
+the pipeline, not a version label; do not rename or remove them.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
-import html
 import json
 import math
 import re
@@ -53,19 +45,11 @@ from pipeline.data import cache_root, load_split, video_path  # noqa: E402
 from pipeline.metrics import CATEGORIES, evaluate, mra_row  # noqa: E402
 from pipeline.parse import parse_question  # noqa: E402
 
-VAL_CSV = ROOT / "outputs" / "val_oldchain_v10c2_s2dv9_routed.csv"
-TEST_CSV = ROOT / "outputs" / "submission_v7.csv"
-SCENE_DIRS = {"val": ROOT / "outputs" / "scene_fit_eval" / "c_v10c2",   # mesh-free scene fit, the run behind the 0.7554 routing
-              "test": ROOT / "outputs" / "scene_fit_eval" / "c_support_v7_test"}   # the run behind submission_v7
-SCENE2D_DIRS = {"val": ROOT / "outputs" / "scene2d_eval" / "s2d_v9",         # scene2d v9 (the 0.7632 routing)
-                "test": ROOT / "outputs" / "scene2d_eval" / "s2d_v7_test"}     # the run behind submission_v7
+TEST_CSV: Path | None = None   # --test-sub
+SCENE_DIRS: dict = {"val": None, "test": None}     # 3D scene-fit dirs (val: from the run tag, test: --test-fit)
+SCENE2D_DIRS: dict = {"val": None, "test": None}   # 2D layered-scene dirs (val: from the run tag, test: --test-s2d)
 SCENES_TEST = WEB / "data" / "scenes" / "test"   # one json per test video, fetched by the page when a card opens
 BG_MAX_W = 960                                   # background images wider than this are shrunk (test is up to 2560 px)
-EVAL_DIR = ROOT / "outputs" / "eval"
-COUNT_CHECK_VAL = ROOT / "outputs" / "eval" / "count_check_val.json"   # per-frame visible-count check (qp-tools)
-COUNT_CHECK: dict = {}    # video -> count_check, for scenes whose json has no "count_check" field
-EVAL_WEB = WEB / "data" / "eval"
-EVAL_DOCS = ("test_audit_2d",)   # outputs/eval/<name>.md reports that are not about one video
 SCENE2D_WEB = WEB / "data" / "scene2d"
 OUT = WEB / "data" / "videos.json"
 THUMBS = WEB / "data" / "thumbs"
@@ -143,389 +127,6 @@ def hulls(L, fps):
         t = t_of.get(int(f), int(f) / fps if fps else None)
         out.append([num(t, 6), [[round(float(x), 1), round(float(y), 1)] for x, y in poly]])
     return out
-
-
-def eval_overview(video_ids) -> tuple[dict, str | None]:
-    """Evaluator verdicts from the newest outputs/eval/overview_<n>.md: its markdown summary table
-    (| video | MRA (n, 0分) | 主因层 | 根因 | 进行中 |) -> {video_id: {...}}. A row may name several videos
-    ("a / b / c") and may drop a "_segmented" suffix, so names are matched to video ids by prefix."""
-    files = sorted(EVAL_DIR.glob("overview_*.md"), key=lambda p: int(p.stem.split("_")[-1]) if p.stem.split("_")[-1].isdigit() else -1)
-    if not files:
-        return {}, None
-    src = files[-1]
-    out = {}
-    header = None
-    for line in src.read_text().splitlines():
-        if not line.startswith("|"):
-            header = None if not line.strip() else header
-            continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if header is None:
-            header = cells
-            continue
-        if set("".join(cells)) <= set("-: "):
-            continue
-        if len(header) < 5 or "主因层" not in header:
-            continue
-        row = dict(zip(header, cells))
-        for name in row[header[0]].split("/"):
-            name = name.strip()
-            vid = next((v for v in video_ids if v == name), None) or next((v for v in video_ids if v.startswith(name + "_")), None)
-            if vid:
-                out[vid] = {"mra": row.get(header[1], ""), "layer": row.get("主因层", ""), "cause": row.get("根因", ""),
-                            "progress": row.get("进行中", ""), "source": str(src.relative_to(ROOT))}
-    return out, str(src.relative_to(ROOT))
-
-
-IMG_RE = re.compile(r"(/[^\s`'\"()<>]+\.(?:jpg|jpeg|png|gif|webp))", re.I)
-IMG_MAX_BYTES = 5_000_000
-
-
-def _inline(s: str) -> str:
-    """Markdown inline -> HTML: escape, `code`, **bold**, [text](url)."""
-    s = html.escape(s, quote=False)
-    s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
-    s = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", s)
-    s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", r'<a href="\2">\1</a>', s)
-    return s
-
-
-def md_to_html(md: str, title: str) -> str:
-    """Small markdown subset (headings, pipe tables, - / 1. lists with indentation, paragraphs, inline code / bold,
-    image paths already rewritten to relative ones) -> a standalone page for data/eval/."""
-    out, para, i, lines = [], [], 0, md.splitlines()
-
-    def flush():
-        if para:
-            out.append("<p>" + _inline(" ".join(para)) + "</p>")
-            para.clear()
-    while i < len(lines):
-        l = lines[i]
-        st = l.strip()
-        if not st:
-            flush(); i += 1; continue
-        m = re.match(r"^(#{1,6})\s+(.*)", l)
-        if m:
-            flush(); n = len(m.group(1)); out.append(f"<h{n}>{_inline(m.group(2))}</h{n}>"); i += 1; continue
-        if st.startswith("|"):
-            flush(); rows = []
-            while i < len(lines) and lines[i].strip().startswith("|"):
-                cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
-                if not set("".join(cells)) <= set("-: "):
-                    rows.append(cells)
-                i += 1
-            if rows:
-                t = "<tr>" + "".join(f"<th>{_inline(c)}</th>" for c in rows[0]) + "</tr>"
-                t += "".join("<tr>" + "".join(f"<td>{_inline(c)}</td>" for c in r) + "</tr>" for r in rows[1:])
-                out.append(f'<div class="scroll"><table>{t}</table></div>')
-            continue
-        m = re.match(r"^(\s*)(?:[-*]|\d+\.)\s+(.*)", l)
-        if m:
-            flush(); items = []
-            while i < len(lines):
-                m = re.match(r"^(\s*)(?:[-*]|\d+\.)\s+(.*)", lines[i])
-                if m:
-                    items.append([len(m.group(1)), m.group(2)])
-                elif lines[i].strip() and items and lines[i].startswith(" "):
-                    items[-1][1] += " " + lines[i].strip()          # continuation line of the previous item
-                else:
-                    break
-                i += 1
-            out.append("<ul>" + "".join(f'<li style="margin-left:{ind * 8}px">{_inline(t)}</li>' for ind, t in items) + "</ul>")
-            continue
-        para.append(st); i += 1
-    flush()
-    body = "\n".join(out)
-    # images referenced by a relative path become inline figures under their mention
-    body = re.sub(r'<code>([\w.-]+/[\w.-]+\.(?:jpg|jpeg|png|gif|webp))</code>',
-                  r'<a href="\1"><code>\1</code></a><br><img src="\1" alt="\1" loading="lazy">', body)
-    return f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(title)}</title>
-<style>
-:root {{ --bg:#fbfbfa; --fg:#1f2328; --muted:#656d76; --border:#d8dee4; --code:#f0f2f4; --th:#eef2fb; }}
-@media (prefers-color-scheme: dark) {{ :root {{ --bg:#16181c; --fg:#e6e8eb; --muted:#9aa4af; --border:#33383f; --code:#23272e; --th:#232a38; }} }}
-body {{ margin:0; background:var(--bg); color:var(--fg); font:15px/1.7 system-ui, -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif; }}
-main {{ max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }}
-h1 {{ font-size: 24px; }} h2 {{ font-size: 19px; margin-top: 28px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }}
-code {{ background: var(--code); padding: 0 4px; border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }}
-.scroll {{ overflow-x: auto; }} table {{ border-collapse: collapse; font-size: 13.5px; margin: 8px 0; }}
-th, td {{ border: 1px solid var(--border); padding: 4px 8px; vertical-align: top; text-align: left; }} th {{ background: var(--th); }}
-img {{ max-width: 100%; border-radius: 6px; margin: 6px 0; }} a {{ color: #3b6fd8; }}
-.back {{ font-size: 13px; color: var(--muted); }}
-</style></head><body><main>
-<p class="back"><a href="../../videos.html">← 视频与问题</a> · 评估员逐视频报告（由 outputs/eval/*.md 生成）</p>
-{body}
-</main></body></html>
-"""
-
-
-def eval_report(vid: str):
-    """Per-video evaluator report outputs/eval/<video>.md -> data/eval/<video>.html (images it names by absolute path
-    are copied to data/eval/<video>/ and linked relatively). Returns the page path, the conclusion excerpt and, when the
-    report states them, the main layer and root cause (these override the overview row)."""
-    p = EVAL_DIR / f"{vid}.md"
-    if not p.exists():
-        return None
-    EVAL_WEB.mkdir(parents=True, exist_ok=True)
-    txt = p.read_text()
-    for src in sorted(set(IMG_RE.findall(txt))):
-        sp = Path(src)
-        if sp.is_file() and sp.stat().st_size <= IMG_MAX_BYTES:
-            (EVAL_WEB / vid).mkdir(exist_ok=True)
-            (EVAL_WEB / vid / sp.name).write_bytes(sp.read_bytes())
-            rel = f"{vid}/{sp.name}"
-            txt = txt.replace(src, rel)
-            # a bare (not `quoted`) mention becomes `rel` too, so the page embeds the picture under it
-            txt = re.sub(rf"(?<!`){re.escape(rel)}(?!`)", f"`{rel}`", txt)
-    out = EVAL_WEB / f"{vid}.html"
-    first = next((l.lstrip("# ").strip() for l in txt.splitlines() if l.startswith("# ")), vid)
-    out.write_text(md_to_html(txt, first))
-    stale = EVAL_WEB / p.name
-    if stale.exists():
-        stale.unlink()
-    # main layer / root cause as the report states them: an explicit "主因层：" / "根因：" line, else the first bold item
-    # of the section whose heading says 根因 (e.g. "**prior 物体跟错，导致尺度错（跟踪层，主因，影响 4 题）**")
-    layer = cause = None
-    lines = txt.splitlines()
-    for l in lines:
-        m = re.match(r"^\s*[-*]?\s*\**主因层\**[:：]\s*(.+)", l)
-        layer = layer or (m and m.group(1).strip("* "))
-        m = re.match(r"^\s*[-*]?\s*\**根因\**[:：]\s*(.+)", l)
-        cause = cause or (m and m.group(1).strip("* "))
-    if cause is None:
-        for i, l in enumerate(lines):
-            if l.startswith("#") and "根因" in l:
-                for m_ in lines[i + 1:]:
-                    if m_.startswith("#"):
-                        break
-                    b = re.search(r"\*\*([^*]+)\*\*", m_)
-                    if b:
-                        cause = b.group(1).rstrip("：:")
-                        break
-                break
-    if layer is None and cause:
-        m = re.search(r"([^\s，,（(]+?)层[，,]\s*主因", cause)
-        layer = m and m.group(1)
-    # excerpt: the section whose heading says 结论 (conclusion), else the start of the report; markdown emphasis dropped
-    body = None
-    for i, l in enumerate(lines):
-        if l.startswith("#") and "结论" in l:
-            body = []
-            for m in lines[i + 1:]:
-                if m.startswith("#"):
-                    break
-                body.append(m)
-            title = l.lstrip("# ").strip()
-            break
-    if body is None:
-        # no conclusion section: the report's opening text, without the 主因层 / 根因 lines already shown on their own
-        body, title = [l for l in lines if not l.startswith("#") and not re.match(r"^\s*[-*]?\s*\**(主因层|根因)", l)], ""
-    # prose only: markdown table rows and the "数据来源 / 结果来源" provenance line are left to the full report
-    body = [l for l in body if l.strip() and not l.lstrip().startswith("|") and not re.match(r"^\s*(数据来源|结果来源)", l)]
-    text_ = " ".join(l.strip() for l in body).replace("**", "").replace("`", "")
-    return {"file": str(out.relative_to(WEB)), "title": title, "excerpt": text_[:400], "layer": layer or None,
-            "cause": cause or None}
-
-
-def _norm(name) -> str:
-    """Name key for matching inventory / scene-graph / scene objects: lower case, no leading article, no punctuation."""
-    x = re.sub(r"[^a-z0-9#]+", " ", str(name or "").lower()).strip()
-    return re.sub(r"^(the|a|an) ", "", x)
-
-
-def object_table(split: str, vid: str, is3d: bool) -> dict | None:
-    """One row per object: the inventory (pipeline.objects.inventory, presence merged), the per-frame scene graph
-    (scenegraph_pfc), and the 3D fit (scene_fit_eval) or the 2D layers (scene2d_eval), matched by normalised name and
-    aliases. Inventory objects without a scene object get a "not reconstructed" reason; scene objects the inventory
-    does not have are flagged (a self-check finding) and listed in "unmatched"."""
-    try:
-        from pipeline.objects import inventory
-        inv = inventory(split, vid)["objects"]
-    except Exception:   # noqa: BLE001 - no inventory: no table, the page falls back to the scene tables
-        return None
-    key = {}
-    for o in inv:
-        for a in [o["name"], *(o.get("aliases") or [])]:
-            key.setdefault(_norm(a), o["name"])
-    sgp = cache_root("scenegraph_pfc", split) / f"{vid}.json"
-    edges = []
-    if sgp.exists():
-        try:
-            edges = json.load(open(sgp)).get("edges") or []
-        except (OSError, json.JSONDecodeError):
-            pass
-    rels = {}
-    for e in edges:
-        n = key.get(_norm(e.get("from")), e.get("from"))
-        t = f" {e['t_start']:.2f}–{e['t_end']:.2f} s" if e.get("t_start") is not None and e.get("t_end") is not None else ""
-        rels.setdefault(n, []).append(f"{e.get('rel')}{(' ' + str(e['to'])) if e.get('to') else ''}{t}")
-    scene, s2 = None, None
-    d = (SCENE_DIRS if is3d else SCENE2D_DIRS).get(split)
-    p = d / f"{vid}.json" if d else None
-    if p is not None and p.exists():
-        try:
-            j = json.load(open(p))
-            scene, s2 = (j, None) if is3d else (None, j)
-        except (OSError, json.JSONDecodeError):
-            pass
-    sc_objs = {}
-    if scene:
-        collapsed = {r.get("object") for r in scene.get("results") or [] if (r.get("quality") or {}).get("collapsed")}
-        for n, o in (scene.get("objects") or {}).items():
-            dims = o.get("dims") or {}
-            ds = o.get("dim_source") or {}
-            sp = o.get("support") or {}
-            flags = []
-            if o.get("out_of_frame"):
-                flags.append("出画 " + ", ".join(f"{a:.2f}–{b:.2f} s" for a, b in o["out_of_frame"]))
-            va = (o.get("visibility") or {}).get("agree")
-            if va is not None and va < 0.9:
-                flags.append(f"可见性一致度 {va:.2f}")
-            if n in collapsed:
-                flags.append("尺寸塌缩")
-            sc_objs[n] = {"size": [[k, num(v), ds.get(k)] for k, v in dims.items()], "shape": o.get("shape"),
-                          "support": " ".join(x for x in [sp.get("mode") or o.get("mode") or "", sp.get("target") or ""] if x),
-                          "visible": [[num(a, 4), num(b, 4)] for a, b in o.get("visible") or []],
-                          "motion": " ".join(x for x in [o.get("mode") or "", f"rms {o['rms']:.1f} px" if o.get("rms") is not None else ""] if x),
-                          "flags": flags}
-    rejected = {}
-    if s2:
-        sc = s2.get("scale") or {}
-        mpp = None if sc.get("degenerate") else sc.get("m_per_px_ref")
-        rejected = {k: v for k, v in (s2.get("rejected_layers") or {}).items()}
-        for L in s2.get("layers") or []:
-            e = L.get("extent_px") or {}
-            c = L.get("constraint") or {}
-            segs = ", ".join(sorted({g.get("model") for g in L.get("segments") or [] if g.get("model")}))
-            sc_objs[L["name"]] = {"size_px": [num(e.get("along")), num(e.get("across")), num(e.get("h"))],
-                                  "mpp": num(mpp, 5), "src": e.get("src"),
-                                  "support": " ".join(x for x in [c.get("mode") or "", c.get("surface") or ""] if x),
-                                  "visible": [[num(a, 4), num(b, 4)] for a, b in L.get("visible") or []],
-                                  "motion": " ".join(x for x in [segs, f"rms {L['rms_px']:.1f} px" if L.get("rms_px") is not None else ""] if x),
-                                  "flags": [text(f) for f in L.get("flags") or []] + temporal_flags(L)}
-    rows, used = [], set()
-    for o in inv:
-        names = {_norm(a) for a in [o["name"], *(o.get("aliases") or [])]}
-        hit = next((n for n in sc_objs if _norm(n) in names), None)
-        hits = [n for n in sc_objs if _norm(n).split(" #")[0] in names]   # second instances "<name> #2"
-        row = {"name": o["name"], "aliases": [a for a in o.get("aliases") or [] if a != o["name"]],
-               "role": o.get("role"), "reference_only": bool(o.get("reference_only")), "count": o.get("count"),
-               "present": o.get("present"), "presence_conf": num(o.get("presence_conf"), 3),
-               "shape": (o.get("shape_hint") or {}).get("shape"), "thin": bool((o.get("shape_hint") or {}).get("thin")),
-               "track": o.get("track"), "part_of": o.get("part_of"), "relations": rels.get(o["name"], []),
-               "scene": [{"name": n, **sc_objs[n]} for n in (hits or ([hit] if hit else []))]}
-        used.update(hits or ([hit] if hit else []))
-        if not row["scene"]:
-            why = ("仅作参考（reference_only）" if o.get("reference_only") else "不在场（absent）" if o.get("present") == "absent"
-                   else "场景结构，不跟踪" if o.get("track") is False else ("被拒绝：" + text(rejected[o["name"]])) if o["name"] in rejected
-                   else "场景里没有这个物体")
-            row["not_built"] = why
-        rows.append(row)
-    unmatched = [n for n in sc_objs if n not in used]
-    for n in unmatched:
-        rows.append({"name": n, "aliases": [], "unmatched": True, "relations": rels.get(n, []), "scene": [{"name": n, **sc_objs[n]}]})
-    return {"rows": rows, "unmatched": unmatched, "dim": 3 if is3d else 2}
-
-
-HIER = ("on", "in", "attached_to", "held_by", "airborne")   # tree relations (child -> parent); others are side edges
-
-
-def scene_tree(split: str, vid: str, objtab: dict | None) -> dict | None:
-    """Scene graph as a tree for the page: supports (floor / table / water ...) at the root, objects below the target
-    of their on / in / attached_to / held_by relations; an airborne span hangs under the target of the neighbouring
-    support relation. A relation to a second parent (on the slope, then on the desk) and contact / above are extra
-    edges. Edge labels carry the relation and its time span (scenegraph_pfc per-frame intervals = edge t_start/t_end).
-    Nodes: inventory objects (one per instance, "<name> #2" from the scene) and the graph's support nodes."""
-    p = cache_root("scenegraph_pfc", split) / f"{vid}.json"
-    if not p.exists():
-        return None
-    try:
-        sg = json.load(open(p))
-    except (OSError, json.JSONDecodeError):
-        return None
-    rows = (objtab or {}).get("rows") or []
-    key = {}
-    for r in rows:
-        for a in [r["name"], *(r.get("aliases") or [])]:
-            key.setdefault(_norm(a), r["name"])
-    canon = lambda n: key.get(_norm(n), n) if n else n   # noqa: E731
-    nodes, order = {}, []
-
-    def add(nid, **kw):
-        if nid not in nodes:
-            nodes[nid] = {"id": nid, **kw}
-            order.append(nid)
-    supports = [n.get("id") for n in sg.get("nodes") or [] if n.get("type") == "support"]
-    for sname in supports:
-        add(canon(sname), kind="support", role="support")
-    for r in rows:
-        inst = [x["name"] for x in r.get("scene") or []] or [r["name"]]
-        for k, nm in enumerate(inst):
-            add(nm if k else r["name"], kind="object", role=r.get("role"), count=r.get("count"),
-                absent=r.get("present") == "absent", ref_only=bool(r.get("reference_only")),
-                not_built=bool(r.get("not_built")), unmatched=bool(r.get("unmatched")), scene=nm if r.get("scene") else None,
-                instance_of=r["name"] if k else None)
-    for n in sg.get("nodes") or []:
-        if n.get("type") != "support":
-            add(canon(n.get("id")), kind="object", role=None)
-    fmt_t = lambda e: (f" {e['t_start']:.2f}–{e['t_end']:.2f} s" if e.get("t_start") is not None and e.get("t_end") is not None else "")  # noqa: E731
-    by_obj = {}
-    for e in sg.get("edges") or []:
-        by_obj.setdefault(canon(e.get("from")), []).append(e)
-    parent, edges = {}, []
-    for obj, es in by_obj.items():
-        add(obj, kind="object", role=None)
-        es = sorted(es, key=lambda e: (e.get("t_start") is None, e.get("t_start") or 0))
-        hier = [e for e in es if e.get("rel") in HIER]
-        # airborne: hang under the target of the closest support relation of the same object
-        for i, e in enumerate(hier):
-            if e.get("rel") == "airborne" and not e.get("to"):
-                near = [x for x in hier if x.get("to") and x.get("rel") != "airborne"]
-                if near:
-                    t0 = e.get("t_start") or 0
-                    e = {**e, "to": min(near, key=lambda x: abs((x.get("t_end") or x.get("t_start") or 0) - t0)).get("to")}
-                hier[i] = e
-        labels = {}
-        for e in hier:
-            tgt = canon(e.get("to")) if e.get("to") else None
-            labels.setdefault(tgt, []).append(f"{e.get('rel')}{fmt_t(e)}")
-        first = next((canon(e.get("to")) for e in hier if e.get("to")), None)
-        if first:
-            parent[obj] = first
-        for tgt, labs in labels.items():
-            if tgt is None:
-                edges.append({"from": obj, "to": None, "label": "；".join(labs), "tree": False, "dashed": False})
-                continue
-            add(tgt, kind="object", role=None)
-            edges.append({"from": obj, "to": tgt, "label": "；".join(labs), "tree": tgt == first, "dashed": False})
-        for e in es:
-            if e.get("rel") not in HIER and e.get("to"):
-                tgt = canon(e.get("to"))
-                add(tgt, kind="object", role=None)
-                edges.append({"from": obj, "to": tgt, "label": f"{e.get('rel')}{fmt_t(e)}", "tree": False, "dashed": True})
-    # break cycles (a parent chain that comes back to the node): drop that tree edge
-    for n in list(parent):
-        seen, cur = {n}, parent.get(n)
-        while cur is not None:
-            if cur in seen:
-                parent.pop(n, None)
-                for e in edges:
-                    if e["from"] == n and e["tree"]:
-                        e["tree"] = False
-                break
-            seen.add(cur)
-            cur = parent.get(cur)
-    # a second instance ("<name> #2") without relations of its own sits where its first instance sits
-    for nid in order:
-        base = nodes[nid].get("instance_of")
-        if base and nid not in parent and parent.get(base):
-            parent[nid] = parent[base]
-            lab = next((e["label"] for e in edges if e["from"] == base and e["tree"]), "")
-            edges.append({"from": nid, "to": parent[nid], "label": lab, "tree": True, "dashed": False})
-    for nid in order:
-        nodes[nid]["parent"] = parent.get(nid)
-    return {"nodes": [nodes[n] for n in order], "edges": edges}
 
 
 def track_intervals(split: str, vid: str) -> dict:
@@ -662,7 +263,7 @@ def scene_fit(split: str, vid: str, *, state=None, source_path=None):
         o["visible"] = [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None
     return {"file": str(p.relative_to(ROOT)), "f": num(j.get("f"), 5), "plane": plane, "objects": objs, "results": res,
             "main_support": j.get("main_support"), "inventory": inv, "scene_graph": graph(sg), "q_meta": q_meta,
-            "count_check": j.get("count_check") or (COUNT_CHECK.get(vid) if split == "val" else None),
+            "count_check": j.get("count_check"),
             "f_source": text(j.get("f_source")) or None, "f_first": j.get("f_first"),
             "focal_votes": [{"source": text(x.get("source")), "value": num(x.get("value"), 4), "weight": num(x.get("weight"), 3)}
                             for x in j.get("focal_votes") or []] or None}
@@ -670,7 +271,7 @@ def scene_fit(split: str, vid: str, *, state=None, source_path=None):
 
 def layer_temporal(L: dict) -> dict:
     """stable extent (rigid_constant layers: one w x h for every frame), occluded / merged frames as indices into the
-    layer's frame list, and the temporal_consistency numbers (scene2d v9 fields; empty when absent)."""
+    layer's frame list, and the temporal_consistency numbers (scene2d fields; empty when absent)."""
     se = L.get("stable_extent_px") or {}
     idx = {f: i for i, f in enumerate(L.get("frames") or [])}
     out = {}
@@ -685,21 +286,6 @@ def layer_temporal(L: dict) -> dict:
     tc = L.get("temporal_consistency")
     if tc:
         out["tc"] = {k: (num(v, 4) if isinstance(v, (int, float)) and not isinstance(v, bool) else v) for k, v in tc.items()}
-    return out
-
-
-def temporal_flags(L: dict) -> list:
-    """self-check tags for the object table from a layer's cross-frame consistency."""
-    out = []
-    n = len(L.get("frames") or [])
-    if L.get("occluded"):
-        out.append(f"遮挡 {len(L['occluded'])}/{n} 帧")
-    tc = L.get("temporal_consistency") or {}
-    if tc.get("deformable"):
-        out.append("可变形")
-    if tc.get("unstable"):
-        p90 = tc.get("size_change_p90")
-        out.append(f"不稳定（p90 {p90 * 100:.0f}%）" if isinstance(p90, (int, float)) else "不稳定")
     return out
 
 
@@ -794,7 +380,7 @@ def scene2d(split: str, vid: str, *, state=None, source_path=None, asset_tag=Non
                        "extent": {k: (text(v) if k == "src" else num(v, 4)) for k, v in (L.get("extent_px") or {}).items()},
                        "rms": num(L.get("rms_px"), 3), "flags": [text(f) for f in L.get("flags") or []], "segments": segs,
                        "size_q": size_q.get(L.get("name"), []), "orient": vec(L.get("orientation")), "hulls": hulls(L, j.get("fps")),
-                       # cross-frame layer correspondence (scene2d v9): constant extent of a rigid layer, occluded /
+                       # cross-frame layer correspondence: constant extent of a rigid layer, occluded /
                        # merged frames (as indices into "t"), size statistics
                        **layer_temporal(L),
                        "constraint": {k: (L.get("constraint") or {}).get(k) for k in ("mode", "surface", "motion_plane", "applied", "note")}})
@@ -803,90 +389,13 @@ def scene2d(split: str, vid: str, *, state=None, source_path=None, asset_tag=Non
             "gravity_dir": vec(j.get("gravity_dir")), "gravity_source": text(j.get("gravity_source")),
             "inventory": inventory(j.get("objects")), "scene_graph": graph(j.get("scene_graph")),
             "rejected": {text(k): text(v) for k, v in (j.get("rejected_layers") or {}).items()}, "layers": layers,
-            "count_check": j.get("count_check") or (COUNT_CHECK.get(vid) if split == "val" else None),
+            "count_check": j.get("count_check"),
             "q_meta": {r.get("question"): {"obj": r.get("layer"), "align": align(r.get("align_tq"))}
                        for r in j.get("results") or [] if r.get("question")},
             **scene2d_checks(j)}
 
 
 LA = ZoneInfo("America/Los_Angeles")
-
-
-PIPE_VERSION = {"val": "v12", "test": "v7"}   # version vN that produced each tab's scenes (--val-version / --test-version-label)
-
-
-def version_of(split: str, vid: str, is3d: bool, csv: Path) -> dict:
-    """Card label = the global version vN that produced the split's scenes (docs/VERSIONS.md); the hover gets the
-    commit and the scene directory ("module") and the run time."""
-    d = (SCENE_DIRS if is3d else SCENE2D_DIRS).get(split)
-    p = d / f"{vid}.json" if d else None
-    if split == "test" and TEST_VERSION:   # one version json for the whole submission (--test-version)
-        ver = dict(TEST_VERSION)
-    else:
-        ver = None
-        if p is not None and p.exists():
-            try:
-                ver = json.load(open(p)).get("version")
-            except (OSError, json.JSONDecodeError):
-                ver = None
-        ver = dict(ver) if isinstance(ver, dict) else {}
-    ver.pop("pipeline", None)   # old per-module tag (scene2d-v9 ...), not a global version
-    commit = ver.pop("commit", None)
-    parts = []
-    if commit:
-        parts.append("commit " + str(commit))
-    if p is not None and p.exists():
-        parts.append("目录 " + str(d.relative_to(ROOT / "outputs") if d.is_relative_to(ROOT / "outputs") else d.name))
-    if split == "test":
-        parts.append("提交 " + csv.name)
-    if p is not None and p.exists() and "time" not in ver:
-        ver["scene_mtime"] = datetime.fromtimestamp(p.stat().st_mtime, LA).strftime("%Y-%m-%d %H:%M %Z")
-    # the json's per-module counters (scene2d: 8, refmeasure: 8 ...) are not global versions: only the time is shown
-    return {"label": PIPE_VERSION.get(split, ""), "module": " · ".join(parts),
-            "detail": {k: ver[k] for k in ("time", "scene_mtime") if ver.get(k)}}
-
-
-VERSIONS_MD = ROOT / "docs" / "VERSIONS.md"
-INDEX_HTML = WEB / "index.html"
-
-
-def _md_cell(x: str) -> str:
-    x = html.escape(x.strip(), quote=False)
-    x = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", x)
-    return re.sub(r"`([^`]+)`", r"<code>\1</code>", x)
-
-
-def versions_table(md: Path = VERSIONS_MD) -> str:
-    """The version table in docs/VERSIONS.md (| 版本 | 日期 | 改动 | 验证集 | 测试集 / 官方分 |) as an HTML table."""
-    rows = []
-    for line in md.read_text().splitlines():
-        if not line.startswith("|") or re.match(r"^\|\s*-", line):
-            continue
-        cells = [c for c in line.strip().strip("|").split("|")]
-        rows.append(cells)
-    if not rows:
-        return ""
-    head, body = rows[0], rows[1:]
-    out = ["  <table>", "    <tr>" + "".join(f"<th>{_md_cell(h)}</th>" for h in head) + "</tr>"]
-    for r in body:
-        out.append("    <tr>" + "".join(f"<td>{_md_cell(c)}</td>" for c in r) + "</tr>")
-    out.append("  </table>")
-    return "\n".join(out)
-
-
-def write_versions(index: Path = INDEX_HTML, md: Path = VERSIONS_MD) -> int:
-    """Replace the block between <!-- versions:begin --> and <!-- versions:end --> in index.html; returns the row count."""
-    if not md.exists() or not index.exists():
-        return 0
-    s = index.read_text()
-    a, b = "<!-- versions:begin -->", "<!-- versions:end -->"
-    if s.count(a) != 1 or s.count(b) != 1:
-        return 0
-    tab = versions_table(md)
-    i, j = s.index(a) + len(a), s.index(b)
-    index.write_text(s[:i] + "\n" + tab + "\n" + s[j:])
-    return tab.count("<tr>") - 1
-
 
 
 def run_at(split: str, vid: str, csv: Path) -> dict:
@@ -946,49 +455,6 @@ def video_info(split: str, vid: str, *, allow_test_copy=True) -> dict:
         if fourcc(video_path("test", vid)) in ("avc1", "h264"):
             info.update(video=f"media/test/{video_path('test', vid).name}", video_from="test")
     return info
-
-
-def build_val(make_thumb: bool):
-    df = pd.read_csv(VAL_CSV)
-    df["mra"] = [mra_row(p, g) for p, g in zip(df["pred"], df["answer"])]
-    ev = evaluate(df)
-    print(f"val: n={ev['n']} macro={ev['average']:.4f} " + " ".join(f"{c}={ev[c]:.4f}" for c in CATEGORIES))
-    videos = []
-    verdicts, eval_src = eval_overview(sorted(df["video_id"].unique()))
-    for doc in EVAL_DOCS:   # non-video evaluator reports, rendered like the per-video ones (data/eval/<name>.html)
-        eval_report(doc)
-    for vid, g in df.groupby("video_id", sort=True):
-        dur, w, h, thumb = video_meta("val", vid, make_thumb)
-        rep = eval_report(vid)
-        ev_v = (verdicts.get(vid) or {}) | ({"report": rep} if rep else {})
-        if rep:   # the per-video report wins over the overview row; the overview stays as the fallback
-            ev_v |= {k: rep[k] for k in ("layer", "cause") if rep.get(k)} | {"from_report": True}
-        first = g.iloc[0]
-        is3d = str(first.dim) == "3"
-        scene = scene_fit("val", vid) if is3d else None
-        sc2 = None if is3d else scene2d("val", vid)
-        qmeta = ((scene or sc2) or {}).get("q_meta") or {}
-        qs = [{"cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
-               "depth": text(r.depth_info), "answer": num(r.answer), "geo": num(getattr(r, "geo", None)), "vlm": num(getattr(r, "vlm", None)),
-               "pred": num(r.pred), "src": r.source, "mra": num(r.mra, 3), "s2d": num(getattr(r, "s2d", None)),
-               "s2d_conf": num(getattr(r, "s2d_conf", None), 3), "fit": num(getattr(r, "fit", None)),
-               "fit_conf": num(getattr(r, "fit_conf", None), 3),
-               "unobs": bool(getattr(r, "unobservable", False) is True),
-               "align": (qmeta.get(r.question) or {}).get("align")}
-              for r in g.itertuples()]
-        for q in qs:
-            q["tq"], q["tjump"] = question_times(q["q"], qmeta.get(q["q"]), scene or sc2, is3d)
-        videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
-                       "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
-                       "thumb": thumb, **video_info("val", vid),
-                       "scene": scene, "scene2d": sc2, "objtab": (otab := object_table("val", vid, is3d)),
-                       "stree": scene_tree("val", vid, otab),
-                       "version": version_of("val", vid, is3d, VAL_CSV),
-                       **run_at("val", vid, VAL_CSV), "eval": ev_v or None,
-                       "questions": qs})
-    print(f"eval: {len(verdicts)} videos with a verdict from {eval_src}")
-    return {"file": str(VAL_CSV.relative_to(ROOT)), "macro": num(ev["average"], 6),
-            "per_cat": {c: num(ev[c], 6) for c in CATEGORIES}, "eval_source": eval_src, "videos": videos}
 
 
 def harness_groups(saved: dict) -> list[dict]:
@@ -1100,8 +566,8 @@ def validate_harness_csv(frame: pd.DataFrame, manifest: pd.DataFrame) -> pd.Data
 
 def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
     """Display a completed harness CSV and its saved answers/groups without re-running anything."""
-    if not re.fullmatch(r"v\d+(?:_control)?", tag):
-        raise ValueError("harness tag must be vN or vN_control")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", tag):
+        raise ValueError(f"invalid harness run tag: {tag!r}")
     csv_path = ROOT / "outputs" / f"val_{tag}_answers.csv"
     if not csv_path.exists():
         raise ValueError(f"completed full harness CSV is unavailable: {csv_path}")
@@ -1168,25 +634,23 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
                        "size": [width, height], "thumb": thumb, **video_info("val", vid), "groups": compact,
                        "scene": None, "scene2d": None, "has_scene": dim == 3 and bool(compact),
                        "has_scene2d": dim == 2 and bool(compact), "questions": questions,
-                       "version": {"label": version.get("pipeline", tag), "module": str(scene_path.relative_to(ROOT)),
-                                   "detail": version}, "execution_status": record.get("execution_status", "unavailable"),
+                       "execution_status": record.get("execution_status", "unavailable"),
                        "run_at": version.get("time"), "eval": None, "objtab": None, "stree": None})
     print(f"harness {tag}: {len(df)} questions, {len(videos)} videos, macro {ev['average']:.6f}")
-    return {"file": str(csv_path.relative_to(ROOT)), "harness_tag": tag, "macro": num(ev["average"], 8),
+    return {"file": str(csv_path.relative_to(ROOT)), "macro": num(ev["average"], 8),
             "per_cat": {c: num(ev[c], 8) for c in CATEGORIES}, "videos": videos}
 
 
 def replace_validation(existing: dict, validation: dict) -> dict:
-    """Preserve the existing test value and all other top-level data in --val-only mode."""
+    """Keep the existing test block and all other top-level data when no --test-sub is given."""
     if "test" not in existing:
-        raise ValueError("--val-only requires existing data/videos.json with a test block")
+        raise ValueError("no --test-sub given and data/videos.json has no test block to keep")
     return {**existing, "generated": date.today().isoformat(), "val": validation}
 
 
 TRACKS_KIND = {"val": "tracks", "test": "tracks"}   # track cache kind for the visible intervals (--test-tracks)
-TEST_VERSION: dict = {}   # --test-version: the submission's version json, shown on every test card
-TEST_ROUTE = ROOT / "outputs" / "test_v7_routed_detailed.csv"   # per-question source of the test submission (v8: its routing csv)
-TEST_AUDIT2D = ROOT / "outputs" / "scene2d_eval" / "dev_test_audit_test" / "test_pred.csv"   # latest 2D test audit
+TEST_ROUTE: Path | None = None     # --test-route: per-question source of the test predictions
+TEST_AUDIT2D: Path | None = None   # --test-audit2d: 2D test audit *_pred.csv for the no-answer list
 REASON_ZH = {"needs-track": "缓存里没有这个物体的轨迹", "no-layer": "没有图层", "no-reference-layer": "参照物没有图层",
              "unsupported": "这类题拟合不支持", "object-not-fitted": "物体没拟合上", "reference-not-fitted": "参照物没拟合上",
              "no-fit": "视频没有场景拟合"}
@@ -1208,12 +672,12 @@ def test_noanswer(ref: pd.DataFrame, route_csv: Path, audit2d: Path) -> dict:
     and notes as the reason), 3D from the test scene-fit dir (no result value, or no fit for the video). The submitted
     value comes from the submission; its source (vlm / geo / s2d) from the routing csv when it has a source column."""
     src = {}
-    if route_csv.exists():
+    if route_csv is not None and route_csv.exists():
         r = pd.read_csv(route_csv)
         if "source" in r.columns:
             src = {(a, b): c for a, b, c in zip(r.video_id, r.question, r.source)}
     a2d = {}
-    if audit2d.exists():
+    if audit2d is not None and audit2d.exists():
         a = pd.read_csv(audit2d)
         for v, q, pr, m, n in zip(a.video_id, a.question, a.pred, a["method"], a.get("notes", pd.Series([""] * len(a)))):
             a2d[(v, q)] = (pr, m, n)
@@ -1254,9 +718,7 @@ def test_noanswer(ref: pd.DataFrame, route_csv: Path, audit2d: Path) -> dict:
         reasons[x["reason"]] = reasons.get(x["reason"], 0) + 1
     print(f"test no-answer: {len(rows)} / {len(ref)} (" + ", ".join(f"{c} {a}/{b}" for c, (a, b) in by_cat.items()) + ")")
     return {"rows": rows, "by_cat": by_cat, "by_reason": sorted(reasons.items(), key=lambda kv: -kv[1]),
-            "route": str(route_csv.relative_to(ROOT)) if route_csv.exists() else None,
-            "audit2d": str(audit2d.relative_to(ROOT)) if audit2d.exists() else None,
-            "fit3d": str(d3.relative_to(ROOT)) if d3 else None, "total": len(ref)}
+            "total": len(ref)}
 
 
 def build_test(make_thumb: bool):
@@ -1292,65 +754,39 @@ def build_test(make_thumb: bool):
                        "dim": int(first.dim), "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("test", vid), "scene": None, "scene2d": None, "scene_ref": ref_file,
                        "has_scene": sc is not None, "has_scene2d": s2 is not None, **run_at("test", vid, TEST_CSV),
-                       "version": version_of("test", vid, is3d, TEST_CSV),
                        "questions": qs})
     n3d = sum(v["dim"] == 3 for v in videos)
     print(f"test: {len(ref)} questions, {len(videos)} videos, scene fit {n_fit}/{n3d} 3D videos, "
           f"2D layered scene {n_2d}/{len(videos) - n3d} 2D videos")
-    return {"file": str(TEST_CSV.relative_to(ROOT)), "videos": videos, "noans": test_noanswer(ref, TEST_ROUTE, TEST_AUDIT2D)}
+    return {"file": str(TEST_CSV), "videos": videos, "noans": test_noanswer(ref, TEST_ROUTE, TEST_AUDIT2D)}
 
 
 def main():
     global TEST_CSV, TEST_ROUTE, TEST_AUDIT2D
     ap = argparse.ArgumentParser()
-    ap.add_argument("--val-harness-tag", help="completed harness validation tag, e.g. v24; read saved CSV/answers/group scenes")
-    ap.add_argument("--val-only", action="store_true", help="replace only val in existing videos.json; preserve test and skip index updates")
+    ap.add_argument("--val-run", default=(ROOT / "pipeline" / "VERSION").read_text().strip(),
+                    help="completed harness validation run tag (default: pipeline/VERSION, %(default)s)")
     ap.add_argument("--rethumb", action="store_true", help="regenerate thumbnails that already exist")
-    ap.add_argument("--count-check", type=Path, default=COUNT_CHECK_VAL,
-                    help="validation count_check results {video: {frames: [{t, n_video, n_scene, ...}], ...}} merged into "
-                         "scenes that do not carry the field themselves (default: %(default)s when it exists)")
-    # test tab data sources, so a new submission (v8) is one command:
-    #   --test-sub outputs/submission_v8.csv --test-route <its routing csv> --test-fit <test fit dir>
-    #   --test-s2d <test scene2d dir> --test-tracks tracks_v9p --test-version outputs/submission_v8.version.json
-    ap.add_argument("--test-sub", "--test-csv", dest="test_sub", type=Path, help="test submission csv (default: %s)" % TEST_CSV.name)
-    ap.add_argument("--test-route", type=Path, help="its per-question routing csv with a source column (default: %s)" % TEST_ROUTE.name)
-    ap.add_argument("--test-fit", type=Path, help="test scene-fit dir (default: %s)" % SCENE_DIRS["test"])
-    ap.add_argument("--test-s2d", type=Path, help="test scene2d dir (default: %s)" % SCENE2D_DIRS["test"])
-    ap.add_argument("--test-tracks", help="track cache kind for the test visible intervals, e.g. tracks_v9p (default: tracks)")
-    ap.add_argument("--val-version", default=PIPE_VERSION["val"], help="pipeline version vN shown on validation cards")
-    ap.add_argument("--test-version-label", default=PIPE_VERSION["test"], help="pipeline version vN shown on test cards (v8 once it is in)")
-    ap.add_argument("--test-version", type=Path, help="the submission's version json (e.g. submission_v8.version.json)")
-    ap.add_argument("--test-audit2d", type=Path, help="2D test audit *_pred.csv for the no-answer list (default: %s)" % TEST_AUDIT2D)
-    ap.add_argument("--versions-only", action="store_true", help="only regenerate the version table in index.html from docs/VERSIONS.md")
+    ap.add_argument("--test-sub", type=Path, help="test predictions csv; without it the existing test block is kept")
+    ap.add_argument("--test-route", type=Path, help="its per-question csv with a source column")
+    ap.add_argument("--test-fit", type=Path, help="test scene-fit dir")
+    ap.add_argument("--test-s2d", type=Path, help="test 2D layered-scene dir")
+    ap.add_argument("--test-tracks", help="track cache kind for the test visible intervals (default: tracks)")
+    ap.add_argument("--test-audit2d", type=Path, help="2D test audit *_pred.csv for the no-answer list")
     args = ap.parse_args()
-    if args.val_only and args.versions_only:
-        ap.error("--val-only cannot be combined with --versions-only")
-    existing = json.loads(OUT.read_text()) if args.val_only and OUT.exists() else {}
-    if args.val_only and "test" not in existing:
-        ap.error("--val-only requires an existing videos.json test block")
-    if not args.val_only:
-        n = write_versions()
-        print(f"versions: {n} rows from {VERSIONS_MD} into {INDEX_HTML.name}")
-    if args.versions_only:
-        return
-    TEST_CSV = args.test_sub or TEST_CSV
-    TEST_ROUTE = args.test_route or TEST_ROUTE
-    TEST_AUDIT2D = args.test_audit2d or TEST_AUDIT2D
+    existing = json.loads(OUT.read_text()) if not args.test_sub and OUT.exists() else {}
+    if not args.test_sub and "test" not in existing:
+        ap.error("--test-sub is required when data/videos.json has no test block to keep")
+    TEST_CSV, TEST_ROUTE, TEST_AUDIT2D = args.test_sub, args.test_route, args.test_audit2d
     if args.test_fit:
         SCENE_DIRS["test"] = args.test_fit.resolve()
     if args.test_s2d:
         SCENE2D_DIRS["test"] = args.test_s2d.resolve()
     if args.test_tracks:
         TRACKS_KIND["test"] = args.test_tracks
-    PIPE_VERSION.update(val=args.val_version, test=args.test_version_label)
-    if args.test_version and args.test_version.exists():
-        TEST_VERSION.update(json.load(open(args.test_version)))
-    if not args.val_harness_tag and args.count_check and args.count_check.exists():
-        COUNT_CHECK.update(json.load(open(args.count_check)))
-        print(f"count_check: {len(COUNT_CHECK)} videos from {args.count_check}")
     THUMBS.mkdir(parents=True, exist_ok=True)
-    validation = build_harness_val(args.val_harness_tag, args.rethumb) if args.val_harness_tag else build_val(args.rethumb)
-    data = replace_validation(existing, validation) if args.val_only else {
+    validation = build_harness_val(args.val_run, args.rethumb)
+    data = replace_validation(existing, validation) if not args.test_sub else {
         "generated": date.today().isoformat(), "val": validation, "test": build_test(args.rethumb)}
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), allow_nan=False))

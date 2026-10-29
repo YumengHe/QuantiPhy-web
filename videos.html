@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>视频与问题</title>
+<title>视频与场景</title>
 <meta name="robots" content="noindex, nofollow">
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -150,6 +150,8 @@
   .timebar button { font: inherit; padding: 2px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); cursor: pointer; }
   .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; }
   .muted { color: var(--muted); }
+  .topnav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; margin-bottom: 14px; }
+  .notice { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--text) !important; }
   .noscene { color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 10px 12px; }
   .sfres { margin-top: 10px; }
   .sfres summary { cursor: pointer; color: var(--accent); font-size: 14px; }
@@ -179,8 +181,10 @@
 <body>
 <div class="wrap">
 <header>
-  <h1>视频与问题</h1>
-  <p>验证集展示已完成的 harness 产物：实际版本、逐题来源与状态、独立 prior / depth 组及其 scene_id。叠加图由 Python runtime 从对应组状态生成；旧交互 3D / 图层视图仅作近似浏览。测试集保留已有提交数据，版本以各卡片为准。<a href="index.html">返回文档主页</a> · <a href="pipeline.html">完整流程</a></p>
+  <nav class="topnav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a></nav>
+  <h1>视频与场景</h1>
+  <p>逐个视频看原视频、重建的 2D 图层场景或 3D 场景、物体表和每道题的答案来源。验证集有标准答案，显示 MRA；测试集只有预测。</p>
+  <p class="notice">场景数据待 v1 重跑更新：现在显示的是重跑前的产物。</p>
   <p id="gen" class="muted"></p>
 </header>
 
@@ -190,7 +194,7 @@
 </div>
 
 <div id="pane-val" role="tabpanel">
-  <div class="panel">
+  <div class="panel" id="val-summary" hidden>
     <div class="summary-grid">
       <div>
         <div class="muted">macro MRA（四类各自平均后再平均）</div>
@@ -226,7 +230,7 @@
     <label>场景拟合 <select id="t-fit"><option value="">全部</option><option value="yes">有</option><option value="no">3D 但没有</option></select></label>
     <label>排序 <select id="t-sort"><option value="id">视频名</option><option value="n-desc">题数从多到少</option></select></label>
     <label><input type="search" id="t-q" placeholder="搜索视频名或问题"></label>
-    <label title="只列出场景（2D 图层场景 / 3D 拟合）没给出可用值的题：提交值来自 Qwen 先验、几何或典型值兜底"><input type="checkbox" id="t-noans"> 只看没有答案的题</label>
+    <label title="只列出场景（2D 图层场景 / 3D 拟合）没给出可用值的题"><input type="checkbox" id="t-noans"> 只看没有答案的题</label>
   </div>
   <div id="t-noans-sum"></div>
   <div class="status" id="t-status"></div>

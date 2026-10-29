@@ -37,12 +37,16 @@
   }));
 
   // ---------- summary tables ----------
+  // validation scores stay hidden until the current code version's rerun is in data/videos.json
+  const SHOW_VAL_SCORE = false;
   function valSummary(val) {
+    if (!SHOW_VAL_SCORE) return;
+    $('val-summary').hidden = false;
     const all = val.videos.flatMap((v) => v.questions);
     const m = macro(all);
     $('val-macro').textContent = fmt(m.macro, 4);
-    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频，来自 <code>${esc(val.file)}</code>；micro（逐题平均）${fmt(m.micro, 3)}。` +
-      (val.harness_tag ? `${esc(val.harness_tag)} 的独立 prior / depth 组；逐题 runtime 图与诊断按精确 scene_id 绑定。` : '历史产物；场景版本见各视频卡片。');
+    $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频；micro（逐题平均）${fmt(m.micro, 3)}。` +
+      (val.videos.some((v) => v.harness) ? '每组 prior / depth_info 单独建场景；逐题叠加图与诊断按 scene_id 绑定。' : '');
     // per answer source: how many questions took their final prediction from it and their MRA
     const SRCS = Object.entries(SRC_LABEL).filter(([k]) => all.some((q) => q.src === k));
     let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th>' + SRCS.map(([, l]) => `<th class="n">${l} 题数</th><th class="n">${l} MRA</th>`).join('') + '</tr>';
@@ -57,9 +61,9 @@
   }
   function testSummary(test) {
     const all = test.videos.flatMap((v) => v.questions);
-    const v3 = test.videos.filter((v) => v.dim === 3);
-    const fit = v3.filter(hasScene).length;
-    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频，预测来自 ${esc(test.file.split('/').pop().replace(/\.csv$/, ''))}（<code>${esc(test.file)}</code>，按行号和 <code>load_split('test')</code> 对齐）${/submission_v7/.test(test.file) ? '；v8 运行中，跑完后整体切到 v8' : ''}。测试集没有答案，不显示准确度。3D 视频 ${v3.length} 个，其中 ${fit} 个有场景拟合结果。`;
+    const vids3d = test.videos.filter((v) => v.dim === 3);
+    const fit = vids3d.filter(hasScene).length;
+    $('test-src-file').innerHTML = `${all.length} 题、${test.videos.length} 个视频的预测（按行号和 <code>load_split('test')</code> 对齐）。测试集没有答案，不显示准确度。3D 视频 ${vids3d.length} 个，其中 ${fit} 个有场景拟合结果。`;
     let h = '<tr><th>类别</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '<th class="n">合计</th></tr>';
     h += '<tr><td>题数</td>' + CATS.map((c) => `<td class="n">${all.filter((q) => q.cat === c).length}</td>`).join('') + `<td class="n">${all.length}</td></tr>`;
     h += '<tr><td>视频数</td>' + CATS.map((c) => `<td class="n">${test.videos.filter((v) => v.cats.includes(c)).length}</td>`).join('') + `<td class="n">${test.videos.length}</td></tr>`;
@@ -73,7 +77,6 @@
   function matchText(v, q, needle) { return !needle || v.id.toLowerCase().includes(needle) || q.q.toLowerCase().includes(needle); }
 
   const hasScene = (v) => !!(v.scene || v.has_scene);
-  const versionTitle = (ver) => `版本 ${ver.label || '—'}（产生这个场景的版本，见首页版本表）` + (ver.module ? '\n' + ver.module.split(' · ').join('\n') : '') + '\n' + Object.entries(ver.detail || {}).map(([k, x]) => `${k} = ${typeof x === 'object' ? JSON.stringify(x) : x}`).join('\n');
   // per-frame visible-count check (scene json "count_check", written by qp-tools): n_video vs n_scene as a strip
   function countStrip(cc) {
     if (!cc) return '';
@@ -101,9 +104,7 @@
       '<div class="vright"><span class="vright-row">' +
       (v.eval && v.eval.layer && v.eval.layer !== '—' ? `<span class="evtag" title="评估员判断的主因层：${esc(v.eval.layer)}\n根因：${esc(v.eval.cause)}">${esc(shortLayer(v.eval.layer))}</span>` : '') +
       (split === 'val' ? `<span title="该视频（当前筛选下）的平均 MRA">${mraBadge(m)}</span>` : '') + '</span>' +
-      (v.run_at || (v.version && v.version.label) ? '<span class="runat">' +
-        (v.version && v.version.label ? `<span title="${esc(versionTitle(v.version))}">${esc(v.version.label)}</span>` + (v.run_at ? ' · ' : '') : '') +
-        (v.run_at ? `<span title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</span>' : '') + '</div></summary>';
+      (v.run_at ? `<span class="runat" title="最近一次运行这个视频的时间（洛杉矶时间）">${esc(v.run_at)}</span>` : '') + '</div></summary>';
     let built = false, viewer = null, video = null;
     const original = v;
     const groups = (v.groups || []).filter((g) => qs.some((q) => q.group === g.group));
@@ -255,10 +256,10 @@
       const images = binding ? (q.runtime_overlays || []).filter((im) => im.scene_id === q.scene_id) : [];
       const previews = images.map((im) => im.path ? `<figure class="runtime-frame"><a href="${esc(im.path)}" target="_blank" rel="noopener">` +
         `<img loading="lazy" src="${esc(im.path)}" alt="本题 scene_id 的 runtime 叠加图，t=${esc(im.t)}s"></a>` +
-        `<figcaption>t=${fmt(im.t, 3)} s · ${esc(im.renderer)} / ${esc(im.renderer_version)} 显示代码</figcaption></figure>` :
+        `<figcaption>t=${fmt(im.t, 3)} s · ${esc(im.renderer)}</figcaption></figure>` :
         `<p class="fwarn">t=${fmt(im.t, 3)} s 图不可用：${esc(im.unavailable)}</p>`).join('');
       const info = binding ? `<details class="runtime-diagnostics"><summary>本题诊断与来源</summary><pre>${esc(JSON.stringify({
-        scene_id: q.scene_id, row: q.row, version: q.version, method: q.method, source: q.src, status: q.status,
+        scene_id: q.scene_id, row: q.row, method: q.method, source: q.src, status: q.status,
         scene_conf: q.scene_conf, confidence_kind: q.confidence_kind,
         execution_status: q.execution_status, measurement: q.measurement, measurement_id: q.measurement_id,
         measurement_record: q.measurement_record, quality: q.quality, provenance: q.provenance
@@ -275,7 +276,7 @@
           `conf ${fmt(q.conf, 3)}`) + '</td>' +
         `<td class="n">${mraBadge(q.mra)}</td>${tqCells(qs, q)}</tr>`;
     }).join('');
-    return '<h4>本组逐题答案与 canonical runtime 图</h4><div class="scroll-x"><table class="qtable">' +
+    return '<h4>本组逐题答案与叠加图</h4><div class="scroll-x"><table class="qtable">' +
       '<tr><th>类别 / 行号</th><th>问题、精确场景与诊断</th><th>验证答案</th><th>最终预测</th><th>来源 / 状态</th><th>MRA</th>' +
       tqHead(qs) + `</tr>${rows}</table></div>`;
   }
@@ -288,7 +289,8 @@
         `<td>${i.accepted ? '接受' : '未接受'} · ${esc(i.why || '')}<br>${esc(i.execution_status || '执行状态未记录')}` +
         `${i.decision_status ? ' / ' + esc(i.decision_status) : ''}${i.budget_exhausted ? ' / 观察预算耗尽' : ''}` +
         `<details><summary>工具执行记录</summary><pre>${esc(JSON.stringify({observations: i.observations, results: i.results, rejected_calls: i.rejected_calls,
-          deferred_calls: i.deferred_calls, failure_stage: i.failure_stage, model_policy_results: i.model_policy_results,
+          deferred_calls: i.deferred_calls, failure_stage: i.failure_stage,
+          model_policy_results: (i.model_policy_results || []).map(({ artifact, ...r }) => r),
           control_before: i.control_before, control_after: i.control_after}, null, 2))}</pre></details></td></tr>`).join('') +
       '</table></div></details>';
   }
@@ -366,7 +368,7 @@
     }
     let scene = '';
     if (v.dim === 3 && v.scene) {
-      scene = `<div><h4>3D 场景（<code>${esc(v.scene.file)}</code>）</h4>` +
+      scene = '<div><h4>3D 场景</h4>' +
         '<div class="viewbar"><span class="seg" role="group" aria-label="视角"><button type="button" data-view="free" aria-pressed="false">自由视角</button>' +
         '<button type="button" data-view="cam" aria-pressed="true" title="从原视频相机的位置和视野看，可以和左边的视频逐帧对比">相机视角</button></span>' +
         (v.video ? '<label class="off" title="相机视角下把原视频画面垫在渲染下面"><input type="checkbox" class="overlay" checked disabled> 叠加原视频</label>' : '') +
@@ -379,7 +381,7 @@
     }
     if (v.dim === 2 && v.scene2d) {
       const s = v.scene2d;
-      scene = `<div><h4>图层场景（<code>${esc(s.file)}</code>）</h4>` +
+      scene = '<div><h4>图层场景</h4>' +
         '<div class="viewbar"><span class="seg" role="group" aria-label="背景">' +
         `<button type="button" data-bg="video" aria-pressed="${v.video ? 'true' : 'false'}"${v.video ? '' : ' disabled'} title="把原视频当前帧垫在图层下面">叠加原视频</button>` +
         `<button type="button" data-bg="layers" aria-pressed="${v.video ? 'false' : 'true'}" title="背景换成静态背景层（采样帧的中位数）">只看图层</button></span>` +
@@ -393,7 +395,7 @@
         '模型类型和残差见下方图层表。左下角是比例尺和尺度来源' + (s.gravity_dir ? '，右上角箭头是重力方向' : '') + '。' +
         (v.video ? '时间轴和左边的视频联动。' : '') + '</p></div>';
     }
-    return (v.harness ? '<p class="muted">交互 3D / 图层视图使用旧版 JavaScript 简化投影，只作近似浏览。逐题检查请使用下方由 Python canonical runtime 生成的叠加图；独立 measurement 不等于渲染几何。</p>' : '') +
+    return (v.harness ? '<p class="muted">交互 3D / 图层视图是网页里的简化投影，只作近似浏览；逐题检查看下方由流水线渲染的叠加图。独立 measurement 不等于渲染几何。</p>' : '') +
       `<div class="media"><div>${vid}</div>${scene}</div>`;
   }
 
@@ -429,8 +431,8 @@
     const ivs = (vis) => (vis && vis.length ? vis.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ') + ' s' : '');
     const size = (sc) => {
       if (sc.size) return sc.size.map(([k, x, src]) => {
-        const v0 = `${k} ${fmtNum(x)} m`;
-        return src === 'bound' ? `<span class="dim-bound" title="看不见、靠先验">${v0}<sup>看不见</sup></span>` : src === 'prior' ? `${v0}<sup class="dim-prior">先验</sup>` : v0;
+        const dimText = `${k} ${fmtNum(x)} m`;
+        return src === 'bound' ? `<span class="dim-bound" title="看不见、靠先验">${dimText}<sup>看不见</sup></span>` : src === 'prior' ? `${dimText}<sup class="dim-prior">先验</sup>` : dimText;
       }).join(' × ');
       if (sc.size_px) {
         const [a, c, h] = sc.size_px;
@@ -1294,14 +1296,14 @@
     const rs = na.by_reason.map(([r, n]) => `<tr><td>${esc(r)}</td><td class="n">${n}</td></tr>`).join('');
     return `<div class="noans-sum"><div><b>没有答案：${tot} / ${na.total} 题（${fmt((100 * tot) / na.total, 1)}%）</b><div class="scroll-x"><table><tr><th>类别</th><th class="n">没有答案</th><th class="n">总题数</th><th class="n">占比</th></tr>${cats}</table></div></div>` +
       `<div><b>原因分布</b><div class="scroll-x"><table><tr><th>原因</th><th class="n">题数</th></tr>${rs}</table></div></div></div>` +
-      `<p class="muted" style="font-size:12.5px">口径："没有答案" = 场景没给出可用值的题。2D 看最新的 2D 测试集审计 <code>${esc(na.audit2d || '—')}</code>（场景值为空），原因取审计里该题的 method / notes；3D 看测试集拟合目录 <code>${esc(na.fit3d || '—')}</code>（该题没有拟合值，或整个视频没有拟合）。提交值取测试集提交文件，来源列取路由明细 <code>${esc(na.route || '—')}</code> 的 source（vlm = Qwen，geo = 几何，s2d = 场景）。注意：v7 提交时 2D 场景值只直接用了 18 题，所以来源列和"场景有没有值"不是一回事；这里的筛选按场景有没有值判断。</p>`;
+      `<p class="muted" style="font-size:12.5px">口径："没有答案" = 场景没给出可用值的题：2D 题看图层场景的值是否为空（原因取该题的 method / notes），3D 题看场景拟合是否给出该题的值或整个视频没有拟合。"预测值"取测试集预测文件，来源列取各题的 source（vlm = 模型估计，geo = 几何，s2d = 2D 场景）；来源列和"场景有没有值"不是一回事，这里的筛选按场景有没有值判断。</p>`;
   }
   function renderNoAnswer() {
     const na = DATA.test.noans, cat = $('t-cat').value, needle = $('t-q').value.trim().toLowerCase();
     const rows = na.rows.filter((x) => (!cat || x.cat === cat) && (!needle || x.vid.toLowerCase().includes(needle) || x.q.toLowerCase().includes(needle)));
     $('t-status').textContent = `${rows.length} 题（当前筛选下）。点视频名跳到它的卡片。`;
     const list = $('test-list');
-    list.innerHTML = '<div class="scroll-x"><table class="noans-tab"><tr><th>视频</th><th class="n">行号</th><th>类别</th><th>问题</th><th class="n">提交值</th><th>来源</th><th>没有场景值的原因</th></tr>' +
+    list.innerHTML = '<div class="scroll-x"><table class="noans-tab"><tr><th>视频</th><th class="n">行号</th><th>类别</th><th>问题</th><th class="n">预测值</th><th>来源</th><th>没有场景值的原因</th></tr>' +
       rows.map((x) => `<tr><td><a href="#test/${esc(x.vid)}" class="na-link" data-vid="${esc(x.vid)}">${esc(x.vid)}</a></td><td class="n">${x.row}</td><td><span class="tag">${x.cat}</span></td><td>${esc(x.q)}</td>` +
         `<td class="n">${fmtNum(x.pred)}</td><td>${esc(SRC_ZH[x.src] || x.src || '—')}</td><td>${esc(x.reason)}${x.detail ? `<div class="muted" style="font-size:12px">${esc(x.detail)}</div>` : ''}</td></tr>`).join('') + '</table></div>';
     list.querySelectorAll('.na-link').forEach((a) => a.addEventListener('click', (e) => {
