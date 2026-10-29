@@ -45,8 +45,7 @@
     <div class="igrid">
       <div class="ibox"><b>视频</b></div>
       <div class="ibox"><b>题目</b>要量的物理量和涉及的物体</div>
-      <div class="ibox"><b>prior</b>本题给出的一个已知量，定尺度</div>
-      <div class="ibox"><b>depth_info</b>物体到相机的已知距离，部分视频有</div>
+      <div class="ibox"><b>prior</b>题目给出的已知事实：物体尺寸、速度，或物体到相机的距离，定尺度</div>
     </div>
   </div>
   <div class="arrow in"></div>
@@ -79,7 +78,7 @@
 </div>
 
 <h3 id="planar">平面视频</h3>
-<p>题目里没有 depth_info 的视频按平面视频处理。它不另走一条流程，而是 3D 场景拟合的一种相机模式（场景 json 里 <code>camera.model = "planar"</code>）。</p>
+<p>prior 里没有距离锚点的视频按平面视频处理。它不另走一条流程，而是 3D 场景拟合的一种相机模式（场景 json 里 <code>camera.model = "planar"</code>）。</p>
 <ul>
   <li><b>相机和支撑面：</b>焦距取名义值，f = 图像宽度；支撑面正对相机。</li>
   <li><b>尺度：</b>先由 prior 标定每像素对应的米数（m/px），平面深度 = f × m/px。这一步就是平面模式的 Stage A。</li>
@@ -98,7 +97,7 @@
   <tr><td>prior</td><td>场景量不到，由模型根据题目和已知量估计</td></tr>
   <tr><td>unresolved</td><td>没有得到答案，评分时按零分计</td></tr>
 </table></div>
-<p class="muted small">同一视频里 prior / depth_info 不同的题各自建一组场景，组与组之间只共享像素观测，不共享物理参数。流程不读取验证集答案。</p>
+<p class="muted small">同一视频里 prior 不同的题各自建一组场景，组与组之间只共享像素观测，不共享物理参数。流程不读取验证集答案。</p>
 </main>
 </body>
 </html>

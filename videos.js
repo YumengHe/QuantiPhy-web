@@ -46,7 +46,7 @@
     const m = macro(all);
     $('val-macro').textContent = fmt(m.macro, 4);
     $('val-src-file').innerHTML = `${m.n} 题、${val.videos.length} 个视频；micro（逐题平均）${fmt(m.micro, 3)}。` +
-      (val.videos.some((v) => v.harness) ? '每组 prior / depth_info 单独建场景；逐题叠加图与诊断按 scene_id 绑定。' : '');
+      (val.videos.some((v) => v.harness) ? '每组 prior 单独建场景；逐题叠加图与诊断按 scene_id 绑定。' : '');
     // per answer source: how many questions took their final prediction from it and their MRA
     const SRCS = Object.entries(SRC_LABEL).filter(([k]) => all.some((q) => q.src === k));
     let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th>' + SRCS.map(([, l]) => `<th class="n">${l} 题数</th><th class="n">${l} MRA</th>`).join('') + '</tr>';
@@ -123,10 +123,10 @@
           const group = groups.find((g) => g.group === selectedGroup);
           v = { ...original, scene: (group && group.scene) || null };
           activeQuestions = qs.filter((q) => group ? q.group === group.group : q.group == null);
-          selector = '<div class="controls"><label>独立 prior / depth 组 <select class="group-select">' +
-            groups.map((g) => `<option value="${esc(g.group)}"${g.group === selectedGroup ? ' selected' : ''}>组 ${esc(g.group)} · ${esc((g.prior || '无 prior').slice(0, 85))}</option>`).join('') +
+          selector = '<div class="controls"><label>独立 prior 组 <select class="group-select">' +
+            groups.map((g) => `<option value="${esc(g.group)}"${g.group === selectedGroup ? ' selected' : ''}>组 ${esc(g.group)} · ${esc((g.prior || g.depth_info || '无 prior').slice(0, 85))}</option>`).join('') +
             (unavailable ? `<option value="__unavailable__"${!group ? ' selected' : ''}>scene_id 无法绑定的题目</option>` : '') + '</select></label></div>' +
-            (group ? `<div class="known-shared">${esc(group.prior)}${group.depth_info ? '\ndepth_info: ' + esc(group.depth_info) : ''}\nscene_id: ${esc(group.scene_id)}</div>` :
+            (group ? `<div class="known-shared">${[group.prior, group.depth_info].filter(Boolean).map(esc).join('\n')}\nscene_id: ${esc(group.scene_id)}</div>` :
               '<p class="fwarn">scene_id 缺失或不唯一；不选择其他组代替。</p>');
           critique = group ? harnessCritique(group.critique) : '';
         }
@@ -239,7 +239,7 @@
       }, null, 2))}</pre></details>` : `<p class="fwarn">图与场景诊断 unavailable：${esc(q.binding_error)}</p>`;
       const independent = q.src === 'measurement' || ((q.measurement || {}).reasons || []).includes('direct_observation_not_rendered_geometry');
       return `<tr><td>${esc(q.cat)}<br><span class="muted">row ${q.row}</span></td>` +
-        `<td class="q">${esc(q.q)}<div class="known">prior: ${esc(q.prior)}${q.depth ? '\ndepth_info: ' + esc(q.depth) : ''}</div>` +
+        `<td class="q">${esc(q.q)}<div class="known">prior: ${[q.prior, q.depth].filter(Boolean).map(esc).join('\n')}</div>` +
         `<div class="scene-id">scene_id: <code>${esc(q.scene_id || 'unavailable')}</code></div>` +
         (independent ? '<p class="muted">此量来自独立测量记录，不是渲染几何；图像对齐本身不能证明该数值。</p>' : '') +
         `<div class="runtime-frames">${previews}</div>${info}</td>` +
@@ -271,8 +271,8 @@
   function questionTable(qs, split) {
     if (qs.some((q) => q.harness)) return harnessQuestionTable(qs);
     if (!qs.length) return '<p class="muted">当前组没有匹配筛选条件的题目。</p>';
-    const kn = (q) => (q.prior ? `已知：${esc(q.prior)}` : '') + (q.depth ? `\ndepth_info：${esc(q.depth)}` : '');
-    // when every question of the video has the same prior / depth_info, show it once above the table
+    const kn = (q) => (q.prior || q.depth ? `已知：${[q.prior, q.depth].filter(Boolean).map(esc).join('\n')}` : '');
+    // when every question of the video has the same prior (incl. the distance anchor), show it once above the table
     const shared = qs.every((q) => q.prior === qs[0].prior && q.depth === qs[0].depth);
     const known = (q) => (shared ? '' : kn(q));
     let h = '<h4>问题</h4>' + (shared && kn(qs[0]) ? `<div class="known-shared">${kn(qs[0])}</div>` : '') +

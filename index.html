@@ -15,7 +15,7 @@
 <p class="lede">给一段视频，重建出带真实尺度的场景：物体是什么、多大、在哪里、怎么运动。尺寸、速度、距离这类定量问题直接在重建出的场景里量出来。</p>
 
 <h2 id="pipeline">流水线</h2>
-<p>每个视频走同一条流程，都拟合成 3D 场景：相机、地面和物体。没有距离锚点（depth_info）的平面视频用同一个优化器，只是相机换成平面模式：焦距取名义值，支撑面正对相机，平面深度由 prior 定的尺度推出。题目给的已知量（prior）用来定尺度；量不到的题由模型估，并标为 prior。</p>
+<p>题目给出的已知事实（prior）——物体尺寸、速度，或物体到相机的距离——用来定尺度。每个视频走同一条流程，都拟合成 3D 场景：相机、地面和物体。prior 里没有距离锚点的平面视频用同一个优化器，只是相机换成平面模式：焦距取名义值，支撑面正对相机，平面深度由 prior 定的尺度推出。量不到的题由模型估，并标为 prior。</p>
 <div class="steps" aria-label="流程概览">
   <span class="s">物体清单</span><span class="ar">→</span><span class="s">场景图</span><span class="ar">→</span><span class="s">跟踪</span><span class="ar">→</span>
   <span class="s">观测</span><span class="ar">→</span><span class="s">3D 场景拟合</span><span class="ar">→</span>
@@ -26,7 +26,7 @@
 <h2 id="datasets">数据集</h2>
 <div class="scroll-x"><table>
   <tr><th>数据集</th><th>内容</th><th class="n">测试集</th><th class="n">验证集</th><th>题型</th></tr>
-  <tr><td>QuantiPhy</td><td>仿真、实拍和网络视频上的定量物理问答，每题给一个已知量（prior）</td>
+  <tr><td>QuantiPhy</td><td>仿真、实拍和网络视频上的定量物理问答，每题给出已知事实（prior）</td>
     <td class="n">568 视频 · 3289 题</td><td class="n">24 视频 · 159 题</td>
     <td>S2 / D2 / S3 / D3：S 问静态量（尺寸、距离），D 问运动量（速度、加速度）；数字是数据集自带的题目类别，流程对四类一视同仁</td></tr>
 </table></div>
