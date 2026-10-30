@@ -121,7 +121,7 @@
     <div class="agrid"><span class="m"><b>Confident</b>scene value</span><span class="m"><b>Not confident</b>model estimate, marked prior</span></div></div>
 </div>
 
-<p>Every video takes the same 3D path: focal length and support-plane pose are estimated from the image, objects have thickness, and the prior sets the scale, whether it is a fact such as an object's size or speed or a distance anchor to the camera.</p>
+<p>Every video takes the same 3D path and objects have thickness. With distance anchors in the prior, the anchors set the scale. Without them, focal length and support plane come from Depth Pro, and the prior, such as an object's size or speed, sets one scale factor.</p>
 <p>Mask extents (extents2d) and refmeasure endpoints can serve as fitting observations, behind <code>--fixes hulls refmeasure</code> (off by default).</p>
 
 <h2 id="answers">Answer sources</h2>
