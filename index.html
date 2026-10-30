@@ -1,41 +1,41 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>视频物理场景重建</title>
+<title>Physical Scenes from Video</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<nav class="topbar" aria-label="站点"><div class="topbar-in"><a href="index.html" aria-current="page">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a></div></nav>
+<nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html" aria-current="page">Home</a><a href="pipeline.html">Pipeline</a><a href="evaluation.html">Evaluation</a></div></nav>
 <main class="wrap">
 
-<h1>从视频重建可度量的物理场景</h1>
-<p class="lede">给一段视频，重建出带真实尺度的场景：物体是什么、多大、在哪里、怎么运动。尺寸、速度、距离这类定量问题直接在重建出的场景里量出来。</p>
+<h1>Reconstructing measurable physical scenes from video</h1>
+<p class="lede">Given a video, reconstruct the scene at real-world scale: what the objects are, how large they are, where they are and how they move. Quantitative questions about size, speed and distance are then measured directly in the reconstructed scene.</p>
 
-<h2 id="pipeline">流水线</h2>
-<p>题目给出的已知事实（prior）——物体尺寸、速度，或物体到相机的距离——用来定尺度。每个视频走同一条流程，都拟合成 3D 场景：相机、地面和物体。prior 里没有距离锚点的平面视频用同一个优化器，只是相机换成平面模式：焦距取名义值，支撑面正对相机，平面深度由 prior 定的尺度推出。量不到的题由模型估，并标为 prior。</p>
-<div class="steps" aria-label="流程概览">
-  <span class="s">物体清单</span><span class="ar">→</span><span class="s">scene graph</span><span class="ar">→</span><span class="s">跟踪</span><span class="ar">→</span>
-  <span class="s">观测</span><span class="ar">→</span><span class="s">Physics-guided Fitting</span><span class="ar">→</span>
-  <span class="s">agent 回路（2–10 轮）</span><span class="ar">→</span><span class="s">从场景作答</span>
+<h2 id="pipeline">Pipeline</h2>
+<p>The prior, the known facts a question gives (an object's size or speed, or its distance to the camera), sets the scale. Every video runs the same pipeline and is fitted as a 3D scene: camera, ground and objects. Planar videos, whose prior has no distance anchor, use the same optimizer with a planar camera: nominal focal length, a support plane facing the camera, and a plane depth derived from the prior's scale. Questions the scene cannot answer are estimated by the model and marked prior.</p>
+<div class="steps" aria-label="Pipeline overview">
+  <span class="s">Object list</span><span class="ar">→</span><span class="s">scene graph</span><span class="ar">→</span><span class="s">Tracking</span><span class="ar">→</span>
+  <span class="s">Observations</span><span class="ar">→</span><span class="s">Physics-guided Fitting</span><span class="ar">→</span>
+  <span class="s">agent loop (2–10 rounds)</span><span class="ar">→</span><span class="s">Answer from the scene</span>
 </div>
-<p><a href="pipeline.html">每一步的说明</a></p>
+<p><a href="pipeline.html">Each step in detail</a></p>
 
-<h2 id="datasets">数据集</h2>
+<h2 id="datasets">Datasets</h2>
 <div class="scroll-x"><table>
-  <tr><th>数据集</th><th>内容</th><th class="n">测试集</th><th class="n">验证集</th><th>题型</th></tr>
-  <tr><td>QuantiPhy</td><td>仿真、实拍和网络视频上的定量物理问答，每题给出已知事实（prior）</td>
-    <td class="n">568 视频 · 3289 题</td><td class="n">24 视频 · 159 题</td>
-    <td>S2 / D2 / S3 / D3：S 问静态量（尺寸、距离），D 问运动量（速度、加速度）；数字是数据集自带的题目类别，流程对四类一视同仁</td></tr>
+  <tr><th>Dataset</th><th>Content</th><th class="n">Test</th><th class="n">Validation</th><th>Categories</th></tr>
+  <tr><td>QuantiPhy</td><td>Quantitative physics questions on simulated, captured and internet videos, each with its known facts (prior)</td>
+    <td class="n">568 videos · 3289 questions</td><td class="n">24 videos · 159 questions</td>
+    <td>S2 / D2 / S3 / D3: S asks static quantities (size, distance), D kinematic ones (speed, acceleration). The categories come with the dataset; the pipeline treats all four alike.</td></tr>
 </table></div>
 
-<h2 id="results">结果</h2>
-<p>指标是 MRA（平均相对准确度），总分是 S2、D2、S3、D3 四类各自平均后再平均。</p>
+<h2 id="results">Results</h2>
+<p>The metric is MRA (mean relative accuracy). The overall score is the mean of the four per-category means.</p>
 <div class="scroll-x"><table>
-  <tr><th>版本</th><th>数据</th><th class="n">总分</th><th class="n">S2</th><th class="n">D2</th><th class="n">S3</th><th class="n">D3</th></tr>
-  <tr><td>v1</td><td>QuantiPhy 验证集（159 题）</td><td class="n">0.6638</td><td class="n">0.659</td><td class="n">0.727</td><td class="n">0.635</td><td class="n">0.634</td></tr>
+  <tr><th>Version</th><th>Data</th><th class="n">Overall</th><th class="n">S2</th><th class="n">D2</th><th class="n">S3</th><th class="n">D3</th></tr>
+  <tr><td>v1</td><td>QuantiPhy validation (159 questions)</td><td class="n">0.6638</td><td class="n">0.659</td><td class="n">0.727</td><td class="n">0.635</td><td class="n">0.634</td></tr>
 </table></div>
 
 <h2 id="keywords">Keywords</h2>
@@ -43,13 +43,13 @@
   <li><strong>Minimal Sufficient Reconstruction</strong></li>
 </ul>
 
-<h2 id="browse">场景浏览</h2>
+<h2 id="browse">Browse</h2>
 <div class="cards">
-  <a class="card" href="videos.html"><b>视频与场景</b><span>原视频、3D 场景、物体表、答案来源</span></a>
-  <a class="card" href="pipeline.html"><b>流水线</b><span>每一步、平面视频、答案来源</span></a>
+  <a class="card" href="evaluation.html"><b>Evaluation</b><span>Per-question validation results: video, 3D scene, objects, answer source</span></a>
+  <a class="card" href="pipeline.html"><b>Pipeline</b><span>Each step, planar videos, answer sources</span></a>
 </div>
 
-<footer>版本记录见代码仓库的 <code>docs/VERSIONS.md</code>。</footer>
+<footer>Version history: <code>docs/VERSIONS.md</code> in the code repository.</footer>
 </main>
 </body>
 </html>

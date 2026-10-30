@@ -1,10 +1,9 @@
-// videos.html: one row per question (unit <video_id>_q<k>). Data: data/videos.json (built by tools/build_videos.py).
+// evaluation.html: one row per question (unit <video_id>_q<k>). Data: data/videos.json (built by tools/build_videos.py).
 (function () {
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
-  const SRC_LABEL = { scene: '场景重放', measurement: '独立测量', prior: '显式先验', unresolved: '未解决',
-    execution_failed: '执行失败' };
-  const SHAPE_LABEL = { box: '长方体', sphere: '球', cylinder: '圆柱', prism: '三棱柱', mesh: '网格（画包围盒）' };
+  const SRC_LABEL = { execution_failed: 'failed' };
+  const SHAPE_LABEL = { mesh: 'mesh (bounding box)' };
   const PALETTE = ['#3b6fd8', '#d9622b', '#2e9b5f', '#b03fa8', '#c79a12', '#1b9aaa', '#d6455d', '#6d5bd0', '#7a8b2a', '#8a5a3c'];
   let DATA = null;
 
@@ -25,25 +24,25 @@
     const vals = CATS.map((c) => mean(qs.filter((q) => q.cat === c).map((q) => q.mra))).filter((v) => isFinite(v));
     return mean(vals);
   }
-  // questions of the selected set (题集): DEV10 = docs/DEV10.md in its order, 全部 = every question of the run
+  // questions of the selected set : DEV10 = docs/DEV10.md in its order, All = every question of the run
   function setQuestions() {
     if ($('v-set').value !== 'dev') return DATA.val.questions;
     const byId = Object.fromEntries(DATA.val.questions.map((q) => [q.id, q]));
     return DATA.val.dev.map((id) => byId[id]);
   }
-  // ---------- summary of the selected set: DEV10 mean MRA, 全部 macro MRA; per-category table ----------
+  // ---------- summary of the selected set: DEV10 mean MRA, All macro MRA; per-category table ----------
   function valSummary() {
     const all = setQuestions(), dev = $('v-set').value === 'dev';
-    $('val-label').textContent = dev ? '平均 MRA' : 'macro MRA';
+    $('val-label').textContent = dev ? 'Mean MRA' : 'Macro MRA';
     $('val-head').textContent = dev ? fmt(mean(all.map((q) => q.mra)), 2) : fmt(macro(all), 4);
-    $('val-n').textContent = `${all.length} 题 · ${new Set(all.map((q) => q.video)).size} 个视频`;
+    $('val-n').textContent = `${all.length} questions · ${new Set(all.map((q) => q.video)).size} videos`;
     const row = (label, qs, strong) => {
       const s = (x) => (strong ? `<b>${x}</b>` : x);
       return `<tr><td>${s(label)}</td><td class="n">${s(qs.length)}</td><td class="n">${s(fmt(mean(qs.map((q) => q.mra)), dev ? 2 : 3))}</td></tr>`;
     };
-    let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">平均 MRA</th></tr>';
+    let h = '<tr><th>Category</th><th class="n">Questions</th><th class="n">Mean MRA</th></tr>';
     CATS.forEach((c) => { h += row(c, all.filter((q) => q.cat === c)); });
-    h += row('全部', all, true);
+    h += row('All', all, true);
     $('val-sum').innerHTML = h;
   }
 
@@ -59,8 +58,8 @@
   }
   function summaryRow(q, v) {
     const nums = `<span class="qcat"><span class="tag">${esc(q.cat)}</span></span>` +
-      `<span class="qv" data-k="真值">${fmtNum(q.answer)}</span>` +
-      `<span class="qv pred" data-k="预测">${fmtNum(q.pred)}</span>` +
+      `<span class="qv" data-k="GT">${fmtNum(q.answer)}</span>` +
+      `<span class="qv pred" data-k="Pred">${fmtNum(q.pred)}</span>` +
       `<span class="qsrc">${esc(SRC_LABEL[q.src] || q.src)}</span>`;
     return `<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}</span><span class="qtext">${esc(q.q)}</span></span>` +
       `<span class="qnums">${nums}</span><span class="qm">${mraBadge(q.mra)}</span></summary>`;
@@ -119,8 +118,8 @@
   const alignWarn = (a) => (a.iou != null && a.iou < 0.6) || (a.dc != null && a.dc > 0.25);
   function alignCell(a) {
     if (!a) return '<td class="n"><span class="muted">—</span></td>';
-    const title = [a.t != null ? `t = ${fmt(a.t, 3)} s${a.frame != null ? `（第 ${a.frame} 帧）` : ''}` : '',
-      a.px != null ? `中心偏差 ${fmtNum(a.px)} px` : ''].filter(Boolean).join('\n');
+    const title = [a.t != null ? `t = ${fmt(a.t, 3)} s${a.frame != null ? ` (frame ${a.frame})` : ''}` : '',
+      a.px != null ? `center offset ${fmtNum(a.px)} px` : ''].filter(Boolean).join('\n');
     return `<td class="n${alignBad(a) ? ' align-bad' : alignWarn(a) ? ' align-warn' : ''}" title="${esc(title)}">` +
       [a.iou != null ? 'IoU ' + fmt(a.iou, 2) : '', a.dc != null ? 'dc ' + fmt(a.dc, 2) : (a.px != null ? fmtNum(a.px) + ' px' : '')].filter(Boolean).join(' · ') + '</td>';
   }
@@ -159,21 +158,21 @@
   function mediaBlock(v, q) {
     let vid;
     if (v.video) {
-      const note = v.video_from !== 'val' ? `<p class="muted vnote">播放的是测试集里同一视频的 H.264 版本（验证集原文件是 MPEG-4 Part 2，浏览器放不了）。<a href="${esc(v.orig)}">下载原文件</a></p>` : '';
-      vid = `<h4>原视频</h4><video class="orig" controls muted loop playsinline preload="metadata"></video>${note}`;
+      const note = v.video_from !== 'val' ? `<p class="muted vnote">H.264 copy from the test set; the validation file is MPEG-4 Part 2. <a href="${esc(v.orig)}">Original file</a></p>` : '';
+      vid = `<h4>Video</h4><video class="orig" controls muted loop playsinline preload="metadata"></video>${note}`;
     } else {
-      vid = `<h4>原视频</h4><div class="noscene">MPEG-4 Part 2（<code>${esc(v.codec)}</code>），浏览器放不了。<a href="${esc(v.orig)}">下载原文件</a></div>`;
+      vid = `<h4>Video</h4><div class="noscene">MPEG-4 Part 2 (<code>${esc(v.codec)}</code>) does not play in browsers. <a href="${esc(v.orig)}">Original file</a></div>`;
     }
     const tl = tqLabel(q);
     const jump = tl ? `<button type="button" class="tq-btn" data-t="${q.tjump == null ? '' : q.tjump}">t = ${esc(tl)}</button>` : '';
     let scene = '';
     if (v.scene) {
-      scene = '<div><h4>3D 场景</h4>' +
-        '<div class="viewbar"><span class="seg" role="group" aria-label="视角"><button type="button" data-view="free" aria-pressed="false">自由视角</button>' +
-        '<button type="button" data-view="cam" aria-pressed="true">相机视角</button></span>' +
-        (v.video ? '<label class="off"><input type="checkbox" class="overlay" checked disabled> 叠加原视频</label>' : '') + jump + '</div>' +
-        '<div class="viewer"><div class="msg">加载 three.js …</div></div>' +
-        '<div class="timebar"><button type="button" class="play">播放</button><span class="tq-track"><input type="range" min="0" max="1000" value="0" aria-label="时间"><span class="tq-marks"></span></span><span class="tlabel">t = 0.00 s</span></div></div>';
+      scene = '<div><h4>3D scene</h4>' +
+        '<div class="viewbar"><span class="seg" role="group" aria-label="View"><button type="button" data-view="free" aria-pressed="false">Free</button>' +
+        '<button type="button" data-view="cam" aria-pressed="true">Camera</button></span>' +
+        (v.video ? '<label class="off"><input type="checkbox" class="overlay" checked disabled> Overlay video</label>' : '') + jump + '</div>' +
+        '<div class="viewer"><div class="msg">Loading three.js…</div></div>' +
+        '<div class="timebar"><button type="button" class="play">Play</button><span class="tq-track"><input type="range" min="0" max="1000" value="0" aria-label="Time"><span class="tq-marks"></span></span><span class="tlabel">t = 0.00 s</span></div></div>';
     } else if (jump) {
       vid += `<div class="viewbar" style="margin-top:6px">${jump}</div>`;
     }
@@ -184,10 +183,10 @@
   function overlayBlock(q) {
     const ims = q.overlays;
     if (!ims.length) return '';
-    return '<h4>叠加图</h4><div class="runtime-frames">' + ims.map((im) => im.path
+    return '<h4>Overlays</h4><div class="runtime-frames">' + ims.map((im) => im.path
       ? `<figure class="runtime-frame"><a href="${esc(im.path)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(im.path)}" alt="t = ${esc(im.t)} s"></a>` +
         `<figcaption>t = ${fmt(im.t, 2)} s</figcaption></figure>`
-      : `<p class="fwarn">t = ${fmt(im.t, 2)} s：${esc(im.unavailable)}</p>`).join('') + '</div>';
+      : `<p class="fwarn">t = ${fmt(im.t, 2)} s: ${esc(im.unavailable)}</p>`).join('') + '</div>';
   }
 
   // tracked intervals per object on the video's time axis; the question's times as vertical lines
@@ -202,7 +201,7 @@
       const segs = (ivs || []).map(([a, b]) => `<span class="trk-seg" style="left:${pct(a)};width:calc(${pct(b)} - ${pct(a)} + 2px);background:${col}" title="${fmt(a, 2)}–${fmt(b, 2)} s"></span>`).join('');
       return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${lines}</span></div>`;
     }).join('');
-    return `<h4>跟踪</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>`;
+    return `<h4>Tracks</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>`;
   }
 
   // ---------- time axis of the 3D viewer ----------
@@ -236,26 +235,26 @@
     };
     play.onclick = () => {
       if (linked()) { if (video.paused) video.play(); else video.pause(); return; }
-      playing = !playing; play.textContent = playing ? '暂停' : '播放';
+      playing = !playing; play.textContent = playing ? 'Pause' : 'Play';
       if (playing) { t0 = performance.now() - (slider.value / 1000) * T * 1000; raf = requestAnimationFrame(tick); } else cancelAnimationFrame(raf);
     };
     if (video) {
       const o = { signal };
-      video.addEventListener('play', () => { play.textContent = '暂停'; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }, o);
-      video.addEventListener('pause', () => { play.textContent = '播放'; cancelAnimationFrame(raf); if (linked()) fromVideo(); }, o);
+      video.addEventListener('play', () => { play.textContent = 'Pause'; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }, o);
+      video.addEventListener('pause', () => { play.textContent = 'Play'; cancelAnimationFrame(raf); if (linked()) fromVideo(); }, o);
       video.addEventListener('seeked', () => { if (linked() && video.paused) fromVideo(); }, o);
     }
     return {
       now: () => (slider.value / 1000) * T,
       redraw: () => show((slider.value / 1000) * T),
-      stop() { playing = false; cancelAnimationFrame(raf); slider.oninput = null; play.onclick = null; play.textContent = '播放'; },
+      stop() { playing = false; cancelAnimationFrame(raf); slider.oninput = null; play.onclick = null; play.textContent = 'Play'; },
     };
   }
 
   // ---------- scene graph (tools/build_videos.sgraph) drawn as a layered tree ----------
   // one box per object / support / hand, each resting on its first parent in time (parent below, child above, as in the
   // scene); later parents are extra edges (one that skips a level runs through a slot beside the parent's child, where
-  // its label sits). Objects that are only ever airborne hang from a 空中 root in the top row; an airborne span (or a relation without a target) of an object that also rests on
+  // its label sits). Objects that are only ever airborne hang from an airborne root in the top row; an airborne span (or a relation without a target) of an object that also rests on
   // something is a short stub to the left of its box.
   let sgCtx = null;
   const sgTextW = (s, px, bold) => {
@@ -285,7 +284,7 @@
       if (!r.spans.length) return r.rel === 'on' || r.rel === 'airborne' ? '' : r.rel;
       return `${r.rel} ${r.spans.sort((a, b) => a[0] - b[0]).map(([a, b]) => `${fmt(a, 2)}–${b == null ? '' : fmt(b, 2)}`).join(', ')} s`;
     };
-    // first parent in time; an object with nothing to rest on but an airborne span goes under the 空中 root
+    // first parent in time; an object with nothing to rest on but an airborne span goes under the airborne root
     const parent = {}, treeRel = {}, extra = [], stubs = {};
     order.forEach((id) => {
       const l = (rels.get(id) || []).slice().sort((a, b) => a.first - b.first);
@@ -317,7 +316,7 @@
     // node boxes: the name, wrapped by width
     const box = {};
     ids.forEach((id) => {
-      const name = id === AIR ? '空中' : id, words = String(name).split(/\s+/), lines = [];
+      const name = id === AIR ? 'airborne' : id, words = String(name).split(/\s+/), lines = [];
       let cur = '';
       words.forEach((w) => { const t = cur ? cur + ' ' + w : w; if (cur && sgTextW(t, NF, true) > MAXW) { lines.push(cur); cur = w; } else cur = t; });
       if (cur) lines.push(cur);
@@ -359,7 +358,7 @@
     const place = (id) => (kids[id] || []).forEach((c) => { X[c] = X[id] + off[c]; place(c); });
     roots.forEach(place);
     const W = Math.ceil(cur - GAPX * 1.5 + M);
-    // rows bottom-up, as things rest: a parent sits below its children; the 空中 subtree hangs from the top row instead
+    // rows bottom-up, as things rest: a parent sits below its children; the airborne subtree hangs from the top row instead
     const all = Object.keys(box), inAir = {};
     all.forEach((id) => { let a = id; while (parent[a]) a = parent[a]; inAir[id] = a === AIR; });
     const dmax = (f) => Math.max(0, ...all.filter(f).map((id) => depth[id]));
@@ -437,57 +436,57 @@
   function dimCell(o, key, prefix = '') {
     const d = o.dims || {}, src = (o.dim_source || {})[key];
     const v = prefix + fmtNum(d[key]);
-    if (src === 'bound') return `<span class="dim-bound" title="框和深度都没看到这一维，取防塌缩下限">${v}<sup>看不见</sup></span>`;
-    if (src === 'prior') return `<span>${v}<sup class="dim-prior">先验</sup></span>`;
+    if (src === 'bound') return `<span class="dim-bound" title="seen by neither box nor depth: anti-collapse lower bound">${v}<sup>unseen</sup></span>`;
+    if (src === 'prior') return `<span>${v}<sup class="dim-prior">prior</sup></span>`;
     return v;
   }
   function dimsText(o) {
-    if (o.shape === 'sphere') return [dimCell(o, 'D', '直径 '), '', ''];
-    if (o.shape === 'cylinder') return [dimCell(o, 'D', '直径 '), '', dimCell(o, 'H')];
-    if (o.shape === 'rope') return [dimCell(o, 'L', '绳长 '), '', ''];
+    if (o.shape === 'sphere') return [dimCell(o, 'D', 'D '), '', ''];
+    if (o.shape === 'cylinder') return [dimCell(o, 'D', 'D '), '', dimCell(o, 'H')];
+    if (o.shape === 'rope') return [dimCell(o, 'L', 'length '), '', ''];
     return [dimCell(o, 'L'), dimCell(o, 'W'), dimCell(o, 'H')];
   }
   function supportText(o) {
     const sp = o.support || {};
-    let t = sp.mode === 'support' ? `on ${sp.target || '主支撑面'}` : sp.mode === 'airborne' ? (sp.airborne_part && sp.target ? `先 on ${sp.target}，后 airborne` : 'airborne') : sp.mode || '';
-    if (o.hang) t += '（顶面即支撑面）';
-    if (o.t_on > 0) t += `；${fmt(o.t_on, 2)} s 前静止`;
-    const MODE = { ballistic: '弹跳模型', contact: '接触（几何证据优先）', overhead: '顶部结构', free3d: '自由 3D 运动', own_plane: '自有平面' };
-    if (o.mode && MODE[o.mode]) t += `；${MODE[o.mode]}`;
-    if (o.events && o.events.length) t += `（${o.events.slice(0, 4).map((e) => `${e[1] === 'bounce' ? '弹' : e[1] === 'stop' ? '停' : e[1]} ${fmt(e[0], 2)} s`).join('、')}${o.events.length > 4 ? '…' : ''}）`;
-    if (o.out_of_frame && o.out_of_frame.length) t += `；出画 ${o.out_of_frame.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ')} s`;
+    let t = sp.mode === 'support' ? `on ${sp.target || 'main support'}` : sp.mode === 'airborne' ? (sp.airborne_part && sp.target ? `on ${sp.target}, then airborne` : 'airborne') : sp.mode || '';
+    if (o.hang) t += ' (top face is the support)';
+    if (o.t_on > 0) t += `; at rest until ${fmt(o.t_on, 2)} s`;
+    const MODE = { ballistic: 'bouncing', contact: 'contact (geometry first)', overhead: 'overhead structure', free3d: 'free 3D motion', own_plane: 'own plane' };
+    if (o.mode && MODE[o.mode]) t += `; ${MODE[o.mode]}`;
+    if (o.events && o.events.length) t += ` (${o.events.slice(0, 4).map((e) => `${e[1]} ${fmt(e[0], 2)} s`).join(', ')}${o.events.length > 4 ? '…' : ''})`;
+    if (o.out_of_frame && o.out_of_frame.length) t += `; out of frame ${o.out_of_frame.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ')} s`;
     return t;
   }
   // conf-lowering signals of one scene answer (quality fields written by scene_fit)
   function confSignals(q) {
     if (!q) return [];
     const out = [];
-    if (q.own_plane) out.push('自有平面');
-    if (q.support_uncertain) out.push('支撑不确定');
-    if (q.support_consistency != null && q.support_consistency < 1) out.push(`支撑一致 ${fmt(q.support_consistency, 2)}`);
-    if (q.dim_source === 'bound') out.push('看不见（bound）');
-    if (q.collapsed) out.push('塌缩');
-    if (q.structure) out.push('结构');
-    if (q.t_cover === false) out.push('t_q 不在可见区间');
+    if (q.own_plane) out.push('own plane');
+    if (q.support_uncertain) out.push('support uncertain');
+    if (q.support_consistency != null && q.support_consistency < 1) out.push(`support consistency ${fmt(q.support_consistency, 2)}`);
+    if (q.dim_source === 'bound') out.push('unseen (bound)');
+    if (q.collapsed) out.push('collapsed');
+    if (q.structure) out.push('structure');
+    if (q.t_cover === false) out.push('t_q not visible');
     return out;
   }
   // focal-length votes of the fit (scene json "focal_votes")
-  const F_SRC = { gravity: '重力抛物线', lab_prior: '实验室先验', size_prior_depth: '尺寸先验 + 深度', typical_votes: '典型尺寸', typical_height: '典型高度', prior_kinematic: '运动学先验', person: '人身高', votes_first: '投票优先' };
+  const F_SRC = { gravity: 'gravity parabola', lab_prior: 'lab prior', size_prior_depth: 'size prior + depth', typical_votes: 'typical size', typical_height: 'typical height', prior_kinematic: 'kinematic prior', person: 'person height', votes_first: 'votes first' };
   function focalVotes(s) {
     if (!s.focal_votes || !s.focal_votes.length) return '';
     const tw = s.focal_votes.reduce((a, x) => a + (x.weight || 0), 0);
-    return '<details class="sfres"><summary>焦距投票</summary><div class="scroll-x"><table><tr><th>来源</th><th class="n">f (px)</th><th class="n">权重</th></tr>' +
+    return '<details class="sfres"><summary>Focal votes</summary><div class="scroll-x"><table><tr><th>Source</th><th class="n">f (px)</th><th class="n">Weight</th></tr>' +
       s.focal_votes.map((x) => `<tr><td>${esc(F_SRC[x.source] || x.source)}</td><td class="n">${fmtNum(x.value)}</td><td class="n">${fmtNum(x.weight)}${tw ? ` <span class="muted">(${fmt((100 * x.weight) / tw, 0)}%)</span>` : ''}</td></tr>`).join('') +
       '</table></div></details>';
   }
   function fitBlock(q, v) {
     const f = q.fit, s = v.scene;
-    let h = '<h4>重建</h4>';
+    let h = '<h4>Reconstruction</h4>';
     if (q.binding_error) h += `<p class="fwarn">${esc(q.binding_error)}</p>`;
     if (f || q.method || q.status) {
       const sig = confSignals(f && f.quality);
-      h += '<div class="scroll-x"><table class="fit"><tr><th>物体</th><th>方法</th><th class="n">场景值</th>' +
-        '<th class="n">置信度</th><th class="n">t_q 对齐</th><th>状态</th></tr>' +
+      h += '<div class="scroll-x"><table class="fit"><tr><th>Object</th><th>Method</th><th class="n">Scene value</th>' +
+        '<th class="n">Confidence</th><th class="n">t_q alignment</th><th>Status</th></tr>' +
         `<tr><td>${f ? esc(f.obj) : '—'}</td><td><code>${esc(q.method)}</code>${sig.length ? '<br>' + sig.map((x) => `<span class="sigtag">${esc(x)}</span>`).join(' ') : ''}</td>` +
         `<td class="n">${fmtNum(f && f.pred)}</td>` +
         `<td class="n">${fmt(q.conf, 3)}</td>${alignCell(q.align)}<td><code>${esc(q.status)}</code></td></tr></table></div>`;
@@ -501,13 +500,13 @@
           (hasVis ? `<td>${o.visible ? o.visible.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ') + ' s' : '<span class="muted">—</span>'}</td>` : '') +
           `<td class="n">${fmt(o.rms, 1)}</td></tr>`;
       }).join('');
-      h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>物体</th><th>形状</th><th class="n">L (m)</th><th class="n">W (m)</th><th class="n">H (m)</th>` +
-        (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th>可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>` +
+      h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th><th class="n">L (m)</th><th class="n">W (m)</th><th class="n">H (m)</th>` +
+        (hasSup ? '<th>Support</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
         `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}` +
-        (s.main_support ? ` · 主支撑面 ${esc(s.main_support)}` : '') + '</p>' + focalVotes(s);
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + focalVotes(s);
     }
     if (q.measurement || q.provenance || q.quality) {
-      h += `<details class="sfres"><summary>诊断</summary><pre>${esc(JSON.stringify({
+      h += `<details class="sfres"><summary>Diagnostics</summary><pre>${esc(JSON.stringify({
         scene_id: q.scene_id, row: q.row, method: q.method, source: q.src, status: q.status,
         execution_status: q.execution_status,
         measurement: q.measurement, measurement_id: q.measurement_id, measurement_record: q.measurement_record,
@@ -525,7 +524,7 @@
   async function startViewer(box, bar, v, video) {
     let THREE, OrbitControls;
     try { [THREE, { OrbitControls }] = await loadThree(); } catch (e) {
-      box.querySelector('.msg').textContent = 'three.js 加载失败（需要能访问 cdn.jsdelivr.net）';
+      box.querySelector('.msg').textContent = 'three.js failed to load (needs cdn.jsdelivr.net)';
       return null;
     }
     const s = v.scene;
@@ -629,7 +628,7 @@
     });
     const counter = document.createElement('div');
     counter.className = 'vcount';
-    counter.title = '视频可见 = 当前帧跟踪有框的物体数；场景视野内 = 拟合位置投影在原相机画面内（且在相机前方）的物体数';
+    counter.title = 'visible: objects with a track box in this frame; in view: objects whose fitted position projects into the camera image, in front of the camera';
     box.appendChild(counter);
     let tNow = 0;
 
@@ -685,7 +684,7 @@
         nVis += vis;
         if (p[2] > 0 && Math.abs((f * p[0]) / p[2]) <= iw / 2 && Math.abs((f * p[1]) / p[2]) <= ih / 2) nIn++;
       });
-      counter.textContent = `视频可见 ${nVis} / 场景视野内 ${nIn}`;
+      counter.textContent = `visible ${nVis} / in view ${nIn}`;
       counter.classList.toggle('bad', nVis !== nIn);
       render();
     }
@@ -729,7 +728,7 @@
         box.classList.remove('cam');
         scene.traverse((x) => { if (x.geometry) x.geometry.dispose(); if (x.material) x.material.dispose(); });
         renderer.dispose(); renderer.forceContextLoss();
-        box.innerHTML = '<div class="msg">已收起</div>';
+        box.innerHTML = '<div class="msg">Closed</div>';
       },
     };
   }
@@ -739,7 +738,7 @@
     const list = $('val-list'); list.innerHTML = '';
     const head = document.createElement('div');
     head.className = 'qhead';
-    head.innerHTML = '<span></span><span>题目</span><span class="qnums"><span>类别</span><span class="qv">真值</span><span class="qv">预测</span><span>来源</span></span><span class="qm">MRA</span>';
+    head.innerHTML = '<span></span><span>Question</span><span class="qnums"><span>Category</span><span class="qv">GT</span><span class="qv">Pred</span><span>Source</span></span><span class="qm">MRA</span>';
     if (items.length) list.appendChild(head);
     const frag = document.createDocumentFragment();
     items.forEach(({ q, v }) => frag.appendChild(questionCard(q, v)));
@@ -760,7 +759,7 @@
     if (sort === 'mra-asc') items.sort(nanLast((a, b) => a.q.mra - b.q.mra));
     else if (sort === 'mra-desc') items.sort(nanLast((a, b) => b.q.mra - a.q.mra));
     else if (sort === 'cat') items.sort((a, b) => CATS.indexOf(a.q.cat) - CATS.indexOf(b.q.cat));
-    $('v-status').textContent = `${items.length} 题` + (items.length ? ` · 平均 MRA ${fmt(mean(items.map((x) => x.q.mra)), 2)}` : '');
+    $('v-status').textContent = `${items.length} questions` + (items.length ? ` · mean MRA ${fmt(mean(items.map((x) => x.q.mra)), 2)}` : '');
     renderList(items);
   }
   const renderAll = () => { valSummary(); renderVal(); };
@@ -775,7 +774,7 @@
     ['v-cat', 'v-src', 'v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
     $('v-q').addEventListener('input', debounce(renderVal, 200));
     renderAll();
-    // deep link: #val/<video_id>_q<k> opens that question (switching to 全部 when it is not a DEV10 question)
+    // deep link: #val/<video_id>_q<k> opens that question (switching to All when it is not a DEV10 question)
     function openFromHash() {
       const m = decodeURIComponent(location.hash.slice(1)).match(/^val\/(.+)$/);
       if (!m || !DATA.val.questions.some((q) => q.id === m[1])) return;
@@ -788,6 +787,6 @@
     openFromHash();
     addEventListener('hashchange', openFromHash);
   }).catch((e) => {
-    $('val-list').innerHTML = `<p class="noscene">data/videos.json：${esc(e.message)}</p>`;
+    $('val-list').innerHTML = `<p class="noscene">data/videos.json: ${esc(e.message)}</p>`;
   });
 })();

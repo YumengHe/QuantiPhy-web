@@ -1,4 +1,4 @@
-"""Build web/data/videos.json (+ first-frame thumbnails) for videos.html from one version's validation run.
+"""Build web/data/videos.json (+ first-frame thumbnails) for evaluation.html from one version's validation run.
 
 Reads only that version's outputs; never runs the pipeline. The page lists one row per question; a question is the
 unit <video_id>_q<k> (k = its 1-based order among the video's rows of the split table, docs/PER_QUESTION.md).

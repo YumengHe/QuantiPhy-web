@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>重建流水线</title>
+<title>Reconstruction Pipeline</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="site.css">
 <style>
@@ -58,90 +58,89 @@
 </style>
 </head>
 <body>
-<nav class="topbar" aria-label="站点"><div class="topbar-in"><a href="index.html">首页</a><a href="pipeline.html" aria-current="page">流水线</a><a href="videos.html">场景浏览</a></div></nav>
+<nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html">Home</a><a href="pipeline.html" aria-current="page">Pipeline</a><a href="evaluation.html">Evaluation</a></div></nav>
 <main class="wrap">
 
-<h1>重建流水线</h1>
-<p class="lede">一个视频一次走完整条流程：先看清楚有哪些物体、它们怎么动，再建出带尺度的场景，由 agent 检查和修正，最后从场景里量出答案。</p>
-<p class="muted small">入口是 <code>python -m pipeline.harness</code>，代码说明见仓库的 <code>pipeline/README.md</code>。</p>
+<h1>Pipeline</h1>
+<p class="lede">A video runs the whole chain in one pass: find the objects and how they move, build a scene at real scale, let an agent check and correct it, then measure the answer in the scene.</p>
+<p class="muted small">Entry point: <code>python -m pipeline.harness</code>. Code notes: <code>pipeline/README.md</code> in the repository.</p>
 
 <div class="flow" id="flow">
   <div class="input fc">
-    <b>输入</b>
+    <b>Input</b>
     <div class="igrid">
-      <div class="ibox"><b>视频</b></div>
-      <div class="ibox"><b>题目</b>要量的物理量和涉及的物体</div>
-      <div class="ibox"><b>prior</b>题目给出的已知事实：物体尺寸、速度，或物体到相机的距离，定尺度</div>
+      <div class="ibox"><b>Video</b></div>
+      <div class="ibox"><b>Question</b>The quantity to measure and the objects involved</div>
+      <div class="ibox"><b>prior</b>Known facts from the question that set the scale: object sizes, speeds, or distances to the camera</div>
     </div>
   </div>
   <div class="ac fc"><div class="arrow in"></div></div>
 
-  <div class="node fc"><div class="hd"><b>物体清单</b></div>
-    <span class="m">要量的物体及其支撑物：名字、别名、数量、形状、位置提示</span></div>
-  <div class="rail top dash ret edit"><span>编辑</span></div>
+  <div class="node fc"><div class="hd"><b>Object list</b></div>
+    <span class="m">Objects to measure and their supports: name, aliases, count, shape, location hint</span></div>
+  <div class="rail top dash ret edit"><span>edit</span></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail dash"></div>
 
   <div class="node fc"><div class="hd"><b>scene graph</b></div>
-    <span class="m">逐时段的支撑关系：on / airborne / held_by / in</span></div>
-  <div class="rail dash ret edit"><span>编辑</span></div>
+    <span class="m">Support relations per time span: on / airborne / held_by / in</span></div>
+  <div class="rail dash ret edit"><span>edit</span></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail dash"></div>
 
-  <div class="node fc"><div class="hd"><b>跟踪</b></div>
-    <span class="m">逐帧像素轨迹和掩码，轨迹身份复核</span></div>
-  <div class="rail ret"><span>数量 / 是否跟踪 / 重新跟踪 / 拆实例</span></div>
+  <div class="node fc"><div class="hd"><b>Tracking</b></div>
+    <span class="m">Per-frame pixel tracks and masks, with a track identity check</span></div>
+  <div class="rail ret"><span>count / track / retrack / split</span></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
-  <div class="node fc"><div class="hd"><b>观测</b></div>
-    <span class="m">支撑面、深度、refmeasure 端点、掩码范围</span></div>
+  <div class="node fc"><div class="hd"><b>Observations</b></div>
+    <span class="m">Support plane, depth, refmeasure endpoints, mask extents</span></div>
   <div class="rail"></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
   <div class="node fc"><div class="hd"><b>Physics-guided Fitting</b></div>
-    <span class="m">相机、支撑面、物体形状和由物理定律参数化的运动，投影与跟踪、深度、prior 一致</span></div>
-  <div class="rail ret"><span>支撑关系 / 主支撑面 / 场景动作</span></div>
-  <div class="ac fc"><div class="arrow"></div><span class="el">每个 prior 一组</span></div><div class="rail"></div>
+    <span class="m">Camera, support plane, object shapes, and motion parameterized by physical laws, fitted so the projection agrees with tracks, depth and prior</span></div>
+  <div class="rail ret"><span>support / main support / scene actions</span></div>
+  <div class="ac fc"><div class="arrow"></div><span class="el">one per prior</span></div><div class="rail"></div>
 
   <div class="loop fc">
-    <div class="hd"><b>agent 回路</b><span class="lr">2–10 轮</span></div>
+    <div class="hd"><b>agent loop</b><span class="lr">2–10 rounds</span></div>
     <div class="lsteps">
-      <div class="lbox"><b>观察</b>frames · crop · overlay · tracks_summary · depth_at · scene_json · self_check · question_values · visible_count · reference_measure<span class="lm">每轮 ≤ 6 次，不改场景</span></div>
+      <div class="lbox"><b>Observe</b>frames · crop · overlay · tracks_summary · depth_at · scene_json · self_check · question_values · visible_count · reference_measure<span class="lm">≤ 6 calls per round, read-only</span></div>
       <div class="lar">→</div>
-      <div class="lbox"><b>决定动作</b></div>
+      <div class="lbox"><b>Decide</b></div>
       <div class="lar">→</div>
-      <div class="lbox"><b>执行</b><span class="lm">从最上游受影响的步骤重跑到场景</span></div>
+      <div class="lbox"><b>Execute</b><span class="lm">Rerun from the most upstream affected step to the scene</span></div>
       <div class="lar">→</div>
-      <div class="lbox"><b>固定证据检查</b><span class="lm">通过 → 保留<br>不通过 → 回滚</span></div>
+      <div class="lbox"><b>Fixed evidence check</b><span class="lm">pass → keep<br>fail → roll back</span></div>
     </div>
-    <div class="lstop"><b>停</b>连续两轮没有改进，或 done 且检查达标</div>
+    <div class="lstop"><b>Stop</b>two rounds without improvement, or done with checks passed</div>
   </div>
   <div class="rail bot out"></div>
   <div class="ac fc"><div class="arrow"></div></div>
 
-  <div class="node fc"><div class="hd"><b>从场景作答</b></div>
-    <div class="agrid"><span class="m"><b>置信度够</b>场景值</span><span class="m"><b>不够</b>模型估，标 prior</span></div></div>
+  <div class="node fc"><div class="hd"><b>Answer from the scene</b></div>
+    <div class="agrid"><span class="m"><b>Confident</b>scene value</span><span class="m"><b>Not confident</b>model estimate, marked prior</span></div></div>
 </div>
 
-<h2 id="planar">平面视频</h2>
-<p>prior 里没有距离锚点的视频按平面视频处理。它不另走一条流程，而是 Physics-guided Fitting 的一种相机模式（场景 json 里 <code>camera.model = "planar"</code>）。</p>
+<h2 id="planar">Planar videos</h2>
+<p>A video whose prior has no distance anchor is treated as planar. It does not take a separate path; it is a camera mode of Physics-guided Fitting (<code>camera.model = "planar"</code> in the scene json).</p>
 <ul>
-  <li><b>相机和支撑面：</b>焦距取名义值，f = 图像宽度；支撑面正对相机。</li>
-  <li><b>尺度：</b>先由 prior 标定每像素对应的米数（m/px），平面深度 = f × m/px。这一步就是平面模式的 Stage A。</li>
-  <li><b>物体厚度：</b>取 0。</li>
-  <li><b>标注：</b>焦距、支撑面朝向、平面深度和厚度都无法从画面辨识，在场景 json 的 <code>camera</code> 块里标为 <code>fixed</code>、<code>identifiable: false</code>。</li>
+  <li><b>Camera and support plane:</b> nominal focal length, f = image width; the support plane faces the camera.</li>
+  <li><b>Scale:</b> the prior first calibrates meters per pixel (m/px); plane depth = f × m/px. This is Stage A of the planar mode.</li>
+  <li><b>Object thickness:</b> 0.</li>
+  <li><b>Annotation:</b> focal length, plane orientation, plane depth and thickness cannot be identified from the image, so the scene json's <code>camera</code> block marks them <code>fixed</code>, <code>identifiable: false</code>.</li>
 </ul>
-<p>其余部分和其他视频共用：同一个优化器，同样的物体拟合，同一套由物理定律参数化的运动模型。</p>
-<p>观测项也一样。掩码范围（extents2d）和 refmeasure 端点对所有视频都能作为拟合观测：平面模式下始终使用，其他视频由开关 <code>--fixes hulls refmeasure</code> 打开（默认关）。</p>
+<p>Everything else is shared with other videos: the same optimizer, the same object fitting, the same physics-parameterized motion models.</p>
+<p>So are the observations. Mask extents (extents2d) and refmeasure endpoints can serve as fitting observations for any video: always on in planar mode, and behind <code>--fixes hulls refmeasure</code> (off by default) for the rest.</p>
 
-<h2 id="answers">答案来源</h2>
-<p>每道题的答案带一个来源标记：</p>
+<h2 id="answers">Answer sources</h2>
 <div class="scroll-x"><table>
-  <tr><th>来源</th><th>含义</th></tr>
-  <tr><td>scene</td><td>从最终场景量出</td></tr>
-  <tr><td>measurement</td><td>独立的直接测量（如端点之间的长度），不经过场景渲染</td></tr>
-  <tr><td>prior</td><td>场景量不到，由模型根据题目和已知量估计</td></tr>
-  <tr><td>unresolved</td><td>没有得到答案，评分时按零分计</td></tr>
+  <tr><th>Source</th><th>Meaning</th></tr>
+  <tr><td>scene</td><td>Measured in the final scene</td></tr>
+  <tr><td>measurement</td><td>An independent direct measurement (e.g. the length between two endpoints), not rendered through the scene</td></tr>
+  <tr><td>prior</td><td>The scene cannot measure it; the model estimates it from the question and the known facts</td></tr>
+  <tr><td>unresolved</td><td>No answer; scored as zero</td></tr>
 </table></div>
-<p class="muted small">同一视频里 prior 不同的题各自建一组场景，组与组之间只共享像素观测，不共享物理参数。流程不读取验证集答案。</p>
+<p class="muted small">Questions of one video with different priors each get their own scene; scenes share only pixel observations, not physical parameters. The pipeline never reads validation answers.</p>
 </main>
 </body>
 </html>

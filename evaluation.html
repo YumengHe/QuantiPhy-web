@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>场景浏览</title>
+<title>Evaluation</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="site.css">
 <script type="importmap">
@@ -28,7 +28,7 @@
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.6 -apple-system, "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif; }
+    font: 15px/1.6 var(--sans); }
   .wrap { max-width: 1280px; margin: 0 auto; padding: 28px 32px 80px; }
   header { margin-bottom: 18px; }
   header h1 { margin: 0 0 4px; font-size: 26px; }
@@ -54,7 +54,7 @@
   .m0 { background: var(--m0); color: var(--m0t); }
   /* question list: one row per unit <video_id>_q<k>; columns line up with the header row */
   .qhead, details.qrow > summary { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto 56px; gap: 12px; align-items: center; }
-  .qnums { display: grid; grid-template-columns: 40px 72px 72px 72px; gap: 10px; align-items: center; }
+  .qnums { display: grid; grid-template-columns: 64px 72px 72px 96px; gap: 10px; align-items: center; }
   .qhead { padding: 0 13px 4px; font-size: 12.5px; color: var(--muted); }
   .qv, .qm { text-align: right; font-variant-numeric: tabular-nums; }
   .qv.pred { font-weight: 600; }
@@ -164,10 +164,10 @@
 </style>
 </head>
 <body>
-<nav class="topbar" aria-label="站点"><div class="topbar-in"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html" aria-current="page">场景浏览</a></div></nav>
+<nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html">Home</a><a href="pipeline.html">Pipeline</a><a href="evaluation.html" aria-current="page">Evaluation</a></div></nav>
 <div class="wrap">
 <header>
-  <h1>场景浏览</h1>
+  <h1>Evaluation</h1>
   <p id="gen" class="muted"></p>
 </header>
 
@@ -183,13 +183,13 @@
     </div>
   </div>
   <div class="controls">
-    <label>题集 <select id="v-set"><option value="dev" selected>DEV10</option><option value="">全部</option></select></label>
-    <label>类别 <select id="v-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
-    <label>来源 <select id="v-src"><option value="">全部</option><option value="scene">场景重放</option><option value="measurement">独立测量</option><option value="prior">显式先验</option><option value="unresolved">未解决</option><option value="execution_failed">执行失败</option></select></label>
-    <label>视频来源 <select id="v-vsrc"><option value="">全部</option></select></label>
-    <label>MRA <select id="v-mra"><option value="">全部</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
-    <label>排序 <select id="v-sort"><option value="" selected>题集顺序</option><option value="mra-asc">MRA 从低到高</option><option value="mra-desc">MRA 从高到低</option><option value="cat">类别</option></select></label>
-    <label><input type="search" id="v-q" placeholder="编号或题目"></label>
+    <label>Set <select id="v-set"><option value="dev" selected>DEV10</option><option value="">All</option></select></label>
+    <label>Category <select id="v-cat"><option value="">All</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
+    <label>Source <select id="v-src"><option value="">All</option><option>scene</option><option>measurement</option><option>prior</option><option>unresolved</option><option value="execution_failed">failed</option></select></label>
+    <label>Video source <select id="v-vsrc"><option value="">All</option></select></label>
+    <label>MRA <select id="v-mra"><option value="">All</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
+    <label>Sort <select id="v-sort"><option value="" selected>Set order</option><option value="mra-asc">MRA ascending</option><option value="mra-desc">MRA descending</option><option value="cat">Category</option></select></label>
+    <label><input type="search" id="v-q" placeholder="ID or question"></label>
   </div>
   <div class="status" id="v-status"></div>
   <div id="val-list"></div>
