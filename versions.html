@@ -31,6 +31,7 @@
   <tr><td>v1</td><td>Baseline: one pipeline for every video. Videos without a distance anchor use a planar camera, with a nominal focal length, a support plane facing the camera and zero object thickness.</td><td class="n" data-k="10 questions">0.32</td><td class="n" data-k="Validation (159 questions)">0.6638</td></tr>
   <tr><td>v2</td><td>Physics-guided Fitting: passive objects follow physics-law motion models (rest, bounce, flight, incline, pushed, pendulum) with g fixed, and a gravity probe checks the scale. Planar scale fixed with category-size cross-checks, a heading rule and one shared yaw per track.</td><td class="n" data-k="10 questions">0.58</td><td class="n" data-k="Validation (159 questions)">—</td></tr>
   <tr><td>v3</td><td>One 3D path for every video: the planar camera mode is removed; videos without distance anchors get focal length and support plane from Depth Pro and one scale factor from the prior; objects have thickness.</td><td class="n" data-k="10 questions">0.58</td><td class="n" data-k="Validation (159 questions)">—</td></tr>
+  <tr><td>v4</td><td>Planar remnants removed: the scene graph has no 2D prompt and no geometric contact relabelling; presence and direct measurement drop their planar special cases.</td><td class="n" data-k="10 questions">0.54</td><td class="n" data-k="Validation (159 questions)">—</td></tr>
 </table>
 
 </main>
