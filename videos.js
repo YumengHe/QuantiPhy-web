@@ -20,95 +20,54 @@
   }
   function mraClass(m) { return m >= 0.8 ? 'm4' : m >= 0.6 ? 'm3' : m >= 0.4 ? 'm2' : m >= 0.2 ? 'm1' : 'm0'; }
   function mraBadge(m) { return isFinite(m) ? `<span class="mra ${mraClass(m)}">${fmt(m, 2)}</span>` : '<span class="muted">—</span>'; }
-  // macro = mean over the four categories of the per-category mean (same as pipeline/metrics.evaluate)
-  function macro(qs) {
-    const per = {};
-    CATS.forEach((c) => { per[c] = mean(qs.filter((q) => q.cat === c).map((q) => q.mra)); });
-    const vals = CATS.map((c) => per[c]).filter((v) => isFinite(v));
-    return { per, macro: mean(vals), micro: mean(qs.map((q) => q.mra)), n: qs.length };
-  }
-  // unit ids sort by video, then by the question's order k inside the video
-  const byUnit = (a, b) => (a.video < b.video ? -1 : a.video > b.video ? 1 : a.k - b.k);
-
-  // ---------- tabs ----------
-  document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
-    document.querySelectorAll('.tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
-    $('pane-val').hidden = b.dataset.tab !== 'val';
-    $('pane-test').hidden = b.dataset.tab !== 'test';
-    try { localStorage.setItem('qp-videos-tab', b.dataset.tab); } catch (e) { /* storage unavailable */ }
-  }));
-
-  // ---------- summary tables ----------
+  // ---------- summary: the listed questions (docs/DEV10.md) ----------
   function valSummary(val) {
     const all = val.questions;
-    const m = macro(all);
-    // the headline is the build script's pipeline.metrics.evaluate value; the table recomputes from the per-question MRA
-    $('val-macro').textContent = fmt(val.macro != null ? val.macro : m.macro, 4);
-    $('val-n').textContent = `${m.n} 题 · ${val.videos.length} 个视频`;
-    const SRCS = Object.entries(SRC_LABEL).filter(([k]) => all.some((q) => q.src === k));
-    let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">MRA</th>' + SRCS.map(([, l]) => `<th class="n">${l}</th>`).join('') + '</tr>';
+    $('val-mean').textContent = fmt(mean(all.map((q) => q.mra)), 2);
+    $('val-n').textContent = `${all.length} 题`;
     const row = (label, qs, strong) => {
       const s = (x) => (strong ? `<b>${x}</b>` : x);
-      return `<tr><td>${s(label)}</td><td class="n">${qs.length}</td><td class="n">${s(fmt(mean(qs.map((q) => q.mra))))}</td>` +
-        SRCS.map(([k]) => { const g = qs.filter((q) => q.src === k); return `<td class="n">${g.length ? `${g.length} · ${fmt(mean(g.map((q) => q.mra)), 2)}` : '—'}</td>`; }).join('') + '</tr>';
+      return `<tr><td>${s(label)}</td><td class="n">${s(qs.length)}</td><td class="n">${s(fmt(mean(qs.map((q) => q.mra)), 2))}</td></tr>`;
     };
+    let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">平均 MRA</th></tr>';
     CATS.forEach((c) => { h += row(c, all.filter((q) => q.cat === c)); });
     h += row('全部', all, true);
     $('val-sum').innerHTML = h;
   }
-  function testSummary(test) {
-    const all = test.questions;
-    let h = '<tr><th>类别</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '<th class="n">全部</th></tr>';
-    h += '<tr><td>题数</td>' + CATS.map((c) => `<td class="n">${all.filter((q) => q.cat === c).length}</td>`).join('') + `<td class="n">${all.length}</td></tr>`;
-    const na = all.filter((q) => q.noans);
-    h += '<tr><td>场景没有值</td>' + CATS.map((c) => `<td class="n">${na.filter((q) => q.cat === c).length}</td>`).join('') + `<td class="n">${na.length}</td></tr>`;
-    $('test-sum').innerHTML = h;
-    $('test-n').textContent = `${all.length} 题 · ${test.videos.length} 个视频`;
-  }
 
   // ---------- one question ----------
-  const hasScene = (v) => !!(v.scene || v.has_scene || (v.groups || []).some((g) => g.scene));
-  // a question's own artifacts once the pipeline runs per question; until then its video's (the scene of its prior group)
+  // the artifacts of the question's processing unit (val.unit): with unit "video" the scene of its prior group and the
+  // video's scene graph and tracks, with unit "question" its own
   function artifacts(q, v) {
-    const group = (v.groups || []).find((g) => g.group === q.group);
-    return {
-      scene: q.scene || (group ? group.scene : v.scene) || null,
-      sgraph: q.sgraph || v.sgraph || null,
-      tracks: q.tracks || v.tracks || null,
-    };
+    if (DATA.val.unit === 'question') return { scene: q.scene, sgraph: q.sgraph, tracks: q.tracks };
+    if (DATA.val.unit !== 'video') throw new Error(`unknown processing unit ${DATA.val.unit}`);
+    const group = q.group == null ? null : v.groups.find((g) => g.group === q.group);
+    if (q.group != null && !group) throw new Error(`${q.id}: group ${q.group} not in ${v.id}`);
+    return { scene: group ? group.scene : null, sgraph: v.sgraph, tracks: v.tracks };
   }
-  function summaryRow(q, v, split) {
-    const thumb = v.thumb ? `<img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}">` : '<span class="thumb"></span>';
+  function summaryRow(q, v) {
     const nums = `<span class="qcat"><span class="tag">${esc(q.cat)}</span></span>` +
-      (split === 'val' ? `<span class="qv" data-k="真值">${fmtNum(q.answer)}</span>` : '') +
+      `<span class="qv" data-k="真值">${fmtNum(q.answer)}</span>` +
       `<span class="qv pred" data-k="预测">${fmtNum(q.pred)}</span>` +
-      (split === 'val' ? `<span class="qsrc">${esc(SRC_LABEL[q.src] || q.src || '—')}</span>` : '');
-    return `<summary>${thumb}<span class="qmain"><span class="qid">${esc(q.id)}</span><span class="qtext">${esc(q.q)}</span></span>` +
-      `<span class="qnums">${nums}</span>` + (split === 'val' ? `<span class="qm">${mraBadge(q.mra)}</span>` : '') + '</summary>';
+      `<span class="qsrc">${esc(SRC_LABEL[q.src] || q.src)}</span>`;
+    return `<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}</span><span class="qtext">${esc(q.q)}</span></span>` +
+      `<span class="qnums">${nums}</span><span class="qm">${mraBadge(q.mra)}</span></summary>`;
   }
-  function questionCard(q, v, split) {
+  function questionCard(q, v) {
     const d = document.createElement('details');
     d.className = 'qrow';
     d.dataset.id = q.id;
-    d.innerHTML = summaryRow(q, v, split);
+    d.innerHTML = summaryRow(q, v);
     let built = false, viewer = null, video = null, view = null;
     const onToggle = () => {
-      // test scenes live in one file per video (data/scenes/test/<id>.json), fetched when a question opens
-      if (d.open && v.scene_ref && !v._loaded) {
-        fetch(v.scene_ref).then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((j) => {
-          v.scene = j.scene || null; v._loaded = true;
-          if (d.open) onToggle();
-        });
-        return;
-      }
       if (d.open && !built) {
         built = true;
         const a = artifacts(q, v);
         view = { ...v, scene: a.scene };
         const body = document.createElement('div');
         body.className = 'qbody';
-        body.innerHTML = priorBlock(q) + mediaBlock(view, q, split) + overlayBlock(q) + trackBlock(a.tracks, view, q) +
-          sceneGraphTree(a.sgraph || graphFromScene(a.scene)) + fitBlock(q, view, split) + agentBlock(q.critique);
+        body.innerHTML = priorBlock(q) + mediaBlock(view, q) + overlayBlock(q) + trackBlock(a.tracks, view, q) +
+          sceneGraphTree(a.sgraph) + fitBlock(q, view);
         d.appendChild(body);
         video = body.querySelector('video');
         tqMarks(body, view, q);
@@ -142,7 +101,7 @@
   }
 
   // ---------- question time t_q ----------
-  const tqLabel = (q) => (q.tq && q.tq.length ? q.tq.map((x) => fmt(x, 2)).join('–') + ' s' : q.tjump != null ? `≈${fmt(q.tjump, 2)} s` : '');
+  const tqLabel = (q) => (q.tq.length ? q.tq.map((x) => fmt(x, 2)).join('–') + ' s' : q.tjump != null ? `≈${fmt(q.tjump, 2)} s` : '');
   // IoU < 0.3 or centre offset > 0.5 box sizes: the fitted object is not where the track is at t_q
   const alignBad = (a) => (a.iou != null && a.iou < 0.3) || (a.dc != null && a.dc > 0.5);
   const alignWarn = (a) => (a.iou != null && a.iou < 0.6) || (a.dc != null && a.dc > 0.25);
@@ -154,12 +113,12 @@
       [a.iou != null ? 'IoU ' + fmt(a.iou, 2) : '', a.dc != null ? 'dc ' + fmt(a.dc, 2) : (a.px != null ? fmtNum(a.px) + ' px' : '')].filter(Boolean).join(' · ') + '</td>';
   }
   // scene time span of a viewer: the video duration
-  function sceneT(v) { return v.duration || 2; }
+  function sceneT(v) { return v.duration; }
   function tqMarks(body, v, q) {
     const marks = body.querySelector('.tq-marks');
     if (!marks) return;
     const T = sceneT(v);
-    (q.tq || []).forEach((t) => {
+    q.tq.forEach((t) => {
       if (t > T + 1e-6) return;
       const m = document.createElement('span');
       m.className = 'tq-mark'; m.style.left = `${(100 * Math.min(Math.max(t / T, 0), 1)).toFixed(2)}%`;
@@ -185,10 +144,10 @@
   }
 
   // ---------- media: original video and the 3D scene ----------
-  function mediaBlock(v, q, split) {
+  function mediaBlock(v, q) {
     let vid;
     if (v.video) {
-      const note = v.video_from !== split ? `<p class="muted vnote">播放的是测试集里同一视频的 H.264 版本（验证集原文件是 MPEG-4 Part 2，浏览器放不了）。<a href="${esc(v.orig)}">下载原文件</a></p>` : '';
+      const note = v.video_from !== 'val' ? `<p class="muted vnote">播放的是测试集里同一视频的 H.264 版本（验证集原文件是 MPEG-4 Part 2，浏览器放不了）。<a href="${esc(v.orig)}">下载原文件</a></p>` : '';
       vid = `<h4>原视频</h4><video class="orig" controls muted loop playsinline preload="metadata"></video>${note}`;
     } else {
       vid = `<h4>原视频</h4><div class="noscene">MPEG-4 Part 2（<code>${esc(v.codec)}</code>），浏览器放不了。<a href="${esc(v.orig)}">下载原文件</a></div>`;
@@ -211,7 +170,7 @@
 
   // overlays rendered by the pipeline from the saved scene at the question's times
   function overlayBlock(q) {
-    const ims = q.overlays || [];
+    const ims = q.overlays;
     if (!ims.length) return '';
     return '<h4>叠加图</h4><div class="runtime-frames">' + ims.map((im) => im.path
       ? `<figure class="runtime-frame"><a href="${esc(im.path)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(im.path)}" alt="t = ${esc(im.t)} s"></a>` +
@@ -222,25 +181,16 @@
   // tracked intervals per object on the video's time axis; the question's times as vertical lines
   function trackBlock(tracks, v, q) {
     if (!tracks || !Object.keys(tracks).length) return '';
-    const T = v.duration || Math.max(...Object.values(tracks).flat().map((iv) => iv[1] || 0), 1);
+    const T = v.duration;
     const order = v.scene ? v.scene.objects.map((o) => o.name) : [];
     const pct = (t) => `${(100 * Math.min(Math.max(t / T, 0), 1)).toFixed(2)}%`;
-    const lines = (q.tq || []).filter((t) => t <= T + 1e-6).map((t) => `<span class="trk-tq" style="left:${pct(t)}"></span>`).join('');
+    const lines = q.tq.filter((t) => t <= T + 1e-6).map((t) => `<span class="trk-tq" style="left:${pct(t)}"></span>`).join('');
     const rows = Object.entries(tracks).map(([name, ivs]) => {
       const i = order.indexOf(name), col = i >= 0 ? PALETTE[i % PALETTE.length] : 'var(--muted)';
       const segs = (ivs || []).map(([a, b]) => `<span class="trk-seg" style="left:${pct(a)};width:calc(${pct(b)} - ${pct(a)} + 2px);background:${col}" title="${fmt(a, 2)}–${fmt(b, 2)} s"></span>`).join('');
       return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${lines}</span></div>`;
     }).join('');
     return `<h4>跟踪</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>`;
-  }
-
-  // scene graph of a scene json ("scene_graph", tools/build_videos.graph) in the shape sceneGraphTree reads
-  function graphFromScene(s) {
-    const g = s && s.scene_graph;
-    if (!g || !g.edges || !g.edges.length) return null;
-    const sup = new Set(g.support || []), ids = [];
-    g.edges.forEach((e) => [e.from, e.to].forEach((x) => { if (x && !ids.includes(x)) ids.push(x); }));
-    return { nodes: ids.map((id) => ({ id, type: sup.has(id) ? 'support' : 'object' })), edges: g.edges.filter((e) => e.rel !== 'contact') };
   }
 
   // ---------- time axis of the 3D viewer ----------
@@ -508,32 +458,17 @@
       s.focal_votes.map((x) => `<tr><td>${esc(F_SRC[x.source] || x.source)}</td><td class="n">${fmtNum(x.value)}</td><td class="n">${fmtNum(x.weight)}${tw ? ` <span class="muted">(${fmt((100 * x.weight) / tw, 0)}%)</span>` : ''}</td></tr>`).join('') +
       '</table></div></details>';
   }
-  // per-frame visible-count check (scene json "count_check"): n_video vs n_scene as a strip
-  function countStrip(cc) {
-    if (!cc) return '';
-    let rows = [];
-    if (Array.isArray(cc)) rows = cc.map((x) => (Array.isArray(x) ? { t: x[0], nv: x[1], ns: x[2] } : { t: x.t, nv: x.n_video, ns: x.n_scene }));
-    else if (cc.t && cc.n_video && cc.n_scene) rows = cc.t.map((t, i) => ({ t, nv: cc.n_video[i], ns: cc.n_scene[i] }));
-    else if (Array.isArray(cc.frames)) rows = cc.frames.map((x) => ({ t: x.t, nv: x.n_video, ns: x.n_scene, vo: x.video_only, so: x.scene_only }));
-    if (!rows.length) return '';
-    const bad = rows.filter((r) => r.nv !== r.ns).length;
-    return `<div class="cstrip-wrap">可见数量一致 ${rows.length - bad} / ${rows.length} 帧<div class="cstrip">` +
-      rows.map((r) => `<span class="${r.nv === r.ns ? 'ok' : 'bad'}" title="${esc(`t = ${fmt(r.t, 2)} s：视频 ${r.nv} / 场景 ${r.ns}` +
-        (r.vo && r.vo.length ? `\n只在视频里：${r.vo.join('、')}` : '') + (r.so && r.so.length ? `\n只在场景里：${r.so.join('、')}` : ''))}"></span>`).join('') + '</div></div>';
-  }
-  function fitBlock(q, v, split) {
+  function fitBlock(q, v) {
     const f = q.fit, s = v.scene;
     let h = '<h4>重建</h4>';
     if (q.binding_error) h += `<p class="fwarn">${esc(q.binding_error)}</p>`;
-    if (q.noans) h += `<p class="fwarn">${esc(q.noans.reason)}${q.noans.detail && q.noans.detail !== q.noans.reason ? ` <code>${esc(q.noans.detail)}</code>` : ''}</p>`;
     if (f || q.method || q.status) {
       const sig = confSignals(f && f.quality);
       h += '<div class="scroll-x"><table class="fit"><tr><th>物体</th><th>方法</th><th class="n">场景值</th>' +
-        (split === 'val' ? '<th class="n">置信度</th><th class="n">t_q 对齐</th><th>状态</th>' : '<th class="n">置信度</th>') + '</tr>' +
-        `<tr><td>${esc((f && f.obj) || '—')}</td><td><code>${esc(q.method || (f && f.method) || '—')}</code>${sig.length ? '<br>' + sig.map((x) => `<span class="sigtag">${esc(x)}</span>`).join(' ') : ''}</td>` +
+        '<th class="n">置信度</th><th class="n">t_q 对齐</th><th>状态</th></tr>' +
+        `<tr><td>${f ? esc(f.obj) : '—'}</td><td><code>${esc(q.method)}</code>${sig.length ? '<br>' + sig.map((x) => `<span class="sigtag">${esc(x)}</span>`).join(' ') : ''}</td>` +
         `<td class="n">${fmtNum(f && f.pred)}</td>` +
-        (split === 'val' ? `<td class="n">${fmt(q.conf, 3)}</td>${alignCell(q.align)}<td><code>${esc(q.status || '—')}</code></td>`
-          : `<td class="n">${fmt(f && f.conf, 2)}</td>`) + '</tr></table></div>';
+        `<td class="n">${fmt(q.conf, 3)}</td>${alignCell(q.align)}<td><code>${esc(q.status)}</code></td></tr></table></div>`;
     }
     if (s) {
       const hasSup = s.objects.some((o) => o.support), hasVis = s.objects.some((o) => o.visible);
@@ -546,28 +481,18 @@
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>物体</th><th>形状</th><th class="n">L (m)</th><th class="n">W (m)</th><th class="n">H (m)</th>` +
         (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th>可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>` +
-        `<p class="facts">f = ${s.f ? fmtNum(s.f) + ' px' + (s.f_source ? ` · ${esc(s.f_source)}` : '') : '图像宽度（默认）'}` +
-        (s.main_support ? ` · 主支撑面 ${esc(s.main_support)}` : '') + '</p>' + countStrip(s.count_check) + focalVotes(s);
+        `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}` +
+        (s.main_support ? ` · 主支撑面 ${esc(s.main_support)}` : '') + '</p>' + focalVotes(s);
     }
-    if (split === 'val' && (q.measurement || q.provenance || q.quality)) {
+    if (q.measurement || q.provenance || q.quality) {
       h += `<details class="sfres"><summary>诊断</summary><pre>${esc(JSON.stringify({
         scene_id: q.scene_id, row: q.row, method: q.method, source: q.src, status: q.status,
-        scene_conf: q.scene_conf, confidence_kind: q.confidence_kind, execution_status: q.execution_status,
+        execution_status: q.execution_status,
         measurement: q.measurement, measurement_id: q.measurement_id, measurement_record: q.measurement_record,
         quality: q.quality, provenance: q.provenance }, null, 2))}</pre></details>`;
     }
     return h;
   }
-  // agent loop of this question (per-question runs only; a shared group loop sees the other questions)
-  function agentBlock(critique) {
-    const its = (critique || {}).iterations || [];
-    if (!its.length) return '';
-    return `<details class="sfres"><summary>agent 回路 · ${its.length} 轮</summary>` +
-      '<div class="scroll-x"><table><tr><th>轮次</th><th>诊断</th><th>动作</th><th>结果</th></tr>' +
-      its.map((i) => `<tr><td>${i.iter}</td><td>${esc(i.diagnosis || '')}</td><td><pre>${esc(JSON.stringify(i.tool_calls || [], null, 2))}</pre></td>` +
-        `<td>${i.accepted ? '接受' : '未接受'} · ${esc(i.why || '')}</td></tr>`).join('') + '</table></div></details>';
-  }
-
   // ---------- three.js scene viewer ----------
   let threeP = null;
   function loadThree() {
@@ -582,7 +507,7 @@
       return null;
     }
     const s = v.scene;
-    const T = v.duration || 2;
+    const T = v.duration;
     const toW = (p) => new THREE.Vector3(p[0], -p[1], -p[2]); // camera frame (X right, Y down, Z fwd) -> three.js (Y up)
     const add = (a, b, k = 1) => [a[0] + k * b[0], a[1] + k * b[1], a[2] + k * b[2]];
     const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -600,7 +525,7 @@
       const u = Math.max(t - (o.t_on || 0), 0); return add(add(o.p0, o.v0, u), o.a, 0.5 * u * u);
     };
     // tracked in the video at time t (no track info: always)
-    const halfF = 0.5 / (v.fps || 30) + 1e-6;
+    const halfF = 0.5 / v.fps + 1e-6;
     const visAt = (o, t) => !o.visible || o.visible.some((iv) => t >= iv[0] - halfF && t <= iv[1] + halfF);
 
     const pl = s.plane && s.plane.normal ? s.plane : null;
@@ -641,8 +566,8 @@
     }
 
     // camera frustum at the origin
-    const [iw, ih] = v.size && v.size[0] ? v.size : [16, 9];
-    const f = s.f || iw;
+    const [iw, ih] = v.size;
+    const f = s.f;
     const zf = Math.max(0.3, radius * 0.25);
     const corners = [[-iw / 2, -ih / 2], [iw / 2, -ih / 2], [iw / 2, ih / 2], [-iw / 2, ih / 2]].map(([x, y]) => [x / f * zf, y / f * zf, zf]);
     const fr = [];
@@ -664,9 +589,9 @@
         h = norm(h) > 1e-6 ? h.map((x) => x / norm(h)) : u1;
       }
       const e2 = cross(n, h);
-      if (o.shape === 'sphere') { geo = new THREE.SphereGeometry((d.D || 0.1) / 2, 24, 16); axes = [h, e2, n]; }
-      else if (o.shape === 'cylinder') { geo = new THREE.CylinderGeometry((d.D || 0.1) / 2, (d.D || 0.1) / 2, d.H || 0.1, 24); axes = [h, n, e2.map((x) => -x)]; }
-      else { geo = new THREE.BoxGeometry(d.L || 0.1, d.W || 0.1, d.H || 0.1); axes = [h, e2, n]; }
+      if (o.shape === 'sphere') { geo = new THREE.SphereGeometry(d.D / 2, 24, 16); axes = [h, e2, n]; }
+      else if (o.shape === 'cylinder') { geo = new THREE.CylinderGeometry(d.D / 2, d.D / 2, d.H, 24); axes = [h, n, e2.map((x) => -x)]; }
+      else { geo = new THREE.BoxGeometry(d.L, d.W, d.H); axes = [h, e2, n]; }
       const mat = new THREE.MeshStandardMaterial({ color: col, transparent: true, opacity: o.shape === 'mesh' ? 0.35 : 0.8, roughness: 0.7 });
       const m = new THREE.Mesh(geo, mat);
       const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: col }));
@@ -788,98 +713,42 @@
   }
 
   // ---------- filtering ----------
-  function matchText(q, needle) { return !needle || q.id.toLowerCase().includes(needle) || q.q.toLowerCase().includes(needle); }
-  function fillSourceSelect(sel, videos) {
-    [...new Set(videos.map((v) => v.source))].sort().forEach((s) => { const o = document.createElement('option'); o.textContent = s; sel.appendChild(o); });
-  }
-  function renderList(listId, items, split) {
-    const list = $(listId); list.innerHTML = '';
+  function renderList(items) {
+    const list = $('val-list'); list.innerHTML = '';
     const head = document.createElement('div');
     head.className = 'qhead';
-    head.innerHTML = '<span></span><span>题目</span><span class="qnums"><span>类别</span>' +
-      (split === 'val' ? '<span class="qv">真值</span>' : '') + '<span class="qv">预测</span>' + (split === 'val' ? '<span>来源</span>' : '') + '</span>' +
-      (split === 'val' ? '<span class="qm">MRA</span>' : '');
+    head.innerHTML = '<span></span><span>题目</span><span class="qnums"><span>类别</span><span class="qv">真值</span><span class="qv">预测</span><span>来源</span></span><span class="qm">MRA</span>';
     if (items.length) list.appendChild(head);
     const frag = document.createDocumentFragment();
-    items.forEach(({ q, v }) => frag.appendChild(questionCard(q, v, split)));
+    items.forEach(({ q, v }) => frag.appendChild(questionCard(q, v)));
     list.appendChild(frag);
   }
   function renderVal() {
-    const set = $('v-set').value, cat = $('v-cat').value, src = $('v-src').value, vsrc = $('v-vsrc').value, mf = $('v-mra').value, sort = $('v-sort').value;
-    const needle = $('v-q').value.trim().toLowerCase();
-    const okM = (m) => !mf || (mf === 'lt0.2' ? m < 0.2 : mf === 'lt0.5' ? m < 0.5 : m >= 0.8);
-    const dev = new Set(DATA.val.dev || []), vids = DATA.val.vmap;
-    const items = DATA.val.questions.filter((q) => (!set || dev.has(q.id)) && (!cat || q.cat === cat) && (!src || q.src === src) &&
-      (!vsrc || vids[q.video].source === vsrc) && okM(q.mra) && matchText(q, needle)).map((q) => ({ q, v: vids[q.video] }));
+    const cat = $('v-cat').value, sort = $('v-sort').value, vids = DATA.val.vmap;
+    const items = DATA.val.questions.filter((q) => !cat || q.cat === cat).map((q) => ({ q, v: vids[q.video] }));
     const nanLast = (f) => (a, b) => (isNaN(a.q.mra) ? 1 : 0) - (isNaN(b.q.mra) ? 1 : 0) || f(a, b);
-    if (sort === 'mra-asc') items.sort(nanLast((a, b) => a.q.mra - b.q.mra || byUnit(a.q, b.q)));
-    else if (sort === 'mra-desc') items.sort(nanLast((a, b) => b.q.mra - a.q.mra || byUnit(a.q, b.q)));
-    else if (sort === 'cat') items.sort((a, b) => CATS.indexOf(a.q.cat) - CATS.indexOf(b.q.cat) || a.q.mra - b.q.mra || byUnit(a.q, b.q));
-    else items.sort((a, b) => byUnit(a.q, b.q));
-    const m = mean(items.map((x) => x.q.mra));
-    $('v-status').textContent = `${items.length} 题` + (items.length ? ` · 平均 MRA ${fmt(m, 2)}` : '');
-    renderList('val-list', items, 'val');
+    if (sort === 'mra-asc') items.sort(nanLast((a, b) => a.q.mra - b.q.mra));
+    else if (sort === 'mra-desc') items.sort(nanLast((a, b) => b.q.mra - a.q.mra));
+    renderList(items);
   }
-  function noAnswerSummary(na) {
-    if (!na || !na.by_reason) return '';
-    return '<div class="scroll-x"><table><tr><th>场景没有值的原因</th><th class="n">题数</th></tr>' +
-      na.by_reason.map(([r, n]) => `<tr><td>${esc(r)}</td><td class="n">${n}</td></tr>`).join('') + '</table></div>';
-  }
-  function renderTest() {
-    const cat = $('t-cat').value, vsrc = $('t-vsrc').value, fit = $('t-fit').value, noans = $('t-noans').checked;
-    const needle = $('t-q').value.trim().toLowerCase(), vids = DATA.test.vmap;
-    $('t-noans-sum').innerHTML = noans ? noAnswerSummary(DATA.test.noans) : '';
-    const items = DATA.test.questions.filter((q) => {
-      const v = vids[q.video];
-      return (!cat || q.cat === cat) && (!vsrc || v.source === vsrc) && (!fit || (fit === 'yes' ? hasScene(v) : !hasScene(v))) &&
-        (!noans || q.noans) && matchText(q, needle);
-    }).map((q) => ({ q, v: vids[q.video] })).sort((a, b) => byUnit(a.q, b.q));
-    $('t-status').textContent = `${items.length} 题`;
-    // 3289 questions: draw the first 300, the rest on demand
-    const LIMIT = 300;
-    renderList('test-list', items.slice(0, LIMIT), 'test');
-    if (items.length > LIMIT) {
-      const more = document.createElement('button');
-      more.type = 'button'; more.className = 'more'; more.textContent = `再显示 ${items.length - LIMIT} 题`;
-      more.onclick = () => { more.remove(); const frag = document.createDocumentFragment(); items.slice(LIMIT).forEach(({ q, v }) => frag.appendChild(questionCard(q, v, 'test'))); $('test-list').appendChild(frag); };
-      $('test-list').appendChild(more);
-    }
-  }
-  function debounce(fn, ms) { let t = 0; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; }
 
   fetch('data/videos.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
     DATA = d;
-    ['val', 'test'].forEach((k) => { d[k].vmap = Object.fromEntries(d[k].videos.map((v) => [v.id, v])); });
-    $('gen').textContent = `${d.val.run || ''} · ${d.generated}`;
-    valSummary(d.val); testSummary(d.test);
-    fillSourceSelect($('v-vsrc'), d.val.videos); fillSourceSelect($('t-vsrc'), d.test.videos);
-    ['v-set', 'v-cat', 'v-src', 'v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
-    ['t-cat', 't-vsrc', 't-fit', 't-noans'].forEach((id) => $(id).addEventListener('change', renderTest));
-    $('v-q').addEventListener('input', debounce(renderVal, 200));
-    $('t-q').addEventListener('input', debounce(renderTest, 200));
-    renderVal(); renderTest();
-    let tab = null;
-    try { tab = localStorage.getItem('qp-videos-tab'); } catch (e) { /* storage unavailable */ }
-    // deep links: #val/<video_id>_q<k> opens that question; #val/<video_id> lists the video's questions; #dev = DEV10
+    d.val.vmap = Object.fromEntries(d.val.videos.map((v) => [v.id, v]));
+    $('gen').textContent = `${d.val.run} · ${d.generated}`;
+    valSummary(d.val);
+    ['v-cat', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
+    renderVal();
+    // deep link: #val/<video_id>_q<k> opens that question
     function openFromHash() {
-      const h = decodeURIComponent(location.hash.slice(1));
-      if (h === 'dev') { $('tab-val').click(); $('v-set').value = 'dev'; renderVal(); return true; }
-      const m = h.match(/^(val|test)\/(.+)$/);
-      if (!m) return false;
-      const [, split, id] = m, pre = split === 'val' ? 'v' : 't';
-      $('tab-' + split).click();
-      const find = () => [...$(split + '-list').querySelectorAll('details.qrow')].find((x) => x.dataset.id === id);
-      let card = find();
-      if (!card) {
-        if (split === 'val') $('v-set').value = '';
-        $(pre + '-q').value = DATA[split].vmap[id] ? id : id.replace(/_q\d+$/, '');
-        split === 'val' ? renderVal() : renderTest();
-        card = find();
-      }
-      if (card) { card.open = true; card.scrollIntoView(); }
-      return true;
+      const m = decodeURIComponent(location.hash.slice(1)).match(/^val\/(.+)$/);
+      if (!m || !DATA.val.questions.some((q) => q.id === m[1])) return;
+      $('v-cat').value = '';
+      renderVal();
+      const card = [...$('val-list').querySelectorAll('details.qrow')].find((x) => x.dataset.id === m[1]);
+      card.open = true; card.scrollIntoView();
     }
-    if (!openFromHash()) $(tab === 'test' ? 'tab-test' : 'tab-val').click();
+    openFromHash();
     addEventListener('hashchange', openFromHash);
   }).catch((e) => {
     $('val-list').innerHTML = `<p class="noscene">data/videos.json：${esc(e.message)}</p>`;

@@ -1,0 +1,426 @@
+{
+ "03c90e6ae4134384dc309383f433927a712c72409a3d1ec036330599e46fd5df 0": {
+  "path": "data/runtime/v1/captured_0013/06b2e6318dafe54f4cbfcf22_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "03c90e6ae4134384dc309383f433927a712c72409a3d1ec036330599e46fd5df",
+  "t": 0.0
+ },
+ "03c90e6ae4134384dc309383f433927a712c72409a3d1ec036330599e46fd5df 1.5": {
+  "path": "data/runtime/v1/captured_0013/1f836ca894316077e3f60fb0_f36.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "03c90e6ae4134384dc309383f433927a712c72409a3d1ec036330599e46fd5df",
+  "t": 1.5
+ },
+ "064cb1087a0c56791967101a136ea8f7c72b4ab8746a59b4e4b6eb83b36034ec 0": {
+  "path": "data/runtime/v1/simulation_0300/c01e8fee2f16f42133d43dc5_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "064cb1087a0c56791967101a136ea8f7c72b4ab8746a59b4e4b6eb83b36034ec",
+  "t": 0.0
+ },
+ "064cb1087a0c56791967101a136ea8f7c72b4ab8746a59b4e4b6eb83b36034ec 1": {
+  "path": "data/runtime/v1/simulation_0300/bc91fb07532a9dd34bd0617c_f24.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "064cb1087a0c56791967101a136ea8f7c72b4ab8746a59b4e4b6eb83b36034ec",
+  "t": 1.0
+ },
+ "064cb1087a0c56791967101a136ea8f7c72b4ab8746a59b4e4b6eb83b36034ec 2": {
+  "path": "data/runtime/v1/simulation_0300/a12030afde3575b9be751875_f48.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "064cb1087a0c56791967101a136ea8f7c72b4ab8746a59b4e4b6eb83b36034ec",
+  "t": 2.0
+ },
+ "0d09d478e1c09f1743040ed77c0fa835a631143b950e6cc340d9c22f230877c7 0": {
+  "path": "data/runtime/v1/captured_0041x/8a1f898fde8fc36ea7d4537c_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "0d09d478e1c09f1743040ed77c0fa835a631143b950e6cc340d9c22f230877c7",
+  "t": 0.0
+ },
+ "0d09d478e1c09f1743040ed77c0fa835a631143b950e6cc340d9c22f230877c7 1.5": {
+  "path": "data/runtime/v1/captured_0041x/a9e5fce7b1165cfa9bd23b0e_f36.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "0d09d478e1c09f1743040ed77c0fa835a631143b950e6cc340d9c22f230877c7",
+  "t": 1.5
+ },
+ "0d09d478e1c09f1743040ed77c0fa835a631143b950e6cc340d9c22f230877c7 1.6": {
+  "path": "data/runtime/v1/captured_0041x/f4f399f9ac8a799deb1ca8f0_f38.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "0d09d478e1c09f1743040ed77c0fa835a631143b950e6cc340d9c22f230877c7",
+  "t": 1.6
+ },
+ "20e15e630d4b1c3b5e64bb4a05c784630029fe252c692b257786d1afc5967874 0.5": {
+  "path": "data/runtime/v1/simulation_0171/c7d8fbbc3f4af62128f5eda7_f12.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "20e15e630d4b1c3b5e64bb4a05c784630029fe252c692b257786d1afc5967874",
+  "t": 0.5
+ },
+ "20e15e630d4b1c3b5e64bb4a05c784630029fe252c692b257786d1afc5967874 1": {
+  "path": "data/runtime/v1/simulation_0171/25506dccea22bc82827c49e9_f24.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "20e15e630d4b1c3b5e64bb4a05c784630029fe252c692b257786d1afc5967874",
+  "t": 1.0
+ },
+ "20e15e630d4b1c3b5e64bb4a05c784630029fe252c692b257786d1afc5967874 2": {
+  "path": "data/runtime/v1/simulation_0171/66be91114d929043b4d8d62f_f48.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "20e15e630d4b1c3b5e64bb4a05c784630029fe252c692b257786d1afc5967874",
+  "t": 2.0
+ },
+ "20e15e630d4b1c3b5e64bb4a05c784630029fe252c692b257786d1afc5967874 3": {
+  "path": "data/runtime/v1/simulation_0171/59433d451da9749b70db8d82_f72.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "20e15e630d4b1c3b5e64bb4a05c784630029fe252c692b257786d1afc5967874",
+  "t": 3.0
+ },
+ "212e79835cf059bc90904f9d4abdc37f2636808f303eafee9cfd0153cc554bf4 0": {
+  "path": "data/runtime/v1/simulation_0098_segmented/73133b8102871d9c204b4f90_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "212e79835cf059bc90904f9d4abdc37f2636808f303eafee9cfd0153cc554bf4",
+  "t": 0.0
+ },
+ "3774188d1e48330ee54f17f046e6a4402f6fe15a6d83ff2d77291ac7b58dff49 0": {
+  "path": "data/runtime/v1/internet_0013/5c62b55c352f4108fc6d6f86_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "3774188d1e48330ee54f17f046e6a4402f6fe15a6d83ff2d77291ac7b58dff49",
+  "t": 0.0
+ },
+ "3774188d1e48330ee54f17f046e6a4402f6fe15a6d83ff2d77291ac7b58dff49 1": {
+  "path": "data/runtime/v1/internet_0013/8319dabed80b3ba538eb99e2_f30.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "3774188d1e48330ee54f17f046e6a4402f6fe15a6d83ff2d77291ac7b58dff49",
+  "t": 1.0
+ },
+ "3774188d1e48330ee54f17f046e6a4402f6fe15a6d83ff2d77291ac7b58dff49 3": {
+  "path": "data/runtime/v1/internet_0013/200d6c33a9207fdca013aacb_f90.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "3774188d1e48330ee54f17f046e6a4402f6fe15a6d83ff2d77291ac7b58dff49",
+  "t": 3.0
+ },
+ "402a5db4fb17c4991c5724511cc985d0d404bc7b736671a018a7b08881e7b52f 0.5": {
+  "path": "data/runtime/v1/simulation_0170_segmented/31d9cdcb355b796778970a50_f12.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "402a5db4fb17c4991c5724511cc985d0d404bc7b736671a018a7b08881e7b52f",
+  "t": 0.5
+ },
+ "402a5db4fb17c4991c5724511cc985d0d404bc7b736671a018a7b08881e7b52f 1": {
+  "path": "data/runtime/v1/simulation_0170_segmented/a468810124cfa82fec47261a_f24.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "402a5db4fb17c4991c5724511cc985d0d404bc7b736671a018a7b08881e7b52f",
+  "t": 1.0
+ },
+ "402a5db4fb17c4991c5724511cc985d0d404bc7b736671a018a7b08881e7b52f 2": {
+  "path": "data/runtime/v1/simulation_0170_segmented/72f37b7ce98255f2609732f0_f48.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "402a5db4fb17c4991c5724511cc985d0d404bc7b736671a018a7b08881e7b52f",
+  "t": 2.0
+ },
+ "402a5db4fb17c4991c5724511cc985d0d404bc7b736671a018a7b08881e7b52f 3": {
+  "path": "data/runtime/v1/simulation_0170_segmented/ff729b2dbc9bc8439cbec4a2_f72.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "402a5db4fb17c4991c5724511cc985d0d404bc7b736671a018a7b08881e7b52f",
+  "t": 3.0
+ },
+ "435d57295d65545842e8542fdfca33018b648b82b8c478c356f4f11c0b1794cb 0": {
+  "path": "data/runtime/v1/internet_0004/d4694a369da056098f0d5f92_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "435d57295d65545842e8542fdfca33018b648b82b8c478c356f4f11c0b1794cb",
+  "t": 0.0
+ },
+ "4b09d7415de74952786072886f76b609ef46ef4441c0007e2711d1378472eb39 0": {
+  "path": "data/runtime/v1/simulation_0089/d1d78c9c3f4e551c2659b001_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "4b09d7415de74952786072886f76b609ef46ef4441c0007e2711d1378472eb39",
+  "t": 0.0
+ },
+ "4b09d7415de74952786072886f76b609ef46ef4441c0007e2711d1378472eb39 0.5": {
+  "path": "data/runtime/v1/simulation_0089/d5dc0bc7cfd03346fef571db_f12.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "4b09d7415de74952786072886f76b609ef46ef4441c0007e2711d1378472eb39",
+  "t": 0.5
+ },
+ "4f41d12b6dfedc2037caa5030494257aaf09e4a3ac02bcb325d4990d65a417c2 0": {
+  "path": "data/runtime/v1/internet_0005/07b345efbfb08a5e05520805_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "4f41d12b6dfedc2037caa5030494257aaf09e4a3ac02bcb325d4990d65a417c2",
+  "t": 0.0
+ },
+ "5df2f6852ac3c58dc68ef3f02ca8222e69b9ca087ee60e80639424597f091b33 0": {
+  "path": "data/runtime/v1/simulation_0193/542fd69a728594628a499de6_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "5df2f6852ac3c58dc68ef3f02ca8222e69b9ca087ee60e80639424597f091b33",
+  "t": 0.0
+ },
+ "7b0c0b36af2e8237cf5add30de5e2f161514915b4de82e7502bb606226e903cf 0": {
+  "path": "data/runtime/v1/captured_0021x/069b44b0bb33362ee0a953ca_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "7b0c0b36af2e8237cf5add30de5e2f161514915b4de82e7502bb606226e903cf",
+  "t": 0.0
+ },
+ "7b0c0b36af2e8237cf5add30de5e2f161514915b4de82e7502bb606226e903cf 1": {
+  "path": "data/runtime/v1/captured_0021x/4d00a054eefbeda2e1a21ce8_f24.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "7b0c0b36af2e8237cf5add30de5e2f161514915b4de82e7502bb606226e903cf",
+  "t": 1.0
+ },
+ "7b0c0b36af2e8237cf5add30de5e2f161514915b4de82e7502bb606226e903cf 1.4": {
+  "path": "data/runtime/v1/captured_0021x/49cd7f18f82cf2e733dc7dc1_f34.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "7b0c0b36af2e8237cf5add30de5e2f161514915b4de82e7502bb606226e903cf",
+  "t": 1.4
+ },
+ "816cc74758fb4eaaf2328621af5fbe645857e3af4f8168839b7b2013cbf01bbe 0": {
+  "path": "data/runtime/v1/internet_0001/352076cbd4da5b41ac1ea948_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "816cc74758fb4eaaf2328621af5fbe645857e3af4f8168839b7b2013cbf01bbe",
+  "t": 0.0
+ },
+ "88e880d0256b95085da4b223005ce88e5b87fdfa0c54079a521197b22ec004cb 1.2": {
+  "path": "data/runtime/v1/captured_0021x/b2ab4d1b367d4e2ff8efa569_f29.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "88e880d0256b95085da4b223005ce88e5b87fdfa0c54079a521197b22ec004cb",
+  "t": 1.2
+ },
+ "9b1d88ccc44416ae34817eb143239dda0d5a06dfdf7d83f0982fb12c0c30fd21 0": {
+  "path": "data/runtime/v1/captured_0034as/b1c79dc30782d8513cea3dcf_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "9b1d88ccc44416ae34817eb143239dda0d5a06dfdf7d83f0982fb12c0c30fd21",
+  "t": 0.0
+ },
+ "9b1d88ccc44416ae34817eb143239dda0d5a06dfdf7d83f0982fb12c0c30fd21 1.2": {
+  "path": "data/runtime/v1/captured_0034as/ba71670b6d4e0f2a9edbbed5_f29.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "9b1d88ccc44416ae34817eb143239dda0d5a06dfdf7d83f0982fb12c0c30fd21",
+  "t": 1.2
+ },
+ "9b1d88ccc44416ae34817eb143239dda0d5a06dfdf7d83f0982fb12c0c30fd21 1.3": {
+  "path": "data/runtime/v1/captured_0034as/29d5369cbcc41a201dface05_f31.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "9b1d88ccc44416ae34817eb143239dda0d5a06dfdf7d83f0982fb12c0c30fd21",
+  "t": 1.3
+ },
+ "9f66b27027b6d14cec1b5debf68a93ffe4931e6f69dddec1df5f2bf56d603976 0": {
+  "path": "data/runtime/v1/simulation_0163/2be173076db37e81b6f7d255_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "9f66b27027b6d14cec1b5debf68a93ffe4931e6f69dddec1df5f2bf56d603976",
+  "t": 0.0
+ },
+ "9f66b27027b6d14cec1b5debf68a93ffe4931e6f69dddec1df5f2bf56d603976 0.5": {
+  "path": "data/runtime/v1/simulation_0163/0a3dd6f54f91c2027a4b1e75_f12.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "9f66b27027b6d14cec1b5debf68a93ffe4931e6f69dddec1df5f2bf56d603976",
+  "t": 0.5
+ },
+ "9f66b27027b6d14cec1b5debf68a93ffe4931e6f69dddec1df5f2bf56d603976 1": {
+  "path": "data/runtime/v1/simulation_0163/dfacd3ead99ec2fdb7a2ad7a_f24.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "9f66b27027b6d14cec1b5debf68a93ffe4931e6f69dddec1df5f2bf56d603976",
+  "t": 1.0
+ },
+ "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605 0": {
+  "path": "data/runtime/v1/captured_0061/4720a52efd8240b7052cd27c_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605",
+  "t": 0.0
+ },
+ "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605 0.6": {
+  "path": "data/runtime/v1/captured_0061/abdb8821d9627cd77d74ec84_f14.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605",
+  "t": 0.6
+ },
+ "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605 0.9": {
+  "path": "data/runtime/v1/captured_0061/5e3e3018e6b42671f4c80f68_f22.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605",
+  "t": 0.9
+ },
+ "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605 1.1": {
+  "path": "data/runtime/v1/captured_0061/0dede31344adc461e441e312_f26.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605",
+  "t": 1.1
+ },
+ "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605 1.6": {
+  "path": "data/runtime/v1/captured_0061/208864c151179bf574539d1b_f38.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605",
+  "t": 1.6
+ },
+ "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605 2": {
+  "path": "data/runtime/v1/captured_0061/80192c5774b6f0860bec7978_f48.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "a3712961f39f11483597be0194891cd5e00f22c5971d2115e06978ff411e9605",
+  "t": 2.0
+ },
+ "abcab29c98c7aa00f0d7008c0d3bf29a1fff02d13941121c0500f53456d12699 0": {
+  "path": "data/runtime/v1/simulation_0015/aa2bda36615f80ceba6efcf7_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "abcab29c98c7aa00f0d7008c0d3bf29a1fff02d13941121c0500f53456d12699",
+  "t": 0.0
+ },
+ "b823d5d9f932b792d1121a1785ff325da415de43f251bf659c73792b4bd7f6ab 0": {
+  "path": "data/runtime/v1/simulation_0009/dcfc17a9d888451389440832_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "b823d5d9f932b792d1121a1785ff325da415de43f251bf659c73792b4bd7f6ab",
+  "t": 0.0
+ },
+ "b823d5d9f932b792d1121a1785ff325da415de43f251bf659c73792b4bd7f6ab 3": {
+  "renderer": "scene_state3d",
+  "renderer_hash": "56c9b84a0b76249f",
+  "renderer_version": "v1",
+  "scene_id": "b823d5d9f932b792d1121a1785ff325da415de43f251bf659c73792b4bd7f6ab",
+  "t": 3.0,
+  "unavailable": "asked time outside the recorded video"
+ },
+ "cf8604dede185c2db025be0a0fb2cf04acb90be10d96a55067f962b8b4442e31 0": {
+  "path": "data/runtime/v1/simulation_0196/27a4146eb384e15ed1e5071d_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "cf8604dede185c2db025be0a0fb2cf04acb90be10d96a55067f962b8b4442e31",
+  "t": 0.0
+ },
+ "d5198ed55231dbbccc2ab778d90a8409a60fa9d3c12951b7ea675fc2a6f4b529 0": {
+  "path": "data/runtime/v1/simulation_0060/80c0a43bdf6c9d09cd68d651_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "d5198ed55231dbbccc2ab778d90a8409a60fa9d3c12951b7ea675fc2a6f4b529",
+  "t": 0.0
+ },
+ "dc95f8385d20178ab0bce3f3bbe1bebe477cc903fd768accbec56c67ff6d1e40 0": {
+  "path": "data/runtime/v1/internet_0019/0745a7729b54d956881ffab6_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "dc95f8385d20178ab0bce3f3bbe1bebe477cc903fd768accbec56c67ff6d1e40",
+  "t": 0.0
+ },
+ "dc95f8385d20178ab0bce3f3bbe1bebe477cc903fd768accbec56c67ff6d1e40 1": {
+  "path": "data/runtime/v1/internet_0019/d69741d173998d497ee1a89a_f30.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "dc95f8385d20178ab0bce3f3bbe1bebe477cc903fd768accbec56c67ff6d1e40",
+  "t": 1.0
+ },
+ "e2ec514c96500ee78ce268924673adf32286327d9f1f84e3091bc4ec9e2b8c29 0": {
+  "path": "data/runtime/v1/internet_0027/ad8c3368269b692c2466baac_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "e2ec514c96500ee78ce268924673adf32286327d9f1f84e3091bc4ec9e2b8c29",
+  "t": 0.0
+ },
+ "e2ec514c96500ee78ce268924673adf32286327d9f1f84e3091bc4ec9e2b8c29 1": {
+  "path": "data/runtime/v1/internet_0027/4d3e0639fa2647ceb08a5ed1_f25.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "e2ec514c96500ee78ce268924673adf32286327d9f1f84e3091bc4ec9e2b8c29",
+  "t": 1.0
+ },
+ "e2ec514c96500ee78ce268924673adf32286327d9f1f84e3091bc4ec9e2b8c29 2": {
+  "path": "data/runtime/v1/internet_0027/4a79089c033530585e9ae230_f50.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "e2ec514c96500ee78ce268924673adf32286327d9f1f84e3091bc4ec9e2b8c29",
+  "t": 2.0
+ },
+ "fdaec5d9f89f01e9a4a7e388e953626841f6be2ba64f7edb8c8195dab535d9f6 0": {
+  "path": "data/runtime/v1/simulation_0034_segmented/ff7fcfc5c5f71313997c9838_f0.jpg",
+  "renderer": "scene_state3d",
+  "renderer_hash": "c36fd677ed8af035",
+  "renderer_version": "v1",
+  "scene_id": "fdaec5d9f89f01e9a4a7e388e953626841f6be2ba64f7edb8c8195dab535d9f6",
+  "t": 0.0
+ }
+}
