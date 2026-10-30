@@ -74,6 +74,7 @@ VERSION_FORMAT = {
     "v1": {"motion": "ballistic", "paths": ("segments",), "unit": "video"},
     "v2": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video"},
     "v3": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video"},
+    "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video"},
 }
 MOTION_KEYS = ("ballistic", "physics")
 FMT: dict = {}     # VERSION_FORMAT entry of the version being built
