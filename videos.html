@@ -120,6 +120,19 @@
   .cstrip { display: flex; gap: 1px; margin-top: 4px; }
   .cstrip span { flex: 1 1 0; height: 10px; min-width: 2px; border-radius: 1px; }
   .cstrip .ok { background: #2f9e44; } .cstrip .bad { background: #e03131; }
+  .sgtree, .sgtree ul { list-style: none; margin: 0; padding: 0; }
+  .sgtree { margin: 6px 0 10px; font-size: 14px; }
+  .sgtree > li { margin: 4px 0; }
+  .sgtree ul { margin-left: 14px; }
+  .sgtree ul li { position: relative; padding: 5px 0 0 22px; border-left: 1.5px solid var(--border); }
+  .sgtree ul li:last-child { border-left-color: transparent; }
+  .sgtree ul li::before { content: ""; position: absolute; left: -1.5px; top: 0; width: 18px; height: 19px;
+    border-left: 1.5px solid var(--border); border-bottom: 1.5px solid var(--border); border-bottom-left-radius: 5px; }
+  .sgtree .sgn { display: inline-block; padding: 1px 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
+  .sgtree .sgn.sup { background: var(--code-bg); font-weight: 600; }
+  .sgtree .sgn.air { border-style: dashed; font-style: italic; }
+  .sgtree .sgrel { margin-left: 8px; font-size: 12.5px; color: var(--muted); font-style: italic; }
+  .sgtree .sgt { margin-left: 8px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .stree-wrap { margin: 4px 0; }
   .stree { display: block; font-family: system-ui, sans-serif; }
   .stree .nbox { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }

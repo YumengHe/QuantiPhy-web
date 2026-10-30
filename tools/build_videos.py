@@ -10,6 +10,7 @@ Validation (inputs relative to the repo root, <tag> defaults to pipeline/VERSION
   outputs/val_<tag>_answers.csv                       completed harness CSV
   outputs/harness/<tag>/answers/<video>.json           per-video answer records
   outputs/scene_fit_eval/h_<tag>/agent/               saved independent group scenes (3D scene state)
+  outputs/scenegraph_<tag>/<video>.json                scene graph (pipeline.scenegraph.load) -> video "sgraph"
 Runtime overlays are offline renderings written under data/runtime/<tag>/.
 
 Every video is shown as a 3D scene; a video without a saved 3D scene gets a placeholder on the page.
@@ -104,6 +105,25 @@ def graph(sg):
     same = [{"a": text(x.get("a")), "b": text(x.get("b")), "same": x.get("same"), "conf": num(x.get("conf"), 3)}
             for x in sg.get("same_instance") or []]
     return {"source": text(sg.get("source")), "support": support, "edges": edges, "same": same}
+
+
+SUPPORT_RELS = ("on", "in", "held_by", "attached_to", "above", "airborne")   # contact edges are not support
+
+
+def sgraph(tag: str, vid: str):
+    """The run's scene graph (pipeline.scenegraph.load from outputs/scenegraph_<tag>/) for the tree on the page:
+    {"nodes": [{"id", "type": object | support | holder}], "edges": [{"from", "to" (null: airborne), "rel", "t0", "t1"}]}
+    (t0 / t1 null = the whole video; contact edges dropped). None when the video has no cached graph."""
+    from pipeline import scenegraph as sgm
+    sgm.CACHE_KIND = f"scenegraph_{tag}"
+    g = sgm.load("val", vid)
+    if not g or not g.get("edges"):
+        return None
+    edges = [{"from": text(e.get("from")), "to": text(e.get("to")) or None, "rel": text(e.get("rel")),
+              "t0": num(e.get("t_start"), 4), "t1": num(e.get("t_end"), 4)}
+             for e in g["edges"] if e.get("rel") in SUPPORT_RELS]
+    nodes = [{"id": text(n.get("id")), "type": text(n.get("type"))} for n in g.get("nodes") or []]
+    return {"nodes": nodes, "edges": edges} if edges else None
 
 
 def track_intervals(split: str, vid: str) -> dict:
@@ -478,7 +498,7 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
                        "size": [width, height], "thumb": thumb, **video_info("val", vid), "groups": compact,
                        "scene": None, "has_scene": any(g["scene"] for g in compact), "questions": questions,
                        "execution_status": record.get("execution_status", "unavailable"),
-                       "run_at": version.get("time"), "objtab": None, "stree": None})
+                       "run_at": version.get("time"), "objtab": None, "stree": None, "sgraph": sgraph(tag, vid)})
     print(f"harness {tag}: {len(df)} questions, {len(videos)} videos, macro {ev['average']:.6f}")
     return {"file": str(csv_path.relative_to(ROOT)), "macro": num(ev["average"], 8),
             "per_cat": {c: num(ev[c], 8) for c in CATEGORIES}, "videos": videos}

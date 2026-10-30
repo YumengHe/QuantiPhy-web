@@ -17,7 +17,7 @@
 <h2 id="pipeline">流水线</h2>
 <p>题目给出的已知事实（prior）——物体尺寸、速度，或物体到相机的距离——用来定尺度。每个视频走同一条流程，都拟合成 3D 场景：相机、地面和物体。prior 里没有距离锚点的平面视频用同一个优化器，只是相机换成平面模式：焦距取名义值，支撑面正对相机，平面深度由 prior 定的尺度推出。量不到的题由模型估，并标为 prior。</p>
 <div class="steps" aria-label="流程概览">
-  <span class="s">物体清单</span><span class="ar">→</span><span class="s">场景图</span><span class="ar">→</span><span class="s">跟踪</span><span class="ar">→</span>
+  <span class="s">物体清单</span><span class="ar">→</span><span class="s">scene graph</span><span class="ar">→</span><span class="s">跟踪</span><span class="ar">→</span>
   <span class="s">观测</span><span class="ar">→</span><span class="s">Physics-guided Fitting</span><span class="ar">→</span>
   <span class="s">agent 回路（2–10 轮）</span><span class="ar">→</span><span class="s">从场景作答</span>
 </div>

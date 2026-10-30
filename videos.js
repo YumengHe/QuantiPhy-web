@@ -129,7 +129,7 @@
         }
         const body = document.createElement('div');
         body.className = 'vbody';
-        body.innerHTML = selector + mediaBlock(v, split) + questionTable(activeQuestions, split) + critique + sceneTables(v, split);
+        body.innerHTML = selector + mediaBlock(v, split) + questionTable(activeQuestions, split) + critique + sceneGraphTree(original.sgraph) + sceneTables(v, split);
         d.appendChild(body);
         video = body.querySelector('video');
         tqMarks(body, v, activeQuestions);
@@ -402,7 +402,7 @@
           `<td style="font-size:13px">${sc ? esc(sc.motion || '') : ''}</td><td>${flags}</td></tr>`;
       });
     });
-    return `<h4>物体（清单 + 场景图 + Physics-guided Fitting）</h4><div class="scroll-x"><table class="objtab"><tr><th></th><th>物体（别名）</th><th>角色</th><th class="n">数量</th><th>在场性</th><th>形状提示</th><th>场景图关系</th>` +
+    return `<h4>物体（清单 + scene graph + Physics-guided Fitting）</h4><div class="scroll-x"><table class="objtab"><tr><th></th><th>物体（别名）</th><th>角色</th><th class="n">数量</th><th>在场性</th><th>形状提示</th><th>scene graph 关系</th>` +
       `<th>拟合尺寸</th><th>支撑面 / 可见区间</th><th>运动 / 残差</th><th>自检标记</th></tr>${rows}</table></div>` +
       (t.unmatched && t.unmatched.length ? `<p class="fwarn" style="font-size:12.5px">场景里有、清单里没有的物体（按名字匹配不上）：${t.unmatched.map(esc).join('、')}</p>`
         : '<p class="muted" style="font-size:12.5px">场景里的物体都能和清单对上。</p>');
@@ -440,7 +440,7 @@
     const objBlock = v.objtab ? objectTable(v, s.objects.map((o) => o.name))
       : `<h4>Physics-guided Fitting 的物体</h4><div class="scroll-x"><table><tr><th></th><th>物体</th><th>形状</th><th class="n">长 L (m)</th><th class="n">宽 W (m)</th><th class="n">高 H (m)</th>` +
         (hasSup ? '<th>支撑</th>' : '') + (hasVis ? '<th title="跟踪有框的时段；相机视角只在这些时段画出物体">视频里可见</th>' : '') + `<th class="n">残差 (px)</th></tr>${rows}</table></div>`;
-    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, s.scene_graph, { tree: v.stree, order: s.objects.map((o) => o.name) }) + objBlock + '<div>' +
+    return countStrip(s.count_check) + graphBlocks(v.objtab ? null : s.inventory, v.sgraph ? null : s.scene_graph, { tree: v.stree, order: s.objects.map((o) => o.name) }) + objBlock + '<div>' +
       `<p class="muted" style="font-size:12.5px">焦距 f = ${fmtNum(s.f)} px` + (s.f_source ? `（来源 ${esc(s.f_source)}）` : '') + (s.main_support ? `，主支撑面 ${esc(s.main_support)}` : '') + '。残差是拟合框与跟踪框的均方根误差。' +
       (hasSrc ? '尺寸来源：不加标记的是观测到的（框、深度）；<sup class="dim-prior">先验</sup> 来自尺寸先验；<span class="dim-bound">灰色<sup>看不见</sup></span> 表示框和深度都没看到这一维，只能靠先验（取防塌缩下限）。' : '') +
       `</p>${focalVotes(s)}${res}</div>`;
@@ -492,6 +492,46 @@
       redraw: () => show((slider.value / 1000) * T),
       stop() { playing = false; cancelAnimationFrame(raf); slider.oninput = null; play.onclick = null; play.textContent = '播放'; },
     };
+  }
+
+  // ---------- scene graph (tools/build_videos.sgraph) as a nested tree ----------
+  // supports at the root, an object under what it rests on / is in / hangs from / is held by; airborne objects in their
+  // own group; an object that changes support appears under each one, with the time span of that relation
+  const SG_REL_SHOWN = { in: 'in', attached_to: 'attached_to', above: 'above' };
+  function sceneGraphTree(sg) {
+    if (!sg || !sg.edges || !sg.edges.length) return '';
+    const kids = new Map(), isChild = new Set();
+    const span = (e) => (e.t0 == null && e.t1 == null ? '' : `${fmt(e.t0 == null ? 0 : e.t0, 2)}–${e.t1 == null ? '' : fmt(e.t1, 2)} s`);
+    sg.edges.forEach((e) => {
+      const parent = e.rel === 'airborne' || !e.to ? '\u0000' + e.rel : e.to;   // no target: a group named by the relation
+      if (parent === e.from) return;
+      if (!kids.has(parent)) kids.set(parent, []);
+      const list = kids.get(parent);
+      let k = list.find((x) => x.id === e.from && x.rel === e.rel);
+      if (!k) { k = { id: e.from, rel: e.rel, spans: [] }; list.push(k); }
+      const sp = span(e);
+      if (sp) k.spans.push([e.t0 == null ? 0 : e.t0, sp]);
+      if (e.to) isChild.add(e.from);
+    });
+    kids.forEach((l) => l.forEach((k) => k.spans.sort((a, b) => a[0] - b[0])));
+    const type = Object.fromEntries((sg.nodes || []).map((n) => [n.id, n.type]));
+    const grp = (id) => id.startsWith('\u0000');
+    const roots = [...kids.keys()].filter((id) => !grp(id) && !isChild.has(id));
+    const shown = new Set();
+    const item = (id, k, path) => {
+      shown.add(id);
+      const rel = k && k.rel !== 'airborne' && SG_REL_SHOWN[k.rel] && !grp(path.size ? [...path].pop() : '') ? `<span class="sgrel">${esc(SG_REL_SHOWN[k.rel])}</span>` : '';
+      const t = k && k.spans.length ? k.spans.map((x) => `<span class="sgt">${esc(x[1])}</span>`).join('') : '';
+      const cls = grp(id) ? 'sgn air' : (type[id] && type[id] !== 'object') || !k ? 'sgn sup' : 'sgn';
+      const ch = path.has(id) ? [] : (kids.get(id) || []);
+      const sub = ch.length ? `<ul>${ch.map((c) => item(c.id, c, new Set([...path, id]))).join('')}</ul>` : '';
+      return `<li><span class="${cls}">${grp(id) ? esc(id.slice(1)) : esc(id)}</span>${rel}${t}${sub}</li>`;
+    };
+    let html = roots.map((r) => item(r, null, new Set())).join('');
+    [...kids.keys()].filter(grp).sort((a, b) => (a === '\u0000airborne' ? -1 : b === '\u0000airborne' ? 1 : 0)).forEach((g) => { html += item(g, null, new Set()); });
+    const loose = (sg.nodes || []).filter((n) => n.type === 'object' && !shown.has(n.id));
+    html += loose.map((n) => `<li><span class="sgn">${esc(n.id)}</span></li>`).join('');
+    return `<h4>scene graph</h4><div class="scroll-x"><ul class="sgtree">${html}</ul></div>`;
   }
 
   // ---------- object inventory + scene graph ----------
@@ -562,7 +602,7 @@
       const loose = tree.edges.filter((e) => e.from === n.id && !e.to);
       if (loose.length) g += lab(x + NW / 2, y + NH + 12, loose.map((e) => e.label).join('；'));
     });
-    return `<div class="scroll-x stree-wrap"><svg class="stree" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="场景图（树）">${g}</svg></div>` +
+    return `<div class="scroll-x stree-wrap"><svg class="stree" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="scene graph（树）">${g}</svg></div>` +
       '<p class="muted" style="font-size:12.5px">父节点在上：子节点放在（或在里面、挂在）父节点上。边上写关系和时段；实线 = 第二个父节点（换了支撑面），虚线 = contact / above。灰色虚框 = 不在场、仅作参考或未重建。色条和物体表、视图里的颜色一致。</p>';
   }
 
@@ -588,7 +628,7 @@
       ((sg && sg.same) || []).forEach((x) => items.push(`${esc(x.a)} <b>${x.same ? '=' : '≠'}</b> ${esc(x.b)}` + (x.conf != null ? ` <span class="muted">(conf ${fmt(x.conf, 2)})</span>` : '')));
       if (sg && sg.support && sg.support.length) items.push(`<span class="muted">支撑面节点：${sg.support.map(esc).join('、')}</span>`);
       const list = items.length ? `<ul class="sg-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>` : '<p class="muted">没有边。</p>';
-      out += `<h4>场景图${sg && sg.source ? `<span class="muted" style="font-weight:400">（来源 ${esc(sg.source)}）</span>` : ''}</h4>` +
+      out += `<h4>scene graph${sg && sg.source ? `<span class="muted" style="font-weight:400">（来源 ${esc(sg.source)}）</span>` : ''}</h4>` +
         (treeOpt && treeOpt.tree ? sceneTreeSvg(treeOpt.tree, treeOpt.order) + `<details class="sfres"><summary>关系文字（备查）</summary>${list}</details>` : list);
     }
     return out;
