@@ -164,7 +164,7 @@ PATH_DT = 1 / 24     # sampling step (s) of non-parabolic object paths for the 3
 
 
 def sampled_path(o: dict, j: dict):
-    """[[t, x, y, z], ...] of an object's centre from pipeline.scene_fit._json_pos (ballistic replay or motion pieces),
+    """[[t, x, y, z], ...] of an object's centre from pipeline.scene_fit._json_pos (physics / ballistic replay or motion pieces),
     over the times its fit covers (to the last results / visibility time, at least 2 s)."""
     from pipeline.scene_fit import _json_pos
     ends = [iv[1] for k in ("visible", "out_of_frame") for iv in (o.get(k) or [])]
@@ -227,6 +227,15 @@ def fit_row(r: dict, split: str) -> dict:
                                                           for k, v in qual.items() if k != "conf"} or None}
 
 
+def motion_events(o: dict) -> list:
+    """An object's motion events ([t, kind] list): "physics" (physics-law motion model), else the older "ballistic"."""
+    for key in ("physics", "ballistic"):
+        ev = (o.get(key) or {}).get("events")
+        if ev:
+            return list(ev)
+    return []
+
+
 def scene_fit(split: str, vid: str, *, state=None, source_path=None):
     p = source_path or SCENE_DIRS[split] / f"{vid}.json"
     if state is None:
@@ -248,9 +257,9 @@ def scene_fit(split: str, vid: str, *, state=None, source_path=None):
                      "dim_source": o.get("dim_source"), "support": o.get("support"), "hang": o.get("hang"),
                      "length": num(o.get("length")), "mode": o.get("mode"),
                      "out_of_frame": o.get("out_of_frame"), "visibility": o.get("visibility"),
-                     "overhead": bool(o.get("overhead")), "events": ((o.get("ballistic") or {}).get("events") or [])[:12],
+                     "overhead": bool(o.get("overhead")), "events": motion_events(o)[:12],
                      # bounce model / motion pieces are not a single parabola: sample the centre for the viewer
-                     "path": sampled_path(o, j) if (o.get("ballistic") or o.get("segments")) else None})
+                     "path": sampled_path(o, j) if (o.get("physics") or o.get("ballistic") or o.get("segments")) else None})
     res = [fit_row(r, split) for r in j.get("results") or []]
     # per question: the fitted object and the t_q alignment check (quality.align_tq), when the scene json has them
     q_meta = {r.get("question"): {"obj": r.get("object"), "align": align((r.get("quality") or {}).get("align_tq"))}
@@ -378,6 +387,9 @@ def bind_harness_question(row: dict, answers: list[dict], groups: list[dict]) ->
 PREV_OVERLAYS: dict = {}   # (scene_id, t) -> overlay entry of the previous data/videos.json whose image exists
 
 
+OUTSIDE_VIDEO = "asked time outside the recorded video"
+
+
 def previous_overlays(data: dict) -> dict:
     """Overlays already rendered for a run are reused, so rebuilding the page never re-renders a run's scenes with
     a later renderer."""
@@ -386,7 +398,7 @@ def previous_overlays(data: dict) -> dict:
     out = {}
     for q in qs:
         for im in q.get("overlays") or q.get("runtime_overlays") or []:
-            if im.get("path") and (WEB / im["path"]).exists():
+            if (im.get("path") and (WEB / im["path"]).exists()) or im.get("unavailable") == OUTSIDE_VIDEO:
                 out[(im.get("scene_id"), float(im["t"]))] = im
     return out
 
@@ -409,13 +421,13 @@ def runtime_overlays(tag: str, vid: str, scene: dict, question: str, fps: float,
     try:
         for t in times:
             prev = PREV_OVERLAYS.get((scene.get("scene_id"), t))
-            if prev and f"/{tag}/{vid}/" in prev["path"]:
+            if prev and (f"/{tag}/{vid}/" in (prev.get("path") or "") or prev.get("unavailable") == OUTSIDE_VIDEO):
                 outputs.append(prev)
                 continue
             entry = {"t": t, "scene_id": scene.get("scene_id"), "renderer": "scene_state3d",
                      "renderer_version": renderer_version, "renderer_hash": renderer_hash}
             if not math.isfinite(t) or t < 0 or (duration and t > duration + 1 / max(fps, 1)):
-                entry["unavailable"] = "asked time outside the recorded video"
+                entry["unavailable"] = OUTSIDE_VIDEO
             else:
                 frame = round(t * fps)
                 identity = hashlib.sha256(f"{scene['scene_id']}:{renderer_hash}:{t:.9g}".encode()).hexdigest()[:24]
