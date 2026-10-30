@@ -15,7 +15,7 @@
 <p class="lede">Given a video, reconstruct the scene at real-world scale: what the objects are, how large they are, where they are and how they move. Quantitative questions about size, speed and distance are then measured directly in the reconstructed scene.</p>
 
 <h2 id="pipeline">Pipeline</h2>
-<p>The prior, the known facts a question gives (an object's size or speed, or its distance to the camera), sets the scale. Every video runs the same pipeline and is fitted as a 3D scene: camera, ground and objects. Planar videos, whose prior has no distance anchor, use the same optimizer with a planar camera: nominal focal length, a support plane facing the camera, and a plane depth derived from the prior's scale. Questions the scene cannot answer are estimated by the model and marked prior.</p>
+<p>The prior, the known facts a question gives (an object's size or speed, or its distance to the camera), sets the scale. Every video runs the same pipeline and is fitted as a 3D scene: focal length and support-plane pose are estimated from the image, and objects have thickness. Questions the scene cannot answer are estimated by the model and marked prior.</p>
 <div class="steps" aria-label="Pipeline overview">
   <span class="s">Object list</span><span class="ar">→</span><span class="s">scene graph</span><span class="ar">→</span><span class="s">Tracking</span><span class="ar">→</span>
   <span class="s">Observations</span><span class="ar">→</span><span class="s">Physics-guided Fitting</span><span class="ar">→</span>
@@ -46,7 +46,7 @@
 <h2 id="browse">Browse</h2>
 <div class="cards">
   <a class="card" href="evaluation.html"><b>Evaluation</b><span>Per-question validation results: video, 3D scene, objects, answer source</span></a>
-  <a class="card" href="pipeline.html"><b>Pipeline</b><span>Each step, planar videos, answer sources</span></a>
+  <a class="card" href="pipeline.html"><b>Pipeline</b><span>Each step, answer sources</span></a>
 </div>
 
 <footer>Version history: <code>docs/VERSIONS.md</code> in the code repository.</footer>

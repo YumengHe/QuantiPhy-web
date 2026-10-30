@@ -121,16 +121,8 @@
     <div class="agrid"><span class="m"><b>Confident</b>scene value</span><span class="m"><b>Not confident</b>model estimate, marked prior</span></div></div>
 </div>
 
-<h2 id="planar">Planar videos</h2>
-<p>A video whose prior has no distance anchor is treated as planar. It does not take a separate path; it is a camera mode of Physics-guided Fitting (<code>camera.model = "planar"</code> in the scene json).</p>
-<ul>
-  <li><b>Camera and support plane:</b> nominal focal length, f = image width; the support plane faces the camera.</li>
-  <li><b>Scale:</b> the prior first calibrates meters per pixel (m/px); plane depth = f × m/px. This is Stage A of the planar mode.</li>
-  <li><b>Object thickness:</b> 0.</li>
-  <li><b>Annotation:</b> focal length, plane orientation, plane depth and thickness cannot be identified from the image, so the scene json's <code>camera</code> block marks them <code>fixed</code>, <code>identifiable: false</code>.</li>
-</ul>
-<p>Everything else is shared with other videos: the same optimizer, the same object fitting, the same physics-parameterized motion models.</p>
-<p>So are the observations. Mask extents (extents2d) and refmeasure endpoints can serve as fitting observations for any video: always on in planar mode, and behind <code>--fixes hulls refmeasure</code> (off by default) for the rest.</p>
+<p>Every video takes the same 3D path: focal length and support-plane pose are estimated from the image, objects have thickness, and the prior sets the scale, whether it is a fact such as an object's size or speed or a distance anchor to the camera.</p>
+<p>Mask extents (extents2d) and refmeasure endpoints can serve as fitting observations, behind <code>--fixes hulls refmeasure</code> (off by default).</p>
 
 <h2 id="answers">Answer sources</h2>
 <div class="scroll-x"><table>

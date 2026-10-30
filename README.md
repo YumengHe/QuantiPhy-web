@@ -5,7 +5,7 @@ Site for "Reconstructing measurable physical scenes from video". Static pages, n
 | File | Content |
 |---|---|
 | `index.html` | Home: project scope, pipeline overview, datasets, validation results, keywords, links |
-| `pipeline.html` | Flow diagram (a single chain), planar videos, answer sources |
+| `pipeline.html` | Flow diagram (a single chain), answer sources |
 | `evaluation.html` + `videos.js` | Evaluation: per-question results on the validation set with video, 3D scene, overlays, scene graph, answer and source |
 | `site.css` | Shared styles (color tokens, type, top bar) |
 | `data/` | Data for the evaluation page (`videos.json`, thumbnails; `runtime/<version>/` holds that version's overlays and their record `overlays.json`), built by `tools/build_videos.py` |
