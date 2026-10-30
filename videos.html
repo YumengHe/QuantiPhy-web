@@ -5,29 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>场景浏览</title>
 <meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="site.css">
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
 </script>
 <style>
   :root {
-    --bg: #f7f7f5; --panel: #ffffff; --text: #1f2328; --muted: #656d76; --border: #d9dde2;
-    --accent: #3b5bdb; --accent-soft: #e7ecfb; --code-bg: #f0f1f3;
     --m4: #d3f0dc; --m4t: #14532e; --m3: #e8f3c8; --m3t: #3f5212;
     --m2: #fdebc8; --m2t: #7a4a06; --m1: #fbd5d0; --m1t: #8a1c12; --m0: #ecd3e6; --m0t: #6b1450;
     --scene-bg: #f2f3f5; --hold: #d9480f; --hold-soft: #fff0e6;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0f1115; --panel: #171a21; --text: #e6e8ec; --muted: #9aa3ad; --border: #2b3038;
-      --accent: #7a93ff; --accent-soft: #1d2440; --code-bg: #1f232b;
       --m4: #173d26; --m4t: #a7e8bd; --m3: #2c3a14; --m3t: #d4e9a0; --m2: #3d2e10; --m2t: #f3cf8a;
       --m1: #45201b; --m1t: #f6b3aa; --m0: #3a1932; --m0t: #eeb0dd; --scene-bg: #12151b; --hold: #ffa94d; --hold-soft: #3a2414;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0f1115; --panel: #171a21; --text: #e6e8ec; --muted: #9aa3ad; --border: #2b3038;
-    --accent: #7a93ff; --accent-soft: #1d2440; --code-bg: #1f232b;
     --m4: #173d26; --m4t: #a7e8bd; --m3: #2c3a14; --m3t: #d4e9a0; --m2: #3d2e10; --m2t: #f3cf8a;
     --m1: #45201b; --m1t: #f6b3aa; --m0: #3a1932; --m0t: #eeb0dd; --scene-bg: #12151b; --hold: #ffa94d; --hold-soft: #3a2414;
   }
@@ -39,9 +34,9 @@
   header h1 { margin: 0 0 4px; font-size: 26px; }
   header p { margin: 4px 0; color: var(--muted); }
   a { color: var(--accent); }
-  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .9em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
-  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .9em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: normal; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin: 0 0 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: none; }
   th, td { border: 1px solid var(--border); padding: 6px 9px; text-align: left; vertical-align: top; }
   th { background: var(--accent-soft); font-weight: 600; white-space: nowrap; }
   td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -140,7 +135,6 @@
   .sg .sgn.air text { fill: var(--muted); font-weight: 500; }
   .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; }
   .muted { color: var(--muted); }
-  .topnav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; margin-bottom: 14px; }
   .noscene { color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 10px 12px; }
   .sfres { margin-top: 10px; }
   .sfres summary { cursor: pointer; color: var(--accent); font-size: 14px; }
@@ -170,9 +164,9 @@
 </style>
 </head>
 <body>
+<nav class="topbar" aria-label="站点"><div class="topbar-in"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html" aria-current="page">场景浏览</a></div></nav>
 <div class="wrap">
 <header>
-  <nav class="topnav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a></nav>
   <h1>场景浏览</h1>
   <p id="gen" class="muted"></p>
 </header>

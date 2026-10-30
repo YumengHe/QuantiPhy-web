@@ -253,9 +253,9 @@
   }
 
   // ---------- scene graph (tools/build_videos.sgraph) drawn as a layered tree ----------
-  // one box per object / support / hand, each under its first parent in time; later parents are extra edges (one that
-  // skips a level runs through a slot beside the parent's child, where its label sits). Objects that are only ever
-  // airborne hang under a 空中 root; an airborne span (or a relation without a target) of an object that also rests on
+  // one box per object / support / hand, each resting on its first parent in time (parent below, child above, as in the
+  // scene); later parents are extra edges (one that skips a level runs through a slot beside the parent's child, where
+  // its label sits). Objects that are only ever airborne hang from a 空中 root in the top row; an airborne span (or a relation without a target) of an object that also rests on
   // something is a short stub to the left of its box.
   let sgCtx = null;
   const sgTextW = (s, px, bold) => {
@@ -359,25 +359,34 @@
     const place = (id) => (kids[id] || []).forEach((c) => { X[c] = X[id] + off[c]; place(c); });
     roots.forEach(place);
     const W = Math.ceil(cur - GAPX * 1.5 + M);
-    // rows: height of the tallest box; the gap above a row fits its edge labels
-    const all = Object.keys(box), nd = Math.max(...all.map((id) => depth[id])) + 1;
-    const rowH = Array(nd).fill(0), gap = Array(nd).fill(0);
+    // rows bottom-up, as things rest: a parent sits below its children; the 空中 subtree hangs from the top row instead
+    const all = Object.keys(box), inAir = {};
+    all.forEach((id) => { let a = id; while (parent[a]) a = parent[a]; inAir[id] = a === AIR; });
+    const dmax = (f) => Math.max(0, ...all.filter(f).map((id) => depth[id]));
+    const ltop = Math.max(dmax((id) => !inAir[id]), dmax((id) => inAir[id])), lv = {};
+    all.forEach((id) => { lv[id] = inAir[id] ? ltop - depth[id] : depth[id]; });
+    // rowH: tallest box; gap[r] (between row r and the row above) fits the edge labels running through it
+    const nr = ltop + 1, rowH = Array(nr).fill(0), gap = Array(nr).fill(26);
     all.forEach((id) => {
-      const b = box[id], d = depth[id];
-      rowH[d] = Math.max(rowH[d], b.h, b.st ? b.st.length * LL + 4 : 0);
-      if (d) gap[d] = Math.max(gap[d], b.tl && b.tl.length ? 42 + b.tl.length * LL : b.slot && b.t ? 24 : 26);
+      const b = box[id], r = lv[id];
+      rowH[r] = Math.max(rowH[r], b.h, b.st ? b.st.length * LL + 4 : 0);
+      if (!parent[id]) return;
+      const g = inAir[id] ? r : r - 1;
+      gap[g] = Math.max(gap[g], b.tl && b.tl.length ? 42 + b.tl.length * LL : b.slot && b.t ? 24 : 26);
     });
     const rowTop = [];
-    rowH.forEach((h, d) => { rowTop[d] = d ? rowTop[d - 1] + rowH[d - 1] + gap[d] : M; });
-    const H = Math.ceil(rowTop[nd - 1] + rowH[nd - 1] + M);
-    const top = (id) => rowTop[depth[id]] + (rowH[depth[id]] - box[id].h) / 2, bot = (id) => top(id) + box[id].h;
+    rowTop[nr - 1] = M;
+    for (let r = nr - 2; r >= 0; r--) rowTop[r] = rowTop[r + 1] + rowH[r + 1] + gap[r];
+    const H = Math.ceil(rowTop[0] + rowH[0] + M);
+    const top = (id) => rowTop[lv[id]] + (rowH[lv[id]] - box[id].h) / 2, bot = (id) => top(id) + box[id].h;
     const curve = (x1, y1, x2, y2) => { const m = (y1 + y2) / 2; return `<path class="sge" d="M${x1},${y1} C${x1},${m} ${x2},${m} ${x2},${y2}"></path>`; };
-    // org-chart connector: down from the parent to the row's bus line, across, down into the child; rounded corners
-    const busY = (d) => rowTop[d] + rowH[d] + 12;
+    // org-chart connector: from the parent to a bus line next to it, across, into the child; rounded corners
+    const busY = (p) => (inAir[p] ? rowTop[lv[p]] + rowH[lv[p]] + 12 : rowTop[lv[p]] - 12);
+    const near = (p) => (inAir[p] ? bot(p) : top(p)), far = (c) => (inAir[c] ? top(c) : bot(c));
     const elbow = (x1, y1, by, x2, y2) => {
-      const dx = x2 - x1, r = Math.min(6, Math.abs(dx) / 2), s = Math.sign(dx);
+      const dx = x2 - x1, r = Math.min(6, Math.abs(dx) / 2), s = Math.sign(dx), v = Math.sign(y2 - by);
       if (Math.abs(dx) < 1) return `<path class="sge" d="M${x1},${y1} V${y2}"></path>`;
-      return `<path class="sge" d="M${x1},${y1} V${by} H${x2 - s * r} Q${x2},${by} ${x2},${by + r} V${y2}"></path>`;
+      return `<path class="sge" d="M${x1},${y1} V${by} H${x2 - s * r} Q${x2},${by} ${x2},${by + v * r} V${y2}"></path>`;
     };
     const label = (cx, yBottom, lines) => {
       const w = Math.max(...lines.map((t) => sgTextW(t, LF))) + 8, h = lines.length * LL + 3, y0 = yBottom - h;
@@ -388,23 +397,24 @@
     ids.forEach((id) => {
       const p = parent[id];
       if (!p) return;
-      const by = busY(depth[p]);
-      edges += elbow(X[p], bot(p), by, X[id], top(id));
-      if (box[id].tl.length) { const n = box[id].tl.length; labels += label(X[id], (by + top(id)) / 2 + (n * LL + 3) / 2, box[id].tl); }
+      const by = busY(p), ye = far(id);
+      edges += elbow(X[p], near(p), by, X[id], ye);
+      if (box[id].tl.length) { const n = box[id].tl.length; labels += label(X[id], (by + ye) / 2 + (n * LL + 3) / 2, box[id].tl); }
     });
     extra.forEach((x) => {
       const c = x.from, t = relText(x.r);
       if (!(x.to in box)) return;
       if (x.slot) {
-        const s = x.slot, sx = X[s], sy = rowTop[depth[s]] + rowH[depth[s]] / 2, cr = X[c] + box[c].w / 2, cm = (top(c) + bot(c)) / 2;
-        const blocked = ids.some((o) => o !== c && depth[o] === depth[c] && X[o] > X[c] && X[o] < sx);
-        edges += elbow(X[x.to], bot(x.to), busY(depth[x.to]), sx, sy);
-        edges += blocked ? curve(sx, sy, X[c] + box[c].w / 2 - 8, top(c))
-          : `<path class="sge" d="M${sx},${sy} V${cm - 6} Q${sx},${cm} ${sx - 6},${cm} H${cr}"></path>`;
+        const s = x.slot, sx = X[s], sy = rowTop[lv[s]] + rowH[lv[s]] / 2, cr = X[c] + box[c].w / 2, cm = (top(c) + bot(c)) / 2;
+        const blocked = ids.some((o) => o !== c && lv[o] === lv[c] && X[o] > X[c] && X[o] < sx);
+        edges += elbow(X[x.to], near(x.to), busY(x.to), sx, sy);
+        const v = Math.sign(cm - sy);
+        edges += blocked ? curve(sx, sy, X[c] + box[c].w / 2 - 8, far(c))
+          : `<path class="sge" d="M${sx},${sy} V${cm - v * 6} Q${sx},${cm} ${sx - 6},${cm} H${cr}"></path>`;
         if (t) labels += label(sx, sy + 8, [t]);
         return;
       }
-      const up = depth[x.to] < depth[c], x1 = X[c], y1 = up ? top(c) : bot(c), x2 = X[x.to], y2 = up ? bot(x.to) : top(x.to);
+      const below = lv[x.to] < lv[c], x1 = X[c], y1 = below ? bot(c) : top(c), x2 = X[x.to], y2 = below ? top(x.to) : bot(x.to);
       edges += curve(x1, y1, x2, y2);
       if (t) labels += label((x1 + x2) / 2, (y1 + y2) / 2 + 8, [t]);
     });
