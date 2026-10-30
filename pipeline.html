@@ -6,143 +6,511 @@
 <title>Reconstruction Pipeline</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="site.css">
-<style>
-  .flow { display: grid; grid-template-columns: minmax(0, 1fr) 150px; }
-  .flow .fc { grid-column: 1; }
-  .node { border-radius: 8px; padding: 8px 12px; border: 2px solid var(--sh); background: var(--sh-soft); }
-  .node .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-  .node .hd b { font-size: 15px; }
-  .node .m { display: block; font-size: 13px; color: var(--muted); }
-  .ac { display: flex; justify-content: center; align-items: flex-start; gap: 10px; }
-  .ac .el { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
-  .arrow { width: 2px; height: 16px; background: var(--muted); position: relative; margin: 2px 0 11px; }
-  .arrow::after { content: ""; position: absolute; left: -5px; bottom: -8px; border-left: 6px solid transparent;
-    border-right: 6px solid transparent; border-top: 8px solid var(--muted); }
-  .arrow.in { background: var(--accent); }
-  .arrow.in::after { border-top-color: var(--accent); }
-  /* back edges: a dashed rail right of the chain, from the loop up to the nodes it returns to */
-  .rail { grid-column: 2; position: relative; }
-  .rail::before { content: ""; position: absolute; right: 14px; top: 0; bottom: 0; border-right: 2px solid var(--accent); }
-  .rail.dash::before { border-right-style: dashed; }
-  .rail.top::before { top: 50%; }
-  .rail.bot::before { bottom: 50%; }
-  .rail.ret::after { content: ""; position: absolute; left: 0; right: 15px; top: 50%; border-top: 2px solid var(--accent); }
-  .rail.ret.edit::after { border-top-style: dashed; }
-  .rail.ret span { position: absolute; left: 12px; right: 18px; bottom: 50%; padding-bottom: 2px; font-size: 12px;
-    line-height: 1.3; color: var(--accent); }
-  .rail.ret > span::before { content: ""; position: absolute; left: -12px; bottom: -6px; border-top: 5px solid transparent;
-    border-bottom: 5px solid transparent; border-right: 8px solid var(--accent); }
-  .rail.out::after { content: ""; position: absolute; left: 0; right: 15px; top: 50%; border-top: 2px solid var(--accent); }
-  .loop { border: 2px dashed var(--accent); border-radius: 14px; padding: 10px 12px; background: var(--panel); }
-  .loop .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .loop .hd b { font-size: 16px; }
-  .loop .lr { font-size: 13.5px; color: var(--muted); }
-  .lsteps { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin-top: 8px; }
-  .lsteps .lbox { flex: 1 1 140px; }
-  .lsteps .lbox:first-child { flex: 2 1 220px; }
-  .lar { align-self: center; color: var(--muted); }
-  .lbox { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13px; background: var(--sh-soft);
-    overflow-wrap: anywhere; }
-  .lbox b { display: block; font-size: 14px; }
-  .lbox .lm { display: block; margin-top: 3px; color: var(--muted); }
-  .lstop { margin-top: 8px; font-size: 13.5px; }
-  .lstop b { margin-right: 8px; }
-  .agrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
-  .agrid .m b { display: block; color: var(--text); font-size: 13.5px; }
-  .input { border: 2px solid var(--accent); border-radius: 10px; padding: 10px 12px; background: var(--accent-soft); }
-  .input > b { font-size: 16px; }
-  .igrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 8px; }
-  .ibox { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13.5px; background: var(--panel); }
-  .ibox b { display: block; font-size: 14px; }
-  @media (max-width: 560px) { .flow { grid-template-columns: minmax(0, 1fr) 96px; } .lar { display: none; } }
-</style>
 </head>
 <body>
 <nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html">Home</a><a href="pipeline.html" aria-current="page">Pipeline</a><a href="evaluation.html">Evaluation</a><a href="versions.html">Versions</a></div></nav>
 <main class="wrap">
 
 <h1>Pipeline</h1>
-<p class="lede">Each question runs the whole chain on its own: find the objects and how they move, build a scene at real scale, check it, let an agent correct what fails, then measure the answer in the scene.</p>
-<p class="muted small">Entry point: <code>python -m pipeline.harness</code>. Code notes: <code>pipeline/README.md</code> in the repository.</p>
+<p class="lede">One question is one unit, <code>&lt;video_id&gt;_q&lt;k&gt;</code>. Each unit runs these eight steps in order, using only its own question, prior and depth_info. Units of the same video run one after another and share only caches that depend on the video alone: SAM 2 propagations of a prompt box, floor masks and depth maps.</p>
+<p class="muted small">Entry point: <code>python -m pipeline.harness</code> (<code>Chain.go</code>). The fit flags are in <code>pipeline/config.py</code> <code>FIT_ARGS</code>. This page describes the code at the current version.</p>
 
 <div class="flow" id="flow">
   <div class="input fc">
     <b>Input</b>
     <div class="igrid">
-      <div class="ibox"><b>Video</b></div>
-      <div class="ibox"><b>Question</b>The quantity to measure and the objects involved</div>
-      <div class="ibox"><b>prior</b>Known facts from the question that set the scale: object sizes, speeds, or distances to the camera</div>
+      <div class="ibox"><b>Video</b>Frames, fps, <code>is_masked</code> / <code>bg</code></div>
+      <div class="ibox"><b>Question</b>The quantity, object, reference and times asked</div>
+      <div class="ibox"><b>prior</b>A size, speed, acceleration or gravity statement, or distance anchors (depth_info)</div>
     </div>
   </div>
   <div class="ac fc"><div class="arrow in"></div></div>
 
-  <div class="node fc"><div class="hd"><b>Object list</b></div>
-    <span class="m">Objects to measure and their supports: name, aliases, count, shape, location hint</span></div>
-  <div class="rail top dash ret edit"><span>edit</span></div>
+  <a class="node fc" href="#s1"><b>1 Objects</b><span class="m">Qwen groups the names in the text into objects</span></a>
+  <div class="rail top dash ret edit"><span>count / track flag</span></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail dash"></div>
 
-  <div class="node fc"><div class="hd"><b>scene graph</b></div>
-    <span class="m">Support relations per time span: on / airborne / held_by / in</span></div>
-  <div class="rail dash ret edit"><span>edit</span></div>
+  <a class="node fc" href="#s2"><b>2 Scene graph (grid)</b><span class="m">Supports and relations from 6 frames</span></a>
+  <div class="rail dash"></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail dash"></div>
 
-  <div class="node fc"><div class="hd"><b>Tracking</b></div>
-    <span class="m">Per-frame pixel tracks and masks, with a track identity check</span></div>
-  <div class="rail ret"><span>count / track / retrack / split</span></div>
+  <a class="node fc" href="#s3"><b>3 Tracking</b><span class="m">GDINO candidates → Qwen choice → SAM 2 → re-check, verify</span></a>
+  <div class="rail ret"><span>re-track</span></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
-  <div class="node fc"><div class="hd"><b>Observations</b></div>
-    <span class="m">Support plane, depth, refmeasure endpoints, mask extents</span></div>
+  <a class="node fc" href="#s4"><b>4 Scene graph (per frame)</b><span class="m">Phases, release times and contacts from 16 frames</span></a>
+  <div class="rail ret edit"><span>relation / main support</span></div>
+  <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
+
+  <a class="node fc" href="#s5"><b>5 Observation</b><span class="m">refmeasure end points, floor masks, walls</span></a>
   <div class="rail"></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
-  <div class="node fc"><div class="hd"><b>Physics-guided Fitting</b></div>
-    <span class="m">Camera, support plane, object shapes, and motion parameterized by physical laws, fitted so the projection agrees with tracks, depth and prior</span></div>
-  <div class="rail ret"><span>support / main support / scene actions</span></div>
+  <a class="node fc" href="#s6"><b>6 Physics-guided Fitting</b><span class="m">Depth, focal length, support plane, scale, motion laws, fit, measurement</span>
+    <span class="ck">tracked · scale · visible · fit</span></a>
+  <div class="rail ret"><span>refit</span></div>
   <div class="ac fc"><div class="arrow"></div><span class="el">a check fails</span></div><div class="rail"></div>
 
-  <div class="loop fc">
-    <div class="hd"><b>agent loop</b><span class="lr">2–10 rounds</span></div>
-    <div class="lsteps">
-      <div class="lbox"><b>Observe</b>frames · crop · overlay · tracks_summary · depth_at · scene_json · self_check · question_values · visible_count · reference_measure<span class="lm">≤ 6 calls per round, read-only</span></div>
-      <div class="lar">→</div>
-      <div class="lbox"><b>Decide</b></div>
-      <div class="lar">→</div>
-      <div class="lbox"><b>Execute</b><span class="lm">Rerun from the most upstream affected step to the scene</span></div>
-      <div class="lar">→</div>
-      <div class="lbox"><b>Fixed evidence check</b><span class="lm">pass → keep<br>fail → roll back</span></div>
-    </div>
-    <div class="lstop"><b>Stop</b>all checks pass, or two rounds without improvement</div>
-  </div>
+  <a class="loop fc" href="#s7"><b>7 Agent loop</b><span class="m">Observe (≤ 6 tools) → act (≤ 3 tools) → rebuild → accept on frozen evidence or roll back; up to 10 rounds</span>
+    <span class="ck">plausible</span></a>
   <div class="rail bot out"></div>
   <div class="ac fc"><div class="arrow"></div></div>
 
-  <div class="node fc"><div class="hd"><b>Answer from the scene</b></div>
-    <div class="agrid"><span class="m"><b>All checks pass</b>scene value</span><span class="m"><b>A check fails</b>unresolved</span></div></div>
+  <a class="node fc" href="#s8"><b>8 Answer</b><span class="m">All checks pass → scene value; any check fails → unresolved</span>
+    <span class="ck">replay</span></a>
 </div>
 
-<p>Every video takes the same 3D path and objects have thickness. With distance anchors in the prior, the anchors set the scale. Without them, focal length and support plane come from Depth Pro, and the prior, such as an object's size or speed, sets one scale factor.</p>
-<p>Mask extents (extents2d) and refmeasure endpoints can serve as fitting observations, behind <code>--fixes hulls refmeasure</code> (off by default).</p>
-
-<h2 id="checks">Checks</h2>
-<div class="scroll-x"><table>
-  <tr><th>Check</th><th>Passes when</th></tr>
-  <tr><td>tracked</td><td>The asked object, and any reference object, has a verified track over the asked times</td></tr>
-  <tr><td>scale</td><td>The scale is set: the prior's scale checks agree, or a distance anchor is aligned to a track</td></tr>
-  <tr><td>visible</td><td>The asked quantity is observed, not taken from a typical size, a lower bound or a cut-off box, at times inside the visible span</td></tr>
-  <tr><td>fit</td><td>A fitted or directly measured value exists, is not degenerate, and the fitted object overlaps its tracked box at the asked frame (IoU ≥ 0.3)</td></tr>
-  <tr><td>plausible</td><td>Passive objects do not accelerate against gravity, the support plane is reliable, heights agree with the scene graph, and sizes fit the object's class</td></tr>
-  <tr><td>replay</td><td>The value is reproduced from the scene state and the quantity is observable</td></tr>
+<h2 id="time">Time per step</h2>
+<p class="small muted">From the 10-question v4 run (<code>outputs/harness/v4/answers</code>, record <code>timing.steps</code>). Seconds per question.</p>
+<div class="scroll-x"><table class="tt">
+  <tr><th>Step</th><th>Timing key</th><th class="n">Median</th><th class="n">Min</th><th class="n">Max</th></tr>
+  <tr><td>1 Objects</td><td><code>objects</code></td><td class="n">22.5</td><td class="n">7.6</td><td class="n">28.3</td></tr>
+  <tr><td>2 Scene graph (grid)</td><td><code>scenegraph_grid</code></td><td class="n">5.8</td><td class="n">3.1</td><td class="n">14.4</td></tr>
+  <tr><td>3 Tracking</td><td><code>track</code></td><td class="n">121.3</td><td class="n">37.1</td><td class="n">198.4</td></tr>
+  <tr><td>4 Scene graph (per frame)</td><td><code>scenegraph_pf</code></td><td class="n">17.5</td><td class="n">0.7</td><td class="n">43.8</td></tr>
+  <tr><td>5 Observation</td><td><code>observe</code></td><td class="n">19.6</td><td class="n">14.6</td><td class="n">36.9</td></tr>
+  <tr><td>6 Physics-guided Fitting</td><td><code>scene</code></td><td class="n">33.5</td><td class="n">20.0</td><td class="n">181.0</td></tr>
+  <tr><td>7 Agent loop</td><td><code>agent</code></td><td class="n">0.2</td><td class="n">0.0</td><td class="n">68.5</td></tr>
+  <tr><td>8 Answer</td><td><code>answer</code></td><td class="n">0.0</td><td class="n">0.0</td><td class="n">0.0</td></tr>
+  <tr><td><b>Total</b></td><td><code>total_seconds</code></td><td class="n">233.2</td><td class="n">134.5</td><td class="n">405.6</td></tr>
 </table></div>
+
+<!-- ============================================================ 1 -->
+<section class="step" id="s1">
+<h2>1 Objects</h2>
+<p class="cmd"><code>python -m pipeline.objects --units U</code> · <code>objects.py</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>The unit's row: <code>question</code>, <code>prior</code>, <code>depth_info</code> (<code>check_unit_rows</code> raises on any other row)</li>
+    <li>The agent's note <code>outputs/critic/hints/&lt;split&gt;/&lt;unit&gt;.json</code> → <code>objects</code>, if one exists</li>
+    <li>No video frames</li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li>Rule parser (<code>parse.py</code>) collects candidate names: the question's object and reference, and the prior's object</li>
+    <li>Names in depth_info become candidates ("the X"). Camera names are skipped; end points such as "desk left" map to the whole object</li>
+    <li>Qwen <code>PROMPT</code> (text only, temperature 0, 2 tries) groups the candidate spellings into objects with name, aliases, track, shape / location hint, size class, role, count, part_of</li>
+    <li><code>_repair</code>: each candidate goes to exactly one object; count is clamped to 1–10; role is object / structure / class</li>
+    <li><code>split_parts</code>: an alias whose head noun is a part word (wing, handle …) becomes its own object with <code>part_of</code></li>
+    <li><code>normalize_roles</code>: the object of a dynamic prior becomes role object; a spacing prior makes a structure + reference_only object; lanes / lines get <code>measure_as=line_spacing</code> and no track</li>
+    <li><code>bind_by_time</code>: a depth-only object whose times match the single moving object gets <code>bound_to</code> and no track (name similarity ≥ 0.8)</li>
+    <li>Qwen <code>AGENCY_PROMPT</code> sets agency (passive / self_propelled / carried) and body (solid / hollow); regex rules fill any gaps</li>
+    <li>Both Qwen answers invalid → <code>rule_inventory</code>, <code>source: "rule (llm invalid)"</code></li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>objects_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>source</code>, <code>candidates</code>, <code>objects[]</code>, each with <code>name, aliases, track, shape_hint, location_hint, grounding_phrase, expected_size_class, role, count, reference_only, part_of, agency, body</code> and optionally <code>bound_to, measure_as</code></li>
+    <li>Per question; nothing is shared</li>
+  </ul></dd>
+  <dt>Fails</dt>
+  <dd><ul>
+    <li>Two objects merged, or one split → wrong track / two tracks → <b>tracked</b>, <b>fit</b></li>
+    <li>Wrong role or reference_only → wrong scale source → <b>scale</b></li>
+    <li>Wrong <code>bound_to</code>, or a depth name that matches no object → no depth anchor → <b>scale</b></li>
+    <li>Wrong agency → wrong motion law (step 6.6) → <b>fit</b>, <b>plausible</b></li>
+    <li>Only a Qwen request error stops the step; an invalid answer silently becomes the rule inventory</li>
+  </ul></dd>
+</dl>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="step" id="s2">
+<h2>2 Scene graph (grid)</h2>
+<p class="cmd"><code>python -m pipeline.scenegraph --units U --redo</code> · <code>scenegraph.py build</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>Question and prior; depth_info is not used</li>
+    <li>Inventory objects to track, plus non-ground structures</li>
+    <li>6 frames, <code>linspace(0, N−1, 6)</code>, tiled 3×2 with time stamps, long side 1280 px</li>
+    <li>The agent's note → <code>scenegraph</code>, if one exists</li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li>Qwen <code>PROMPT</code> (2 tries) names each object's support or holder and relation: on, airborne, held_by, in, attached_to, above</li>
+    <li><code>_clean</code>: drops unknown objects and relations; an object Qwen left out gets the default edge</li>
+    <li><code>_canon_targets</code>: maps a support name ("table") to the inventory object ("the desk") when they share a head noun or synonym</li>
+    <li><code>size_order</code> from the "in" edges and part_of</li>
+    <li><code>table_plane</code> sets <code>main_support</code>: the floor, unless nothing stands on the ground and the question does not say floor / ground; then the table-like object, then water</li>
+    <li>Any error, including a Qwen request error → <code>default_graph</code>: spheres airborne, everything else on floor / water / ground, conf 0.3, <code>source: "default"</code></li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>scenegraph_grid_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>source</code> (llm / default / empty), <code>nodes</code>, <code>edges[{from, to, rel, t_start, t_end, conf}]</code>, <code>frames_t</code>, <code>size_order</code>, <code>main_support</code>, <code>support_objects</code></li>
+    <li>Per question</li>
+  </ul></dd>
+  <dt>Fails</dt>
+  <dd><ul>
+    <li>Wrong <code>main_support</code> → wrong plane → <b>fit</b>, <b>scale</b>, <b>plausible</b></li>
+    <li>A failed Qwen call is silent: <code>source: "default"</code> is the only trace</li>
+    <li>Wrong "on" edges change tracking: a support candidate must carry the objects on it (step 3.3)</li>
+  </ul></dd>
+</dl>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="step" id="s3">
+<h2>3 Tracking</h2>
+<p class="cmd"><code>pipeline.track --recheck-prior --no-cache --choose</code> → <code>presence --merge-from</code> → <code>presence</code> · <code>perceive.py</code>, <code>presence.py</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>Names to track: the question's object and reference, the prior's object (ground / water references and cameras are skipped), and objects named only in depth_info</li>
+    <li>Hints per object: location hint, grounding phrase, size class, count, role, part_of, the question and prior text, depth_info text</li>
+    <li>Motion window for speed / acceleration / displacement questions: [t − 0.3, t + 0.3] s, or [t0, tN]</li>
+    <li>Supports from the grid graph's "on" edges; the agent's note → <code>track</code></li>
+    <li>All frames (SAM 2)</li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li>GDINO (<code>grounding-dino-base</code>, box 0.25, text 0.2) on 6 evenly spaced probe frames, one query per name. A box touching the border loses 0.15 score</li>
+    <li>Candidates per object: name, singular and grounding phrase, top 6, merged at IoU &gt; 0.7, plus Qwen's own <code>ground</code> box</li>
+    <li>Filters: drop boxes over 0.8 of the frame; a part must lie inside its whole; a support must carry its objects; objects drop border boxes; drop boxes on another object's chosen box; drop boxes that swallow another object</li>
+    <li>Order: wholes before parts; objects, then structures, then classes; names with a location hint first</li>
+    <li>Qwen <code>qwen_choose</code> picks one numbered candidate from a sheet with crops and the boxes already taken. Nothing picked → up to 3 other frames; all rejected → GDINO's box stays</li>
+    <li>count ≥ 2: distinct boxes (IoU &lt; 0.3), extra instances as <code>"&lt;name&gt; #j"</code></li>
+    <li>SAM 2 (<code>sam2.1-hiera-large</code>) propagates each box forward and backward. The memo is shared across the video's questions</li>
+    <li>Mask → box, centroid, area. Drop masks under 12 px and frames with area &lt; 0.15 × median</li>
+    <li>Prior re-check: Qwen <code>ground</code> on 5 crops (10–90 %). Re-track if ≥ 2 boxes and median IoU with the track &lt; 0.3, unless the new track jumps</li>
+    <li>Motion check: inside the motion window the object must move &gt; max(2 px, 0.25 × size). Otherwise try 2 GDINO alternatives and a "moving" ground box</li>
+    <li>Choice check: <code>VERIFY_PROMPT</code> on 3 frames. On a "no" majority, try up to 5 alternatives; the first one Qwen accepts replaces the track</li>
+    <li>Names still missing: GDINO-only tracks (≥ 3 boxes); masked videos use a foreground backend</li>
+    <li>Merge (<code>--merge-from</code>): copy the raw file into the run's cache</li>
+    <li>Presence (<code>PRESENCE_PROMPT</code>, two 2×2 grids): absent only if both grids say absent; rescued to partial by 5 zoom crops and GDINO score ≥ 0.35</li>
+    <li>Verification per object (≥ 3 boxes): shape (person h/w 1–6, round 0.4–2.5, slivers), <code>VERIFY_PROMPT</code> on 3 frames, relations from the per-frame graph, segments (jump IoU &lt; 0.2, area × 2.5, gap &gt; 5 frames)</li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>tracks_&lt;tag&gt;raw/&lt;unit&gt;.json</code> = <code>tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>tracks{name: {boxes, scores, centroids, areas}}</code> per frame (no masks); <code>meta.choose</code> (candidates, choice, reason, verify, motion), <code>meta.recheck</code>, <code>meta.shared{sam2_hits, sam2_misses}</code></li>
+    <li><code>objects_&lt;tag&gt;_presence_v3/&lt;unit&gt;.json</code>: <code>present, presence_conf, votes, zoom_votes</code></li>
+    <li><code>trackcheck/tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>checks{name: {verified, suspect, reasons, shape, votes, relations, segments}}</code>, bound to the track hash</li>
+    <li>Choice is per question; SAM 2 propagation is shared (<code>perception/&lt;video&gt;/sam2/&lt;hash&gt;.json</code>)</li>
+  </ul></dd>
+  <dt>Fails</dt>
+  <dd><ul>
+    <li>Fewer than 3 boxes, or no box at the asked time (±1 frame) → <b>tracked</b></li>
+    <li><code>verified: false</code> → <b>tracked</b> (asked object) or <b>scale</b> (prior object)</li>
+    <li>A wrong pick that passes the checks shows up only later: <b>fit</b>, <b>plausible</b> (size / acceleration)</li>
+    <li>Relation checks and the prior re-check read the per-frame graph, which a fresh run has not built yet (step 4), so relations are empty here and the re-check falls back to the grid graph</li>
+    <li>A crash in tracking stops the unit (<code>StageError</code>)</li>
+  </ul></dd>
+</dl>
+</section>
+
+<!-- ============================================================ 4 -->
+<section class="step" id="s4">
+<h2>4 Scene graph (per frame)</h2>
+<p class="cmd"><code>python -m pipeline.scenegraph --units U --redo --per-frame --grid-from scenegraph_grid_&lt;tag&gt;</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>The grid graph (step 2), the merged tracks and their present intervals (step 3)</li>
+    <li>Inventory (structures, <code>present</code>, <code>part_of</code>) and the question; the prior is not in the prompt</li>
+    <li>16 frames, <code>linspace(0, N−1, 16)</code></li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li>Track events per object: moving (speed &gt; 0.6 box sizes / s), onset (3 moving samples in a row), turns (&gt; 45°); a swing period for hanging objects</li>
+    <li>A static object keeps its grid edges</li>
+    <li>Each moving object, on each of the 16 frames: Qwen <code>PF_PROMPT</code> with a red box and a crop chooses on &lt;support&gt; / airborne / held / hanging. Frames with box area &lt; 0.15 × median are not asked</li>
+    <li>Gaps take the previous label; smoothing by a majority of 3</li>
+    <li>Phase boundaries snap to a track event</li>
+    <li>Airborne phases are relabelled "on" if the track moved &lt; 0.3 box sizes, or a non-round object shows no downward curvature</li>
+    <li>A raised support followed by ground gets an airborne phase inserted</li>
+    <li>Release at each held → airborne boundary: <code>HOLD_PROMPT</code> on a hand crop plus a parabola test (rms ≤ max(2 px, 8 % of box)) → <code>t_release</code></li>
+    <li>Edges are cut to the track's present intervals</li>
+    <li>Contacts: Qwen <code>CONTACT_PROMPT</code> for boxes within 15 % of the smaller diagonal; kept if ≥ 2 frames</li>
+    <li><code>table_plane</code> sets <code>main_support</code> again</li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>scenegraph_&lt;tag&gt;/&lt;unit&gt;.json</code>: grid fields plus <code>events{onset_t, turns_t, moving, period_t}</code>, <code>per_frame{obj: [{t, label, box}]}</code>, edges with <code>geo, t_release, presence_clip</code> and rel <code>contact</code></li>
+    <li>Read by <code>scenegraph.plan()</code> → support / airborne / held / overhead per object (step 6.6)</li>
+  </ul></dd>
+  <dt>Fails</dt>
+  <dd><ul>
+    <li>Wrong phases or <code>t_release</code> → wrong motion law or event times → <b>fit</b>, <b>plausible</b></li>
+    <li>A held object labelled static or on a support → velocity 0 during the hold</li>
+    <li>Qwen errors are silent: the label becomes empty and is filled from its neighbour</li>
+  </ul></dd>
+</dl>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="step" id="s5">
+<h2>5 Observation</h2>
+<p class="cmd"><code>pipeline.refmeasure</code> → <code>pipeline.ground</code> (GPU). <code>pipeline.extents2d</code> runs only with <code>--fixes hulls</code>, which is not in <code>FIT_ARGS</code></p>
+<h3>5.1 refmeasure</h3>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>Targets: a static prior (not gravity) on a structure, line spacing, reference-only or untracked object; static size questions about such objects</li>
+    <li>Inventory location hint, the unit's tracks, frames</li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li>Definition text from regex (lane, calibre, tiles, door), else a generic one</li>
+    <li>9 candidate frames over the track span; Qwen <code>PROMPT</code> marks two end points p0 / p1 and the number of intervals until 3 frames are marked</li>
+    <li>Zoom re-ask around the marking; ignored if it differs more than 1.5×</li>
+    <li>Median length in px; conf = mean conf × (1 − spread) × marked / 3</li>
+    <li>Lane width: a Hough lane profile on 15 frames overrides Qwen when its conf ≥ 0.5</li>
+    <li>Spacing: FFT on 16 frames (periodic marks)</li>
+    <li>conf &lt; 0.2 → no measurement</li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul><li><code>refmeasure_v9/&lt;unit&gt;.json</code>, key <code>object|quantity</code>: <code>px, p0, p1, frame, frames, n_intervals, conf, spread, per_frame, definition</code></li></ul></dd>
+  <dt>Fails</dt>
+  <dd><ul><li>No measurement → "no cached reference measurement" in <code>scale.notes</code> → <b>scale</b> (6.4)</li></ul></dd>
+</dl>
+<h3>5.2 ground</h3>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>The per-frame graph's <code>main_support</code> (else the most common "on" target, else "floor")</li>
+    <li>Non-structure inventory objects and their track boxes (kept out of the mask); <code>is_masked</code> / <code>bg</code></li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li>6 evenly spaced frames: GDINO with [support, "floor", "ground"]; best box by score × (1 + area)</li>
+    <li>SAM 2 image model segments inside the box; a raised support keeps rows ≥ 0.5 × the widest row</li>
+    <li>No masks when the background is masked and the support is ground or water</li>
+    <li>Each unit cuts its own objects' boxes out of the mask; a mask covering &lt; 1 % or &gt; 90 % is dropped</li>
+    <li>Overhead structures: Qwen <code>WALL_PROMPT</code> marks base / top points on 3 frames</li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>ground/&lt;unit&gt;.json</code>: <code>support, floor_key, floor_shared, floor[{frame, png, area_frac}], structures, walls</code></li>
+    <li>Raw masks shared per video: <code>ground/&lt;video&gt;/floor_&lt;key&gt;/</code></li>
+  </ul></dd>
+  <dt>Fails</dt>
+  <dd><ul>
+    <li>Wrong or missing floor mask → no support plane, or a wrong one (6.3) → <b>plausible</b>, <b>fit</b></li>
+  </ul></dd>
+</dl>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="step" id="s6">
+<h2>6 Physics-guided Fitting</h2>
+<p class="cmd"><code>python -m pipeline.scene_fit --unit U --out … $FIT_ARGS</code> · <code>scene_fit.py</code>, <code>fit3d.py</code>, <code>scene_depth.py</code>, <code>prior_scale.py</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>Row: <code>question</code>, <code>prior</code>, <code>depth_info</code> (empty → the scene is scaled by the prior), <code>video_source</code>, <code>bg</code></li>
+    <li>Inventory (role, agency, body, part_of, present), per-frame graph, tracks + trackcheck, ground, refmeasure, frames</li>
+  </ul></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code></li>
+    <li><code>camera{f, f_source, scale_source, support_plane, support_rejected, s, metric}</code>, <code>scale{s, source, checks, failed, notes}</code>, <code>plane_ok</code>, <code>stage_a</code>, <code>main_support</code></li>
+    <li><code>objects[name]</code>: dims, p0, v0, a, segments, mode, <code>motion_law</code>, <code>physics</code>, <code>pendulum</code>, support</li>
+    <li><code>results[0]</code>: <code>pred, method, quality.align_tq, checks, failed, direct, fit_checks, source</code>; top-level <code>checks, failed</code></li>
+  </ul></dd>
+</dl>
+
+<h3>6.1 Setup</h3>
+<ol>
+  <li>Gravity: the prior's value, else moon 1.62 / Mars 3.71, "space" leaves g free, else 9.81 m/s²</li>
+  <li><code>switch</code>: drop frames where a track sits on another object's box (if ≥ 5 frames remain)</li>
+  <li>Stage-A object: the prior's object. With a gravity prior: the object with the most anchors, then the longest track (≥ 5 boxes, box &lt; 0.8 of the frame)</li>
+  <li><code>staticA</code>: a size prior on a moving object moves stage A to a static object</li>
+  <li><code>classprior</code>: a class-size prior applies to every instance</li>
+  <li>Support plan per object from the graph: held, overhead, airborne, or support</li>
+  <li>Main support: the target with the largest Σ conf × duration; <code>support_uncertain</code> when the second is &gt; 0.75 × the first</li>
+</ol>
+
+<h3>6.2 Depth and focal length</h3>
+<div class="two">
+<div><b>With depth_info</b><ol>
+  <li>Depth Anything V2 Large on every 4th frame plus anchor frames; per-frame alignment on background pixels</li>
+  <li>Each anchor is located by its track, else by a Qwen <code>ground</code> box</li>
+  <li>Fit 1/Z = a·d + b to the anchors (one anchor: scale only)</li>
+  <li>Focal votes: typical heights; gravity (f = 2·c₂ / g per flight ≥ 7 frames, 0.2 W–3 W); f = px·Z / size from the size prior (weight 10); lab prior 650 / 854 · W</li>
+  <li>Speed / acceleration prior: f fixed to the weighted mean of votes with weight ≥ 4</li>
+</ol></div>
+<div><b>Without depth_info</b><ol>
+  <li>Depth Pro on 12 evenly spaced frames at its own (nominal) scale</li>
+  <li>Frames normalised to the first by the median depth ratio on background (support pixels when masks exist)</li>
+  <li>f = median of Depth Pro's per-frame focal lengths, <code>f_source: depth_model</code></li>
+  <li>Depth Pro gives no focal → f = image width, <code>f_source: image_width</code></li>
+</ol></div>
+</div>
+<p class="fl"><b>Fails</b> No check reads <code>focal_spread</code> or <code>f_source: image_width</code>; a wrong focal length shows up only as a wrong scale (6.4) or size (<b>plausible</b>).</p>
+
+<h3>6.3 Support plane</h3>
+<ol>
+  <li>Without depth_info: on each Depth Pro frame, fit a plane to the floor mask of the nearest ground frame (4000 pixels, refit on the nearest 80 %)</li>
+  <li>Drop frames more than max(2 × median, 5°) from the median normal</li>
+  <li>Spread &gt; <code>SUPPORT_AGREE_DEG</code> = 10° → <code>support_rejected</code>; no plane, objects are fitted free in 3D</li>
+  <li>No mask plane: fit a plane through ≥ 6 object ground contacts (<code>source: object_contacts</code>, <code>plane_ok: false</code>)</li>
+  <li>With depth_info: the plane is fitted in stage A; <code>plane_ok</code> needs camera height in (1.05 × min, 59 m), roll ≤ 10°, |φ| &lt; 0.59</li>
+</ol>
+<p class="fl"><b>Fails</b> <code>plane_ok: false</code> with objects on it → <b>plausible</b> (support_plane). A rejected plane trips no check.</p>
+
+<h3>6.4 Scale</h3>
+<div class="two">
+<div><b>With depth_info</b><ol>
+  <li>Metric scale comes from the anchor alignment (6.2)</li>
+  <li><b>scale</b> passes when ≥ 1 anchor was aligned to a track, or the stage-A prior is a quantity of a tracked object</li>
+</ol></div>
+<div><b>Without depth_info</b> (<code>calibrate_scale</code>, first source that applies)<ol>
+  <li>refmeasure: both end points are placed in 3D on Depth Pro depth; s = prior value / nominal length</li>
+  <li>gravity: free-flight windows (0.3 s, ≥ 8 samples, vertical ≥ 0.85, rms ≤ 1.5 px, ≥ 3 windows); else one quadratic and <code>free_fall</code> fails</li>
+  <li>object: the prior's size or motion measured on the fitted nominal scene; s = prior / nominal</li>
+  <li>All depth values × s; fits run with f and the plane fixed; <code>metric</code> = s exists</li>
+</ol></div>
+</div>
+<p>Sub-checks in <code>scale.checks</code>, any failure fails <b>scale</b>:</p>
+<ul>
+  <li><code>measured</code>: s exists</li>
+  <li><code>side</code>: length vs width along the heading are not ambiguous (&gt; 15 %)</li>
+  <li><code>track</code>: mask area varies ≤ 0.5 (rigid objects)</li>
+  <li><code>class_sizes</code>: ≥ 2 typical-size cues that agree within 1.3× are not more than 2× away</li>
+  <li><code>geometry</code>: the focal from <code>calibrate</code> agrees within 1.5×</li>
+  <li><code>free_fall</code>: free-flight windows were found (gravity source)</li>
+</ul>
+<p class="fl"><b>Fails</b> <code>metric: false</code> → every answer is <code>no-scale</code> → <b>scale</b>, <b>visible</b>.</p>
+
+<h3>6.5 Stage A</h3>
+<ol>
+  <li>With depth_info: fit the stage-A object with focal votes, plane anchors, horizon, depth weight 60, roll prior 5</li>
+  <li>Without depth_info: fit the stage-A object on the nominal scene with f and plane fixed, then scale (6.4)</li>
+  <li>Airborne or held stage-A object: refit free in 3D with f fixed, then the motion law (6.6)</li>
+</ol>
+
+<h3>6.6 Motion law</h3>
+<ol>
+  <li>Hanging sphere → pendulum: L = g·T² / 4π² (0.05–10 m), needs ≥ 12 frames and one full swing; kept only if rms ≤ the free fit</li>
+  <li>Not passive (agency, non-sphere, person / vehicle names) → driven: pieces chosen per segment by BIC among static / constant velocity / constant acceleration / circle</li>
+  <li>Overhead, or <code>moving: false</code> → static</li>
+  <li>Otherwise physics, phases from the graph: held → held; on the main support → bounded (bounces e 0.3–0.95, rolling friction ≤ 0.5 g); on another object → incline a = κ·g·sin θ (κ 5/7 solid, 3/5 hollow, θ ≤ 60°, no friction); airborne → ballistic with g fixed; in → uniform</li>
+  <li>Event times (release, kicks, contacts) searched in ±duration / 16 windows, ≤ 5 candidates each</li>
+  <li>Physics chain rejected when its rms &gt; 1.5 × the kinematic fit + 2 px; the kinematic fit is kept (<code>physics.rejected</code>)</li>
+  <li>Gravity probe (≥ 7 flight frames): refit with g free; agreement within 1.25× is recorded only</li>
+</ol>
+<p class="fl"><b>Fails</b> A rejected physics chain and a gravity-probe conflict trip no check.</p>
+
+<h3>6.7 Stage B and the fit</h3>
+<ol>
+  <li>Every other asked or reference object; skipped when absent, the main support (<code>supportface</code>), &lt; 5 boxes, or box &gt; 0.8 of the frame</li>
+  <li>Overhead object: depth points give underside p15 / top p85; saturated when p85 &gt; 0.8 × depth cap</li>
+  <li>Placed by plan: on the shared plane, on its own plane, hanging under a table, or free in 3D</li>
+  <li>Unknowns: log dims, p0, v0, a (or the law's parameters), yaw, plane, and log f unless fixed</li>
+  <li>Residuals (soft-L1): box sides; depth anchors (weight 60 / 600); dense depth; prior (20); class size (30); typical size (3); thinnest side ≥ 0.15 × longest; extent ≥ 0.7 × depth extent; horizon, plane anchors, roll</li>
+  <li>Masks and IoU are not in the loss</li>
+</ol>
+<p class="fl"><b>Fails</b> A stage-B object whose fit fails is dropped → <code>object-not-fitted</code> → <b>visible</b>, <b>fit</b>.</p>
+
+<h3>6.8 Measurement</h3>
+<ol>
+  <li>refmeasure answer if the target is measured (static size of a structure), else read from the fitted state</li>
+  <li>Speed at t, average velocity / speed (path length), acceleration, displacement, path length, orbit</li>
+  <li>Size (wingspan = max(L, W); wing extent = p90 of long side × Z / f), pendulum string, end points, height above ground, overhead height / clearance, distance</li>
+  <li>No value: <code>object-absent, object-not-fitted, reference-not-fitted, unsupported, no-size, no-scale</code></li>
+  <li><code>align_tq</code>: IoU of the fitted object's projection with its tracked box at the asked time</li>
+</ol>
+
+<h3>6.9 Direct measurement</h3>
+<ol>
+  <li><code>calibrate</code> + <code>solve</code>: focal and depth series from depth_info, or the prior-scaled camera; pixel kinematics</li>
+  <li>Range check (<code>verify.RANGES_SI</code>) and <code>answer_checks</code>, including the twin check</li>
+  <li>Switch the answer to <code>direct:*</code> (fit checks kept as <code>fit_checks</code>) when: the agent asked for it on a size; the scene has depth_info and the direct method is speed3d / accel3d; or the fit has no value</li>
+</ol>
+
+<h3>6.10 Checks</h3>
+<div class="scroll-x"><table>
+  <tr><th>Check</th><th>Fails when</th></tr>
+  <tr><td>tracked</td><td>The asked or reference object has no track (&lt; 3 boxes), no box at the asked times (±1 frame), or <code>verified: false</code>. The twin test only runs on the direct path</td></tr>
+  <tr><td>scale</td><td>Without depth_info: <code>scale.failed</code> is not empty. With depth_info: no anchor was aligned and the prior is not a tracked object's quantity</td></tr>
+  <tr><td>visible</td><td>The size comes from a prior or a bound; W = H collapsed; overhead height saturated; motion times outside the visible span; no fitted object</td></tr>
+  <tr><td>fit</td><td>The method is not a fit, end point or refmeasure method; ends in <code>degenerate</code>; or <code>align_tq</code> IoU &lt; 0.3. A <code>fit-*</code> method with no value is not caught here</td></tr>
+</table></div>
+<p class="fl"><b>Fails</b> Any other exception → <code>direct_only</code> scene (<code>status: partial</code>, no objects, <b>fit</b> fails).</p>
+</section>
+
+<!-- ============================================================ 7 -->
+<section class="step" id="s7">
+<h2>7 Agent loop</h2>
+<p class="cmd"><code>scene_agent.run_unit</code> · <code>critic_loop.py</code>, <code>critic.py</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>The scene of step 6, frozen evidence, all caches of steps 1–5</li>
+    <li>Starts only if <code>scene.failed</code> (tracked / scale / visible / fit) or <b>plausible</b> fails; otherwise 0 rounds</li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li><b>plausible</b> (<code>critic.scene_checks</code>, 9 sample times per object): see the table below</li>
+    <li>Evidence: 3D overlays at 5 even times + the asked time (cut to 6), an overlay and a 2.5× crop at the asked time, up to 3 visibility-mismatch overlays</li>
+    <li>Text: inventory, graph edges, prior, depth_info, scale, failed checks with reasons, earlier rounds</li>
+    <li>Qwen <code>PROMPT</code>: diagnose in the order objects → tracks → support → scale → timing; prefer relation edits over refits; never edit toward a plausible number</li>
+    <li>Observe tools, ≤ 6 per round: <code>frames, crop, overlay, tracks_summary, depth_at, scene_json, self_check, question_values, visible_count, reference_measure, scene3d_model_options</code></li>
+    <li>Act tools, ≤ 3 per round:
+      <ul>
+        <li>rebuild from tracking: <code>objects_set_count, objects_set_track, track_reselect, track_split_instance</code></li>
+        <li>refit: <code>scenegraph_set_relation, set_main_support, scene_mark_absent, scene_swap_axes, scene_set_support, scene_shift_onset, scene_refit_free, scene_set_plane, scene3d_try_fit_policy</code></li>
+      </ul></li>
+    <li>A repeated call (same state, name, params) is dropped</li>
+    <li>Back up the caches; re-track (+ merge, presence) if objects or tracks changed; refit <code>scene_fit</code>; apply the kept scene actions</li>
+    <li>Accept on frozen evidence: reject if the evidence hash changed, or mismatches / issues / failed checks increased, or coverage / support decreased; otherwise accept only if the loss on align IoU, visibility agreement and rms drops &gt; 1 %</li>
+    <li>Rejected → restore the backup</li>
+    <li>Stop: an accepted round with every check passing; 2 rounds without improvement (after ≥ 2 rounds); 10 rounds; or a planning failure</li>
+    <li>After the loop the harness restores the caches; only the agent's scene keeps the changes</li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/agent/&lt;unit&gt;.json</code>: final scene, <code>critique.iterations[]</code> (<code>diagnosis, layer, observations, tool_calls, accepted, why, rerun_from</code>), <code>agent_status{stop_reason, rounds, execution_errors}</code></li>
+    <li><code>agent/units/&lt;unit&gt;/</code> per-round scenes; <code>outputs/critic/loop/&lt;tag&gt;/&lt;split&gt;/&lt;unit&gt;/</code> backups and <code>agent.log</code></li>
+  </ul></dd>
+  <dt>Fails</dt>
+  <dd><ul>
+    <li>Empty rounds (no new act) or rejected rounds → stops with <code>no_new_evidence</code></li>
+    <li>Acceptance does not compare the question checks: an accepted round can leave them failing</li>
+    <li>No rescale, focal or extent tool: a <b>scale</b> failure has no direct repair</li>
+    <li>Invalid JSON twice or a request error → <code>planning_failed</code></li>
+  </ul></dd>
+</dl>
+<h3>plausible</h3>
+<div class="scroll-x"><table>
+  <tr><th>Part</th><th>Fails when</th></tr>
+  <tr><td>passive_motion</td><td>A passive, not hanging object accelerates upward &gt; 0.05 g; or is airborne the whole track and |a + g| &gt; 0.3 g</td></tr>
+  <tr><td>agent_motion</td><td>A person, animal or vehicle has median |a| &gt; 1.5 g</td></tr>
+  <tr><td>support_plane</td><td><code>plane_ok: false</code> and an object stands on or moves above it; "faces the camera" when the normal is within 20° of the optical axis</td></tr>
+  <tr><td>heights</td><td>An object "on X" floats or sinks more than max(0.05 m, its largest dimension); objects on one support differ in height by more than max(2 m, 20 × size)</td></tr>
+  <tr><td>dims</td><td>The largest dimension is outside the class range widened 1.25×</td></tr>
+</table></div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="step" id="s8">
+<h2>8 Answer</h2>
+<p class="cmd"><code>answering.finalize_scene</code> → <code>harness.answer_unit</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul><li>The final scene of step 7 (or step 6 if no round ran), its <code>results[0]</code> and <code>checks</code></li></ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li><b>replay</b>: re-evaluate the value from the scene state (<code>scene_state3d.answer_value</code>); fails on no value, a typical / fallback method, or <code>measurement.observable: false</code> from scene_fit (no model call)</li>
+    <li>Checks = the result's tracked / scale / visible / fit + plausible + replay</li>
+    <li>All pass → <code>status: resolved</code>, <code>source</code> scene or measurement (<code>direct:*</code>), <code>pred</code> = value</li>
+    <li>Any fails → <code>status: unresolved</code>, <code>pred: null</code> (MRA 0), <code>scene_value</code> kept</li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>outputs/harness/&lt;tag&gt;/answers/&lt;unit&gt;.json</code> (<code>schema: unit-1</code>): <code>answer{pred, source, method, scene_value, checks, failed, status}</code>, <code>timing</code>, <code>iterations</code>, <code>paths</code></li>
+    <li><code>outputs/val_&lt;tag&gt;_answers.csv</code> with <code>failed</code> and <code>seconds</code></li>
+  </ul></dd>
+</dl>
+</section>
 
 <h2 id="answers">Answer sources</h2>
 <div class="scroll-x"><table>
   <tr><th>Source</th><th>Meaning</th></tr>
-  <tr><td>scene</td><td>Measured in the final scene</td></tr>
-  <tr><td>measurement</td><td>An independent direct measurement (e.g. the length between two endpoints), not rendered through the scene</td></tr>
-  <tr><td>unresolved</td><td>A check still fails after the agent loop; no answer, scored as zero, and the record names the failed checks</td></tr>
+  <tr><td>scene</td><td>Read from the fitted scene state</td></tr>
+  <tr><td>measurement</td><td>A direct measurement (<code>direct:*</code>, end points, refmeasure), not read from the fitted motion</td></tr>
+  <tr><td>unresolved</td><td>A check still fails after the agent loop; no value, scored 0, the failed checks recorded</td></tr>
 </table></div>
-<p class="muted small">Each question gets its own scene from its own text and prior; questions of one video share only vision caches (frames, depth, track propagation, floor masks). The pipeline never reads validation answers and never answers with a model estimate.</p>
 </main>
 </body>
 </html>
