@@ -494,44 +494,174 @@
     };
   }
 
-  // ---------- scene graph (tools/build_videos.sgraph) as a nested tree ----------
-  // supports at the root, an object under what it rests on / is in / hangs from / is held by; airborne objects in their
-  // own group; an object that changes support appears under each one, with the time span of that relation
-  const SG_REL_SHOWN = { in: 'in', attached_to: 'attached_to', above: 'above' };
+  // ---------- scene graph (tools/build_videos.sgraph) drawn as a layered tree ----------
+  // one box per object / support / hand, each under its first parent in time; later parents are extra edges (one that
+  // skips a level runs through a slot beside the parent's child, where its label sits). Objects that are only ever
+  // airborne hang under a 空中 root; an airborne span (or a relation without a target) of an object that also rests on
+  // something is a short stub to the left of its box.
+  let sgCtx = null;
+  const sgTextW = (s, px, bold) => {
+    if (!sgCtx) sgCtx = document.createElement('canvas').getContext('2d');
+    sgCtx.font = `${bold ? '600 ' : ''}${px}px system-ui, sans-serif`;
+    return sgCtx.measureText(s).width;
+  };
   function sceneGraphTree(sg) {
-    if (!sg || !sg.edges || !sg.edges.length) return '';
-    const kids = new Map(), isChild = new Set();
-    const span = (e) => (e.t0 == null && e.t1 == null ? '' : `${fmt(e.t0 == null ? 0 : e.t0, 2)}–${e.t1 == null ? '' : fmt(e.t1, 2)} s`);
-    sg.edges.forEach((e) => {
-      const parent = e.rel === 'airborne' || !e.to ? '\u0000' + e.rel : e.to;   // no target: a group named by the relation
-      if (parent === e.from) return;
-      if (!kids.has(parent)) kids.set(parent, []);
-      const list = kids.get(parent);
-      let k = list.find((x) => x.id === e.from && x.rel === e.rel);
-      if (!k) { k = { id: e.from, rel: e.rel, spans: [] }; list.push(k); }
-      const sp = span(e);
-      if (sp) k.spans.push([e.t0 == null ? 0 : e.t0, sp]);
-      if (e.to) isChild.add(e.from);
+    if (!sg || !sg.nodes || !sg.nodes.length) return '';
+    const AIR = '\u0000air', NF = 12.5, LF = 11, LL = 13, PADX = 10, GAPX = 16, M = 6, MAXW = window.innerWidth < 640 ? 96 : 176;
+    const type = {}, order = [];
+    const addNode = (id, t) => { if (!(id in type)) { type[id] = t || 'object'; order.push(id); } };
+    sg.nodes.forEach((n) => addNode(n.id, n.type));
+    // relations per object: one entry per (target, relation), time spans merged
+    const rels = new Map();
+    (sg.edges || []).forEach((e) => {
+      if (!e.from || e.to === e.from) return;
+      addNode(e.from); if (e.to) addNode(e.to);
+      if (!rels.has(e.from)) rels.set(e.from, []);
+      const to = e.to || null, l = rels.get(e.from);
+      let r = l.find((x) => x.to === to && x.rel === e.rel);
+      if (!r) { r = { to, rel: e.rel, spans: [], first: Infinity }; l.push(r); }
+      if (e.t0 != null || e.t1 != null) r.spans.push([e.t0 == null ? 0 : e.t0, e.t1]);
+      r.first = Math.min(r.first, e.t0 == null ? 0 : e.t0);
     });
-    kids.forEach((l) => l.forEach((k) => k.spans.sort((a, b) => a[0] - b[0])));
-    const type = Object.fromEntries((sg.nodes || []).map((n) => [n.id, n.type]));
-    const grp = (id) => id.startsWith('\u0000');
-    const roots = [...kids.keys()].filter((id) => !grp(id) && !isChild.has(id));
-    const shown = new Set();
-    const item = (id, k, path) => {
-      shown.add(id);
-      const rel = k && k.rel !== 'airborne' && SG_REL_SHOWN[k.rel] && !grp(path.size ? [...path].pop() : '') ? `<span class="sgrel">${esc(SG_REL_SHOWN[k.rel])}</span>` : '';
-      const t = k && k.spans.length ? k.spans.map((x) => `<span class="sgt">${esc(x[1])}</span>`).join('') : '';
-      const cls = grp(id) ? 'sgn air' : (type[id] && type[id] !== 'object') || !k ? 'sgn sup' : 'sgn';
-      const ch = path.has(id) ? [] : (kids.get(id) || []);
-      const sub = ch.length ? `<ul>${ch.map((c) => item(c.id, c, new Set([...path, id]))).join('')}</ul>` : '';
-      return `<li><span class="${cls}">${grp(id) ? esc(id.slice(1)) : esc(id)}</span>${rel}${t}${sub}</li>`;
+    const relText = (r) => {
+      if (!r.spans.length) return r.rel === 'on' || r.rel === 'airborne' ? '' : r.rel;
+      return `${r.rel} ${r.spans.sort((a, b) => a[0] - b[0]).map(([a, b]) => `${fmt(a, 2)}–${b == null ? '' : fmt(b, 2)}`).join(', ')} s`;
     };
-    let html = roots.map((r) => item(r, null, new Set())).join('');
-    [...kids.keys()].filter(grp).sort((a, b) => (a === '\u0000airborne' ? -1 : b === '\u0000airborne' ? 1 : 0)).forEach((g) => { html += item(g, null, new Set()); });
-    const loose = (sg.nodes || []).filter((n) => n.type === 'object' && !shown.has(n.id));
-    html += loose.map((n) => `<li><span class="sgn">${esc(n.id)}</span></li>`).join('');
-    return `<h4>scene graph</h4><div class="scroll-x"><ul class="sgtree">${html}</ul></div>`;
+    // first parent in time; an object with nothing to rest on but an airborne span goes under the 空中 root
+    const parent = {}, treeRel = {}, extra = [], stubs = {};
+    order.forEach((id) => {
+      const l = (rels.get(id) || []).slice().sort((a, b) => a.first - b.first);
+      const real = l.filter((r) => r.to);
+      let main = real[0] || null;
+      if (!main && l.some((r) => r.rel === 'airborne')) main = { ...l.find((r) => r.rel === 'airborne'), to: AIR };
+      if (main) { parent[id] = main.to; treeRel[id] = [main]; }
+      l.forEach((r) => {
+        if (main && r.to === main.to && r.rel === main.rel) return;
+        if (main && main.to === AIR && r.rel === 'airborne') return;
+        if (!r.to) (stubs[id] = stubs[id] || []).push(r);
+        else if (r.to === main.to) treeRel[id].push(r);
+        else extra.push({ from: id, to: r.to, r });
+      });
+    });
+    // break parent cycles
+    order.forEach((id) => {
+      const seen = new Set([id]);
+      for (let p = parent[id]; p && p !== AIR; p = parent[p]) { if (seen.has(p)) { delete parent[id]; break; } seen.add(p); }
+    });
+    const ids = order.slice();
+    if (ids.some((id) => parent[id] === AIR)) { ids.push(AIR); type[AIR] = 'air'; }
+    const kids = {};
+    ids.forEach((id) => { if (parent[id]) (kids[parent[id]] = kids[parent[id]] || []).push(id); });
+    const depth = {};
+    const dep = (id) => (id in depth ? depth[id] : (depth[id] = parent[id] ? dep(parent[id]) + 1 : 0));
+    ids.forEach(dep);
+    const anc = (id, d) => { let a = id; while (a && depth[a] > d) a = parent[a]; return a; };
+    // node boxes: the name, wrapped by width
+    const box = {};
+    ids.forEach((id) => {
+      const name = id === AIR ? '空中' : id, words = String(name).split(/\s+/), lines = [];
+      let cur = '';
+      words.forEach((w) => { const t = cur ? cur + ' ' + w : w; if (cur && sgTextW(t, NF, true) > MAXW) { lines.push(cur); cur = w; } else cur = t; });
+      if (cur) lines.push(cur);
+      const w = Math.max(44, Math.max(...lines.map((l) => sgTextW(l, NF, true))) + 2 * PADX), h = lines.length * 16 + 12;
+      const tl = (treeRel[id] || []).map(relText).filter(Boolean);
+      const st = (stubs[id] || []).map((r) => relText(r) || r.rel);
+      const tlw = tl.length ? Math.max(...tl.map((t) => sgTextW(t, LF))) + 10 : 0;
+      const stw = st.length ? Math.max(...st.map((t) => sgTextW(t, LF))) + 26 : 0;
+      box[id] = { lines, w, h, tl, st, L: Math.max(w / 2 + stw, tlw / 2), R: Math.max(w / 2, tlw / 2) };
+    });
+    // an extra parent two or more levels up gets a label slot beside the child of that parent the object descends from
+    extra.forEach((x, k) => {
+      if (!(x.to in depth) || depth[x.from] - depth[x.to] < 2) return;
+      const a = anc(x.from, depth[x.to] + 1);
+      if (parent[a] !== x.to) return;
+      const sid = '\u0001' + k, t = relText(x.r), w = t ? sgTextW(t, LF) + 10 : 8;
+      box[sid] = { slot: true, t, w, h: 16, L: w / 2, R: w / 2 };
+      depth[sid] = depth[x.to] + 1; parent[sid] = x.to; x.slot = sid;
+      const ch = kids[x.to], i = ch.indexOf(a);
+      let j = i + 1; while (j < ch.length && ch[j].startsWith('\u0001')) j++;
+      ch.splice(j, 0, sid);
+    });
+    // layout: each subtree is a horizontal strip, children side by side, the parent centred over its real children
+    const off = {}, ext = {};
+    const lay = (id) => {
+      const b = box[id], ch = kids[id] || [];
+      if (!ch.length) { ext[id] = [-b.L, b.R]; return; }
+      let cur = 0; const cx = {};
+      ch.forEach((c) => { lay(c); cx[c] = cur - ext[c][0]; cur = cx[c] + ext[c][1] + GAPX; });
+      const real = ch.filter((c) => !box[c].slot), mid = (cx[real[0]] + cx[real[real.length - 1]]) / 2;
+      let lo = -b.L, hi = b.R;
+      ch.forEach((c) => { off[c] = cx[c] - mid; lo = Math.min(lo, off[c] + ext[c][0]); hi = Math.max(hi, off[c] + ext[c][1]); });
+      ext[id] = [lo, hi];
+    };
+    const roots = ids.filter((id) => !parent[id] && id !== AIR).concat(ids.includes(AIR) ? [AIR] : []);
+    const X = {};
+    let cur = M;
+    roots.forEach((r) => { lay(r); X[r] = cur - ext[r][0]; cur = X[r] + ext[r][1] + GAPX * 1.5; });
+    const place = (id) => (kids[id] || []).forEach((c) => { X[c] = X[id] + off[c]; place(c); });
+    roots.forEach(place);
+    const W = Math.ceil(cur - GAPX * 1.5 + M);
+    // rows: height of the tallest box; the gap above a row fits its edge labels
+    const all = Object.keys(box), nd = Math.max(...all.map((id) => depth[id])) + 1;
+    const rowH = Array(nd).fill(0), gap = Array(nd).fill(0);
+    all.forEach((id) => {
+      const b = box[id], d = depth[id];
+      rowH[d] = Math.max(rowH[d], b.h, b.st ? b.st.length * LL + 4 : 0);
+      if (d) gap[d] = Math.max(gap[d], b.tl && b.tl.length ? 42 + b.tl.length * LL : b.slot && b.t ? 24 : 26);
+    });
+    const rowTop = [];
+    rowH.forEach((h, d) => { rowTop[d] = d ? rowTop[d - 1] + rowH[d - 1] + gap[d] : M; });
+    const H = Math.ceil(rowTop[nd - 1] + rowH[nd - 1] + M);
+    const top = (id) => rowTop[depth[id]] + (rowH[depth[id]] - box[id].h) / 2, bot = (id) => top(id) + box[id].h;
+    const curve = (x1, y1, x2, y2) => { const m = (y1 + y2) / 2; return `<path class="sge" d="M${x1},${y1} C${x1},${m} ${x2},${m} ${x2},${y2}"></path>`; };
+    // org-chart connector: down from the parent to the row's bus line, across, down into the child; rounded corners
+    const busY = (d) => rowTop[d] + rowH[d] + 12;
+    const elbow = (x1, y1, by, x2, y2) => {
+      const dx = x2 - x1, r = Math.min(6, Math.abs(dx) / 2), s = Math.sign(dx);
+      if (Math.abs(dx) < 1) return `<path class="sge" d="M${x1},${y1} V${y2}"></path>`;
+      return `<path class="sge" d="M${x1},${y1} V${by} H${x2 - s * r} Q${x2},${by} ${x2},${by + r} V${y2}"></path>`;
+    };
+    const label = (cx, yBottom, lines) => {
+      const w = Math.max(...lines.map((t) => sgTextW(t, LF))) + 8, h = lines.length * LL + 3, y0 = yBottom - h;
+      return `<rect class="sgl" x="${cx - w / 2}" y="${y0}" width="${w}" height="${h}" rx="3"></rect>` +
+        lines.map((t, i) => `<text class="sgt" x="${cx}" y="${y0 + 11 + i * LL}" text-anchor="middle">${esc(t)}</text>`).join('');
+    };
+    let edges = '', labels = '', boxes = '';
+    ids.forEach((id) => {
+      const p = parent[id];
+      if (!p) return;
+      const by = busY(depth[p]);
+      edges += elbow(X[p], bot(p), by, X[id], top(id));
+      if (box[id].tl.length) { const n = box[id].tl.length; labels += label(X[id], (by + top(id)) / 2 + (n * LL + 3) / 2, box[id].tl); }
+    });
+    extra.forEach((x) => {
+      const c = x.from, t = relText(x.r);
+      if (!(x.to in box)) return;
+      if (x.slot) {
+        const s = x.slot, sx = X[s], sy = rowTop[depth[s]] + rowH[depth[s]] / 2, cr = X[c] + box[c].w / 2, cm = (top(c) + bot(c)) / 2;
+        const blocked = ids.some((o) => o !== c && depth[o] === depth[c] && X[o] > X[c] && X[o] < sx);
+        edges += elbow(X[x.to], bot(x.to), busY(depth[x.to]), sx, sy);
+        edges += blocked ? curve(sx, sy, X[c] + box[c].w / 2 - 8, top(c))
+          : `<path class="sge" d="M${sx},${sy} V${cm - 6} Q${sx},${cm} ${sx - 6},${cm} H${cr}"></path>`;
+        if (t) labels += label(sx, sy + 8, [t]);
+        return;
+      }
+      const up = depth[x.to] < depth[c], x1 = X[c], y1 = up ? top(c) : bot(c), x2 = X[x.to], y2 = up ? bot(x.to) : top(x.to);
+      edges += curve(x1, y1, x2, y2);
+      if (t) labels += label((x1 + x2) / 2, (y1 + y2) / 2 + 8, [t]);
+    });
+    ids.forEach((id) => {
+      const b = box[id], x = X[id] - b.w / 2, y = top(id), cls = { support: 'sup', holder: 'hold', air: 'air' }[type[id]] || 'obj';
+      boxes += `<g class="sgn ${cls}"><rect x="${x}" y="${y}" width="${b.w}" height="${b.h}" rx="7"></rect>` +
+        b.lines.map((l, i) => `<text x="${X[id]}" y="${y + 19 + i * 16}" text-anchor="middle">${esc(l)}</text>`).join('') + '</g>';
+      const my = y + b.h / 2;
+      b.st.forEach((t, i) => {
+        const sy = my + (i - (b.st.length - 1) / 2) * LL;
+        boxes += `<path class="sge stub" d="M${x},${sy} H${x - 14}"></path><circle class="sgs" cx="${x - 17}" cy="${sy}" r="3"></circle>` +
+          `<text class="sgt" x="${x - 24}" y="${sy + 4}" text-anchor="end">${esc(t)}</text>`;
+      });
+    });
+    return `<h4>scene graph</h4><div class="sgwrap"><svg class="sg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="scene graph">${edges}${labels}${boxes}</svg></div>`;
   }
 
   // ---------- object inventory + scene graph ----------

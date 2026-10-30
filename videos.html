@@ -15,21 +15,21 @@
     --accent: #3b5bdb; --accent-soft: #e7ecfb; --code-bg: #f0f1f3;
     --m4: #d3f0dc; --m4t: #14532e; --m3: #e8f3c8; --m3t: #3f5212;
     --m2: #fdebc8; --m2t: #7a4a06; --m1: #fbd5d0; --m1t: #8a1c12; --m0: #ecd3e6; --m0t: #6b1450;
-    --scene-bg: #f2f3f5;
+    --scene-bg: #f2f3f5; --hold: #d9480f; --hold-soft: #fff0e6;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #0f1115; --panel: #171a21; --text: #e6e8ec; --muted: #9aa3ad; --border: #2b3038;
       --accent: #7a93ff; --accent-soft: #1d2440; --code-bg: #1f232b;
       --m4: #173d26; --m4t: #a7e8bd; --m3: #2c3a14; --m3t: #d4e9a0; --m2: #3d2e10; --m2t: #f3cf8a;
-      --m1: #45201b; --m1t: #f6b3aa; --m0: #3a1932; --m0t: #eeb0dd; --scene-bg: #12151b;
+      --m1: #45201b; --m1t: #f6b3aa; --m0: #3a1932; --m0t: #eeb0dd; --scene-bg: #12151b; --hold: #ffa94d; --hold-soft: #3a2414;
     }
   }
   :root[data-theme="dark"] {
     --bg: #0f1115; --panel: #171a21; --text: #e6e8ec; --muted: #9aa3ad; --border: #2b3038;
     --accent: #7a93ff; --accent-soft: #1d2440; --code-bg: #1f232b;
     --m4: #173d26; --m4t: #a7e8bd; --m3: #2c3a14; --m3t: #d4e9a0; --m2: #3d2e10; --m2t: #f3cf8a;
-    --m1: #45201b; --m1t: #f6b3aa; --m0: #3a1932; --m0t: #eeb0dd; --scene-bg: #12151b;
+    --m1: #45201b; --m1t: #f6b3aa; --m0: #3a1932; --m0t: #eeb0dd; --scene-bg: #12151b; --hold: #ffa94d; --hold-soft: #3a2414;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
@@ -120,19 +120,20 @@
   .cstrip { display: flex; gap: 1px; margin-top: 4px; }
   .cstrip span { flex: 1 1 0; height: 10px; min-width: 2px; border-radius: 1px; }
   .cstrip .ok { background: #2f9e44; } .cstrip .bad { background: #e03131; }
-  .sgtree, .sgtree ul { list-style: none; margin: 0; padding: 0; }
-  .sgtree { margin: 6px 0 10px; font-size: 14px; }
-  .sgtree > li { margin: 4px 0; }
-  .sgtree ul { margin-left: 14px; }
-  .sgtree ul li { position: relative; padding: 5px 0 0 22px; border-left: 1.5px solid var(--border); }
-  .sgtree ul li:last-child { border-left-color: transparent; }
-  .sgtree ul li::before { content: ""; position: absolute; left: -1.5px; top: 0; width: 18px; height: 19px;
-    border-left: 1.5px solid var(--border); border-bottom: 1.5px solid var(--border); border-bottom-left-radius: 5px; }
-  .sgtree .sgn { display: inline-block; padding: 1px 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
-  .sgtree .sgn.sup { background: var(--code-bg); font-weight: 600; }
-  .sgtree .sgn.air { border-style: dashed; font-style: italic; }
-  .sgtree .sgrel { margin-left: 8px; font-size: 12.5px; color: var(--muted); font-style: italic; }
-  .sgtree .sgt { margin-left: 8px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sgwrap { margin: 6px 0 12px; }
+  .sg { display: block; max-width: 100%; height: auto; font-family: system-ui, sans-serif; }
+  .sg .sge { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+  .sg .sge.stub { stroke-dasharray: 3 3; }
+  .sg .sgs { fill: var(--panel); stroke: var(--muted); stroke-width: 1.3; }
+  .sg .sgl { fill: var(--panel); }
+  .sg .sgt { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .sg .sgn text { font-size: 12.5px; font-weight: 600; fill: var(--text); }
+  .sg .sgn rect { stroke-width: 1.5; }
+  .sg .sgn.obj rect { fill: var(--accent-soft); stroke: var(--accent); }
+  .sg .sgn.sup rect { fill: var(--code-bg); stroke: var(--muted); }
+  .sg .sgn.hold rect { fill: var(--hold-soft); stroke: var(--hold); }
+  .sg .sgn.air rect { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
+  .sg .sgn.air text { fill: var(--muted); font-weight: 500; }
   .stree-wrap { margin: 4px 0; }
   .stree { display: block; font-family: system-ui, sans-serif; }
   .stree .nbox { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
