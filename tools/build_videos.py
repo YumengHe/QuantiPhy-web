@@ -1,34 +1,35 @@
-"""Build web/data/videos.json (+ first-frame thumbnails) for evaluation.html from one version's validation run.
+"""Build web/data/videos.json (+ first-frame thumbnails) for evaluation.html from validation runs.
 
-Reads only that version's outputs; never runs the pipeline. The page lists one row per question; a question is the
+Reads only the runs' outputs; never runs the pipeline. The page lists one row per question; a question is the
 unit <video_id>_q<k> (k = its 1-based order among the video's rows of the split table, docs/PER_QUESTION.md).
 
-  python -B web/tools/build_videos.py                      # the current version (pipeline/VERSION)
-  python -B web/tools/build_videos.py --val-run <tag>      # a specific version's run
+  python -B web/tools/build_videos.py --val-runs v1
+  python -B web/tools/build_videos.py --val-runs v3=outputs/val_v3_answers_dev10.csv v1
 
-Every version is independent (docs/WORKING_RULES.md): a version is shown only from the artifacts its own run wrote,
-read in the format VERSION_FORMAT declares for it. Anything else is an error, never a substitute.
+Runs are listed in order of preference: each question is shown from the first run whose CSV has its row, and every
+value of that question (pred, MRA, source, scene, overlays, tracks, scene graph) comes from that run alone. The page
+labels each question with its version. Every version is independent (docs/WORKING_RULES.md): a run is read only from
+the artifacts it wrote, in the format VERSION_FORMAT declares for it. A run missing an artifact of a question it has
+is an error, never a substitute.
 
-Inputs (relative to the repo root):
-  outputs/val_<tag>_answers.csv                       harness CSV (one row per question run, "row" = table row)
-  outputs/harness/<tag>/answers/<video>.json           per-video answer records
+Inputs of a run <tag> (relative to the repo root):
+  outputs/val_<tag>_answers.csv (or the CSV given as <tag>=<path>)
+                                                       harness CSV (one row per question run, "row" = table row)
+  outputs/harness/<tag>/answers/<video>.json           per-video answer records ("version"."pipeline" = <tag>)
   outputs/scene_fit_eval/h_<tag>/agent/<unit>.json     saved scenes (per video: one per prior group)
   outputs/scenegraph_<tag>/<unit>.json                 scene graph cache
   outputs/tracks_<tag>/<unit>.json                     track cache (visible intervals per object)
-  docs/DEV10.md                                        development question set -> val "dev"
   web/data/runtime/<tag>/overlays.json                 overlays rendered for that version (images beside it)
+and docs/DEV10.md, the development question set -> val "dev"; each of its units must be in some run.
 
 Overlays: the record web/data/runtime/<tag>/overlays.json lists every overlay of the version. Only the current version
 (pipeline/VERSION) may render the ones it lacks, with the current code; building an older version needs every overlay
 in its record, with its image on disk.
 
-Every question of the run (every row of its CSV) goes into videos.json; "dev" lists the development question set
-(the units of docs/DEV10.md, in that order), each of which must have its row in the CSV.
-
-Layout: {"generated", "val": {"run", "unit", "dev", "videos", "questions"}}. With unit "video"
-(the run fits one scene per video and prior group) a video carries its groups' scenes, its scene graph and tracks, and
-each question names its video and group. With unit "question" each question carries its own scene / scene graph /
-tracks / fit and a video carries none.
+Layout: {"generated", "val": {"runs": [{"version", "unit", "csv"}], "dev", "videos", "questions"}}. Each question
+names its "version". A video carries "runs": {version: {"run_at", ...}}; with unit "video" (the run fits one scene
+per video and prior group) that entry also holds the groups' scenes, the scene graph and tracks, and each question
+names its group. With unit "question" each question carries its own scene / scene graph / tracks / fit.
 
 The page plays the original videos from media/val (git-ignored symlinks, see video_info).
 
@@ -460,40 +461,50 @@ def own_result(state: dict, row: dict) -> dict | None:
     return results[0] if results else None
 
 
-def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
-    """Display a completed harness CSV and its saved answers/groups without re-running anything."""
+def run_rows(tag: str, csv_path: Path, manifest: pd.DataFrame) -> pd.DataFrame:
+    """The harness CSV of one run, its "row" identities checked to be unique rows of the validation table."""
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", tag):
         raise ValueError(f"invalid harness run tag: {tag!r}")
+    version_format(tag)
+    if not csv_path.exists():
+        raise ValueError(f"{tag}: harness CSV missing: {csv_path}")
+    frame = pd.read_csv(csv_path)
+    if "row" not in frame:
+        raise ValueError(f"{csv_path.name}: harness CSV lacks row identities")
+    rows = pd.to_numeric(frame["row"], errors="raise").astype(int)
+    outside = sorted(set(rows) - set(manifest.index))
+    if outside:
+        raise ValueError(f"{csv_path.name}: rows not in the validation table: {outside}")
+    return frame
+
+
+def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list[str], videos: dict,
+              make_thumb: bool) -> list[dict]:
+    """The questions `units` from one run (all of them must be in its CSV), every value read from that run's own
+    artifacts in its own format; the run's per-video artifacts go to videos[vid]["runs"][tag]."""
     FMT.clear()
     FMT.update(version_format(tag))
     unit_kind = FMT["unit"]
     DIRS.update(scenes=ROOT / "outputs/scene_fit_eval" / f"h_{tag}" / "agent", sgraph=ROOT / "outputs" / f"scenegraph_{tag}",
                 tracks=ROOT / "outputs" / f"tracks_{tag}")
-    csv_path = ROOT / "outputs" / f"val_{tag}_answers.csv"
-    if not csv_path.exists():
-        raise ValueError(f"harness CSV missing: {csv_path}")
-    frame, manifest = pd.read_csv(csv_path), manifest_units()
-    if "row" not in frame:
-        raise ValueError("harness CSV lacks row identities")
-    ran = set(pd.to_numeric(frame["row"], errors="raise").astype(int))
-    dev = dev_units()
-    missing = [u for u in dev if u not in set(manifest.loc[sorted(ran & set(manifest.index)), "unit"])]
-    if missing:
-        raise ValueError(f"docs/DEV10.md units not in {csv_path.name}: {missing}")
-    df = harness_rows(frame, manifest, [u for i, u in enumerate(manifest["unit"]) if i in ran])
+    df = harness_rows(frame, manifest, units)
     df["mra"] = [mra_row(p, g) for p, g in zip(df["pred"], df["answer"])]
     overlays = Overlays(tag)
-    videos, questions = [], []
+    questions = []
     for vid, rows in df.groupby("video_id", sort=True):
         first = rows.iloc[0]
         record = read_json(ROOT / "outputs/harness" / tag / "answers" / f"{vid}.json", "answer record")
         version = record["version"]
         if version["pipeline"] != tag.removesuffix("_control"):
             raise ValueError(f"{vid}: answer artifact version {version['pipeline']} differs from requested {tag}")
-        duration, width, height, thumb = video_meta(vid, make_thumb)
-        video = {"id": vid, "source": first.video_source, "video_type": first.video_type,
-                 "fps": num(first.fps), "duration": duration, "size": [width, height], "thumb": thumb,
-                 **video_info(vid)}
+        if vid not in videos:
+            duration, width, height, thumb = video_meta(vid, make_thumb)
+            videos[vid] = {"id": vid, "source": first.video_source, "video_type": first.video_type,
+                           "fps": num(first.fps), "duration": duration, "size": [width, height], "thumb": thumb,
+                           **video_info(vid), "runs": {}}
+        video = videos[vid]
+        duration = video["duration"]
+        run = video["runs"][tag] = {"run_at": version["time"]}
         groups = []
         if unit_kind == "video":
             scene_path = DIRS["scenes"] / f"{vid}.json"
@@ -501,14 +512,12 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
                 groups = harness_groups(json.loads(scene_path.read_text()))
             elif record["execution_status"] != "failed":
                 raise ValueError(f"{vid}: scene missing for a run that did not fail: {scene_path.relative_to(ROOT)}")
-            video |= {"groups": [{"group": g["group"], "scene_id": g["state"]["scene_id"],
-                                  "scene": scene_view(g["state"], scene_path)} for g in groups],
-                      "run_at": version["time"], "sgraph": sgraph(vid), "tracks": track_intervals(vid)}
-        else:
-            video["run_at"] = version["time"]
+            run |= {"groups": [{"group": g["group"], "scene_id": g["state"]["scene_id"],
+                                "scene": scene_view(g["state"], scene_path)} for g in groups],
+                    "sgraph": sgraph(vid), "tracks": track_intervals(vid)}
         for row in rows.to_dict("records"):
             unit = row["unit"]
-            query = {"id": unit, "video": vid, "k": int(row["k"]), "row": int(row["row"]),
+            query = {"id": unit, "version": tag, "video": vid, "k": int(row["k"]), "row": int(row["row"]),
                      "cat": row["category"], "type": row["inference_type"],
                      "q": row["question"], "prior": text(row["prior"]), "depth": text(row["depth_info"]),
                      "answer": num(row["answer"]), "pred": num(row["pred"]), "mra": num(row["mra"], 6),
@@ -543,21 +552,56 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
                 query |= {"scene": scene_view(state, scene_path), "sgraph": sgraph(unit), "tracks": track_intervals(unit)}
             query["tq"], query["tjump"] = question_times(query["q"], alignment)
             questions.append(query)
-        videos.append(video)
     overlays.save()
-    print(f"harness {tag}: {len(questions)} questions ({len(dev)} DEV10), {len(videos)} videos; "
-          f"{overlays.added} overlays rendered")
-    return {"run": tag, "unit": unit_kind, "dev": dev, "videos": videos, "questions": questions}
+    print(f"{tag}: {len(questions)} questions, {overlays.added} overlays rendered")
+    return questions
+
+
+def build_harness_val(runs: list[tuple[str, Path]], make_thumb: bool = False) -> dict:
+    """Display completed harness runs without re-running anything. `runs` is ordered: each question of the
+    validation table is shown from the first run whose CSV has its row, and every value of that question comes from
+    that run alone (labelled with its version on the page). Every DEV10 question must be in some run."""
+    if len({t for t, _ in runs}) != len(runs):
+        raise ValueError(f"a run is listed twice: {[t for t, _ in runs]}")
+    manifest, dev = manifest_units(), dev_units()
+    claimed: dict[int, str] = {}
+    frames = {}
+    for tag, csv_path in runs:
+        frames[tag] = run_rows(tag, csv_path, manifest)
+        for i in pd.to_numeric(frames[tag]["row"], errors="raise").astype(int):
+            claimed.setdefault(int(i), tag)
+    by_unit = {u: i for i, u in enumerate(manifest["unit"])}
+    missing = [u for u in dev if by_unit[u] not in claimed]
+    if missing:
+        raise ValueError(f"docs/DEV10.md units in none of the runs: {missing}")
+    videos, questions = {}, []
+    for tag, _ in runs:
+        units = [u for i, u in enumerate(manifest["unit"]) if claimed.get(i) == tag]
+        if not units:
+            raise ValueError(f"{tag}: every question of this run is taken by an earlier run")
+        questions += build_run(tag, frames[tag], manifest, units, videos, make_thumb)
+    questions.sort(key=lambda q: q["row"])
+    print(f"val: {len(questions)} questions ({len(dev)} DEV10), {len(videos)} videos")
+    return {"runs": [{"version": t, "unit": version_format(t)["unit"], "csv": str(p.relative_to(ROOT))} for t, p in runs],
+            "dev": dev, "videos": [videos[v] for v in sorted(videos)], "questions": questions}
+
+
+def parse_run(spec: str) -> tuple[str, Path]:
+    """<tag> (CSV outputs/val_<tag>_answers.csv) or <tag>=<CSV path relative to the repo root>."""
+    tag, _, csv = spec.partition("=")
+    return tag, (ROOT / csv if csv else ROOT / "outputs" / f"val_{tag}_answers.csv").resolve()
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--val-run", default=CURRENT,
-                    help="completed harness validation run tag (default: pipeline/VERSION, %(default)s)")
+    ap.add_argument("--val-runs", nargs="+", default=[CURRENT], metavar="TAG[=CSV]",
+                    help="completed harness validation runs, in order of preference: a question is shown from the "
+                         "first run that has it (default: pipeline/VERSION, %(default)s)")
     ap.add_argument("--rethumb", action="store_true", help="regenerate thumbnails that already exist")
     args = ap.parse_args()
     THUMBS.mkdir(parents=True, exist_ok=True)
-    data = {"generated": date.today().isoformat(), "val": build_harness_val(args.val_run, args.rethumb)}
+    data = {"generated": date.today().isoformat(),
+            "val": build_harness_val([parse_run(s) for s in args.val_runs], args.rethumb)}
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
     sizes = [p.stat().st_size for p in THUMBS.glob("*.jpg")]

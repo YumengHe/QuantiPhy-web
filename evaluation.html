@@ -32,7 +32,6 @@
   .wrap { max-width: 1280px; margin: 0 auto; padding: 28px 32px 80px; }
   header { margin-bottom: 18px; }
   header h1 { margin: 0 0 4px; font-size: 26px; }
-  header p { margin: 4px 0; color: var(--muted); }
   a { color: var(--accent); }
   code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .9em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: normal; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin: 0 0 16px; }
@@ -40,21 +39,19 @@
   th, td { border: 1px solid var(--border); padding: 6px 9px; text-align: left; vertical-align: top; }
   th { background: var(--accent-soft); font-weight: 600; white-space: nowrap; }
   td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .summary-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
   .big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
   .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 4px; font-size: 14px; }
   .controls label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
   .controls select, .controls input { font: inherit; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
   .controls input[type="search"] { width: 200px; }
   .status { color: var(--muted); font-size: 13px; margin: 6px 0 8px; font-variant-numeric: tabular-nums; }
-  .tag { display: inline-block; font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
   .mra { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px; border-radius: 6px; font-variant-numeric: tabular-nums; font-weight: 600; }
   .m4 { background: var(--m4); color: var(--m4t); } .m3 { background: var(--m3); color: var(--m3t); }
   .m2 { background: var(--m2); color: var(--m2t); } .m1 { background: var(--m1); color: var(--m1t); }
   .m0 { background: var(--m0); color: var(--m0t); }
   /* question list: one row per unit <video_id>_q<k>; columns line up with the header row */
   .qhead, details.qrow > summary { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto 56px; gap: 12px; align-items: center; }
-  .qnums { display: grid; grid-template-columns: 64px 72px 72px 96px; gap: 10px; align-items: center; }
+  .qnums { display: grid; grid-template-columns: 72px 72px 96px; gap: 10px; align-items: center; }
   .qhead { padding: 0 13px 4px; font-size: 12.5px; color: var(--muted); }
   .qv, .qm { text-align: right; font-variant-numeric: tabular-nums; }
   .qv.pred { font-weight: 600; }
@@ -72,6 +69,7 @@
   .qbody { padding: 12px 14px 16px; }
   .qbody h4 { margin: 16px 0 6px; font-size: 15px; }
   .qfull { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  .qver { margin-left: 8px; font: 400 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
   ul.prior { list-style: none; margin: 0; padding: 8px 12px; background: var(--code-bg); border-radius: 8px; font-size: 13.5px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
   ul.prior li + li { margin-top: 2px; }
@@ -145,7 +143,7 @@
   .scroll-x { overflow-x: auto; }
   @media (max-width: 860px) {
     .wrap { padding: 18px 16px 60px; }
-    .summary-grid, .media { grid-template-columns: minmax(0, 1fr); }
+    .media { grid-template-columns: minmax(0, 1fr); }
     video.orig { height: auto; max-height: 60vh; }
   }
   @media (max-width: 640px) {
@@ -164,31 +162,24 @@
 </style>
 </head>
 <body>
-<nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html">Home</a><a href="pipeline.html">Pipeline</a><a href="evaluation.html" aria-current="page">Evaluation</a></div></nav>
+<nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html">Home</a><a href="pipeline.html">Pipeline</a><a href="evaluation.html" aria-current="page">Evaluation</a><a href="versions.html">Versions</a></div></nav>
 <div class="wrap">
 <header>
   <h1>Evaluation</h1>
-  <p id="gen" class="muted"></p>
 </header>
 
 <div id="pane-val">
   <div class="panel">
-    <div class="summary-grid">
-      <div>
-        <div class="muted" id="val-label"></div>
-        <div class="big" id="val-head">…</div>
-        <div class="muted" id="val-n"></div>
-      </div>
-      <div class="scroll-x"><table id="val-sum"></table></div>
-    </div>
+    <div class="muted" id="val-label"></div>
+    <div class="big" id="val-head">…</div>
+    <div class="muted" id="val-n"></div>
   </div>
   <div class="controls">
     <label>Set <select id="v-set"><option value="dev" selected>DEV10</option><option value="">All</option></select></label>
-    <label>Category <select id="v-cat"><option value="">All</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
     <label>Source <select id="v-src"><option value="">All</option><option>scene</option><option>measurement</option><option>prior</option><option>unresolved</option><option value="execution_failed">failed</option></select></label>
     <label>Video source <select id="v-vsrc"><option value="">All</option></select></label>
     <label>MRA <select id="v-mra"><option value="">All</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
-    <label>Sort <select id="v-sort"><option value="" selected>Set order</option><option value="mra-asc">MRA ascending</option><option value="mra-desc">MRA descending</option><option value="cat">Category</option></select></label>
+    <label>Sort <select id="v-sort"><option value="" selected>Set order</option><option value="mra-asc">MRA ascending</option><option value="mra-desc">MRA descending</option></select></label>
     <label><input type="search" id="v-q" placeholder="ID or question"></label>
   </div>
   <div class="status" id="v-status"></div>

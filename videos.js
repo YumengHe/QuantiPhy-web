@@ -19,7 +19,7 @@
   }
   function mraClass(m) { return m >= 0.8 ? 'm4' : m >= 0.6 ? 'm3' : m >= 0.4 ? 'm2' : m >= 0.2 ? 'm1' : 'm0'; }
   function mraBadge(m) { return isFinite(m) ? `<span class="mra ${mraClass(m)}">${fmt(m, 2)}</span>` : '<span class="muted">—</span>'; }
-  // macro = mean over the four categories of the per-category mean (same as pipeline/metrics.evaluate)
+  // the benchmark's overall score: mean over its four categories of the per-category mean (same as pipeline/metrics.evaluate)
   function macro(qs) {
     const vals = CATS.map((c) => mean(qs.filter((q) => q.cat === c).map((q) => q.mra))).filter((v) => isFinite(v));
     return mean(vals);
@@ -30,38 +30,33 @@
     const byId = Object.fromEntries(DATA.val.questions.map((q) => [q.id, q]));
     return DATA.val.dev.map((id) => byId[id]);
   }
-  // ---------- summary of the selected set: DEV10 mean MRA, All macro MRA; per-category table ----------
+  // ---------- summary of the selected set: DEV10 mean MRA, All the benchmark's overall (macro) MRA ----------
   function valSummary() {
     const all = setQuestions(), dev = $('v-set').value === 'dev';
-    $('val-label').textContent = dev ? 'Mean MRA' : 'Macro MRA';
+    $('val-label').textContent = dev ? 'Mean MRA' : 'Overall MRA';
     $('val-head').textContent = dev ? fmt(mean(all.map((q) => q.mra)), 2) : fmt(macro(all), 4);
-    $('val-n').textContent = `${all.length} questions · ${new Set(all.map((q) => q.video)).size} videos`;
-    const row = (label, qs, strong) => {
-      const s = (x) => (strong ? `<b>${x}</b>` : x);
-      return `<tr><td>${s(label)}</td><td class="n">${s(qs.length)}</td><td class="n">${s(fmt(mean(qs.map((q) => q.mra)), dev ? 2 : 3))}</td></tr>`;
-    };
-    let h = '<tr><th>Category</th><th class="n">Questions</th><th class="n">Mean MRA</th></tr>';
-    CATS.forEach((c) => { h += row(c, all.filter((q) => q.cat === c)); });
-    h += row('All', all, true);
-    $('val-sum').innerHTML = h;
+    const counts = DATA.val.runs.map((r) => [r.version, all.filter((q) => q.version === r.version).length]).filter(([, n]) => n);
+    const vers = counts.length > 1 ? counts.map(([t, n]) => `${t} ${n}`) : counts.map(([t]) => t);
+    $('val-n').textContent = [`${all.length} questions`, `${new Set(all.map((q) => q.video)).size} videos`, ...vers].join(' · ');
   }
 
   // ---------- one question ----------
-  // the artifacts of the question's processing unit (val.unit): with unit "video" the scene of its prior group and the
-  // video's scene graph and tracks, with unit "question" its own
+  // the artifacts of the question, all from the run of its version (val.runs): with unit "video" the scene of its prior
+  // group and the video's scene graph and tracks of that run, with unit "question" its own
   function artifacts(q, v) {
-    if (DATA.val.unit === 'question') return { scene: q.scene, sgraph: q.sgraph, tracks: q.tracks };
-    if (DATA.val.unit !== 'video') throw new Error(`unknown processing unit ${DATA.val.unit}`);
-    const group = q.group == null ? null : v.groups.find((g) => g.group === q.group);
-    if (q.group != null && !group) throw new Error(`${q.id}: group ${q.group} not in ${v.id}`);
-    return { scene: group ? group.scene : null, sgraph: v.sgraph, tracks: v.tracks };
+    const unit = DATA.val.runmap[q.version].unit, run = v.runs[q.version];
+    if (unit === 'question') return { scene: q.scene, sgraph: q.sgraph, tracks: q.tracks };
+    if (unit !== 'video') throw new Error(`unknown processing unit ${unit}`);
+    if (!run) throw new Error(`${q.id}: ${v.id} has no ${q.version} run`);
+    const group = q.group == null ? null : run.groups.find((g) => g.group === q.group);
+    if (q.group != null && !group) throw new Error(`${q.id}: group ${q.group} not in ${v.id} (${q.version})`);
+    return { scene: group ? group.scene : null, sgraph: run.sgraph, tracks: run.tracks };
   }
   function summaryRow(q, v) {
-    const nums = `<span class="qcat"><span class="tag">${esc(q.cat)}</span></span>` +
-      `<span class="qv" data-k="GT">${fmtNum(q.answer)}</span>` +
+    const nums = `<span class="qv" data-k="GT">${fmtNum(q.answer)}</span>` +
       `<span class="qv pred" data-k="Pred">${fmtNum(q.pred)}</span>` +
       `<span class="qsrc">${esc(SRC_LABEL[q.src] || q.src)}</span>`;
-    return `<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}</span><span class="qtext">${esc(q.q)}</span></span>` +
+    return `<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}<span class="qver">${esc(q.version)}</span></span><span class="qtext">${esc(q.q)}</span></span>` +
       `<span class="qnums">${nums}</span><span class="qm">${mraBadge(q.mra)}</span></summary>`;
   }
   function questionCard(q, v) {
@@ -108,7 +103,7 @@
   // the question's own prior: text facts and distance anchors, one per line
   function priorBlock(q) {
     const lines = [q.prior, q.depth].filter(Boolean).flatMap((s) => String(s).split('\n')).map((s) => s.trim()).filter(Boolean);
-    return `<div class="qfull">${esc(q.q)}</div>` + (lines.length ? `<h4>prior</h4><ul class="prior">${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '');
+    return `<div class="qfull">${esc(q.q)}<span class="qver">${esc(q.version)}</span></div>` + (lines.length ? `<h4>prior</h4><ul class="prior">${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '');
   }
 
   // ---------- question time t_q ----------
@@ -738,7 +733,7 @@
     const list = $('val-list'); list.innerHTML = '';
     const head = document.createElement('div');
     head.className = 'qhead';
-    head.innerHTML = '<span></span><span>Question</span><span class="qnums"><span>Category</span><span class="qv">GT</span><span class="qv">Pred</span><span>Source</span></span><span class="qm">MRA</span>';
+    head.innerHTML = '<span></span><span>Question</span><span class="qnums"><span class="qv">GT</span><span class="qv">Pred</span><span>Source</span></span><span class="qm">MRA</span>';
     if (items.length) list.appendChild(head);
     const frag = document.createDocumentFragment();
     items.forEach(({ q, v }) => frag.appendChild(questionCard(q, v)));
@@ -749,16 +744,15 @@
   }
   const matchText = (q, needle) => !needle || q.id.toLowerCase().includes(needle) || q.q.toLowerCase().includes(needle);
   function renderVal() {
-    const cat = $('v-cat').value, src = $('v-src').value, vsrc = $('v-vsrc').value, mf = $('v-mra').value, sort = $('v-sort').value;
+    const src = $('v-src').value, vsrc = $('v-vsrc').value, mf = $('v-mra').value, sort = $('v-sort').value;
     const needle = $('v-q').value.trim().toLowerCase(), vids = DATA.val.vmap;
     const okM = (m) => !mf || (mf === 'lt0.2' ? m < 0.2 : mf === 'lt0.5' ? m < 0.5 : m >= 0.8);
     // setQuestions() is already in set order (DEV10 order, or video then k)
-    const items = setQuestions().filter((q) => (!cat || q.cat === cat) && (!src || q.src === src) &&
+    const items = setQuestions().filter((q) => (!src || q.src === src) &&
       (!vsrc || vids[q.video].source === vsrc) && okM(q.mra) && matchText(q, needle)).map((q) => ({ q, v: vids[q.video] }));
     const nanLast = (f) => (a, b) => (isNaN(a.q.mra) ? 1 : 0) - (isNaN(b.q.mra) ? 1 : 0) || f(a, b);
     if (sort === 'mra-asc') items.sort(nanLast((a, b) => a.q.mra - b.q.mra));
     else if (sort === 'mra-desc') items.sort(nanLast((a, b) => b.q.mra - a.q.mra));
-    else if (sort === 'cat') items.sort((a, b) => CATS.indexOf(a.q.cat) - CATS.indexOf(b.q.cat));
     $('v-status').textContent = `${items.length} questions` + (items.length ? ` · mean MRA ${fmt(mean(items.map((x) => x.q.mra)), 2)}` : '');
     renderList(items);
   }
@@ -768,10 +762,10 @@
   fetch('data/videos.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
     DATA = d;
     d.val.vmap = Object.fromEntries(d.val.videos.map((v) => [v.id, v]));
-    $('gen').textContent = `${d.val.run} · ${d.generated}`;
+    d.val.runmap = Object.fromEntries(d.val.runs.map((r) => [r.version, r]));
     fillSourceSelect($('v-vsrc'), d.val.videos);
     $('v-set').addEventListener('change', renderAll);
-    ['v-cat', 'v-src', 'v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
+    ['v-src', 'v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
     $('v-q').addEventListener('input', debounce(renderVal, 200));
     renderAll();
     // deep link: #val/<video_id>_q<k> opens that question (switching to All when it is not a DEV10 question)
@@ -779,7 +773,7 @@
       const m = decodeURIComponent(location.hash.slice(1)).match(/^val\/(.+)$/);
       if (!m || !DATA.val.questions.some((q) => q.id === m[1])) return;
       if (!DATA.val.dev.includes(m[1])) $('v-set').value = '';
-      ['v-cat', 'v-src', 'v-vsrc', 'v-mra', 'v-q'].forEach((id) => { $(id).value = ''; });
+      ['v-src', 'v-vsrc', 'v-mra', 'v-q'].forEach((id) => { $(id).value = ''; });
       renderAll();
       const card = [...$('val-list').querySelectorAll('details.qrow')].find((x) => x.dataset.id === m[1]);
       card.open = true; card.scrollIntoView();
