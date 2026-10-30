@@ -4,7 +4,7 @@ Reads only the runs' outputs; never runs the pipeline. The page lists one row pe
 unit <video_id>_q<k> (k = its 1-based order among the video's rows of the split table, docs/PER_QUESTION.md).
 
   python -B web/tools/build_videos.py --val-runs v1
-  python -B web/tools/build_videos.py --val-runs v3=outputs/val_v3_answers_dev10.csv v1
+  python -B web/tools/build_videos.py --val-runs v4=outputs/val_v4_answers_dev10.csv v1
 
 Runs are listed in order of preference: each question is shown from the first run whose CSV has its row, and every
 value of that question (pred, MRA, source, scene, overlays, tracks, scene graph) comes from that run alone. The page
@@ -73,12 +73,15 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #   paths    object keys whose motion is sampled for the 3D viewer (pipeline.scene_state3d.position); v1 "ballistic"
 #            motion is not executable by scene_state3d, so v1 balls are drawn from p0 / v0 / a only
 #   unit     processing unit of the run: "video" (one scene per video and prior group) or "question"
+#   decide   how a scene value becomes the answer: "conf" (a numeric confidence: CSV / scene result "conf") or
+#            "checks" (named pass/fail checks: answer record "checks" / "failed" / "status", CSV "failed"; no conf)
 VERSION_FORMAT = {
-    "v1": {"motion": "ballistic", "paths": ("segments",), "unit": "video"},
-    "v2": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video"},
-    "v3": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video"},
-    "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question"},
+    "v1": {"motion": "ballistic", "paths": ("segments",), "unit": "video", "decide": "conf"},
+    "v2": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video", "decide": "conf"},
+    "v3": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video", "decide": "conf"},
+    "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "checks"},
 }
+CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
 FMT: dict = {}     # VERSION_FORMAT entry of the version being built
 DIRS: dict = {}    # artifact dirs of the version being built
@@ -220,10 +223,51 @@ def question_times(q: str, alignment: dict | None):
 def fit_row(r: dict) -> dict:
     """One scene result (scene json "results" entry) as shown on the page."""
     qual = req(r, "quality", "scene result")
-    return {"q": req(r, "question", "scene result"), "obj": req(r, "object", "scene result"),
-            "pred": num(req(r, "pred", "scene result")), "method": req(r, "method", "scene result"),
-            "conf": num(req(qual, "conf", "scene result quality"), 3), "quality": {k: (num(v, 3) if isinstance(v, float) else v)
-                                                          for k, v in qual.items() if k != "conf"} or None}
+    out = {"q": req(r, "question", "scene result"), "obj": req(r, "object", "scene result"),
+           "pred": num(req(r, "pred", "scene result")), "method": req(r, "method", "scene result"),
+           "quality": {k: (num(v, 3) if isinstance(v, float) else v) for k, v in qual.items() if k != "conf"} or None}
+    if FMT["decide"] == "conf":
+        out["conf"] = num(req(qual, "conf", "scene result quality"), 3)
+    elif "conf" in qual:
+        raise ValueError(f"{AT['where']}: scene result quality has a 'conf' field; this version decides by named checks")
+    return out
+
+
+def answer_checks(answer: dict, row: dict) -> dict:
+    """The named pass/fail checks of a unit's answer (answer record "answer"), for versions that decide by checks:
+    {"checks": [{"name", "pass", "reason"}], "failed": [names], "scene_value" (unresolved only, when kept)}.
+    The CSV row's status / source / failed / pred must agree with the record."""
+    if "conf" in answer or "conf" in row:
+        raise ValueError(f"{AT['where']}: answer has a 'conf' field; this version decides by named checks")
+    checks = req(answer, "checks", "answer")
+    failed = list(req(answer, "failed", "answer"))
+    status = req(answer, "status", "answer")
+    out = []
+    for name, c in checks.items():
+        ok = req(c, "pass", f"check {name!r}")
+        if not isinstance(ok, bool):
+            raise ValueError(f"{AT['where']}: check {name!r} pass = {ok!r}")
+        out.append({"name": name, "pass": ok, "reason": text(req(c, "reason", f"check {name!r}"))})
+    if failed != [c["name"] for c in out if not c["pass"]]:
+        raise ValueError(f"{AT['where']}: failed {failed} differs from the checks that did not pass")
+    csv_failed = [x for x in text(req(row, "failed", "harness CSV row")).split(";") if x]
+    if csv_failed != failed:
+        raise ValueError(f"{AT['where']}: CSV failed {csv_failed} differs from the answer record's {failed}")
+    if text(row["status"]) != status or text(row["source"]) != text(req(answer, "source", "answer")):
+        raise ValueError(f"{AT['where']}: CSV status / source differs from the answer record")
+    pred = num(row["pred"])
+    if status == "resolved":
+        if failed or pred is None or row["source"] not in CHECK_SOURCES:
+            raise ValueError(f"{AT['where']}: resolved answer with failed {failed}, pred {pred}, source {row['source']!r}")
+    elif status == "unresolved":
+        if not failed or pred is not None or row["source"] != "unresolved":
+            raise ValueError(f"{AT['where']}: unresolved answer with failed {failed}, pred {pred}, source {row['source']!r}")
+    else:
+        raise ValueError(f"{AT['where']}: answer status {status!r}")
+    res = {"checks": out, "failed": failed}
+    if status == "unresolved" and answer.get("scene_value") is not None:   # kept for inspection, not the answer
+        res["scene_value"] = num(answer["scene_value"])
+    return res
 
 
 def scene_view(state: dict, source_path: Path) -> dict:
@@ -602,8 +646,10 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                      "cat": row["category"], "type": row["inference_type"],
                      "q": row["question"], "prior": text(row["prior"]), "depth": text(row["depth_info"]),
                      "answer": num(row["answer"]), "pred": num(row["pred"]), "mra": num(row["mra"], 6),
-                     "src": text(row["source"]), "conf": num(row["conf"], 6), "status": text(row["status"]),
+                     "src": text(row["source"]), "status": text(row["status"]),
                      "method": row["method"], "scene_id": text(row["scene_id"]), "time": None}
+            if FMT["decide"] == "conf":
+                query["conf"] = num(req(row, "conf", "harness CSV row"), 6)
             if unit_kind == "video":
                 answer, group, error = bind_harness_question(row, record["answers"], groups)
                 state = group["state"] if group else {}
@@ -622,6 +668,10 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                 result = own_result(state, row) if state is not None else None
                 exec_status = rec["execution_status"]
                 query["time"] = timing_view(req(rec, "timing", "answer record"), row.get("seconds"))
+            if FMT["decide"] == "checks":
+                if unit_kind != "question":
+                    raise ValueError(f"{tag}: named checks are read from per-question answer records only")
+                query |= answer_checks(answer, row)
             quality = req(result, "quality", "scene result") if result else {}
             alignment = align(quality.get("align_tq"))   # absent or null when no alignment check ran
             mid = (result or {}).get("measurement_id")

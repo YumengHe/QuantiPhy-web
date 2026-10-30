@@ -62,7 +62,7 @@
 <main class="wrap">
 
 <h1>Pipeline</h1>
-<p class="lede">A video runs the whole chain in one pass: find the objects and how they move, build a scene at real scale, let an agent check and correct it, then measure the answer in the scene.</p>
+<p class="lede">Each question runs the whole chain on its own: find the objects and how they move, build a scene at real scale, check it, let an agent correct what fails, then measure the answer in the scene.</p>
 <p class="muted small">Entry point: <code>python -m pipeline.harness</code>. Code notes: <code>pipeline/README.md</code> in the repository.</p>
 
 <div class="flow" id="flow">
@@ -99,7 +99,7 @@
   <div class="node fc"><div class="hd"><b>Physics-guided Fitting</b></div>
     <span class="m">Camera, support plane, object shapes, and motion parameterized by physical laws, fitted so the projection agrees with tracks, depth and prior</span></div>
   <div class="rail ret"><span>support / main support / scene actions</span></div>
-  <div class="ac fc"><div class="arrow"></div><span class="el">one per prior</span></div><div class="rail"></div>
+  <div class="ac fc"><div class="arrow"></div><span class="el">a check fails</span></div><div class="rail"></div>
 
   <div class="loop fc">
     <div class="hd"><b>agent loop</b><span class="lr">2–10 rounds</span></div>
@@ -112,27 +112,37 @@
       <div class="lar">→</div>
       <div class="lbox"><b>Fixed evidence check</b><span class="lm">pass → keep<br>fail → roll back</span></div>
     </div>
-    <div class="lstop"><b>Stop</b>two rounds without improvement, or done with checks passed</div>
+    <div class="lstop"><b>Stop</b>all checks pass, or two rounds without improvement</div>
   </div>
   <div class="rail bot out"></div>
   <div class="ac fc"><div class="arrow"></div></div>
 
   <div class="node fc"><div class="hd"><b>Answer from the scene</b></div>
-    <div class="agrid"><span class="m"><b>Confident</b>scene value</span><span class="m"><b>Not confident</b>model estimate, marked prior</span></div></div>
+    <div class="agrid"><span class="m"><b>All checks pass</b>scene value</span><span class="m"><b>A check fails</b>unresolved</span></div></div>
 </div>
 
 <p>Every video takes the same 3D path and objects have thickness. With distance anchors in the prior, the anchors set the scale. Without them, focal length and support plane come from Depth Pro, and the prior, such as an object's size or speed, sets one scale factor.</p>
 <p>Mask extents (extents2d) and refmeasure endpoints can serve as fitting observations, behind <code>--fixes hulls refmeasure</code> (off by default).</p>
+
+<h2 id="checks">Checks</h2>
+<div class="scroll-x"><table>
+  <tr><th>Check</th><th>Passes when</th></tr>
+  <tr><td>tracked</td><td>The asked object, and any reference object, has a verified track over the asked times</td></tr>
+  <tr><td>scale</td><td>The scale is set: the prior's scale checks agree, or a distance anchor is aligned to a track</td></tr>
+  <tr><td>visible</td><td>The asked quantity is observed, not taken from a typical size, a lower bound or a cut-off box, at times inside the visible span</td></tr>
+  <tr><td>fit</td><td>A fitted or directly measured value exists, is not degenerate, and the fitted object overlaps its tracked box at the asked frame (IoU ≥ 0.3)</td></tr>
+  <tr><td>plausible</td><td>Passive objects do not accelerate against gravity, the support plane is reliable, heights agree with the scene graph, and sizes fit the object's class</td></tr>
+  <tr><td>replay</td><td>The value is reproduced from the scene state and the quantity is observable</td></tr>
+</table></div>
 
 <h2 id="answers">Answer sources</h2>
 <div class="scroll-x"><table>
   <tr><th>Source</th><th>Meaning</th></tr>
   <tr><td>scene</td><td>Measured in the final scene</td></tr>
   <tr><td>measurement</td><td>An independent direct measurement (e.g. the length between two endpoints), not rendered through the scene</td></tr>
-  <tr><td>prior</td><td>The scene cannot measure it; the model estimates it from the question and the known facts</td></tr>
-  <tr><td>unresolved</td><td>No answer; scored as zero</td></tr>
+  <tr><td>unresolved</td><td>A check still fails after the agent loop; no answer, scored as zero, and the record names the failed checks</td></tr>
 </table></div>
-<p class="muted small">Questions of one video with different priors each get their own scene; scenes share only pixel observations, not physical parameters. The pipeline never reads validation answers.</p>
+<p class="muted small">Each question gets its own scene from its own text and prior; questions of one video share only vision caches (frames, depth, track propagation, floor masks). The pipeline never reads validation answers and never answers with a model estimate.</p>
 </main>
 </body>
 </html>

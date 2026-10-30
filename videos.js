@@ -60,8 +60,9 @@
   }
   function summaryRow(q, v) {
     const nums = `<span class="qv" data-k="GT">${fmtNum(q.answer)}</span>` +
-      `<span class="qv pred" data-k="Pred">${fmtNum(q.pred)}</span>` +
-      `<span class="qsrc">${esc(SRC_LABEL[q.src] || q.src)}</span>` +
+      `<span class="qv pred" data-k="Pred">${q.failed && q.failed.length ? '' : fmtNum(q.pred)}</span>` +
+      (q.failed && q.failed.length ? `<span class="qsrc qfailed">${q.failed.map(esc).join(' · ')}</span>`
+        : `<span class="qsrc">${esc(SRC_LABEL[q.src] || q.src)}</span>`) +
       `<span class="qv qt"${q.time ? ' data-k="Time"' : ''}>${q.time ? fmtSec(q.time.total) : ''}</span>`;
     return `<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}<span class="qver">${esc(q.version)}</span></span><span class="qtext">${esc(q.q)}</span></span>` +
       `<span class="qnums">${nums}</span><span class="qm">${mraBadge(q.mra)}</span></summary>`;
@@ -484,7 +485,18 @@
     const f = q.fit, s = v.scene;
     let h = '<h4>Reconstruction</h4>';
     if (q.binding_error) h += `<p class="fwarn">${esc(q.binding_error)}</p>`;
-    if (f || q.method || q.status) {
+    if ((f || q.method || q.status) && q.checks) {
+      // decided by named checks: an unresolved question shows the scene value its record kept, never as the answer
+      const unres = q.status === 'unresolved';
+      const val = unres ? (q.scene_value != null ? `<span class="notans">${fmtNum(q.scene_value)}</span>` : '—') : fmtNum(f && f.pred);
+      h += '<div class="scroll-x"><table class="fit"><tr><th>Object</th><th>Method</th><th class="n">Scene value</th>' +
+        '<th class="n">t_q alignment</th><th>Status</th></tr>' +
+        `<tr><td>${f ? esc(f.obj) : '—'}</td><td><code>${esc(q.method)}</code></td><td class="n">${val}</td>` +
+        `${alignCell(q.align)}<td><code>${esc(q.status)}</code></td></tr></table></div>` +
+        '<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>' +
+        q.checks.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.name)}</code></td>` +
+          `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}</td></tr>`).join('') + '</table></div>';
+    } else if (f || q.method || q.status) {
       const sig = confSignals(f && f.quality);
       h += '<div class="scroll-x"><table class="fit"><tr><th>Object</th><th>Method</th><th class="n">Scene value</th>' +
         '<th class="n">Confidence</th><th class="n">t_q alignment</th><th>Status</th></tr>' +
@@ -508,7 +520,7 @@
     }
     if (q.measurement || q.provenance || q.quality) {
       h += `<details class="sfres"><summary>Diagnostics</summary><pre>${esc(JSON.stringify({
-        scene_id: q.scene_id, row: q.row, method: q.method, source: q.src, status: q.status,
+        scene_id: q.scene_id, row: q.row, method: q.method, source: q.src, status: q.status, failed: q.failed,
         execution_status: q.execution_status,
         measurement: q.measurement, measurement_id: q.measurement_id, measurement_record: q.measurement_record,
         quality: q.quality, provenance: q.provenance }, null, 2))}</pre></details>`;
