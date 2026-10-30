@@ -113,10 +113,9 @@
   const alignWarn = (a) => (a.iou != null && a.iou < 0.6) || (a.dc != null && a.dc > 0.25);
   function alignCell(a) {
     if (!a) return '<td class="n"><span class="muted">—</span></td>';
-    const title = [a.t != null ? `t = ${fmt(a.t, 3)} s${a.frame != null ? ` (frame ${a.frame})` : ''}` : '',
-      a.px != null ? `center offset ${fmtNum(a.px)} px` : ''].filter(Boolean).join('\n');
+    const title = a.t != null ? `t = ${fmt(a.t, 3)} s${a.frame != null ? ` (frame ${a.frame})` : ''}` : '';
     return `<td class="n${alignBad(a) ? ' align-bad' : alignWarn(a) ? ' align-warn' : ''}" title="${esc(title)}">` +
-      [a.iou != null ? 'IoU ' + fmt(a.iou, 2) : '', a.dc != null ? 'dc ' + fmt(a.dc, 2) : (a.px != null ? fmtNum(a.px) + ' px' : '')].filter(Boolean).join(' · ') + '</td>';
+      [a.iou != null ? 'IoU ' + fmt(a.iou, 2) : '', a.dc != null ? 'dc ' + fmt(a.dc, 2) : ''].filter(Boolean).join(' · ') + '</td>';
   }
   // scene time span of a viewer: the video duration
   function sceneT(v) { return v.duration; }
@@ -258,14 +257,14 @@
     return sgCtx.measureText(s).width;
   };
   function sceneGraphTree(sg) {
-    if (!sg || !sg.nodes || !sg.nodes.length) return '';
+    if (!sg || !sg.nodes.length) return '';
     const AIR = '\u0000air', NF = 12.5, LF = 11, LL = 13, PADX = 10, GAPX = 16, M = 6, MAXW = window.innerWidth < 640 ? 96 : 176;
     const type = {}, order = [];
     const addNode = (id, t) => { if (!(id in type)) { type[id] = t || 'object'; order.push(id); } };
     sg.nodes.forEach((n) => addNode(n.id, n.type));
     // relations per object: one entry per (target, relation), time spans merged
     const rels = new Map();
-    (sg.edges || []).forEach((e) => {
+    sg.edges.forEach((e) => {
       if (!e.from || e.to === e.from) return;
       addNode(e.from); if (e.to) addNode(e.to);
       if (!rels.has(e.from)) rels.set(e.from, []);
@@ -429,7 +428,7 @@
   // ---------- reconstruction: the question's own scene value, the fitted objects ----------
   // one dimension with its source (scene_fit dim_source): observed = plain, prior = tagged, bound = grey (not seen)
   function dimCell(o, key, prefix = '') {
-    const d = o.dims || {}, src = (o.dim_source || {})[key];
+    const d = o.dims, src = o.dim_source[key];
     const v = prefix + fmtNum(d[key]);
     if (src === 'bound') return `<span class="dim-bound" title="seen by neither box nor depth: anti-collapse lower bound">${v}<sup>unseen</sup></span>`;
     if (src === 'prior') return `<span>${v}<sup class="dim-prior">prior</sup></span>`;
@@ -442,7 +441,7 @@
     return [dimCell(o, 'L'), dimCell(o, 'W'), dimCell(o, 'H')];
   }
   function supportText(o) {
-    const sp = o.support || {};
+    const sp = o.support;
     let t = sp.mode === 'support' ? `on ${sp.target || 'main support'}` : sp.mode === 'airborne' ? (sp.airborne_part && sp.target ? `on ${sp.target}, then airborne` : 'airborne') : sp.mode || '';
     if (o.hang) t += ' (top face is the support)';
     if (o.t_on > 0) t += `; at rest until ${fmt(o.t_on, 2)} s`;
@@ -469,7 +468,7 @@
   const F_SRC = { gravity: 'gravity parabola', lab_prior: 'lab prior', size_prior_depth: 'size prior + depth', typical_votes: 'typical size', typical_height: 'typical height', prior_kinematic: 'kinematic prior', person: 'person height', votes_first: 'votes first' };
   function focalVotes(s) {
     if (!s.focal_votes || !s.focal_votes.length) return '';
-    const tw = s.focal_votes.reduce((a, x) => a + (x.weight || 0), 0);
+    const tw = s.focal_votes.reduce((a, x) => a + x.weight, 0);
     return '<details class="sfres"><summary>Focal votes</summary><div class="scroll-x"><table><tr><th>Source</th><th class="n">f (px)</th><th class="n">Weight</th></tr>' +
       s.focal_votes.map((x) => `<tr><td>${esc(F_SRC[x.source] || x.source)}</td><td class="n">${fmtNum(x.value)}</td><td class="n">${fmtNum(x.weight)}${tw ? ` <span class="muted">(${fmt((100 * x.weight) / tw, 0)}%)</span>` : ''}</td></tr>`).join('') +
       '</table></div></details>';
@@ -538,7 +537,7 @@
         const i = Math.min(Math.floor(k), P.length - 2), w = k - i;
         return [1, 2, 3].map((c) => P[i][c] * (1 - w) + P[i + 1][c] * w);
       }
-      const u = Math.max(t - (o.t_on || 0), 0); return add(add(o.p0, o.v0, u), o.a, 0.5 * u * u);
+      const u = Math.max(t - o.t_on, 0); return add(add(o.p0, o.v0, u), o.a, 0.5 * u * u);
     };
     // tracked in the video at time t (no track info: always)
     const halfF = 0.5 / v.fps + 1e-6;
@@ -594,7 +593,7 @@
     const meshes = [];
     objs.forEach((o, i) => {
       const col = new THREE.Color(PALETTE[i % PALETTE.length]);
-      const d = o.dims || {};
+      const d = o.dims;
       let geo, axes;
       // object frame: heading h (yaw, else velocity at mid-time projected on the plane, else u1), lateral e2 = n x h, up n
       let h;

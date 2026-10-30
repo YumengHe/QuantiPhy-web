@@ -78,6 +78,7 @@ VERSION_FORMAT = {
 MOTION_KEYS = ("ballistic", "physics")
 FMT: dict = {}     # VERSION_FORMAT entry of the version being built
 DIRS: dict = {}    # artifact dirs of the version being built
+AT = {"where": ""}  # "<version> <video or unit>" being read, for error messages
 
 
 def version_format(tag: str) -> dict:
@@ -110,39 +111,17 @@ def vec(v):
     return [num(a, 5) for a in v] if v is not None else None
 
 
+def req(d: dict, key: str, what: str):
+    """d[key], a field every artifact of the version's format has; its absence is a format mismatch, not a default."""
+    if key not in d:
+        raise ValueError(f"{AT['where']}: {what} has no {key!r} field")
+    return d[key]
+
+
 def read_json(p: Path, what: str):
     if not p.exists():
         raise ValueError(f"{what} missing: {p.relative_to(ROOT)}")
     return json.loads(p.read_text())
-
-
-def inventory(sg: dict) -> list:
-    """Object inventory as shown on the page, from the scene graph's object nodes (the scene json has no separate
-    inventory): canonical name, aliases, where it is mentioned."""
-    out = []
-    for n in sg.get("nodes") or []:
-        if n.get("type") != "object":
-            continue
-        where, aliases = [], []
-        for m in n.get("mentions") or []:
-            w, a = text(m.get("where")), text(m.get("alias"))
-            if w and w not in where:
-                where.append(w)
-            if a and a not in aliases:
-                aliases.append(a)
-        out.append({"name": text(n.get("id")), "aliases": aliases, "track": None, "dyn": None, "role": None,
-                    "where": where})
-    return out
-
-
-def graph(sg):
-    """Scene graph of a scene json without the raw LLM text: support nodes, edges, same-instance checks."""
-    edges = [{"from": text(e.get("from")), "to": e.get("to"), "rel": text(e.get("rel")), "conf": num(e.get("conf"), 3),
-              "t0": num(e.get("t_start"), 4), "t1": num(e.get("t_end"), 4)} for e in sg.get("edges") or []]
-    support = [text(n.get("id")) for n in sg.get("nodes") or [] if n.get("type") == "support"]
-    same = [{"a": text(x.get("a")), "b": text(x.get("b")), "same": x.get("same"), "conf": num(x.get("conf"), 3)}
-            for x in sg.get("same_instance") or []]
-    return {"source": text(sg.get("source")), "support": support, "edges": edges, "same": same}
 
 
 SUPPORT_RELS = ("on", "in", "held_by", "attached_to", "above", "airborne")   # contact edges are not support
@@ -153,10 +132,11 @@ def sgraph(unit: str):
     {"nodes": [{"id", "type": object | support | holder}], "edges": [{"from", "to" (null: airborne), "rel", "t0", "t1"}]}
     (t0 / t1 null = the whole video; contact edges dropped). None when the graph has no support relation."""
     g = read_json(DIRS["sgraph"] / f"{unit}.json", "scene graph")
-    edges = [{"from": text(e.get("from")), "to": text(e.get("to")) or None, "rel": text(e.get("rel")),
-              "t0": num(e.get("t_start"), 4), "t1": num(e.get("t_end"), 4)}
-             for e in g.get("edges") or [] if e.get("rel") in SUPPORT_RELS]
-    nodes = [{"id": text(n.get("id")), "type": text(n.get("type"))} for n in g.get("nodes") or []]
+    edges = [{"from": text(req(e, "from", "edge")), "to": text(req(e, "to", "edge")) or None,   # null "to": airborne
+              "rel": text(e["rel"]), "t0": num(req(e, "t_start", "edge"), 4), "t1": num(req(e, "t_end", "edge"), 4)}
+             for e in req(g, "edges", "scene graph cache") if req(e, "rel", "edge") in SUPPORT_RELS]
+    nodes = [{"id": text(req(n, "id", "scene graph node")), "type": text(req(n, "type", "scene graph node"))}
+             for n in req(g, "nodes", "scene graph cache")]
     return {"nodes": nodes, "edges": edges} if edges else None
 
 
@@ -166,8 +146,8 @@ def track_intervals(unit: str):
     j = read_json(DIRS["tracks"] / f"{unit}.json", "track cache")
     fps = j["info"]["fps"]
     out = {}
-    for name, tr in (j.get("tracks") or {}).items():
-        fr = sorted(int(k) for k, b in (tr.get("boxes") or {}).items() if b is not None)
+    for name, tr in req(j, "tracks", "track cache").items():
+        fr = sorted(int(k) for k, b in req(tr, "boxes", f"track {name!r}").items() if b is not None)
         runs = []
         for f in fr:
             if runs and f == runs[-1][1] + 1:
@@ -185,7 +165,7 @@ def sampled_path(o: dict):
     """[[t, x, y, z], ...] of an object's centre (pipeline.scene_state3d.position), over the times its fit covers
     (to the last visibility time, at least 2 s)."""
     from pipeline.scene_state3d import position
-    ends = [iv[1] for k in ("visible", "out_of_frame") for iv in (o.get(k) or [])]
+    ends = [iv[1] for k in ("visible", "out_of_frame") for iv in req(o, k, "scene object")]
     T = max(ends + [2.0])
     n = int(round(T / PATH_DT))
     return [[num(i * PATH_DT, 4)] + [num(float(x), 5) for x in position(o, i * PATH_DT)] for i in range(n + 1)]
@@ -196,15 +176,17 @@ def motion_events(name: str, o: dict) -> list:
     other = [k for k in MOTION_KEYS if k != FMT["motion"] and o.get(k)]
     if other:
         raise ValueError(f"object {name!r} has a {other[0]!r} motion record; this version's format is {FMT['motion']!r}")
-    return list((o.get(FMT["motion"]) or {}).get("events") or [])
+    record = req(o, FMT["motion"], f"object {name!r}")    # null: no physics-law motion
+    return [] if record is None else list(req(record, "events", f"object {name!r} motion record"))
 
 
 def align(a):
-    """t_q alignment check of one answer (scene result quality "align_tq"): {"iou", "dc", "px", "t", "frame"} | None."""
+    """t_q alignment check of one answer (scene result quality "align_tq"): {"iou", "dc", "t", "frame"} | None."""
     if a is None:
         return None
-    return {"iou": num(a.get("iou"), 6), "dc": num(a.get("dcenter_rel"), 6), "px": num(a.get("dcenter_px"), 3),
-            "t": num(a.get("t"), 4), "frame": a.get("frame")}
+    return {"iou": num(req(a, "iou", "align_tq"), 6), "dc": num(req(a, "dcenter_rel", "align_tq"), 6),
+            "t": num(req(a, "t", "align_tq"), 4),
+            "frame": req(a, "frame", "align_tq")}
 
 
 def question_times(q: str, alignment: dict | None):
@@ -217,10 +199,10 @@ def question_times(q: str, alignment: dict | None):
 
 def fit_row(r: dict) -> dict:
     """One scene result (scene json "results" entry) as shown on the page."""
-    qual = r.get("quality") or {}
-    return {"q": r.get("question"), "obj": r.get("object"), "pred": num(r.get("pred")),
-            "method": r.get("method"), "answer": num(r.get("answer")), "mra": num(r.get("mra"), 3),
-            "conf": num(qual.get("conf"), 3), "quality": {k: (num(v, 3) if isinstance(v, float) else v)
+    qual = req(r, "quality", "scene result")
+    return {"q": req(r, "question", "scene result"), "obj": req(r, "object", "scene result"),
+            "pred": num(req(r, "pred", "scene result")), "method": req(r, "method", "scene result"),
+            "conf": num(req(qual, "conf", "scene result quality"), 3), "quality": {k: (num(v, 3) if isinstance(v, float) else v)
                                                           for k, v in qual.items() if k != "conf"} or None}
 
 
@@ -228,34 +210,35 @@ def scene_view(state: dict, source_path: Path) -> dict:
     """A saved scene as the page draws it, without the per-question results (a shared scene must not show other
     questions' answers)."""
     j = state
-    if j.get("f") is None:
+    if req(j, "f", "scene") is None:
         raise ValueError(f"{source_path.relative_to(ROOT)}: scene has no focal length")
-    if not j.get("scene_graph"):
-        raise ValueError(f"{source_path.relative_to(ROOT)}: scene has no scene graph")
-    pl = j.get("plane") or {}
-    plane = {k: vec(pl.get(k)) for k in ("normal", "u1", "u2")} | {"dist": num(pl.get("dist"), 5)} if pl else None
+    pl = req(j, "plane", "scene")
+    # u1 / u2 (in-plane axes) are written only for some planes
+    plane = {k: vec(req(pl, k, "plane") if k == "normal" else pl.get(k)) for k in ("normal", "u1", "u2")} | \
+        {"dist": num(req(pl, "dist", "plane"), 5)}
     objs = []
-    for name, o in (j.get("objects") or {}).items():
-        if "visible" not in o:
-            raise ValueError(f"{source_path.relative_to(ROOT)}: object {name!r} has no visible intervals")
-        vis = o["visible"]
-        objs.append({"name": name, "shape": o.get("shape"), "dims": {k: num(v) for k, v in (o.get("dims") or {}).items()},
-                     "rms": num(o.get("rms"), 3), "p0": vec(o.get("p0")), "v0": vec(o.get("v0")), "a": vec(o.get("a")),
-                     "yaw": num(o.get("yaw"), 5), "t_on": num(o.get("t_on"), 5),
+    for name, o in req(j, "objects", "scene").items():
+        what = f"scene object {name!r}"
+        vis = req(o, "visible", what)
+        objs.append({"name": name, "shape": req(o, "shape", what),
+                     "dims": {k: num(v) for k, v in req(o, "dims", what).items()},
+                     "rms": num(req(o, "rms", what), 3), "p0": vec(req(o, "p0", what)), "v0": vec(req(o, "v0", what)),
+                     "a": vec(req(o, "a", what)), "yaw": num(req(o, "yaw", what), 5), "t_on": num(req(o, "t_on", what), 5),
                      # where each dimension comes from: observed / prior / bound (not seen, anti-collapse floor)
-                     "dim_source": o.get("dim_source"), "support": o.get("support"), "hang": o.get("hang"),
-                     "length": num(o.get("length")), "mode": o.get("mode"),
-                     "out_of_frame": o.get("out_of_frame"), "visibility": o.get("visibility"),
-                     "overhead": bool(o.get("overhead")), "events": motion_events(name, o)[:12],
+                     "dim_source": req(o, "dim_source", what), "support": req(o, "support", what),
+                     "hang": req(o, "hang", what), "mode": req(o, "mode", what),
+                     "out_of_frame": req(o, "out_of_frame", what), "visibility": req(o, "visibility", what),
+                     "overhead": bool(req(o, "overhead", what)), "events": motion_events(name, o)[:12],
                      # motion that is not a single parabola: sample the centre for the viewer
-                     "path": sampled_path(o) if any(o.get(k) for k in FMT["paths"]) else None,
+                     "path": sampled_path(o) if any(req(o, k, what) for k in FMT["paths"]) else None,
                      "visible": [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None})
-    sg = j["scene_graph"]
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
-            "main_support": j.get("main_support"), "inventory": inventory(sg), "scene_graph": graph(sg),
-            "f_source": text(j.get("f_source")) or None, "f_first": j.get("f_first"),
-            "focal_votes": [{"source": text(x.get("source")), "value": num(x.get("value"), 4), "weight": num(x.get("weight"), 3)}
-                            for x in j.get("focal_votes") or []] or None}
+            "main_support": req(j, "main_support", "scene"),
+            "f_source": text(req(j, "f_source", "scene")) or None, "f_first": req(j, "f_first", "scene"),
+            # an empty vote list is legitimate (no focal vote taken): written as null
+            "focal_votes": [{"source": text(req(x, "source", "focal vote")), "value": num(req(x, "value", "focal vote"), 4),
+                             "weight": num(req(x, "weight", "focal vote"), 3)}
+                            for x in req(j, "focal_votes", "scene")] or None}
 
 
 def video_meta(vid: str, make_thumb: bool):
@@ -316,22 +299,23 @@ def harness_groups(saved: dict) -> list[dict]:
 
 def bind_harness_question(row: dict, answers: list[dict], groups: list[dict]) -> tuple[dict | None, dict | None, str | None]:
     """Bind row identity and scene_id exactly, including same text under different priors."""
-    candidates = [a for a in answers if a.get("row") == row.get("row") and a.get("question") == row.get("question")
-                  and text(a.get("prior")) == text(row.get("prior"))]
+    candidates = [a for a in answers if req(a, "row", "answer record") == row["row"]
+                  and req(a, "question", "answer record") == row["question"]
+                  and text(req(a, "prior", "answer record")) == text(row["prior"])]
     if len(candidates) != 1:
         return None, None, "answer identity missing or duplicated"
     answer = candidates[0]
-    scene_id = answer.get("scene_id")
-    if not scene_id or text(row.get("scene_id")) != scene_id:
+    scene_id = req(answer, "scene_id", "answer record")
+    if not scene_id or text(row["scene_id"]) != scene_id:
         return answer, None, "scene_id missing or differs between CSV and answer record"
-    matches = [g for g in groups if g["state"].get("scene_id") == scene_id]
+    matches = [g for g in groups if req(g["state"], "scene_id", "scene") == scene_id]
     if len(matches) != 1:
         return answer, None, "scene_id missing or duplicated among independent group scenes"
     group = matches[0]
-    contexts = [c for c in group["state"].get("question_context") or []
-                if c.get("row") == row.get("row") and c.get("question") == row.get("question")
-                and text(c.get("prior")) == text(row.get("prior"))
-                and text(c.get("depth_info")) == text(row.get("depth_info"))]
+    contexts = [c for c in req(group["state"], "question_context", "scene")
+                if req(c, "row", "question context") == row["row"] and req(c, "question", "question context") == row["question"]
+                and text(req(c, "prior", "question context")) == text(row["prior"])
+                and text(req(c, "depth_info", "question context")) == text(row["depth_info"])]
     if len(contexts) != 1:
         return answer, None, "row/prior/depth identity not unique in the matched scene"
     return answer, group, None
@@ -455,8 +439,8 @@ def dev_units() -> list[str]:
 
 def own_result(state: dict, row: dict) -> dict | None:
     """This question's entry of a scene's "results" (exactly one, or none when the scene gave it no value)."""
-    results = [r for r in state.get("results") or [] if r.get("question") == row["question"]
-               and (r.get("row") is None or r["row"] == row["row"])]
+    results = [r for r in req(state, "results", "scene") if req(r, "question", "scene result") == row["question"]
+               and req(r, "row", "scene result") == row["row"]]
     if len(results) > 1:
         raise ValueError(f"row {row['row']}: {len(results)} scene results for one question")
     return results[0] if results else None
@@ -494,6 +478,7 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
     questions = []
     for vid, rows in df.groupby("video_id", sort=True):
         first = rows.iloc[0]
+        AT["where"] = f"{tag} {vid}"
         record = read_json(ROOT / "outputs/harness" / tag / "answers" / f"{vid}.json", "answer record")
         version = record["version"]
         if version["pipeline"] != tag.removesuffix("_control"):
@@ -518,6 +503,7 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                     "sgraph": sgraph(vid), "tracks": track_intervals(vid)}
         for row in rows.to_dict("records"):
             unit = row["unit"]
+            AT["where"] = f"{tag} {unit}"
             query = {"id": unit, "version": tag, "video": vid, "k": int(row["k"]), "row": int(row["row"]),
                      "cat": row["category"], "type": row["inference_type"],
                      "q": row["question"], "prior": text(row["prior"]), "depth": text(row["depth_info"]),
@@ -532,20 +518,20 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                 scene_path = DIRS["scenes"] / f"{unit}.json"
                 state = read_json(scene_path, "question scene")
                 group, error = {"group": None, "state": state}, None
-                answers = [a for a in record["answers"] if a.get("row") == row["row"]]
+                answers = [a for a in record["answers"] if req(a, "row", "answer record") == row["row"]]
                 if len(answers) != 1:
                     raise ValueError(f"{unit}: {len(answers)} answer records")
                 answer = answers[0]
                 result = own_result(state, row)
-            quality = (result or {}).get("quality") or {}
-            alignment = align(quality.get("align_tq"))
+            quality = req(result, "quality", "scene result") if result else {}
+            alignment = align(quality.get("align_tq"))   # absent or null when no alignment check ran
             mid = (result or {}).get("measurement_id")
-            if mid is not None and mid not in (state.get("measurements") or {}):
+            if mid is not None and mid not in req(state, "measurements", "scene"):
                 raise ValueError(f"{unit}: measurement {mid} not in its scene")
             query |= {"group": group["group"] if group else None, "binding_error": error,
                       "measurement": answer["measurement"] if group else None, "measurement_id": mid,
                       "measurement_record": state["measurements"][mid] if mid is not None else None,
-                      "provenance": (answer or {}).get("provenance"), "quality": quality, "align": alignment,
+                      "provenance": req(answer, "provenance", "answer record") if answer else None, "quality": quality, "align": alignment,
                       "fit": fit_row(result) if result else None,
                       "overlays": overlays.get(vid, state, row["question"], float(first.fps), duration) if group else [],
                       "execution_status": record["execution_status"]}
