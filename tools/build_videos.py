@@ -15,12 +15,15 @@ is an error, never a substitute.
 Inputs of a run <tag> (relative to the repo root):
   outputs/val_<tag>_answers.csv (or the CSV given as <tag>=<path>)
                                                        harness CSV (one row per question run, "row" = table row)
-  outputs/harness/<tag>/answers/<video>.json           per-video answer records ("version"."pipeline" = <tag>)
-  outputs/scene_fit_eval/h_<tag>/agent/<unit>.json     saved scenes (per video: one per prior group)
-  outputs/scenegraph_<tag>/<unit>.json                 scene graph cache
-  outputs/tracks_<tag>/<unit>.json                     track cache (visible intervals per object)
+  outputs/harness/<tag>/answers/<key>.json             answer records ("version"."pipeline" = <tag>)
+  outputs/scene_fit_eval/h_<tag>/agent/<key>.json      saved scenes (unit "video": one per prior group)
+  outputs/scenegraph_<tag>/<key>.json                  scene graph cache
+  outputs/tracks_<tag>/<key>.json                      track cache (visible intervals per object)
+  outputs/objects_<tag>/<key>.json                     object inventory (unit "question": identity checked)
   web/data/runtime/<tag>/overlays.json                 overlays rendered for that version (images beside it)
-and docs/DEV10.md, the development question set -> val "dev"; each of its units must be in some run.
+<key> is the video for unit "video" and the question's unit <video_id>_q<k> for unit "question"; a unit-question file
+whose "unit" (or video) is not that question's raises. Answer records of unit "question" have schema "unit-1", with
+the question's timing. Also docs/DEV10.md, the development question set -> val "dev"; each of its units must be in some run.
 
 Overlays: the record web/data/runtime/<tag>/overlays.json lists every overlay of the version. Only the current version
 (pipeline/VERSION) may render the ones it lacks, with the current code; building an older version needs every overlay
@@ -74,7 +77,7 @@ VERSION_FORMAT = {
     "v1": {"motion": "ballistic", "paths": ("segments",), "unit": "video"},
     "v2": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video"},
     "v3": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video"},
-    "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video"},
+    "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question"},
 }
 MOTION_KEYS = ("ballistic", "physics")
 FMT: dict = {}     # VERSION_FORMAT entry of the version being built
@@ -128,11 +131,27 @@ def read_json(p: Path, what: str):
 SUPPORT_RELS = ("on", "in", "held_by", "attached_to", "above", "airborne")   # contact edges are not support
 
 
-def sgraph(unit: str):
-    """The run's scene graph cache outputs/scenegraph_<tag>/<unit>.json as written, for the tree on the page:
+# the field naming the video in each per-unit artifact
+VIDEO_FIELD = {"scene graph": "video", "track cache": "video_id", "object inventory": "video_id",
+               "question scene": "video_id", "answer record": "video_id"}
+
+
+def unit_json(kind: str, key: str, what: str):
+    """The artifact DIRS[kind]/<key>.json; for unit "question" its "unit" and video fields must name that question."""
+    j = read_json(DIRS[kind] / f"{key}.json", what)
+    if FMT["unit"] == "question":
+        vid = key.rsplit("_q", 1)[0]
+        if req(j, "unit", what) != key or req(j, VIDEO_FIELD[what], what) != vid:
+            raise ValueError(f"{AT['where']}: {what} {DIRS[kind].name}/{key}.json is for unit {j.get('unit')!r} "
+                             f"/ video {j.get(VIDEO_FIELD[what])!r}, not {key}")
+    return j
+
+
+def sgraph(key: str):
+    """The run's scene graph cache outputs/scenegraph_<tag>/<key>.json as written, for the tree on the page:
     {"nodes": [{"id", "type": object | support | holder}], "edges": [{"from", "to" (null: airborne), "rel", "t0", "t1"}]}
     (t0 / t1 null = the whole video; contact edges dropped). None when the graph has no support relation."""
-    g = read_json(DIRS["sgraph"] / f"{unit}.json", "scene graph")
+    g = unit_json("sgraph", key, "scene graph")
     edges = [{"from": text(req(e, "from", "edge")), "to": text(req(e, "to", "edge")) or None,   # null "to": airborne
               "rel": text(e["rel"]), "t0": num(req(e, "t_start", "edge"), 4), "t1": num(req(e, "t_end", "edge"), 4)}
              for e in req(g, "edges", "scene graph cache") if req(e, "rel", "edge") in SUPPORT_RELS]
@@ -141,10 +160,10 @@ def sgraph(unit: str):
     return {"nodes": nodes, "edges": edges} if edges else None
 
 
-def track_intervals(unit: str):
-    """{track name: [[t0, t1], ...]} — the frames where the track cache outputs/tracks_<tag>/<unit>.json has a box,
+def track_intervals(key: str):
+    """{track name: [[t0, t1], ...]} — the frames where the track cache outputs/tracks_<tag>/<key>.json has a box,
     merged into runs of consecutive frames, in seconds (frame / fps of the cache). None when it has no track."""
-    j = read_json(DIRS["tracks"] / f"{unit}.json", "track cache")
+    j = unit_json("tracks", key, "track cache")
     fps = j["info"]["fps"]
     out = {}
     for name, tr in req(j, "tracks", "track cache").items():
@@ -337,24 +356,27 @@ class Overlays:
             raise ValueError(f"{tag} is not the current version ({CURRENT}) and has no overlay record {self.file.relative_to(WEB)}")
         self.record = json.loads(self.file.read_text()) if self.file.exists() else {}
         self.added = 0
+        self.used: set[str] = set()
 
-    def get(self, vid: str, scene: dict, question: str, fps: float, duration: float) -> list[dict]:
+    def get(self, vid: str, scene: dict, question: str, fps: float, duration: float, subdir: str) -> list[dict]:
+        """The overlays of one question at its times; rendered images go to <tag>/<subdir>/."""
         times = list(dict.fromkeys(float(t) for t in parse_question(question).times))[:2] or [0.]
         out = []
         for t in times:
             key = f"{scene['scene_id']} {t:.9g}"
             entry = self.record.get(key)
+            self.used.add(key)
             if entry is None:
                 if not self.render:
                     raise ValueError(f"{vid}: overlay {key} not in {self.file.relative_to(WEB)}; only {CURRENT} renders")
-                entry = self.record[key] = self._render(vid, scene, t, fps, duration)
+                entry = self.record[key] = self._render(vid, scene, t, fps, duration, subdir)
                 self.added += 1
             if entry.get("path") and not (WEB / entry["path"]).exists():
                 raise ValueError(f"{vid}: overlay image missing: {entry['path']}")
             out.append(entry)
         return out
 
-    def _render(self, vid: str, scene: dict, t: float, fps: float, duration: float) -> dict:
+    def _render(self, vid: str, scene: dict, t: float, fps: float, duration: float, subdir: str) -> dict:
         """Render saved state only; no fitting, assembly, model requests or GT inputs."""
         from pipeline.data import Video
         from pipeline.scene_state3d import render_overlay
@@ -366,7 +388,7 @@ class Overlays:
             return entry
         frame = round(t * fps)
         identity = hashlib.sha256(f"{scene['scene_id']}:{renderer_hash}:{t:.9g}".encode()).hexdigest()[:24]
-        path = self.dir / vid / f"{identity}_f{frame}.jpg"
+        path = self.dir / subdir / f"{identity}_f{frame}.jpg"
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
             video = Video(video_path("val", vid), fps=fps)
@@ -382,7 +404,21 @@ class Overlays:
         return entry
 
     def save(self):
-        if self.added:
+        """Write the record. The current version also drops the overlays no question of this build references and
+        deletes their images (the build covers every question the version is shown for)."""
+        removed = 0
+        if self.render:
+            for key in sorted(set(self.record) - self.used):
+                path = self.record.pop(key).get("path")
+                if path and (WEB / path).exists():
+                    (WEB / path).unlink()
+                removed += 1
+            for d in sorted(self.dir.glob("*/"), reverse=True):
+                if d.is_dir() and not any(d.iterdir()):
+                    d.rmdir()
+        if removed:
+            print(f"{self.tag}: {removed} unreferenced overlays removed")
+        if self.added or removed:
             self.dir.mkdir(parents=True, exist_ok=True)
             self.file.write_text(json.dumps(self.record, ensure_ascii=False, indent=1, sort_keys=True))
 
@@ -418,6 +454,8 @@ def harness_rows(frame: pd.DataFrame, manifest: pd.DataFrame, units: list[str]) 
         for key in ("video_id", "question", "prior", "depth_info"):
             if text(r[key]) != text(m[key]):
                 raise ValueError(f"{u}: harness CSV {key} differs from the validation table")
+        if "k" in r and int(r["k"]) != int(m["k"]):
+            raise ValueError(f"{u}: harness CSV k {r['k']} differs from the validation table's {m['k']}")
         for key in ("answer", "category", "dim", "fps", "video_type", "video_source", "inference_type", "k"):
             r[key] = m[key]
         r["row"], r["unit"] = i, u
@@ -464,15 +502,70 @@ def run_rows(tag: str, csv_path: Path, manifest: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
+TIME_STEPS = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
+
+
+def timing_view(t: dict, csv_seconds) -> dict:
+    """A unit's timing ("timing" of its answer record) for the page: total seconds and one entry per step, in pipeline
+    order: {"step", "s", "reused" (false | "partial" | true), "cached", "shared"}. The CSV "seconds" must be the total."""
+    total = req(t, "total_seconds", "timing")
+    if not (isinstance(csv_seconds, (int, float)) and math.isfinite(csv_seconds) and abs(csv_seconds - total) < 0.05):
+        raise ValueError(f"{AT['where']}: CSV seconds {csv_seconds} differs from the answer record's total {total}")
+    steps = req(t, "steps", "timing")
+    if list(steps) != list(TIME_STEPS):
+        raise ValueError(f"{AT['where']}: timing steps {list(steps)}, expected {list(TIME_STEPS)}")
+    out = []
+    for name in TIME_STEPS:
+        x = steps[name]
+        reused = req(x, "reused", f"timing step {name}")
+        if reused not in (False, True, "partial"):
+            raise ValueError(f"{AT['where']}: timing step {name} reused = {reused!r}")
+        out.append({"step": name, "s": num(req(x, "seconds", f"timing step {name}"), 4), "reused": reused,
+                    "cached": bool(req(x, "cached", f"timing step {name}")), "shared": x.get("shared")})
+    return {"total": num(total, 5), "steps": out}
+
+
+def question_record(tag: str, unit: str, row: dict) -> dict:
+    """The answer record outputs/harness/<tag>/answers/<unit>.json of a unit-question run (schema "unit-1"), its
+    identity checked against the question's row."""
+    rec = unit_json("answers", unit, "answer record")
+    if req(rec, "schema", "answer record") != "unit-1":
+        raise ValueError(f"{unit}: answer record schema {rec['schema']!r}, expected 'unit-1'")
+    for key in ("k", "row", "question", "prior", "depth_info"):
+        if text(req(rec, key, "answer record")) != text(row[key]):
+            raise ValueError(f"{unit}: answer record {key} {rec[key]!r} differs from the table's {row[key]!r}")
+    if req(rec, "version", "answer record")["pipeline"] != tag.removesuffix("_control"):
+        raise ValueError(f"{unit}: answer artifact version {rec['version']['pipeline']} differs from requested {tag}")
+    return rec
+
+
+def question_scene(unit: str, row: dict, record: dict) -> dict | None:
+    """The unit's own saved scene (agent/<unit>.json): exactly its one row as question context, no groups.
+    None only when the run failed before writing it."""
+    if not (DIRS["scenes"] / f"{unit}.json").exists() and record["execution_status"] == "failed":
+        return None
+    state = unit_json("scenes", unit, "question scene")
+    if "groups" in state or int(req(state, "k", "question scene")) != int(row["k"]):
+        raise ValueError(f"{unit}: question scene has groups or k {state.get('k')}")
+    ctx = req(state, "question_context", "question scene")
+    if len(ctx) != 1 or req(ctx[0], "row", "question context") != row["row"] or ctx[0].get("unit") != unit \
+            or req(ctx[0], "question", "question context") != row["question"]:
+        raise ValueError(f"{unit}: question scene context is not exactly this question")
+    return state
+
+
 def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list[str], videos: dict,
               make_thumb: bool) -> list[dict]:
     """The questions `units` from one run (all of them must be in its CSV), every value read from that run's own
-    artifacts in its own format; the run's per-video artifacts go to videos[vid]["runs"][tag]."""
+    artifacts in its own format. Unit "video": the run's per-video artifacts go to videos[vid]["runs"][tag]. Unit
+    "question": each question reads only its own unit's files and carries them; nothing per video."""
     FMT.clear()
     FMT.update(version_format(tag))
     unit_kind = FMT["unit"]
+    DIRS.clear()
     DIRS.update(scenes=ROOT / "outputs/scene_fit_eval" / f"h_{tag}" / "agent", sgraph=ROOT / "outputs" / f"scenegraph_{tag}",
-                tracks=ROOT / "outputs" / f"tracks_{tag}")
+                tracks=ROOT / "outputs" / f"tracks_{tag}", objects=ROOT / "outputs" / f"objects_{tag}",
+                answers=ROOT / "outputs/harness" / tag / "answers")
     df = harness_rows(frame, manifest, units)
     df["mra"] = [mra_row(p, g) for p, g in zip(df["pred"], df["answer"])]
     overlays = Overlays(tag)
@@ -480,10 +573,6 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
     for vid, rows in df.groupby("video_id", sort=True):
         first = rows.iloc[0]
         AT["where"] = f"{tag} {vid}"
-        record = read_json(ROOT / "outputs/harness" / tag / "answers" / f"{vid}.json", "answer record")
-        version = record["version"]
-        if version["pipeline"] != tag.removesuffix("_control"):
-            raise ValueError(f"{vid}: answer artifact version {version['pipeline']} differs from requested {tag}")
         if vid not in videos:
             duration, width, height, thumb = video_meta(vid, make_thumb)
             videos[vid] = {"id": vid, "source": first.video_source, "video_type": first.video_type,
@@ -491,9 +580,13 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                            **video_info(vid), "runs": {}}
         video = videos[vid]
         duration = video["duration"]
-        run = video["runs"][tag] = {"run_at": version["time"]}
         groups = []
         if unit_kind == "video":
+            record = read_json(DIRS["answers"] / f"{vid}.json", "answer record")
+            version = record["version"]
+            if version["pipeline"] != tag.removesuffix("_control"):
+                raise ValueError(f"{vid}: answer artifact version {version['pipeline']} differs from requested {tag}")
+            run = video["runs"][tag] = {"run_at": version["time"]}
             scene_path = DIRS["scenes"] / f"{vid}.json"
             if scene_path.exists():
                 groups = harness_groups(json.loads(scene_path.read_text()))
@@ -510,20 +603,25 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                      "q": row["question"], "prior": text(row["prior"]), "depth": text(row["depth_info"]),
                      "answer": num(row["answer"]), "pred": num(row["pred"]), "mra": num(row["mra"], 6),
                      "src": text(row["source"]), "conf": num(row["conf"], 6), "status": text(row["status"]),
-                     "method": row["method"], "scene_id": text(row["scene_id"])}
+                     "method": row["method"], "scene_id": text(row["scene_id"]), "time": None}
             if unit_kind == "video":
                 answer, group, error = bind_harness_question(row, record["answers"], groups)
                 state = group["state"] if group else {}
                 result = own_result(state, row) if group else None
+                exec_status = record["execution_status"]
             else:
-                scene_path = DIRS["scenes"] / f"{unit}.json"
-                state = read_json(scene_path, "question scene")
-                group, error = {"group": None, "state": state}, None
-                answers = [a for a in record["answers"] if req(a, "row", "answer record") == row["row"]]
-                if len(answers) != 1:
-                    raise ValueError(f"{unit}: {len(answers)} answer records")
-                answer = answers[0]
-                result = own_result(state, row)
+                rec = question_record(tag, unit, row)
+                unit_json("objects", unit, "object inventory")
+                state = question_scene(unit, row, rec)
+                answer, error = req(rec, "answer", "answer record"), None
+                if req(answer, "row", "answer") != row["row"] or text(req(answer, "scene_id", "answer")) != text(row["scene_id"]):
+                    raise ValueError(f"{unit}: answer row / scene_id differs from the CSV")
+                if state is not None and req(state, "scene_id", "question scene") != row["scene_id"]:
+                    raise ValueError(f"{unit}: scene_id of its scene differs from the CSV")
+                group = {"group": None, "state": state} if state is not None else None
+                result = own_result(state, row) if state is not None else None
+                exec_status = rec["execution_status"]
+                query["time"] = timing_view(req(rec, "timing", "answer record"), row.get("seconds"))
             quality = req(result, "quality", "scene result") if result else {}
             alignment = align(quality.get("align_tq"))   # absent or null when no alignment check ran
             mid = (result or {}).get("measurement_id")
@@ -534,10 +632,12 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                       "measurement_record": state["measurements"][mid] if mid is not None else None,
                       "provenance": req(answer, "provenance", "answer record") if answer else None, "quality": quality, "align": alignment,
                       "fit": fit_row(result) if result else None,
-                      "overlays": overlays.get(vid, state, row["question"], float(first.fps), duration) if group else [],
-                      "execution_status": record["execution_status"]}
+                      "overlays": overlays.get(vid, state, row["question"], float(first.fps), duration,
+                                               vid if unit_kind == "video" else unit) if group else [],
+                      "execution_status": exec_status}
             if unit_kind == "question":
-                query |= {"scene": scene_view(state, scene_path), "sgraph": sgraph(unit), "tracks": track_intervals(unit)}
+                query |= {"scene": scene_view(state, DIRS["scenes"] / f"{unit}.json") if state is not None else None,
+                          "sgraph": sgraph(unit), "tracks": track_intervals(unit)}
             query["tq"], query["tjump"] = question_times(query["q"], alignment)
             questions.append(query)
     overlays.save()

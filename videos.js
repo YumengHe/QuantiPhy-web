@@ -10,6 +10,12 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
+  // seconds as m:ss (under a minute: "N s")
+  function fmtSec(x) {
+    if (x == null || !isFinite(x)) return '';
+    const r = Math.round(x);
+    return r < 60 ? `${r} s` : `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`;
+  }
   const fmt = (x, d = 3) => (x == null || !isFinite(x) ? '—' : Number(x).toFixed(d));
   function fmtNum(x) {
     if (x == null || !isFinite(x)) return '—';
@@ -55,7 +61,8 @@
   function summaryRow(q, v) {
     const nums = `<span class="qv" data-k="GT">${fmtNum(q.answer)}</span>` +
       `<span class="qv pred" data-k="Pred">${fmtNum(q.pred)}</span>` +
-      `<span class="qsrc">${esc(SRC_LABEL[q.src] || q.src)}</span>`;
+      `<span class="qsrc">${esc(SRC_LABEL[q.src] || q.src)}</span>` +
+      `<span class="qv qt"${q.time ? ' data-k="Time"' : ''}>${q.time ? fmtSec(q.time.total) : ''}</span>`;
     return `<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}<span class="qver">${esc(q.version)}</span></span><span class="qtext">${esc(q.q)}</span></span>` +
       `<span class="qnums">${nums}</span><span class="qm">${mraBadge(q.mra)}</span></summary>`;
   }
@@ -73,7 +80,7 @@
         const body = document.createElement('div');
         body.className = 'qbody';
         body.innerHTML = priorBlock(q) + mediaBlock(view, q) + overlayBlock(q) + trackBlock(a.tracks, view, q) +
-          sceneGraphTree(a.sgraph) + fitBlock(q, view);
+          sceneGraphTree(a.sgraph) + fitBlock(q, view) + timeBlock(q);
         d.appendChild(body);
         video = body.querySelector('video');
         tqMarks(body, view, q);
@@ -508,6 +515,25 @@
     }
     return h;
   }
+  // wall time of the question's own run, per pipeline step (answer record "timing"); reused = served from a sibling
+  // question's vision memo (SAM 2 propagation, floor masks), cached = this question's file from an earlier run kept
+  const STEP_LABEL = { objects: 'Objects', scenegraph_grid: 'Scene graph (grid)', track: 'Tracking',
+    scenegraph_pf: 'Scene graph (per frame)', observe: 'Observation', scene: 'Physics-guided Fitting', agent: 'Agent loop', answer: 'Answer' };
+  function reuseText(x) {
+    if (x.cached) return 'cached';
+    if (!x.reused) return '';
+    const sh = x.shared || {};
+    const hits = sh.sam2_hits != null ? ` (SAM 2 ${sh.sam2_hits}/${sh.sam2_hits + (sh.sam2_misses || 0)})` : sh.ground_floor === 'shared' ? ' (floor)' : '';
+    return (x.reused === true ? 'reused' : 'partly reused') + hits;
+  }
+  function timeBlock(q) {
+    if (!q.time) return '';
+    const marks = q.time.steps.map(reuseText), any = marks.some(Boolean);
+    const rows = q.time.steps.map((x, i) => `<tr${marks[i] ? ' class="reused"' : ''}><td>${esc(STEP_LABEL[x.step] || x.step)}</td><td class="n">${fmt(x.s, 1)}</td>` +
+      (any ? `<td>${esc(marks[i])}</td>` : '') + '</tr>').join('');
+    return '<h4>Time</h4><div class="scroll-x"><table class="tsteps"><tr><th>Step</th><th class="n">s</th>' + (any ? '<th></th>' : '') + `</tr>${rows}` +
+      `<tr class="ttotal"><td>Total</td><td class="n">${fmt(q.time.total, 1)}</td>${any ? '<td></td>' : ''}</tr></table></div>`;
+  }
   // ---------- three.js scene viewer ----------
   let threeP = null;
   function loadThree() {
@@ -732,7 +758,7 @@
     const list = $('val-list'); list.innerHTML = '';
     const head = document.createElement('div');
     head.className = 'qhead';
-    head.innerHTML = '<span></span><span>Question</span><span class="qnums"><span class="qv">GT</span><span class="qv">Pred</span><span>Source</span></span><span class="qm">MRA</span>';
+    head.innerHTML = '<span></span><span>Question</span><span class="qnums"><span class="qv">GT</span><span class="qv">Pred</span><span>Source</span><span class="qv">Time</span></span><span class="qm">MRA</span>';
     if (items.length) list.appendChild(head);
     const frag = document.createDocumentFragment();
     items.forEach(({ q, v }) => frag.appendChild(questionCard(q, v)));
