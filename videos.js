@@ -20,14 +20,26 @@
   }
   function mraClass(m) { return m >= 0.8 ? 'm4' : m >= 0.6 ? 'm3' : m >= 0.4 ? 'm2' : m >= 0.2 ? 'm1' : 'm0'; }
   function mraBadge(m) { return isFinite(m) ? `<span class="mra ${mraClass(m)}">${fmt(m, 2)}</span>` : '<span class="muted">—</span>'; }
-  // ---------- summary: the listed questions (docs/DEV10.md) ----------
-  function valSummary(val) {
-    const all = val.questions;
-    $('val-mean').textContent = fmt(mean(all.map((q) => q.mra)), 2);
-    $('val-n').textContent = `${all.length} 题`;
+  // macro = mean over the four categories of the per-category mean (same as pipeline/metrics.evaluate)
+  function macro(qs) {
+    const vals = CATS.map((c) => mean(qs.filter((q) => q.cat === c).map((q) => q.mra))).filter((v) => isFinite(v));
+    return mean(vals);
+  }
+  // questions of the selected set (题集): DEV10 = docs/DEV10.md in its order, 全部 = every question of the run
+  function setQuestions() {
+    if ($('v-set').value !== 'dev') return DATA.val.questions;
+    const byId = Object.fromEntries(DATA.val.questions.map((q) => [q.id, q]));
+    return DATA.val.dev.map((id) => byId[id]);
+  }
+  // ---------- summary of the selected set: DEV10 mean MRA, 全部 macro MRA; per-category table ----------
+  function valSummary() {
+    const all = setQuestions(), dev = $('v-set').value === 'dev';
+    $('val-label').textContent = dev ? '平均 MRA' : 'macro MRA';
+    $('val-head').textContent = dev ? fmt(mean(all.map((q) => q.mra)), 2) : fmt(macro(all), 4);
+    $('val-n').textContent = `${all.length} 题 · ${new Set(all.map((q) => q.video)).size} 个视频`;
     const row = (label, qs, strong) => {
       const s = (x) => (strong ? `<b>${x}</b>` : x);
-      return `<tr><td>${s(label)}</td><td class="n">${s(qs.length)}</td><td class="n">${s(fmt(mean(qs.map((q) => q.mra)), 2))}</td></tr>`;
+      return `<tr><td>${s(label)}</td><td class="n">${s(qs.length)}</td><td class="n">${s(fmt(mean(qs.map((q) => q.mra)), dev ? 2 : 3))}</td></tr>`;
     };
     let h = '<tr><th>类别</th><th class="n">题数</th><th class="n">平均 MRA</th></tr>';
     CATS.forEach((c) => { h += row(c, all.filter((q) => q.cat === c)); });
@@ -723,28 +735,43 @@
     items.forEach(({ q, v }) => frag.appendChild(questionCard(q, v)));
     list.appendChild(frag);
   }
+  function fillSourceSelect(sel, videos) {
+    [...new Set(videos.map((v) => v.source))].sort().forEach((x) => { const o = document.createElement('option'); o.textContent = x; sel.appendChild(o); });
+  }
+  const matchText = (q, needle) => !needle || q.id.toLowerCase().includes(needle) || q.q.toLowerCase().includes(needle);
   function renderVal() {
-    const cat = $('v-cat').value, sort = $('v-sort').value, vids = DATA.val.vmap;
-    const items = DATA.val.questions.filter((q) => !cat || q.cat === cat).map((q) => ({ q, v: vids[q.video] }));
+    const cat = $('v-cat').value, src = $('v-src').value, vsrc = $('v-vsrc').value, mf = $('v-mra').value, sort = $('v-sort').value;
+    const needle = $('v-q').value.trim().toLowerCase(), vids = DATA.val.vmap;
+    const okM = (m) => !mf || (mf === 'lt0.2' ? m < 0.2 : mf === 'lt0.5' ? m < 0.5 : m >= 0.8);
+    // setQuestions() is already in set order (DEV10 order, or video then k)
+    const items = setQuestions().filter((q) => (!cat || q.cat === cat) && (!src || q.src === src) &&
+      (!vsrc || vids[q.video].source === vsrc) && okM(q.mra) && matchText(q, needle)).map((q) => ({ q, v: vids[q.video] }));
     const nanLast = (f) => (a, b) => (isNaN(a.q.mra) ? 1 : 0) - (isNaN(b.q.mra) ? 1 : 0) || f(a, b);
     if (sort === 'mra-asc') items.sort(nanLast((a, b) => a.q.mra - b.q.mra));
     else if (sort === 'mra-desc') items.sort(nanLast((a, b) => b.q.mra - a.q.mra));
+    else if (sort === 'cat') items.sort((a, b) => CATS.indexOf(a.q.cat) - CATS.indexOf(b.q.cat));
+    $('v-status').textContent = `${items.length} 题` + (items.length ? ` · 平均 MRA ${fmt(mean(items.map((x) => x.q.mra)), 2)}` : '');
     renderList(items);
   }
+  const renderAll = () => { valSummary(); renderVal(); };
+  function debounce(fn, ms) { let t = 0; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; }
 
   fetch('data/videos.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
     DATA = d;
     d.val.vmap = Object.fromEntries(d.val.videos.map((v) => [v.id, v]));
     $('gen').textContent = `${d.val.run} · ${d.generated}`;
-    valSummary(d.val);
-    ['v-cat', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
-    renderVal();
-    // deep link: #val/<video_id>_q<k> opens that question
+    fillSourceSelect($('v-vsrc'), d.val.videos);
+    $('v-set').addEventListener('change', renderAll);
+    ['v-cat', 'v-src', 'v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
+    $('v-q').addEventListener('input', debounce(renderVal, 200));
+    renderAll();
+    // deep link: #val/<video_id>_q<k> opens that question (switching to 全部 when it is not a DEV10 question)
     function openFromHash() {
       const m = decodeURIComponent(location.hash.slice(1)).match(/^val\/(.+)$/);
       if (!m || !DATA.val.questions.some((q) => q.id === m[1])) return;
-      $('v-cat').value = '';
-      renderVal();
+      if (!DATA.val.dev.includes(m[1])) $('v-set').value = '';
+      ['v-cat', 'v-src', 'v-vsrc', 'v-mra', 'v-q'].forEach((id) => { $(id).value = ''; });
+      renderAll();
       const card = [...$('val-list').querySelectorAll('details.qrow')].find((x) => x.dataset.id === m[1]);
       card.open = true; card.scrollIntoView();
     }

@@ -15,17 +15,17 @@ Inputs (relative to the repo root):
   outputs/scene_fit_eval/h_<tag>/agent/<unit>.json     saved scenes (per video: one per prior group)
   outputs/scenegraph_<tag>/<unit>.json                 scene graph cache
   outputs/tracks_<tag>/<unit>.json                     track cache (visible intervals per object)
-  docs/DEV10.md                                        development question set: the questions shown
+  docs/DEV10.md                                        development question set -> val "dev"
   web/data/runtime/<tag>/overlays.json                 overlays rendered for that version (images beside it)
 
 Overlays: the record web/data/runtime/<tag>/overlays.json lists every overlay of the version. Only the current version
 (pipeline/VERSION) may render the ones it lacks, with the current code; building an older version needs every overlay
 in its record, with its image on disk.
 
-The page shows the development question set only: the units of docs/DEV10.md, in that order; every one of them
-must have its row in the run's CSV. No other question of the run goes into videos.json.
+Every question of the run (every row of its CSV) goes into videos.json; "dev" lists the development question set
+(the units of docs/DEV10.md, in that order), each of which must have its row in the CSV.
 
-Layout: {"generated", "val": {"run", "unit", "videos", "questions"}}. With unit "video"
+Layout: {"generated", "val": {"run", "unit", "dev", "videos", "questions"}}. With unit "video"
 (the run fits one scene per video and prior group) a video carries its groups' scenes, its scene graph and tracks, and
 each question names its video and group. With unit "question" each question carries its own scene / scene graph /
 tracks / fit and a video carries none.
@@ -472,8 +472,15 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
     csv_path = ROOT / "outputs" / f"val_{tag}_answers.csv"
     if not csv_path.exists():
         raise ValueError(f"harness CSV missing: {csv_path}")
+    frame, manifest = pd.read_csv(csv_path), manifest_units()
+    if "row" not in frame:
+        raise ValueError("harness CSV lacks row identities")
+    ran = set(pd.to_numeric(frame["row"], errors="raise").astype(int))
     dev = dev_units()
-    df = harness_rows(pd.read_csv(csv_path), manifest_units(), dev)
+    missing = [u for u in dev if u not in set(manifest.loc[sorted(ran & set(manifest.index)), "unit"])]
+    if missing:
+        raise ValueError(f"docs/DEV10.md units not in {csv_path.name}: {missing}")
+    df = harness_rows(frame, manifest, [u for i, u in enumerate(manifest["unit"]) if i in ran])
     df["mra"] = [mra_row(p, g) for p, g in zip(df["pred"], df["answer"])]
     overlays = Overlays(tag)
     videos, questions = [], []
@@ -494,7 +501,9 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
                 groups = harness_groups(json.loads(scene_path.read_text()))
             elif record["execution_status"] != "failed":
                 raise ValueError(f"{vid}: scene missing for a run that did not fail: {scene_path.relative_to(ROOT)}")
-            video |= {"groups": [], "run_at": version["time"], "sgraph": sgraph(vid), "tracks": track_intervals(vid)}
+            video |= {"groups": [{"group": g["group"], "scene_id": g["state"]["scene_id"],
+                                  "scene": scene_view(g["state"], scene_path)} for g in groups],
+                      "run_at": version["time"], "sgraph": sgraph(vid), "tracks": track_intervals(vid)}
         else:
             video["run_at"] = version["time"]
         for row in rows.to_dict("records"):
@@ -533,19 +542,12 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
             if unit_kind == "question":
                 query |= {"scene": scene_view(state, scene_path), "sgraph": sgraph(unit), "tracks": track_intervals(unit)}
             query["tq"], query["tjump"] = question_times(query["q"], alignment)
-            # a shared group scene goes into the video once, only for the groups of the listed questions
-            if unit_kind == "video" and group and all(g["group"] != group["group"] for g in video["groups"]):
-                video["groups"].append({"group": group["group"], "scene_id": state["scene_id"],
-                                        "scene": scene_view(state, scene_path)})
             questions.append(query)
         videos.append(video)
     overlays.save()
-    order = {u: i for i, u in enumerate(dev)}
-    questions.sort(key=lambda q: order[q["id"]])
-    mra = [q["mra"] for q in questions]
-    print(f"harness {tag}: {len(questions)} DEV10 questions, {len(videos)} videos, mean MRA {np.mean(mra):.4f}; "
+    print(f"harness {tag}: {len(questions)} questions ({len(dev)} DEV10), {len(videos)} videos; "
           f"{overlays.added} overlays rendered")
-    return {"run": tag, "unit": unit_kind, "videos": videos, "questions": questions}
+    return {"run": tag, "unit": unit_kind, "dev": dev, "videos": videos, "questions": questions}
 
 
 def main():
