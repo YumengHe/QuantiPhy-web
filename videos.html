@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>视频与场景</title>
+<title>场景浏览</title>
 <meta name="robots" content="noindex, nofollow">
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -55,41 +55,47 @@
   .controls label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
   .controls select, .controls input { font: inherit; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
   .controls input[type="search"] { width: 200px; }
-  .status { color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
-  details.vid { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; }
-  details.vid > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 8px 12px; }
-  details.vid > summary::-webkit-details-marker { display: none; }
-  details.vid > summary::before { content: "▶"; font-size: 10px; color: var(--muted); transition: transform .15s; }
-  details.vid[open] > summary::before { transform: rotate(90deg); }
-  details.vid[open] > summary { border-bottom: 1px solid var(--border); }
-  .thumb { width: 96px; height: 54px; object-fit: cover; border-radius: 5px; background: var(--code-bg); flex: 0 0 96px; }
-  .vmeta { flex: 1 1 auto; min-width: 0; }
-  .vmeta .vid-id { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; }
-  .vmeta .sub { color: var(--muted); font-size: 13px; }
-  details.vid.no-scene > summary { opacity: .5; }
-  .tag { display: inline-block; font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-right: 4px; }
+  .status { color: var(--muted); font-size: 13px; margin: 6px 0 8px; font-variant-numeric: tabular-nums; }
+  .tag { display: inline-block; font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
   .mra { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px; border-radius: 6px; font-variant-numeric: tabular-nums; font-weight: 600; }
   .m4 { background: var(--m4); color: var(--m4t); } .m3 { background: var(--m3); color: var(--m3t); }
   .m2 { background: var(--m2); color: var(--m2t); } .m1 { background: var(--m1); color: var(--m1t); }
   .m0 { background: var(--m0); color: var(--m0t); }
-  .legend { font-size: 13px; color: var(--muted); }
-  .legend .mra { min-width: 0; font-weight: 500; margin-right: 4px; }
-  .vbody { padding: 12px 14px 16px; }
-  .vbody h4 { margin: 14px 0 6px; font-size: 15px; }
-  .vbody h4:first-child { margin-top: 0; }
-  .qtable td.q { min-width: 260px; }
-  .runtime-frames { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  .runtime-frame { width: min(360px, 100%); margin: 0; }
-  .runtime-frame img { width: 100%; border: 1px solid var(--border); border-radius: 5px; }
-  .runtime-frame figcaption, .scene-id { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
-  .runtime-diagnostics pre, .sfres pre { max-width: 640px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
-  .qtable .known { color: var(--muted); font-size: 12.5px; white-space: pre-wrap; margin-top: 3px; }
-  .known-shared { white-space: pre-wrap; font-size: 13px; color: var(--muted); background: var(--code-bg); border-radius: 6px; padding: 8px 10px; margin: 0 0 8px; }
-  .qtable td.pred { font-weight: 600; }
-  .media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 4px; }
+  /* question list: one row per unit <video_id>_q<k>; columns line up with the header row */
+  .qhead, details.qrow > summary { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto 56px; gap: 12px; align-items: center; }
+  .qnums { display: grid; grid-template-columns: 40px 72px 72px 72px; gap: 10px; align-items: center; }
+  #test-list .qhead, #test-list details.qrow > summary { grid-template-columns: 72px minmax(0, 1fr) auto; }
+  #test-list .qnums { grid-template-columns: 40px 72px; }
+  .qhead { padding: 0 13px 4px; font-size: 12.5px; color: var(--muted); }
+  .qv, .qm { text-align: right; font-variant-numeric: tabular-nums; }
+  .qv.pred { font-weight: 600; }
+  .qsrc { font-size: 13px; color: var(--muted); }
+  details.qrow { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin: 6px 0; }
+  details.qrow > summary { list-style: none; cursor: pointer; padding: 7px 12px; }
+  details.qrow > summary::-webkit-details-marker { display: none; }
+  details.qrow[open] > summary { border-bottom: 1px solid var(--border); }
+  details.qrow > summary:hover .qid { color: var(--accent); }
+  .thumb { width: 72px; height: 40px; object-fit: cover; border-radius: 5px; background: var(--code-bg); display: block; }
+  .qmain { min-width: 0; display: flex; flex-direction: column; }
+  .qid { font: 600 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .qtext { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  details.qrow[open] .qtext { display: none; }
+  .more { font: inherit; margin: 10px 0; padding: 6px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--accent); cursor: pointer; }
+  .qbody { padding: 12px 14px 16px; }
+  .qbody h4 { margin: 16px 0 6px; font-size: 15px; }
+  .qfull { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  ul.prior { list-style: none; margin: 0; padding: 8px 12px; background: var(--code-bg); border-radius: 8px; font-size: 13.5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  ul.prior li + li { margin-top: 2px; }
+  .runtime-frames { display: flex; flex-wrap: wrap; gap: 8px; }
+  .runtime-frame { width: min(420px, 100%); margin: 0; }
+  .runtime-frame img { width: 100%; display: block; border: 1px solid var(--border); border-radius: 5px; }
+  .runtime-frame figcaption { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sfres pre, .qbody td pre { max-width: 760px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; margin: 6px 0 0; }
+  .media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 4px; }
+  .media h4 { margin-top: 12px; }
   video.orig { display: block; width: 100%; height: 340px; background: #000; border: 1px solid var(--border); border-radius: 8px; object-fit: contain; }
   .vnote { font-size: 12.5px; margin: 6px 0 0; }
-  .vbody h4 code { overflow-wrap: anywhere; }
   .viewer { position: relative; width: 100%; height: 340px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--scene-bg); }
   .viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   .viewer .msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; padding: 12px; text-align: center; }
@@ -103,25 +109,34 @@
   .viewbar .seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .viewbar label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
   .viewbar label.off { opacity: .5; cursor: default; }
-  .viewbar .fwarn { color: #c0392b; }
+  .tq-btn { font: inherit; font-size: 12.5px; padding: 1px 9px; border: 1px solid #e8590c; border-radius: 6px; background: var(--panel); color: #e8590c; cursor: pointer; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .timebar { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted); }
-  .timebar input[type="range"] { flex: 1 1 auto; }
   .timebar .tq-track { position: relative; flex: 1 1 auto; display: flex; }
   .timebar .tq-track input[type="range"] { width: 100%; margin: 0; }
   .timebar:has(.tq-mark) { padding-bottom: 9px; }
+  .timebar button { font: inherit; padding: 2px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); cursor: pointer; }
   .tq-marks { position: absolute; left: 8px; right: 8px; bottom: -9px; height: 9px; }
   .tq-mark { position: absolute; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid #e8590c; cursor: pointer; }
-  .tq-btn { font: inherit; font-size: 12px; padding: 1px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--accent); cursor: pointer; white-space: nowrap; }
-  .qtable td.align-bad { color: #c0392b; font-weight: 600; }
-  .objtab td, .objtab th { font-size: 13.5px; }
-  .objtab .sigtag { white-space: normal; display: inline-block; margin: 1px 0; }
-  .objtab tr.obj-unmatched td { background: rgba(192, 57, 43, .08); }
-  .cstrip-wrap { margin: 10px 0 4px; font-size: 13px; }
+  .tlabel { font-variant-numeric: tabular-nums; }
+  .trk-wrap { font-size: 12.5px; max-width: 900px; }
+  .trk { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 10px; align-items: center; margin: 2px 0; }
+  .trk-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trk-bar { position: relative; height: 12px; background: var(--code-bg); border-radius: 3px; }
+  .trk-seg { position: absolute; top: 0; bottom: 0; border-radius: 3px; opacity: .85; }
+  .trk-tq { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: #e8590c; }
+  .trk-axis { display: flex; justify-content: space-between; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cstrip-wrap { margin: 8px 0 4px; font-size: 13px; color: var(--muted); }
   .cstrip { display: flex; gap: 1px; margin-top: 4px; }
   .cstrip span { flex: 1 1 0; height: 10px; min-width: 2px; border-radius: 1px; }
   .cstrip .ok { background: #2f9e44; } .cstrip .bad { background: #e03131; }
-  .sgwrap { margin: 6px 0 12px; }
-  .sg { display: block; max-width: 100%; height: auto; font-family: system-ui, sans-serif; }
+  table.fit { width: auto; min-width: 60%; margin-bottom: 10px; }
+  .facts { font-size: 13px; color: var(--muted); margin: 6px 0; font-variant-numeric: tabular-nums; }
+  td.align-bad { color: #c0392b; font-weight: 600; }
+  td.align-warn { color: #d9480f; font-weight: 600; }
+  .sigtag { font-size: 11.5px; padding: 0 6px; border-radius: 999px; background: rgba(217, 72, 15, .12); color: #d9480f; white-space: nowrap; }
+  .fwarn { color: #c0392b; }
+  .sgwrap { margin: 6px 0 12px; overflow-x: auto; }
+  .sg { display: block; max-width: none; height: auto; font-family: system-ui, sans-serif; }
   .sg .sge { fill: none; stroke: var(--muted); stroke-width: 1.4; }
   .sg .sge.stub { stroke-dasharray: 3 3; }
   .sg .sgs { fill: var(--panel); stroke: var(--muted); stroke-width: 1.3; }
@@ -134,24 +149,6 @@
   .sg .sgn.hold rect { fill: var(--hold-soft); stroke: var(--hold); }
   .sg .sgn.air rect { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
   .sg .sgn.air text { fill: var(--muted); font-weight: 500; }
-  .stree-wrap { margin: 4px 0; }
-  .stree { display: block; font-family: system-ui, sans-serif; }
-  .stree .nbox { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
-  .stree .nbox.support { fill: var(--code-bg); stroke: var(--muted); }
-  .stree .nbox.faint { stroke-dasharray: 5 4; opacity: .55; }
-  .stree .nbox.bad { stroke: #e03131 !important; stroke-width: 2.5; }
-  .stree .ntxt { font-size: 12.5px; font-weight: 600; fill: var(--text); }
-  .stree .nsub { font-size: 11px; fill: var(--muted); }
-  .stree .edge { fill: none; stroke: var(--muted); stroke-width: 1.6; }
-  .stree .edge.side { stroke: var(--accent); stroke-width: 1.3; }
-  .stree .edge.dashed { stroke-dasharray: 5 4; stroke: var(--muted); }
-  .stree .elab { fill: var(--panel); opacity: .92; }
-  .stree .etxt { font-size: 10.5px; fill: var(--text); }
-  .noans-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 8px 0 12px; }
-  .noans-tab td { font-size: 13.5px; }
-  .sigtag { font-size: 11.5px; padding: 0 6px; border-radius: 999px; background: rgba(217, 72, 15, .12); color: #d9480f; white-space: nowrap; }
-  .qtable td.align-warn { color: #d9480f; font-weight: 600; }
-  .timebar button { font: inherit; padding: 2px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); cursor: pointer; }
   .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; }
   .muted { color: var(--muted); }
   .topnav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; margin-bottom: 14px; }
@@ -162,18 +159,24 @@
   .dim-bound sup, .dim-prior { font-size: 10px; margin-left: 2px; color: var(--muted); }
   .vcount { position: absolute; left: 8px; top: 8px; z-index: 2; font: 600 12px system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.62); padding: 2px 7px; border-radius: 4px; pointer-events: none; }
   .vcount.bad { color: #ff8a80; }
-  .vright-row { display: flex; align-items: center; gap: 6px; }
-  .vright { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: none; }
-  .runat { font-size: 11.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .sg-list { margin: 0 0 6px; padding-left: 20px; font-size: 13.5px; line-height: 1.6; }
-  .sg-list .fwarn, .vbody td .fwarn { color: #c0392b; }
   .scroll-x { overflow-x: auto; }
   @media (max-width: 860px) {
     .wrap { padding: 18px 16px 60px; }
     .summary-grid, .media { grid-template-columns: minmax(0, 1fr); }
     video.orig { height: auto; max-height: 60vh; }
-    .thumb { width: 72px; height: 40px; flex-basis: 72px; }
-    .qtable td.q { min-width: 200px; }
+  }
+  @media (max-width: 640px) {
+    .qhead { display: none; }
+    details.qrow > summary, #test-list details.qrow > summary { grid-template-columns: 56px minmax(0, 1fr) auto; grid-template-areas: "th main m" "th nums nums"; gap: 4px 10px; }
+    .thumb { width: 56px; height: 32px; grid-area: th; align-self: start; margin-top: 3px; }
+    .qmain { grid-area: main; } .qm { grid-area: m; align-self: start; }
+    .qnums, #test-list .qnums { grid-area: nums; display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 13px; }
+    .qtext { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .qv[data-k]::before { content: attr(data-k) " "; color: var(--muted); font-weight: 400; }
+    .qbody { padding: 10px 10px 14px; }
+    .trk { grid-template-columns: 96px minmax(0, 1fr); }
+    .controls input[type="search"] { width: 100%; }
+    .controls label:has(input[type="search"]) { flex: 1 1 100%; }
   }
 </style>
 </head>
@@ -181,36 +184,34 @@
 <div class="wrap">
 <header>
   <nav class="topnav"><a href="index.html">首页</a><a href="pipeline.html">流水线</a><a href="videos.html">场景浏览</a></nav>
-  <h1>视频与场景</h1>
-  <p>逐个视频看原视频、重建的 3D 场景、物体表和每道题的答案来源。验证集有标准答案，显示 MRA；测试集只有预测。</p>
+  <h1>场景浏览</h1>
   <p id="gen" class="muted"></p>
 </header>
 
 <div class="tabs" role="tablist">
-  <button role="tab" id="tab-val" aria-selected="true" data-tab="val">验证集（有准确度）</button>
-  <button role="tab" id="tab-test" aria-selected="false" data-tab="test">测试集（只有预测）</button>
+  <button role="tab" id="tab-val" aria-selected="true" data-tab="val">验证集</button>
+  <button role="tab" id="tab-test" aria-selected="false" data-tab="test">测试集</button>
 </div>
 
 <div id="pane-val" role="tabpanel">
-  <div class="panel" id="val-summary" hidden>
+  <div class="panel">
     <div class="summary-grid">
       <div>
-        <div class="muted">macro MRA（四类各自平均后再平均）</div>
+        <div class="muted">macro MRA</div>
         <div class="big" id="val-macro">…</div>
-        <div class="muted" id="val-src-file"></div>
-        <p class="legend">MRA 着色：
-          <span class="mra m4">≥ 0.8</span><span class="mra m3">0.6–0.8</span><span class="mra m2">0.4–0.6</span><span class="mra m1">0.2–0.4</span><span class="mra m0">&lt; 0.2</span></p>
+        <div class="muted" id="val-n"></div>
       </div>
       <div class="scroll-x"><table id="val-sum"></table></div>
     </div>
   </div>
   <div class="controls">
+    <label>题集 <select id="v-set"><option value="">全部</option><option value="dev">DEV10</option></select></label>
     <label>类别 <select id="v-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
-    <label>答案来源 <select id="v-src"><option value="">全部</option><option value="scene">场景重放</option><option value="measurement">独立测量</option><option value="prior">显式先验</option><option value="unresolved">未解决</option><option value="execution_failed">执行失败</option></select></label>
+    <label>来源 <select id="v-src"><option value="">全部</option><option value="scene">场景重放</option><option value="measurement">独立测量</option><option value="prior">显式先验</option><option value="unresolved">未解决</option><option value="execution_failed">执行失败</option></select></label>
     <label>视频来源 <select id="v-vsrc"><option value="">全部</option></select></label>
-    <label>题目 MRA <select id="v-mra"><option value="">全部</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
-    <label>排序 <select id="v-sort"><option value="mra-asc" selected>平均 MRA 从低到高</option><option value="id">视频名</option><option value="mra-desc">平均 MRA 从高到低</option><option value="n-desc">题数从多到少</option></select></label>
-    <label><input type="search" id="v-q" placeholder="搜索视频名或问题"></label>
+    <label>MRA <select id="v-mra"><option value="">全部</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
+    <label>排序 <select id="v-sort"><option value="mra-asc" selected>MRA 从低到高</option><option value="mra-desc">MRA 从高到低</option><option value="cat">类别</option><option value="id">编号</option></select></label>
+    <label><input type="search" id="v-q" placeholder="编号或题目"></label>
   </div>
   <div class="status" id="v-status"></div>
   <div id="val-list"></div>
@@ -218,16 +219,15 @@
 
 <div id="pane-test" role="tabpanel" hidden>
   <div class="panel">
-    <div class="muted" id="test-src-file"></div>
+    <div class="muted" id="test-n"></div>
     <div class="scroll-x"><table id="test-sum"></table></div>
   </div>
   <div class="controls">
     <label>类别 <select id="t-cat"><option value="">全部</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
     <label>视频来源 <select id="t-vsrc"><option value="">全部</option></select></label>
     <label>3D 场景 <select id="t-fit"><option value="">全部</option><option value="yes">有</option><option value="no">没有</option></select></label>
-    <label>排序 <select id="t-sort"><option value="id">视频名</option><option value="n-desc">题数从多到少</option></select></label>
-    <label><input type="search" id="t-q" placeholder="搜索视频名或问题"></label>
-    <label title="只列出 3D 场景没给出可用值的题"><input type="checkbox" id="t-noans"> 只看没有答案的题</label>
+    <label><input type="checkbox" id="t-noans"> 场景没有值</label>
+    <label><input type="search" id="t-q" placeholder="编号或题目"></label>
   </div>
   <div id="t-noans-sum"></div>
   <div class="status" id="t-status"></div>

@@ -1,6 +1,7 @@
 """Build web/data/videos.json (+ first-frame thumbnails) for videos.html.
 
-Reads only existing outputs; never runs the pipeline.
+Reads only existing outputs; never runs the pipeline. The page lists one row per question; a question is the unit
+<video_id>_q<k> (k = its 1-based order among the video's rows of the split table, docs/PER_QUESTION.md).
 
   python -B web/tools/build_videos.py                      # validation from the current code version's harness run
   python -B web/tools/build_videos.py --val-run <tag>      # a specific harness run tag
@@ -11,12 +12,21 @@ Validation (inputs relative to the repo root, <tag> defaults to pipeline/VERSION
   outputs/harness/<tag>/answers/<video>.json           per-video answer records
   outputs/scene_fit_eval/h_<tag>/agent/               saved independent group scenes (3D scene state)
   outputs/scenegraph_<tag>/<video>.json                scene graph (pipeline.scenegraph.load) -> video "sgraph"
+  outputs/tracks_<tag>/<video>.json                    track cache -> video "tracks" (visible intervals per object)
+  docs/DEV10.md                                        development question set -> val "dev"
 Runtime overlays are offline renderings written under data/runtime/<tag>/.
+
+Layout: val = {"videos": [video-level artifacts], "questions": [one entry per unit]}. A question's "scene", "sgraph"
+and "tracks" are its own artifacts (outputs/scene_fit_eval/h_<tag>/agent/<unit>.json, scenegraph_<tag>/<unit>.json,
+tracks_<tag>/<unit>.json) once the pipeline runs per question; while they are null the page uses the video's (the
+scene of the question's prior group). A question carries only its own prior and its own scene result ("fit"); the
+shared group scene is stored without the per-question results.
 
 Every video is shown as a 3D scene; a video without a saved 3D scene gets a placeholder on the page.
 
-Test: without --test-sub the existing test block of videos.json is kept. With it, the predictions are row-aligned
-with load_split('test'); per-video scenes are written to data/scenes/test/<video>.json and fetched when a card opens.
+Test: without --test-sub the existing test block of videos.json is kept (brought to the same videos / questions
+layout). With it, the predictions are row-aligned with load_split('test'); per-video scenes are written to
+data/scenes/test/<video>.json and fetched when a question opens.
 
 The page plays the original videos from media/val and media/test (git-ignored symlinks, see video_info).
 
@@ -207,6 +217,16 @@ def question_times(q: str, meta: dict | None, scene: dict | None):
     return [num(t, 4) for t in times], num(jump, 4)
 
 
+def fit_row(r: dict, split: str) -> dict:
+    """One scene result (scene json "results" entry) as shown on the page."""
+    qual = r.get("quality") or {}
+    return {"q": r.get("question"), "obj": r.get("object"), "pred": num(r.get("pred")),
+            "method": r.get("method"), "answer": num(r.get("answer")) if split == "val" else None,
+            "mra": num(r.get("mra"), 3) if split == "val" else None,
+            "conf": num(qual.get("conf"), 3), "quality": {k: (num(v, 3) if isinstance(v, float) else v)
+                                                          for k, v in qual.items() if k != "conf"} or None}
+
+
 def scene_fit(split: str, vid: str, *, state=None, source_path=None):
     p = source_path or SCENE_DIRS[split] / f"{vid}.json"
     if state is None:
@@ -231,14 +251,7 @@ def scene_fit(split: str, vid: str, *, state=None, source_path=None):
                      "overhead": bool(o.get("overhead")), "events": ((o.get("ballistic") or {}).get("events") or [])[:12],
                      # bounce model / motion pieces are not a single parabola: sample the centre for the viewer
                      "path": sampled_path(o, j) if (o.get("ballistic") or o.get("segments")) else None})
-    res = []
-    for r in j.get("results") or []:
-        qual = r.get("quality") or {}
-        res.append({"q": r.get("question"), "obj": r.get("object"), "pred": num(r.get("pred")),
-                    "method": r.get("method"), "answer": num(r.get("answer")) if split == "val" else None,
-                    "mra": num(r.get("mra"), 3) if split == "val" else None,
-                    "conf": num(qual.get("conf"), 3), "quality": {k: (num(v, 3) if isinstance(v, float) else v)
-                                                                  for k, v in qual.items() if k != "conf"} or None})
+    res = [fit_row(r, split) for r in j.get("results") or []]
     # per question: the fitted object and the t_q alignment check (quality.align_tq), when the scene json has them
     q_meta = {r.get("question"): {"obj": r.get("object"), "align": align((r.get("quality") or {}).get("align_tq"))}
               for r in j.get("results") or [] if r.get("question")}
@@ -362,6 +375,22 @@ def bind_harness_question(row: dict, answers: list[dict], groups: list[dict]) ->
     return answer, group, None
 
 
+PREV_OVERLAYS: dict = {}   # (scene_id, t) -> overlay entry of the previous data/videos.json whose image exists
+
+
+def previous_overlays(data: dict) -> dict:
+    """Overlays already rendered for a run are reused, so rebuilding the page never re-renders a run's scenes with
+    a later renderer."""
+    val = data.get("val") or {}
+    qs = val.get("questions") or [q for v in val.get("videos") or [] for q in v.get("questions") or []]
+    out = {}
+    for q in qs:
+        for im in q.get("overlays") or q.get("runtime_overlays") or []:
+            if im.get("path") and (WEB / im["path"]).exists():
+                out[(im.get("scene_id"), float(im["t"]))] = im
+    return out
+
+
 def runtime_overlays(tag: str, vid: str, scene: dict, question: str, fps: float, duration: float) -> list[dict]:
     """Render saved state only; no fitting, assembly, model requests or GT inputs."""
     from pipeline.data import Video
@@ -379,6 +408,10 @@ def runtime_overlays(tag: str, vid: str, scene: dict, question: str, fps: float,
     outputs, video = [], None
     try:
         for t in times:
+            prev = PREV_OVERLAYS.get((scene.get("scene_id"), t))
+            if prev and f"/{tag}/{vid}/" in prev["path"]:
+                outputs.append(prev)
+                continue
             entry = {"t": t, "scene_id": scene.get("scene_id"), "renderer": "scene_state3d",
                      "renderer_version": renderer_version, "renderer_hash": renderer_hash}
             if not math.isfinite(t) or t < 0 or (duration and t > duration + 1 / max(fps, 1)):
@@ -431,6 +464,37 @@ def validate_harness_csv(frame: pd.DataFrame, manifest: pd.DataFrame) -> pd.Data
     return frame
 
 
+def unit_id(vid: str, k: int) -> str:
+    """The unit of one question: <video_id>_q<k>, k = its 1-based order among the video's rows of the split table."""
+    return f"{vid}_q{k}"
+
+
+def dev_units() -> list[str]:
+    """The development question set: the unit ids in the first column of the table in docs/DEV10.md."""
+    p = ROOT / "docs" / "DEV10.md"
+    return re.findall(r"^\|\s*(\S+_q\d+)\s*\|", p.read_text(), re.M) if p.exists() else []
+
+
+def own_scene(view: dict | None, row: dict) -> tuple[dict | None, dict | None]:
+    """(scene without per-question results, this question's result) — a shared scene must not show other questions'
+    answers; a per-question scene has exactly one result, its own."""
+    if not view:
+        return None, None
+    view = dict(view)
+    results = view.pop("results", None) or []
+    view.pop("q_meta", None)
+    own = [r for r in results if r.get("q") == row["question"]]
+    return view, (own[0] if len(own) == 1 else None)
+
+
+def unit_artifacts(tag: str, unit: str, row: dict) -> dict:
+    """A question's own scene / scene graph / tracks, once the pipeline runs per question (docs/PER_QUESTION.md §4).
+    None where the unit has no artifact of its own; the page then uses the video's."""
+    p = SCENE_DIRS["val"] / "agent" / f"{unit}.json"
+    scene, fit = own_scene(scene_fit("val", unit, source_path=p) if p.exists() else None, row)
+    return {"scene": scene, "fit": fit, "sgraph": sgraph(tag, unit), "tracks": track_intervals("val", unit) or None}
+
+
 def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
     """Display a completed harness CSV and its saved answers/groups without re-running anything."""
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", tag):
@@ -440,10 +504,11 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
         raise ValueError(f"completed full harness CSV is unavailable: {csv_path}")
     df = validate_harness_csv(pd.read_csv(csv_path), load_split("val"))
     df["mra"] = [mra_row(p, g) for p, g in zip(df["pred"], df["answer"])]
+    df["k"] = df.groupby("video_id", sort=False).cumcount() + 1
     ev = evaluate(df)
     SCENE_DIRS["val"] = ROOT / "outputs/scene_fit_eval" / f"h_{tag}"
     TRACKS_KIND["val"] = f"tracks_{tag}"
-    videos = []
+    videos, questions = [], []
     for vid, rows in df.groupby("video_id", sort=True):
         first = rows.iloc[0]
         answer_path = ROOT / "outputs/harness" / tag / "answers" / f"{vid}.json"
@@ -455,17 +520,15 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
         saved = json.loads(scene_path.read_text()) if scene_path.exists() else {}
         groups = harness_groups(saved) if saved else []
         duration, width, height, thumb = video_meta("val", vid, make_thumb)
-        compact = []
+        # the scene of each prior group, shared by the questions of that group (v1 fits per video and prior)
+        views = {}
         for group in groups:
             state = group["state"]
-            has_state = bool(state.get("scene_id"))
-            view = scene_fit("val", vid, state=state, source_path=scene_path) if has_state else None
-            compact.append({"group": group["group"], "prior": group["prior"], "depth_info": group["depth_info"],
-                            "scene_id": state.get("scene_id"), "version": state.get("version") or version,
-                            "scene": view, "critique": critique_summary(state),
-                            "display_projection": "approximate_legacy_viewer"})
-        questions = []
+            views[group["group"]] = scene_fit("val", vid, state=state, source_path=scene_path) if state.get("scene_id") else None
+        compact = [{"group": g["group"], "scene_id": g["state"].get("scene_id"),
+                    "scene": own_scene(views[g["group"]], {"question": None})[0]} for g in groups]
         for row in rows.to_dict("records"):
+            unit = unit_id(vid, int(row["k"]))
             answer, group, error = bind_harness_question(row, record.get("answers") or [], groups)
             answer = answer or {}
             state = group["state"] if group else {}
@@ -476,7 +539,9 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
             alignment = align(quality.get("align_tq") or result.get("align_tq"))
             diagnostic = (answer.get("measurement") or quality.get("measurement")) if group else None
             overlays = runtime_overlays(tag, vid, state, row["question"], float(first.fps), duration) if group else []
-            query = {"harness": True, "row": int(row["row"]), "cat": row["category"], "type": row["inference_type"],
+            own = unit_artifacts(tag, unit, row)
+            query = {"id": unit, "video": vid, "k": int(row["k"]), "row": int(row["row"]),
+                     "cat": row["category"], "type": row["inference_type"],
                      "q": row["question"], "prior": text(row.get("prior")), "depth": text(row.get("depth_info")),
                      "answer": num(row.get("answer")), "pred": num(row.get("pred")), "mra": num(row["mra"], 6),
                      "src": text(answer.get("source", row.get("source"))), "conf": num(answer.get("conf", row.get("conf")), 6),
@@ -484,31 +549,56 @@ def build_harness_val(tag: str, make_thumb: bool = False) -> dict:
                      "confidence_kind": text(answer.get("confidence_kind", row.get("confidence_kind"))) or None,
                      "status": text(answer.get("status", row.get("status"))), "method": answer.get("method", row.get("method")),
                      "scene_id": answer.get("scene_id") or text(row.get("scene_id")), "group": group["group"] if group else None,
-                     "binding_status": "matched" if group else "unavailable", "binding_error": error,
+                     "binding_error": error,
                      "measurement": diagnostic, "measurement_id": result.get("measurement_id"),
                      "measurement_record": (state.get("measurements") or {}).get(result.get("measurement_id")),
                      "provenance": answer.get("provenance"), "quality": quality, "align": alignment,
-                     "runtime_overlays": overlays, "version": version,
-                     "execution_status": record.get("execution_status", "unavailable")}
+                     "fit": own["fit"] or (fit_row(result, "val") if result else None),
+                     "overlays": overlays, "execution_status": record.get("execution_status", "unavailable"),
+                     # this question's own artifacts (per-question runs); null -> the video's / its group's
+                     "scene": own["scene"], "sgraph": own["sgraph"], "tracks": own["tracks"]}
             query["tq"], query["tjump"] = question_times(query["q"], {"align": alignment}, None)
             questions.append(query)
-        # No aggregate geometry: the browser must choose a complete independent group explicitly.
-        videos.append({"id": vid, "harness": True, "source": first.video_source, "video_type": first.video_type,
-                       "fps": num(first.fps), "cats": sorted(set(rows.category)), "duration": duration,
-                       "size": [width, height], "thumb": thumb, **video_info("val", vid), "groups": compact,
-                       "scene": None, "has_scene": any(g["scene"] for g in compact), "questions": questions,
-                       "execution_status": record.get("execution_status", "unavailable"),
-                       "run_at": version.get("time"), "objtab": None, "stree": None, "sgraph": sgraph(tag, vid)})
+        videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type,
+                       "fps": num(first.fps), "duration": duration, "size": [width, height], "thumb": thumb,
+                       **video_info("val", vid), "groups": compact, "run_at": version.get("time"),
+                       "sgraph": sgraph(tag, vid), "tracks": track_intervals("val", vid) or None})
     print(f"harness {tag}: {len(df)} questions, {len(videos)} videos, macro {ev['average']:.6f}")
-    return {"file": str(csv_path.relative_to(ROOT)), "macro": num(ev["average"], 8),
-            "per_cat": {c: num(ev[c], 8) for c in CATEGORIES}, "videos": videos}
+    dev = dev_units()
+    missing = sorted(set(dev) - {q["id"] for q in questions})
+    if missing:
+        raise ValueError(f"docs/DEV10.md units not in {csv_path.name}: {missing}")
+    return {"run": tag, "macro": num(ev["average"], 8), "per_cat": {c: num(ev[c], 8) for c in CATEGORIES},
+            "dev": dev, "videos": videos, "questions": questions}
+
+
+def test_layout(test: dict) -> dict:
+    """The test block in the videos / questions layout (an older block nests questions in videos): every question gets
+    its unit id and the reason the scene gave no value (test_noanswer), the predictions file name is not kept."""
+    test = {k: v for k, v in test.items() if k != "file"}
+    if "questions" in test:
+        return test
+    noans = {(x["vid"], x["row"]): x for x in (test.get("noans") or {}).get("rows") or []}
+    videos, questions = [], []
+    for v in test.get("videos") or []:
+        v = dict(v)
+        for k, q in enumerate(sorted(v.pop("questions", []), key=lambda q: q["row"]), 1):
+            na = noans.get((v["id"], q["row"]))
+            questions.append({"id": unit_id(v["id"], k), "video": v["id"], "k": k, **q,
+                              "noans": {"reason": na["reason"], "detail": na.get("detail") or None, "src": na.get("src")} if na else None})
+        for k in ("cats", "version"):   # an older block's per-video run label
+            v.pop(k, None)
+        videos.append(v)
+    noans_sum = {k: v for k, v in (test.get("noans") or {}).items() if k in ("by_cat", "by_reason", "total")} or None
+    return {**{k: v for k, v in test.items() if k not in ("videos", "noans")}, "noans": noans_sum,
+            "videos": videos, "questions": questions}
 
 
 def replace_validation(existing: dict, validation: dict) -> dict:
     """Keep the existing test block and all other top-level data when no --test-sub is given."""
     if "test" not in existing:
         raise ValueError("no --test-sub given and data/videos.json has no test block to keep")
-    return {**existing, "generated": date.today().isoformat(), "val": validation}
+    return {**existing, "generated": date.today().isoformat(), "val": validation, "test": test_layout(existing["test"])}
 
 
 TRACKS_KIND = {"val": "tracks", "test": "tracks"}   # track cache kind for the visible intervals (--test-tracks)
@@ -584,22 +674,23 @@ def build_test(make_thumb: bool):
         dur, w, h, thumb = video_meta("test", vid, make_thumb)
         sc = scene_fit("test", vid)
         n_fit += sc is not None
-        ref_file = None
-        if sc:   # kept out of videos.json (568 videos): written per video and fetched when the card opens
-            SCENES_TEST.mkdir(parents=True, exist_ok=True)
-            out = SCENES_TEST / f"{vid}.json"
-            out.write_text(json.dumps({"scene": sc}, ensure_ascii=False, separators=(",", ":")))
-            ref_file = str(out.relative_to(WEB))
         qs = [{"row": int(i) + 1, "cat": r.category, "type": r.inference_type, "q": r.question, "prior": text(r.prior),
                "depth": text(r.depth_info), "pred": num(r.pred)} for i, r in zip(g.index, g.itertuples())]
         for q in qs:
             q["tq"], q["tjump"] = question_times(q["q"], (sc or {}).get("q_meta", {}).get(q["q"]), sc)
+            q["fit"] = own_scene(sc, {"question": q["q"]})[1]
+        ref_file = None
+        if sc:   # kept out of videos.json (568 videos): written per video, without the per-question results
+            SCENES_TEST.mkdir(parents=True, exist_ok=True)
+            out = SCENES_TEST / f"{vid}.json"
+            out.write_text(json.dumps({"scene": own_scene(sc, {"question": None})[0]}, ensure_ascii=False, separators=(",", ":")))
+            ref_file = str(out.relative_to(WEB))
         videos.append({"id": vid, "source": first.video_source, "video_type": first.video_type, "fps": num(first.fps),
-                       "cats": sorted(set(g.category)), "duration": dur, "size": [w, h],
+                       "duration": dur, "size": [w, h],
                        "thumb": thumb, **video_info("test", vid), "scene": None, "scene_ref": ref_file,
                        "has_scene": sc is not None, **run_at("test", vid, TEST_CSV), "questions": qs})
     print(f"test: {len(ref)} questions, {len(videos)} videos, 3D scene {n_fit}/{len(videos)}")
-    return {"file": str(TEST_CSV), "videos": videos, "noans": test_noanswer(ref, TEST_ROUTE)}
+    return test_layout({"videos": videos, "noans": test_noanswer(ref, TEST_ROUTE)})
 
 
 def main():
@@ -622,6 +713,8 @@ def main():
     if args.test_tracks:
         TRACKS_KIND["test"] = args.test_tracks
     THUMBS.mkdir(parents=True, exist_ok=True)
+    if OUT.exists():
+        PREV_OVERLAYS.update(previous_overlays(json.loads(OUT.read_text())))
     validation = build_harness_val(args.val_run, args.rethumb)
     data = replace_validation(existing, validation) if not args.test_sub else {
         "generated": date.today().isoformat(), "val": validation, "test": build_test(args.rethumb)}
