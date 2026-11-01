@@ -48,8 +48,8 @@
   <div class="rail"></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
-  <a class="node fc" href="#s6"><b>6 Scene graph (per frame)</b><span class="m">Phases, release at the last hand contact, contacts; rotation phases kept only on a curved track; untracked objects left out; agent edits keep every physical state</span>
-    <span class="ck">segfit · fit.law · contact</span></a>
+  <a class="node fc" href="#s6"><b>6 Scene graph (per frame)</b><span class="m">Phases, release at the last hand contact, contacts; every edge tested by the builder, a failed span absorbed or unknown; untracked objects left out; agent edits keep every physical state</span>
+    <span class="ck">segfit · fit.law · contact · state</span></a>
   <div class="rail ret edit"><span>relation / main support</span></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
@@ -58,7 +58,7 @@
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
   <a class="node fc" href="#s8"><b>8 Physics-guided Fitting</b><span class="m">Camera, scale, motion laws per state, every measurement of the asked quantity</span>
-    <span class="ck">tracked · scale · visible · fit · segfit · gravity · contact · agree · constraints</span></a>
+    <span class="ck">tracked · scale · visible · fit · segfit · state · gravity · contact · agree · constraints</span></a>
   <div class="rail ret"><span>refit</span></div>
   <div class="ac fc"><div class="arrow"></div><span class="el">a check fails</span></div><div class="rail"></div>
 
@@ -278,22 +278,24 @@
     <li>Track events per object: moving, onset, turns; a swing period for hanging objects</li>
     <li>Each moving object on each of the 16 frames: the model chooses on &lt;support&gt; / airborne / held / hanging, and for an object whose whole track is not a straight line also orbiting / rotating about / pivoting about a centre</li>
     <li>Labels smoothed (majority of 3), merged into phases; boundaries snap to a track event</li>
-    <li>Rotation test <code>path_curve</code> on each rotation phase: the turning angle of the equivalent arc, θ = 4 atan(2s / L) from the sagitta s across the principal axis (minus 6σ of the track jitter). θ ≥ 30° <code>curved</code> → kept; 10–30° or &lt; 5 frames <code>untestable</code> → kept; θ &lt; 10° <code>straight</code> or a static centre → rejected, the phase takes its neighbour's relation (or is listed under <code>rejected</code>)</li>
-    <li>Free-fall test of airborne phases (a downward-accelerating fall), except for objects whose locomotion is flies / floats / orbits; hops kept with a parabola per hop</li>
+    <li>Rotation options are offered to the model only for a curved track (<code>path_curve</code>: the turning angle of the equivalent arc, θ = 4 atan(2s / L) from the sagitta s across the principal axis, minus 6σ of the track jitter)</li>
+    <li>Self-test (<code>builder.self_test</code>): after the phases are merged, every edge is tested over its own span by the same geometric tests as an agent edit (<code>state_test</code>: <code>on.region</code> + <code>on.no_hop</code>, <code>airborne.ballistic</code> per hop, <code>attached.pivot</code>, <code>orbit.conic</code>) and carries <code>test{name, result, why, values}</code>. σ<sub>mask</sub> is the larger of the static on-object calibration and the region's own boundary scale (1.4826 MAD of the upper-boundary row about its per-column median, in quadrature with one SAM 2 grid cell / √12). A hop whose centre stays within 3σ of its median on both axes fails (<code>airborne.static</code>); inclined supports use the region interior; the pivot is checked against the vertex of the quadratic y(x) with its standard error; a path that turns &lt; 180° is untestable as an orbit</li>
+    <li>A failed span merges into the previous, else the next, edge only if that edge's state re-tested over the joined span passes (<code>absorbed</code> on that edge); otherwise it is removed and listed in <code>unknown</code> with its test and reason (<code>state.unknown</code>); untestable spans stay</li>
     <li>Release at each held → airborne boundary: while the hand is seen touching the object on some frame of the release window, the release is the last frame of that hand-contact run, and a free-flight interval cannot move it earlier (<code>release.last_contact</code>); no touching frame → the free-flight interval (<code>release.free_flight</code>)</li>
     <li>Contacts between nearby boxes, kept on ≥ 2 frames; edges cut to the track's present intervals</li>
     <li>An object left untracked by its identity record (step 4) is not a node and has no edge; a holder or support it names stays a node</li>
-    <li>Agent edits (step 9, <code>scenegraph_set_relation</code>) may move a state boundary or change a state, never remove one: an edit that leaves an object with no motion state over an interval is rejected (<code>graph_edit.keeps_state</code>, result "rejected: …"). A state an edit sets (any relation but contact) is re-tested by the same geometric tests over its state run — the edited window joined with the touching edges of the same object, state and target — on the unit's own tracks, support masks and locomotion (<code>graph_edit.retest</code>); fail → rejected, "rejected (rule graph_edit.retest): …" with the test's name and numbers; pass / untestable → the edge is written with <code>test{name, result, why, values}</code></li>
+    <li>Agent edits (step 9, <code>scenegraph_set_relation</code>) may move a state boundary or change a state, never remove one: an edit that leaves an object with no motion state over an interval is rejected (<code>graph_edit.keeps_state</code>, result "rejected: …"). A state an edit sets (any relation but contact) is re-tested by the same geometric tests over its state run — the edited window joined with the touching edges of the same object, state and target — on the unit's own tracks, support masks and locomotion (<code>graph_edit.retest</code>); fail → rejected, "rejected (rule graph_edit.retest): …" with the test's name and numbers; pass / untestable → the edge is written with <code>test{name, result, why, values}</code>, and a tested state set over a builder-unknown span replaces that part of <code>unknown</code></li>
     <li>When step 8 loads the graph, an "above" edge of an object that is also on / in / held / attached / airborne at other times is airborne, so a flight it touches stays one ballistic piece (<code>above.airborne</code>; the edge keeps <code>was{rel, to}</code> and names its <code>rule</code>); an object whose edges are all "above" is an overhead structure and keeps them</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>scenegraph_&lt;tag&gt;/&lt;unit&gt;.json</code>: grid fields plus <code>events</code>, <code>per_frame{obj: [{t, label}]}</code>, edges with <code>geo</code>, <code>t_release</code>, <code>release_rule</code>, <code>release_why</code>, rotation edges with <code>curve{theta_deg, extent_px, n}</code>, <code>rejected</code>, <code>untracked{name: why}</code></li>
-    <li>Read by step 8 as the phases of each object (<code>motion_phases</code>): state and allowed models per phase, cut where its support changes</li>
+    <li><code>scenegraph_&lt;tag&gt;/&lt;unit&gt;.json</code>: grid fields plus <code>events</code>, <code>per_frame{obj: [{t, label}]}</code>, edges with <code>test</code>, <code>absorbed</code>, <code>t_release</code>, <code>release_rule</code>, <code>release_why</code>, rotation edges with <code>curve{theta_deg, extent_px, n}</code>, <code>untracked{name: why}</code>, <code>unknown[{from, rel, to, t_start, t_end, test, reason}]</code>, <code>self_test{tested, fail, merged, unknown}</code></li>
+    <li>Read by step 8 as the phases of each object (<code>motion_phases</code>): state and allowed models per phase, cut where its support changes and at every unknown span (before the first edge, between two edges, after the last)</li>
   </ul></dd>
   <dt>Checks</dt>
   <dd><ul>
     <li>Wrong phase state → wrong model set → <b>segfit</b> (no model of the state fits the piece)</li>
+    <li>An asked time inside an unknown span → <b>state</b></li>
     <li>A rotation phase kept or rejected wrongly → <b>fit.law</b> (rotation without the rotation law) or a circle where there is none</li>
     <li>A support change inside a motion piece → <b>contact</b> (the piece spans the change)</li>
     <li>Wrong <code>t_release</code> or phase bounds → <b>fit.piece</b>, <b>plausible</b> (passive_motion)</li>
@@ -385,13 +387,14 @@
 
 <h3>8.4 Motion law per state (<code>state_models</code>)</h3>
 <ol>
-  <li>Each object's track is cut into phases at its scene-graph support changes (step 6); within a phase the image track is split into pieces</li>
+  <li>Each object's track is cut into phases at its scene-graph support changes and unknown spans (step 6); within a phase the image track is split into pieces. An unknown phase has the kinematic set (static / constant velocity / constant acceleration), no support plane, and the physics chain does not run over it (<code>motion_law.unknown</code>)</li>
+  <li>Every boundary of a motion law — a release, the onset of a rest-then-move, a kick, a support change — is a scene-graph event (<code>events.graph</code>): <code>onset_t</code> / <code>turns_t</code> ± 1 track frame, a per-frame edge time ± one graph step, a release the graph's <code>t_release</code> interval; the event's own frame is always a candidate. The record names each one: <code>motion_law.events</code>, <code>physics.events_graph[{phase, event, t, window, precision, t_fit, kick}]</code></li>
   <li>The phase's state gives the candidate models: airborne → ballistic, unless locomotion is flies / floats / swims / orbits (then the kinematic set); a ballistic phase is one piece (no breakpoint inside it without a support change; a walker in a jump is in free flight), free in 3D, with a = g_scene along −up (8.5); on / in a support → static, constant velocity, constant acceleration in the support plane; held / attached → the holder's kinematic set; no edge → the kinematic set. A circle is a candidate only under a rotation relation</li>
   <li>Every object with a rotation plan gets the rotation law: plan mode rotation, no support plane, no gravity, each piece fitted with the circle among its candidates (<code>motion_law.rotation</code>)</li>
   <li>A hanging sphere → pendulum; a passive object → the physics chain (rest, bounce, flight, incline) when it fits within 1.5× the kinematic rms + 2 px</li>
 </ol>
 <p>Pendulum (<code>fit_pendulum</code>, <code>pendulum_checks</code>). When the ball's stated size is the scene's only scale source (size prior, no depth statement, no kinematic prior), log f in [0.3 W, 3 W] is a parameter of the pendulum least squares, solved jointly with the swing under the stated size (<code>f_free</code>); <code>scale.converged</code> passes when |D / D<sub>prior</sub> − 1| &lt; 3 % at that solution. <code>pendulum.period</code>: the string length the swing period implies at the fitted amplitude and damping, L<sub>T</sub> = g T₀² / (16 K(sin²(θ<sub>amp</sub>/2))²), T₀ = T √(1 − (cT/4π)²), agrees with the fitted L within 3√(σ₁² + σ₂²); σ<sub>T</sub> is the spread of the minima spacings over √n, at least the frame quantization.</p>
-<p><b>segfit</b> (<code>segfit_law</code>), per piece in image space: the model's time law fitted to the box centre on the test frames (first / last frame, border frames and frames overlapping another tracked box left out). A violation is a residual above max(3σ_c, q_b) — σ_c the axis' track noise / √2, q_b the quantization bound (q/2)·max_i Σ_j |(I − H)_ij| — on ≥ 3 consecutive test frames. A failing model gives way to the next candidate of the state; none fits → <b>segfit</b> fails. A ballistic piece is tested under g_scene: the projected box centre against the tracked one, bound 3 × the piece's centre noise / √2 (at least the quantization bound), fail on ≥ 3 consecutive test frames; a centre residual counts only beyond half the difference between the tracked and the projected box size on that axis. Its segfit entry carries <code>law{g, source, up}</code>.</p>
+<p><b>segfit</b> (<code>segfit_law</code>), per piece in image space: the model's time law fitted to the SAM 2 mask centroid on the test frames (<code>segfit.point</code>; first / last frame, border frames, frames overlapping another tracked box and frames without a mask centroid left out). A violation is a residual above max(3σ_c, q_b) — σ_c the centroid's own noise per axis, max(jitter, model scale), q_b the quantization bound of the centroid series (q/2)·max_i Σ_j |(I − H)_ij| — on ≥ 3 consecutive test frames. A failing model gives way to the next candidate of the state; none fits → <b>segfit</b> fails. A ballistic piece is tested under g_scene: the projected centre against the tracked mask centroid, bound 3σ_c (at least the quantization bound), fail on ≥ 3 consecutive test frames; a centre residual counts only beyond half the difference between the tracked and the projected box size on that axis. Its segfit entry carries <code>law{g, source, up}</code>.</p>
 
 <h3>8.5 Gravity</h3>
 <p>One gravity vector g_scene = −g · up for every passive airborne piece of the scene; up is the support plane normal, else the camera's −y (<code>gravity.up_source</code>).</p>
@@ -432,7 +435,8 @@
   <tr><td>scale</td><td>8.3; a pendulum scaled by its stated size: <code>scale.converged</code> (8.4); direct: <code>anchors</code>, an anchor not reproduced by the size series within 3√(σ_stated² + σ_frame²), or size ≤ b on a frame; the reason lists c, b and each anchor, stated against the series</td></tr>
   <tr><td>visible</td><td>The size comes from a prior or a bound, two sizes collapsed, an overhead height at the depth limit, the asked times outside the visible span; direct: boxes in the window touch the border</td></tr>
   <tr><td>fit</td><td>No fitted value or a degenerate one; <code>fit.frame</code>: the projection misses the tracked box at the asked frame (IoU &lt; 0.3); <code>fit.piece</code>: IoU &lt; 0.3 on ≥ 3 consecutive test frames of the answering piece; <code>fit.law</code>: an object rotating at the asked time fitted without the rotation law; <code>pendulum.period</code> (8.4) for a value read from a pendulum. Direct: the window's rms above its bound</td></tr>
-  <tr><td>segfit</td><td>8.4, on the piece that gives the value (a size: the longest piece)</td></tr>
+  <tr><td>segfit</td><td>8.4, on the piece(s) containing the asked time(s) or read for the value; a static size is not gated by it (<code>segfit.motion_only</code>)</td></tr>
+  <tr><td>state</td><td>An asked time inside an unknown span of the asked object (<code>state.unknown</code>), with the span and the removed edge's reason; a static size is not gated by it</td></tr>
   <tr><td>gravity</td><td>8.5</td></tr>
   <tr><td>contact</td><td>An object kept on the support plane leaves the fitted contact over 3 frames, or the answering piece spans a change of support</td></tr>
 </table></div>
@@ -460,9 +464,9 @@
   <dd><ol>
     <li><b>plausible</b> (<code>critic.scene_checks</code>): see the table below</li>
     <li>Evidence: 3D overlays at even times and at the asked time, a crop at the asked time, visibility-mismatch overlays; text: inventory, graph edges, prior, scale, the scene's gravity (g ± σ, source, each free-flight piece with its admissibility, the gravity checks), object dimensions (a bound dimension as its interval), failed checks with reasons, earlier rounds</li>
-    <li>Repair candidates from the failed checks: relation windows at the asked time, onset shifts, re-tracking an asked object failing <b>tracked</b> or an untracked scale object, <code>refit_free</code>, <code>limit_accel</code> for a self-propelled body beyond 1.5 g</li>
+    <li>Repair candidates from the failed checks: relation windows at the asked time, split at the graph's motion onset (an onset moves only through a re-tested graph edit); for a failed <b>state</b>, each other state (on a support, airborne, held) over the unknown span; re-tracking an asked object failing <b>tracked</b> or an untracked scale object, <code>refit_free</code>, <code>limit_accel</code> for a self-propelled body beyond 1.5 g</li>
     <li>Observe tools (≤ 6 per round): frames, crop, overlay, tracks_summary, depth_at, scene_json, self_check, question_values, visible_count, reference_measure, model options</li>
-    <li>Act tools (≤ 3 per round): re-track (<code>objects_set_count, objects_set_track, track_reselect, track_split_instance</code>) or refit (<code>scenegraph_set_relation, set_main_support, scene_mark_absent, scene_swap_axes, scene_set_support, scene_shift_onset, scene_refit_free, scene_set_plane, scene3d_try_fit_policy</code>)</li>
+    <li>Act tools (≤ 3 per round): re-track (<code>objects_set_count, objects_set_track, track_reselect, track_split_instance</code>) or refit (<code>scenegraph_set_relation, set_main_support, scene_mark_absent, scene_swap_axes, scene_set_support, scene_refit_free, scene_set_plane, scene3d_try_fit_policy</code>)</li>
     <li>Back up the caches, rebuild the affected steps, accept on frozen evidence or restore; stop on an accepted round with every check passing, 2 rounds without improvement, or 10 rounds</li>
     <li>The kept state (the last accepted round, else the initial fit) is saved with the graph and tracks that produced it; the answer reads that scene, and the answer record names it (<code>kept_state{iter, scenegraph, tracks}</code>)</li>
     <li>Model calls are memoized by request content, with option ids taken from the option text, so a rerun replays every unchanged call across code edits</li>
@@ -498,7 +502,7 @@
   <dt>Does</dt>
   <dd><ol>
     <li><b>replay</b>: the chosen value is evaluated again from the scene state; fails on no value or a non-measurement method</li>
-    <li>Checks = the result's (tracked, scale, visible, fit, segfit, contact, agree, constraints) + plausible + replay</li>
+    <li>Checks = the result's (tracked, scale, visible, fit, segfit, state, contact, agree, constraints) + plausible + replay</li>
     <li>All pass → <code>status: resolved</code>, <code>pred</code> = the chosen measurement's value, <code>source</code> scene (fit) or measurement (direct, endpoints, refmeasure)</li>
     <li>Any fails → <code>status: unresolved</code>, <code>pred: null</code> (MRA 0), the failed checks and every measurement kept</li>
   </ol></dd>

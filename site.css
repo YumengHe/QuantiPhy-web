@@ -165,3 +165,6 @@ table.rounds td .bad { color: var(--m1t, #8a1c12); }
 table.rounds tr:not(.chosen) td:last-child:not(.ok) { color: var(--muted); }
 table.rounds tr.chosen td { background: var(--accent-soft); }
 table.rounds tr.chosen td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+table.sgrel tr.absorbed td { color: var(--muted); }
+table.sgrel tr.absorbed td.bad, table.objs td.bad, table.objs span.bad { color: var(--m1t, #8a1c12); }
+table.objs td.ok { color: var(--muted); }

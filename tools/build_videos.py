@@ -98,6 +98,11 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            round kept, 0 = the initial fit) and "iterations" (the agent rounds with their tool results); a scene graph
 #            edge rewritten by scene_fit carries "was" {rel, to} and "rule"; every constraint residual has "stated"
 #            {text, digits, unit, sigma, source}; an identity class_size entry has "dims" {candidate, ref}
+#   selftest every scene graph edge has the builder's "test" and a merged one "absorbed" [{rel, to, t_start, t_end, test}];
+#            the graph has "unknown" [{from, rel, to, t_start, t_end, test, reason}] and "self_test" {tested, fail,
+#            merged, unknown} (rule builder.self_test); each scene object has "segfit" [piece] | null with "point" /
+#            "sigma" / "bound" / "rms" / "run" / "pass" (rule segfit.point), a physics record "events_graph" and a
+#            motion law "events" / "unknown" (rule events.graph)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -109,7 +114,7 @@ VERSION_FORMAT = {
            "steps": STEPS_V4},
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
-           "pendulum": True},
+           "pendulum": True, "selftest": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -215,6 +220,8 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
     edges = [{"from": text(req(e, "from", "edge")), "to": text(req(e, "to", "edge")) or None,   # null "to": airborne
               "rel": text(e["rel"]), "t0": num(req(e, "t_start", "edge"), 4), "t1": num(req(e, "t_end", "edge"), 4)}
              | ({"test": test_view(e["test"], f"edge {e.get('from')!r} {e.get('rel')!r}")} if "test" in e else {})
+             | ({"absorbed": [span_edge(x, f"edge {e.get('from')!r} {e.get('rel')!r} absorbed") for x in e["absorbed"]]}
+                if FMT.get("selftest") and e.get("absorbed") else {})
              for e in req(g, "edges", "scene graph cache") if req(e, "rel", "edge") in SUPPORT_RELS]
     nodes = [{"id": text(req(n, "id", "scene graph node")), "type": text(req(n, "type", "scene graph node"))}
              for n in req(g, "nodes", "scene graph cache")]
@@ -239,6 +246,14 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
             out["releases"] = list(rel.values())
         if unt:
             out["untracked"] = [[text(k), text(v)] for k, v in unt.items()]
+    if FMT.get("selftest"):
+        st = req(g, "self_test", "scene graph cache")
+        out["self_test"] = {k: int(req(st, k, "self_test")) for k in ("tested", "fail", "merged", "unknown")}
+        unk = [span_edge(x, "unknown span") | {"obj": text(req(x, "from", "unknown span")),
+                                                 "reason": text(req(x, "reason", "unknown span"))}
+               for x in req(g, "unknown", "scene graph cache")]
+        if unk:
+            out["unknown"] = unk
     if FMT.get("kept") and state is not None:
         rw = []
         for e in req(req(state, "scene_graph", "scene"), "edges", "scene graph"):
@@ -260,6 +275,12 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
 
 
 TEST_RESULTS = ("pass", "fail", "untestable")
+
+
+def span_edge(x: dict, what: str) -> dict:
+    """A tested span of a scene graph (an absorbed or unknown edge): {"rel", "to", "t0", "t1", "test"}."""
+    return {"rel": text(req(x, "rel", what)), "to": text(x.get("to")) or None, "t0": num(req(x, "t_start", what), 4),
+            "t1": num(req(x, "t_end", what), 4), "test": test_view(req(x, "test", what), what)}
 
 
 def test_view(t: dict, what: str) -> dict:
@@ -322,7 +343,46 @@ def motion_law(name: str, o: dict):
                "pieces": list(req(rot, "pieces", "rotation law")),
                "circle_candidate": bool(req(rot, "circle_candidate", "rotation law"))}
     phases = [[num(p[0], 4), text(p[1]), bool(p[2])] for p in law["phases"]] if law.get("phases") else None
-    return {"model": text(req(law, "model", f"object {name!r} motion law")), "rotation": rot, "phases": phases}
+    out = {"model": text(req(law, "model", f"object {name!r} motion law")), "rotation": rot, "phases": phases}
+    if FMT.get("selftest") and rot is None:
+        out["unknown"] = [[num(a, 4), None if b >= OPEN_END else num(b, 4)]
+                          for a, b in req(law, "unknown", f"object {name!r} motion law")] or None
+    return out
+
+
+OPEN_END = 1e8      # the scene json writes an open span end as +-1e9
+
+
+def segfit_view(name: str, o: dict):
+    """The motion-law test of each piece (rule segfit.point): {"model", "t0", "t1" (null: open), "point", "sigma",
+    "bound", "rms", "run", "n_test", "pass" (null: untestable)}; None when the object has no segfit record."""
+    sf = req(o, "segfit", f"scene object {name!r}")
+    if sf is None:
+        return None
+    out = []
+    for p in sf:
+        w = f"object {name!r} segfit piece"
+        t0, t1 = float(req(p, "t0", w)), float(req(p, "t1", w))
+        rms = req(p, "rms", w)
+        out.append({"model": text(req(p, "model", w)), "t0": None if t0 <= -OPEN_END else num(t0, 4),
+                    "t1": None if t1 >= OPEN_END else num(t1, 4), "point": text(req(p, "point", w)),
+                    "sigma": [num(x, 3) for x in req(p, "sigma", w)], "bound": [num(x, 3) for x in req(p, "bound", w)],
+                    "rms": None if rms is None else num(rms, 3), "run": int(req(p, "run", w)),
+                    "n_test": int(req(p, "n_test", w)), "pass": req(p, "pass", w)})
+    return out
+
+
+def events_view(name: str, o: dict):
+    """The boundaries of the physics chain, each a scene-graph event (rule events.graph): [{"phase", "event", "t",
+    "window", "precision", "t_fit", "kick"}]; None without a physics record."""
+    ph = req(o, "physics", f"scene object {name!r}")
+    if ph is None:
+        return None
+    w = f"object {name!r} physics events_graph"
+    return [{"phase": int(req(e, "phase", w)), "event": text(req(e, "event", w)), "t": num(e["t"], 4) if e.get("t") is not None else None,
+             "window": [num(x, 4) for x in e["window"]] if e.get("window") else None,
+             "precision": text(e.get("precision")) or None, "t_fit": num(req(e, "t_fit", w), 4), "kick": bool(req(e, "kick", w))}
+            for e in req(ph, "events_graph", w)] or None
 
 
 def align(a):
@@ -693,7 +753,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      # motion that is not a single parabola: sample the centre for the viewer
                      "path": sampled_path(o) if any(req(o, k, what) for k in FMT["paths"]) else None,
                      "visible": [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None,
-                     "pendulum": pendulum_view(req(o, "pendulum", what), what) if FMT.get("pendulum") else None})
+                     "pendulum": pendulum_view(req(o, "pendulum", what), what) if FMT.get("pendulum") else None}
+                    | ({"segfit": segfit_view(name, o), "events_graph": events_view(name, o)} if FMT.get("selftest") else {}))
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
             "scale": scale_view(j), "gravity": gravity_view(j),
             "main_support": req(j, "main_support", "scene"),

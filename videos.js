@@ -303,10 +303,17 @@
       sg.rewritten.map((e) => `<tr><td>${esc(e.obj)}</td><td>${esc(e.rel)}${e.to ? ` ${esc(e.to)}` : ''} ${span(e.t0, e.t1)}</td>` +
         `<td>${esc(e.was.rel)}${e.was.to ? ` ${esc(e.was.to)}` : ''}</td><td><code>${esc(e.rule)}</code></td></tr>`).join('') + '</table></div>' : '';
     const tested = sg.edges.filter((e) => e.test);
+    const edgeText = (e) => `${esc(e.rel)}${e.to ? ` ${esc(e.to)}` : ''} ${span(e.t0, e.t1)}`;
     const ts = tested.length ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th><th>Test</th><th></th><th></th></tr>' +
-      tested.map((e) => `<tr><td>${esc(e.from)}</td><td>${esc(e.rel)}${e.to ? ` ${esc(e.to)}` : ''} ${span(e.t0, e.t1)}</td>` +
-        `<td><code>${esc(e.test.name)}</code></td>${testCells(e.test)}</tr>`).join('') + '</table></div>' : '';
-    return tree || rel || unt || rw || ts ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${ts}${rel}${rw}${unt}` : '';
+      tested.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}</td>` +
+        `<td><code>${esc(e.test.name)}</code></td>${testCells(e.test)}</tr>` +
+        (e.absorbed || []).map((x) => `<tr class="absorbed"><td></td><td>↳ ${edgeText(x)}</td><td><code>${esc(x.test.name)}</code></td>${testCells(x.test)}</tr>`).join('')).join('') +
+      '</table></div>' : '';
+    const st = sg.self_test ? `<p class="facts"><code>builder.self_test</code> tested ${sg.self_test.tested} · fail ${sg.self_test.fail} · merged ${sg.self_test.merged} · unknown ${sg.self_test.unknown}</p>` : '';
+    const unk = sg.unknown ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Unknown span</th><th>Removed edge</th><th>Reason</th></tr>' +
+      sg.unknown.map((u) => `<tr><td>${esc(u.obj)}</td><td class="bad">${span(u.t0, u.t1)}</td><td>${esc(u.rel)}${u.to ? ` ${esc(u.to)}` : ''} <code>${esc(u.test.name)}</code></td>` +
+        `<td>${esc(u.reason)}</td></tr>`).join('') + '</table></div>' : '';
+    return tree || rel || unt || rw || ts || unk ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${unk}${rel}${rw}${unt}` : '';
   }
   // the geometric test of an agent state edit (rule graph_edit.retest): result and its reason
   function testCells(t) {
@@ -583,7 +590,7 @@
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
-        pendulumTable(s) +
+        segfitTable(s) + eventsTable(s) + pendulumTable(s) +
         `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}` +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' +
@@ -600,6 +607,29 @@
         quality: q.quality, provenance: q.provenance }, null, 2))}</pre></details>`;
     }
     return h;
+  }
+  // the motion-law test of every piece (rule segfit.point): tested point, its noise σ, bound, rms, run of failing frames
+  function segfitTable(s) {
+    const os = s.objects.filter((o) => o.segfit && o.segfit.length);
+    if (!os.length) return '';
+    const px = (a) => a.map((x) => fmtNum(x)).join(' / ');
+    return '<div class="scroll-x"><table class="objs segfit"><tr><th>Object</th><th>Piece</th><th>Law</th><th>Point</th><th class="n">σ (px)</th>' +
+      '<th class="n">Bound (px)</th><th class="n">rms (px)</th><th class="n">Run</th><th></th></tr>' +
+      os.map((o) => o.segfit.map((p, i) => `<tr><td>${i ? '' : esc(o.name)}</td><td>${span(p.t0, p.t1)}</td><td><code>${esc(p.model)}</code></td>` +
+        `<td>${esc(p.point)}</td><td class="n">${px(p.sigma)}</td><td class="n">${px(p.bound)}</td><td class="n">${p.rms == null ? '—' : fmtNum(p.rms)}</td>` +
+        `<td class="n">${p.run} / ${p.n_test}</td><td class="${p.pass === true ? 'ok' : p.pass === false ? 'bad' : 'muted'}">${p.pass === true ? 'pass' : p.pass === false ? 'fail' : 'untestable'}</td></tr>`).join('')).join('') +
+      '</table></div>';
+  }
+  // the boundaries of each physics chain, each a scene-graph event (rule events.graph)
+  function eventsTable(s) {
+    const os = s.objects.filter((o) => o.events_graph && o.events_graph.some((e) => e.t != null));
+    if (!os.length) return '';
+    return '<div class="scroll-x"><table class="objs events"><tr><th>Object</th><th class="n">Phase</th><th>Graph event</th><th class="n">t (s)</th>' +
+      '<th class="n">Window (s)</th><th>Precision</th><th class="n">t fit (s)</th><th>Kick</th></tr>' +
+      os.map((o) => o.events_graph.map((e, i) => `<tr><td>${i ? '' : esc(o.name)}</td><td class="n">${e.phase}</td><td>${esc(e.event)}</td>` +
+        `<td class="n">${e.t == null ? '—' : fmt(e.t, 3)}</td><td class="n">${e.window ? `${fmt(e.window[0], 3)}–${fmt(e.window[1], 3)}` : '—'}</td>` +
+        `<td>${esc(e.precision || '')}</td><td class="n">${fmt(e.t_fit, 3)}</td><td>${e.kick ? 'yes' : ''}</td></tr>`).join('')).join('') +
+      '</table></div>';
   }
   // pendulum objects (rules scale.converged / pendulum.period): fitted L, swing period, f solved with the stated size
   function pendulumTable(s) {
@@ -707,6 +737,7 @@
     const parts = [esc(l.model)];
     if (l.rotation) parts.push(`${esc(l.rotation.rel)} ${esc(l.rotation.target || 'a fixed point')}`, l.rotation.pieces.map(esc).join(' → '));
     if (l.phases) parts.push(l.phases.map(([t, st]) => `${esc(st)} ${fmt(t, 2)}`).join(', ') + ' s');
+    if (l.unknown) parts.push(`<span class="bad">unknown ${l.unknown.map(([a, b]) => span(a, b)).join(', ')}</span>`);
     return parts.join(' · ');
   }
   // wall time of the question's own run, per pipeline step (answer record "timing"); reused = served from a sibling
