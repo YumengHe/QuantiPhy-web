@@ -38,7 +38,7 @@
   <div class="rail dash"></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail dash"></div>
 
-  <a class="node fc" href="#s4"><b>4 Track</b><span class="m">GDINO candidates → model choice → SAM 2 → re-check, presence, verify</span>
+  <a class="node fc" href="#s4"><b>4 Track</b><span class="m">GDINO candidates → model choice → SAM 2 → identity judge, or untracked</span>
     <span class="ck">tracked</span></a>
   <div class="rail ret"><span>re-track</span></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
@@ -74,17 +74,17 @@
 <h2 id="time">Time per step</h2>
 <div class="scroll-x"><table class="tt">
   <tr><th>Step</th><th>Timing key</th><th class="n">Median (s)</th><th class="n">Min</th><th class="n">Max</th></tr>
-  <tr><td>1 Objects</td><td><code>objects</code></td><td class="n">0.8</td><td class="n">0.8</td><td class="n">0.9</td></tr>
-  <tr><td>2 Scene graph (grid)</td><td><code>scenegraph_grid</code></td><td class="n">1.3</td><td class="n">1.2</td><td class="n">1.5</td></tr>
-  <tr><td>3 Observe</td><td><code>observe</code></td><td class="n">8.9</td><td class="n">8.7</td><td class="n">28.0</td></tr>
-  <tr><td>4 Track</td><td><code>track</code></td><td class="n">71.8</td><td class="n">58.1</td><td class="n">137.2</td></tr>
-  <tr><td>5 Measure</td><td><code>measure</code></td><td class="n">7.4</td><td class="n">5.2</td><td class="n">29.0</td></tr>
-  <tr><td>6 Scene graph (per frame)</td><td><code>scenegraph_pf</code></td><td class="n">1.3</td><td class="n">0.7</td><td class="n">1.6</td></tr>
-  <tr><td>7 Ground</td><td><code>ground</code></td><td class="n">12.8</td><td class="n">5.7</td><td class="n">103.3</td></tr>
-  <tr><td>8 Physics-guided Fitting</td><td><code>scene</code></td><td class="n">89.1</td><td class="n">58.3</td><td class="n">298.8</td></tr>
-  <tr><td>9 Agent loop</td><td><code>agent</code></td><td class="n">274.1</td><td class="n">0.0</td><td class="n">859.9</td></tr>
+  <tr><td>1 Objects</td><td><code>objects</code></td><td class="n">1.1</td><td class="n">1.0</td><td class="n">1.2</td></tr>
+  <tr><td>2 Scene graph (grid)</td><td><code>scenegraph_grid</code></td><td class="n">1.9</td><td class="n">1.6</td><td class="n">1.9</td></tr>
+  <tr><td>3 Observe</td><td><code>observe</code></td><td class="n">7.6</td><td class="n">7.2</td><td class="n">15.6</td></tr>
+  <tr><td>4 Track</td><td><code>track</code></td><td class="n">168.5</td><td class="n">71.6</td><td class="n">350.9</td></tr>
+  <tr><td>5 Measure</td><td><code>measure</code></td><td class="n">5.0</td><td class="n">1.6</td><td class="n">85.8</td></tr>
+  <tr><td>6 Scene graph (per frame)</td><td><code>scenegraph_pf</code></td><td class="n">20.0</td><td class="n">1.0</td><td class="n">138.2</td></tr>
+  <tr><td>7 Ground</td><td><code>ground</code></td><td class="n">2.5</td><td class="n">1.4</td><td class="n">53.9</td></tr>
+  <tr><td>8 Physics-guided Fitting</td><td><code>scene</code></td><td class="n">81.8</td><td class="n">39.0</td><td class="n">1109.3</td></tr>
+  <tr><td>9 Agent loop</td><td><code>agent</code></td><td class="n">45.5</td><td class="n">0.0</td><td class="n">547.7</td></tr>
   <tr><td>10 Answer</td><td><code>answer</code></td><td class="n">0.0</td><td class="n">0.0</td><td class="n">0.0</td></tr>
-  <tr><td><b>Total</b></td><td><code>total_seconds</code></td><td class="n">545.1</td><td class="n">229.9</td><td class="n">1112.7</td></tr>
+  <tr><td><b>Total</b></td><td><code>total_seconds</code></td><td class="n">469.3</td><td class="n">232.7</td><td class="n">1340.0</td></tr>
 </table></div>
 <p class="muted small">The 10 questions of the v5gpt run (<code>outputs/harness/v5gpt/answers</code>, <code>timing.steps</code>); model calls replay from the run tag's memo where the request is unchanged.</p>
 
@@ -200,17 +200,25 @@
     <li>Filters: oversized boxes, a part outside its whole, a support that does not carry its objects, border boxes, boxes on another object's chosen box</li>
     <li><code>qwen_choose</code> picks one numbered candidate from a sheet with crops; count ≥ 2 gives distinct instances <code>"&lt;name&gt; #j"</code></li>
     <li>SAM 2 propagates each box forward and backward (memo shared across the video's units); mask → box, centroid, area</li>
-    <li>Prior re-check on 5 crops; motion check inside the motion window; choice check <code>VERIFY_PROMPT</code> on 3 frames, alternatives on a "no" majority</li>
+    <li>Identity judge: every candidate track (the chosen box, a prior re-check or motion-check replacement, an agent re-track, then the detector, model and zoomed-tile boxes) passes the same named checks in turn; the first that passes all of them is the track:
+      <ul>
+        <li><code>static</code>: an object asked about its motion, or a moving prior object, moves inside the motion window</li>
+        <li><code>verify</code>: <code>VERIFY_PROMPT</code> on 3 frames; a "no" majority rejects</li>
+        <li><code>class_size</code>: mask area × depth² against every accepted object, the median ratio inside the two classes' silhouette bounds (overhead view for objects moving on a ground that faces the camera, any view otherwise), each length widened 1.25×</li>
+        <li><code>presence</code>: 6 frames over the track; leading and trailing "no" runs cut by bisection; a "no" majority after the cut rejects</li>
+        <li><code>border</code>: a track on the image border in ≥ 90 % of its frames needs a clear "yes" majority</li>
+      </ul>
+      Every candidate rejected → the object is <code>untracked</code> in this question: no track, no detector or foreground fallback</li>
     <li>Merge into the run's cache; presence (absent / partial / visible) and per-object verification: shape, verify votes, relations, segments (jumps, area changes, gaps)</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>tracks_&lt;tag&gt;raw/&lt;unit&gt;.json</code> → <code>tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>tracks{name: {boxes, scores, centroids, areas}}</code>; <code>meta.choose</code>, <code>meta.recheck</code>, <code>meta.shared{sam2_hits, sam2_misses}</code></li>
+    <li><code>tracks_&lt;tag&gt;raw/&lt;unit&gt;.json</code> → <code>tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>tracks{name: {boxes, scores, centroids, areas}}</code>; <code>meta.choose</code>, <code>meta.recheck</code>, <code>meta.shared{sam2_hits, sam2_misses}</code>, <code>meta.identity{name: {candidates[{source, frame, box, n_frames, moves, votes, class_size, presence, border_frac, outcome, why}], chosen, untracked}}</code></li>
     <li><code>objects_&lt;tag&gt;_presence_v3/&lt;unit&gt;.json</code>; <code>trackcheck/tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>checks{name: {verified, suspect, reasons, votes, segments}}</code></li>
   </ul></dd>
   <dt>Checks</dt>
   <dd><ul>
-    <li>Fewer than 3 boxes, no box at the asked time, <code>verified: false</code>, or (direct) no minimal window around t → <b>tracked</b></li>
+    <li>An <code>untracked</code> object, fewer than 3 boxes, no box at the asked time, <code>verified: false</code>, or (direct) no minimal window around t → <b>tracked</b></li>
     <li>The scale object's track suspect → <b>plausible</b> (scale_reference) for a prior-scaled scene; its track check → <b>scale</b></li>
     <li>A track on the wrong object that passes verification shows up later: <b>agree</b> (fit and direct disagree), <b>plausible</b> (dims, accelerations)</li>
     <li>Boxes on the image border → <b>visible</b> (direct window), truncated dimensions</li>
@@ -329,8 +337,8 @@
   </ul></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_source, scale_source, support_plane, s, metric}</code>, <code>scale{s, source, object, checks, failed}</code>, <code>plane_ok</code>, <code>main_support</code></li>
-    <li><code>objects[name]</code>: dims, <code>dim_source</code>, p0, v0, a, segments, mode, <code>motion_law{model, phases | rotation{rel, target, pieces, circle_candidate}}</code>, <code>physics</code>, <code>pendulum</code>, support</li>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_source, scale_source, support_plane, s, metric}</code>, <code>scale{s, source, object, extent, checks, failed}</code>, <code>plane_ok</code>, <code>main_support</code></li>
+    <li><code>objects[name]</code>: dims, <code>dim_source</code> (observed / prior / bound), <code>dim_bounds{dim: [lo, hi | null]}</code>, p0, v0, a, segments, mode, <code>motion_law{model, phases | rotation{rel, target, pieces, circle_candidate}}</code>, <code>physics</code>, <code>pendulum</code>, support</li>
     <li><code>results[0]</code>: <code>measurements[]</code>, <code>chosen</code>, <code>selection</code>, <code>pred</code>, <code>method</code>, <code>source</code>, <code>checks</code>, <code>failed</code>, <code>quality.align_tq</code>, <code>quality.measurement.constraint_residuals[]</code></li>
   </ul></dd>
 </dl>
@@ -363,6 +371,7 @@
 </ol></div>
 <div><b>Without depth_info</b> (<code>prior_scale.calibrate_scale</code>)<ol>
   <li>s = prior / nominal, from a reference measurement (step 5.1) cast to 3D, gravity on free-flight windows, or the prior object's size or motion on the nominal scene; <code>scale.object</code> names the object</li>
+  <li>A size prior's nominal extent only on frames where the object's depth is observed (a depth sample on its mask, or a contact piece on the support plane that passes <code>fit.piece</code>); <code>scale.extent</code> counts the frames of each kind; none → <code>measured</code> fails</li>
   <li>All depths × s; fits run with f and the plane fixed</li>
 </ol></div>
 </div>
@@ -426,7 +435,7 @@
   <dt>Does</dt>
   <dd><ol>
     <li><b>plausible</b> (<code>critic.scene_checks</code>): see the table below</li>
-    <li>Evidence: 3D overlays at even times and at the asked time, a crop at the asked time, visibility-mismatch overlays; text: inventory, graph edges, prior, scale, failed checks with reasons, earlier rounds</li>
+    <li>Evidence: 3D overlays at even times and at the asked time, a crop at the asked time, visibility-mismatch overlays; text: inventory, graph edges, prior, scale, object dimensions (a bound dimension as its interval), failed checks with reasons, earlier rounds</li>
     <li>Repair candidates from the failed checks: relation windows at the asked time, onset shifts, re-tracking a suspect track, <code>refit_free</code>, <code>limit_accel</code> for a self-propelled body beyond 1.5 g</li>
     <li>Observe tools (≤ 6 per round): frames, crop, overlay, tracks_summary, depth_at, scene_json, self_check, question_values, visible_count, reference_measure, model options</li>
     <li>Act tools (≤ 3 per round): re-track (<code>objects_set_count, objects_set_track, track_reselect, track_split_instance</code>) or refit (<code>scenegraph_set_relation, set_main_support, scene_mark_absent, scene_swap_axes, scene_set_support, scene_shift_onset, scene_refit_free, scene_set_plane, scene3d_try_fit_policy</code>)</li>
@@ -450,7 +459,7 @@
   <tr><td>support_plane</td><td><code>plane_ok: false</code> while an object stands on or moves above it, and the normal is within 20° of the optical axis</td></tr>
   <tr><td>heights</td><td>An object "on X" floats or sinks more than max(5 cm, its size), or sits outside X's footprint; objects on one support differ in height by more than max(2 m, 20 × size)</td></tr>
   <tr><td>scale_reference</td><td>A reference measurement lies farther than value × f / px from the camera than its object; a prior-scaled scene whose scale object's track is suspect</td></tr>
-  <tr><td>dims</td><td>The largest fitted dimension is outside the class range widened 1.25×</td></tr>
+  <tr><td>dims</td><td>The largest dimension is outside the class range widened 1.25×; with a bound dimension it is the interval [max of the lower ends, max of the upper ends], failing only when the whole interval is outside</td></tr>
 </table></div>
 </section>
 

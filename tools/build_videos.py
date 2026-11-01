@@ -82,6 +82,10 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            bound, values} and "constraints" {failed_ids}, and the answer's "constraint_residuals" with sigma_stated /
 #            sigma_pred / bound / pass / testable; each scene object has a "motion_law")
 #   steps    the answer record's timing steps, in pipeline order (unit "question" only)
+#   identity the track cache has "meta"."identity" {name: {"candidates", "chosen", "untracked"}} (the track identity
+#            judge: static / verify / class_size / presence / border); each scene object has "dim_bounds"
+#            {dimension: [lo, hi | null]} for exactly its "bound" dimensions; a prior-scaled scene's "scale" names its
+#            source, and a prior-extent scale its "extent" (the frames and depth observations it was measured on)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -92,7 +96,7 @@ VERSION_FORMAT = {
     "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "checks",
            "steps": STEPS_V4},
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
-           "steps": STEPS_V5},
+           "steps": STEPS_V5, "identity": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -385,6 +389,85 @@ def agreement_view(result: dict, answer: dict, status: str) -> dict:
     return {"measurements": ms, "chosen": chosen, "agree": agree, "constraints": rows}
 
 
+def dim_bounds(name: str, o: dict):
+    """{dimension: [lo, hi | None]} of the object's "bound" dimensions (scene_fit rule D2a: an unobserved dimension is
+    an interval, never a value); None for versions without the field. Its keys must be exactly the bound dimensions."""
+    if not FMT.get("identity"):
+        return None
+    b = req(o, "dim_bounds", f"scene object {name!r}")
+    bound = {k for k, v in req(o, "dim_source", f"scene object {name!r}").items() if v == "bound"}
+    if set(b) != bound:
+        raise ValueError(f"{AT['where']}: object {name!r} dim_bounds {sorted(b)} differ from its bound dims {sorted(bound)}")
+    return {k: [num(lo), None if hi is None else num(hi)] for k, (lo, hi) in b.items()}
+
+
+def scale_view(state: dict):
+    """The scale of a prior-scaled scene: {"s", "source", "object", "prior", "how", "extent"} ("extent" for a
+    prior-extent scale: the frames and depth observations the nominal extent was measured on); None without one."""
+    if not FMT.get("identity"):
+        return None
+    sc = req(state, "scale", "scene")
+    if sc is None:
+        return None
+    src = text(req(sc, "source", "scale"))
+    ext = sc.get("extent")
+    if src == "prior_object_extent" and not ext:
+        raise ValueError(f"{AT['where']}: prior-extent scale without its 'extent'")
+    return {"s": num(req(sc, "s", "scale")), "source": src, "object": text(sc.get("object")) or None,
+            "prior": text(req(sc, "prior", "scale")), "how": text(req(sc, "how", "scale")), "extent": text(ext) or None}
+
+
+def dims_check(state: dict) -> list[dict]:
+    """plausible.dims per object (pipeline.critic, rule D2a): the largest dimension as an interval [lo, hi | None]
+    (a bound dimension contributes its dim_bounds interval) against the class range widened by critic.SIZE_MARGIN;
+    fails only when the whole interval is outside. Recomputed from the saved scene and checked against the scene's
+    own checks.plausible.parts.dims."""
+    from pipeline.critic import SIZE_MARGIN, _class_range, _size_interval
+    rows = []
+    for name, o in req(state, "objects", "scene").items():
+        lo, hi, _ = _size_interval(o)
+        rng = _class_range(name)
+        tested = rng is not None and not (hi is not None and hi <= 0)
+        ok = not tested or not (lo > rng[1] * SIZE_MARGIN or (hi is not None and hi < rng[0] / SIZE_MARGIN))
+        rows.append({"obj": name, "lo": num(lo), "hi": None if hi is None else num(hi),
+                     "range": [num(rng[0] / SIZE_MARGIN), num(rng[1] * SIZE_MARGIN)] if tested else None, "pass": ok})
+    part = req(req(req(req(state, "checks", "scene"), "plausible", "scene checks"), "parts", "plausible"), "dims", "plausible parts")
+    if req(part, "pass", "plausible.dims") != all(r["pass"] for r in rows):
+        raise ValueError(f"{AT['where']}: plausible.dims {part['pass']} differs from the recomputed intervals {rows}")
+    return rows
+
+
+def identity_view(key: str) -> dict:
+    """The track identity judge of every object (track cache "meta"."identity"): its candidates in the order they were
+    judged, with the outcome and why; the chosen one, or why the object is untracked."""
+    j = unit_json("tracks", key, "track cache")
+    out = {}
+    for name, v in req(req(j, "meta", "track cache"), "identity", "track cache meta").items():
+        w = f"identity of {name!r}"
+        cands, chosen, untracked = req(v, "candidates", w), req(v, "chosen", w), req(v, "untracked", w)
+        if (chosen is None) == (untracked is None):
+            raise ValueError(f"{AT['where']}: {w} has chosen {chosen!r} and untracked {untracked!r}")
+        if chosen is not None and req(cands[chosen], "outcome", w) != "accepted":
+            raise ValueError(f"{AT['where']}: {w} chose candidate {chosen}, outcome {cands[chosen]['outcome']!r}")
+        rows = []
+        for c in cands:
+            pres, mv = c.get("presence"), c.get("moves")
+            rows.append({"source": text(req(c, "source", w)), "frame": req(c, "frame", w),
+                         "box": [round(float(x)) for x in c["box"]] if req(c, "box", w) else None,
+                         "n": req(c, "n_frames", w), "px": num(mv["px"], 3) if mv else None,
+                         "moves": bool(mv["moves"]) if mv else None,
+                         "votes": list(c["votes"]) if c.get("votes") else None,
+                         "size": [{"ref": text(x["ref"]), "ratio": num(x["ratio"], 3),
+                                   "bounds": [num(b, 3) if b is not None else None for b in x["bounds"]],
+                                   "view": text(x["view"]).split(" (")[0], "pass": bool(x["pass"])}
+                                  for x in c.get("class_size") or []],
+                         "span": [pres["first"], pres["last"]] if pres and pres.get("pass") else None,
+                         "border": num(c["border_frac"], 2) if c.get("border_frac") is not None else None,
+                         "outcome": text(req(c, "outcome", w)), "why": text(c.get("why")) or None})
+        out[name] = {"candidates": rows, "chosen": chosen, "untracked": text(untracked) or None}
+    return out
+
+
 def scene_view(state: dict, source_path: Path) -> dict:
     """A saved scene as the page draws it, without the per-question results (a shared scene must not show other
     questions' answers)."""
@@ -404,7 +487,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      "rms": num(req(o, "rms", what), 3), "p0": vec(req(o, "p0", what)), "v0": vec(req(o, "v0", what)),
                      "a": vec(req(o, "a", what)), "yaw": num(req(o, "yaw", what), 5), "t_on": num(req(o, "t_on", what), 5),
                      # where each dimension comes from: observed / prior / bound (not seen, anti-collapse floor)
-                     "dim_source": req(o, "dim_source", what), "support": req(o, "support", what),
+                     "dim_source": req(o, "dim_source", what), "dim_bounds": dim_bounds(name, o),
+                     "support": req(o, "support", what),
                      "hang": req(o, "hang", what), "mode": req(o, "mode", what),
                      "out_of_frame": req(o, "out_of_frame", what), "visibility": req(o, "visibility", what),
                      "overhead": bool(req(o, "overhead", what)), "events": motion_events(name, o)[:12],
@@ -413,6 +497,7 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      "path": sampled_path(o) if any(req(o, k, what) for k in FMT["paths"]) else None,
                      "visible": [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None})
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
+            "scale": scale_view(j),
             "main_support": req(j, "main_support", "scene"),
             "f_source": text(req(j, "f_source", "scene")) or None, "f_first": req(j, "f_first", "scene"),
             # an empty vote list is legitimate (no focal vote taken): written as null
@@ -805,6 +890,9 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
             if unit_kind == "question":
                 query |= {"scene": scene_view(state, DIRS["scenes"] / f"{unit}.json") if state is not None else None,
                           "sgraph": sgraph(unit), "tracks": track_intervals(unit)}
+                if FMT.get("identity"):
+                    query |= {"identity": identity_view(unit),
+                              "dims_check": dims_check(state) if state is not None else None}
             query["tq"], query["tjump"] = question_times(query["q"], alignment)
             questions.append(query)
     overlays.save()

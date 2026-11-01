@@ -193,7 +193,7 @@
 
   // tracked intervals per object on the video's time axis; the question's times as vertical lines
   function trackBlock(tracks, v, q) {
-    if (!tracks || !Object.keys(tracks).length) return '';
+    if (!tracks || !Object.keys(tracks).length) return q.identity ? '<h4>Tracks</h4>' + identityBlock(q.identity) : '';
     const T = v.duration;
     const order = v.scene ? v.scene.objects.map((o) => o.name) : [];
     const pct = (t) => `${(100 * Math.min(Math.max(t / T, 0), 1)).toFixed(2)}%`;
@@ -203,7 +203,32 @@
       const segs = (ivs || []).map(([a, b]) => `<span class="trk-seg" style="left:${pct(a)};width:calc(${pct(b)} - ${pct(a)} + 2px);background:${col}" title="${fmt(a, 2)}–${fmt(b, 2)} s"></span>`).join('');
       return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${lines}</span></div>`;
     }).join('');
-    return `<h4>Tracks</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>`;
+    return `<h4>Tracks</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>` +
+      identityBlock(q.identity);
+  }
+  // the track identity judge per object: every candidate in the order judged (static / verify / class_size /
+  // presence / border), the accepted one carrying the accent bar; an untracked object spans the row with its reason
+  function identityBlock(idt) {
+    if (!idt) return '';
+    const sizeCell = (c) => c.size.map((x) => `<div class="${x.pass ? '' : 'bad'}">${fmtNum(x.ratio)} ${interval(x.bounds[0], x.bounds[1])} ${esc(x.ref)}</div>`).join('');
+    const rows = Object.entries(idt).map(([name, v]) => {
+      const n = v.candidates.length + (v.untracked ? 1 : 0);
+      const cand = v.candidates.map((c, i) => {
+        const rej = c.outcome !== 'accepted', check = rej ? c.outcome.replace(/^rejected:\s*/, '') : '';
+        // the failing check's own column is marked; the reason text only where no column carries it
+        const why = c.why && !['static', 'verify', 'class_size'].includes(check) ? `<div>${esc(c.why)}</div>` : '';
+        const bad = (k) => (check === k ? ' bad' : '');
+        return `<tr class="${i === v.chosen ? 'chosen' : ''}${rej ? ' rej' : ''}">` + (i === 0 ? `<td rowspan="${n}" class="iobj">${esc(name)}</td>` : '') +
+          `<td class="n">${i}</td><td>${esc(c.source)}${c.frame != null ? ` <span class="muted">f${c.frame}</span>` : ''}</td><td class="n">${c.n}</td>` +
+          `<td class="n${bad('static')}">${c.px != null ? fmtNum(c.px) : ''}</td><td class="${bad('verify')}">${c.votes ? esc(c.votes.join(' ')) : ''}</td><td class="isize">${sizeCell(c)}</td>` +
+          `<td class="n${bad('presence')}">${c.span ? `${c.span[0]}–${c.span[1]}` : ''}</td><td class="n${bad('border')}">${c.border != null ? fmt(c.border, 2) : ''}</td>` +
+          `<td class="${rej ? 'bad' : 'ok'}">${esc(check || c.outcome)}${why}</td></tr>`;
+      }).join('');
+      const un = v.untracked ? `<tr class="untracked">${v.candidates.length ? '' : `<td class="iobj">${esc(name)}</td>`}<td colspan="9" class="bad">${esc(v.untracked)}</td></tr>` : '';
+      return cand + un;
+    }).join('');
+    return '<div class="scroll-x"><table class="ident"><tr><th>Object</th><th class="n">#</th><th>Candidate</th><th class="n">Frames</th><th class="n">Moves (px)</th>' +
+      `<th>Verify</th><th>Class size</th><th class="n">Present</th><th class="n">Border</th><th>Outcome</th></tr>${rows}</table></div>`;
   }
 
   // ---------- time axis of the 3D viewer ----------
@@ -434,19 +459,19 @@
   }
 
   // ---------- reconstruction: the question's own scene value, the fitted objects ----------
-  // one dimension with its source (scene_fit dim_source): observed = plain, prior = tagged, bound = grey (not seen)
-  function dimCell(o, key, prefix = '') {
-    const d = o.dims, src = o.dim_source[key];
-    const v = prefix + fmtNum(d[key]);
-    if (src === 'bound') return `<span class="dim-bound" title="seen by neither box nor depth: anti-collapse lower bound">${v}<sup>unseen</sup></span>`;
-    if (src === 'prior') return `<span>${v}<sup class="dim-prior">prior</sup></span>`;
-    return v;
-  }
-  function dimsText(o) {
-    if (o.shape === 'sphere') return [dimCell(o, 'D', 'D '), '', ''];
-    if (o.shape === 'cylinder') return [dimCell(o, 'D', 'D '), '', dimCell(o, 'H')];
-    if (o.shape === 'rope') return [dimCell(o, 'L', 'length '), '', ''];
-    return [dimCell(o, 'L'), dimCell(o, 'W'), dimCell(o, 'H')];
+  // an object's dimensions in three columns by source (scene_fit dim_source): observed, prior, bound; a bound
+  // dimension is the interval its observations allow (dim_bounds), never a value
+  const DIM_SOURCES = ['observed', 'prior', 'bound'];
+  const interval = (lo, hi) => `[${fmtNum(lo)}, ${hi == null ? '∞)' : fmtNum(hi) + ']'}`;
+  function dimsBySource(o) {
+    const keys = { sphere: ['D'], cylinder: ['D', 'H'], rope: ['L'] }[o.shape] || ['L', 'W', 'H'];
+    const out = { observed: [], prior: [], bound: [] };
+    keys.forEach((k) => {
+      const src = o.dim_source[k], b = o.dim_bounds && o.dim_bounds[k];
+      if (!(src in out)) throw new Error(`${o.name}: dim_source ${k} = ${src}`);
+      out[src].push(`<span class="dim">${k} ${src === 'bound' && b ? interval(b[0], b[1]) : fmtNum(o.dims[k])}</span>`);
+    });
+    return out;
   }
   function supportText(o) {
     const sp = o.support;
@@ -509,18 +534,20 @@
     if (s) {
       const hasSup = s.objects.some((o) => o.support), hasVis = s.objects.some((o) => o.visible);
       const hasLaw = s.objects.some((o) => o.law);
+      const dims = s.objects.map(dimsBySource), cols = DIM_SOURCES.filter((k) => dims.some((d) => d[k].length));
       const rows = s.objects.map((o, i) => {
-        const [L, W, H] = dimsText(o);
         return `<tr><td><span class="swatch" style="background:${PALETTE[i % PALETTE.length]}"></span></td><td>${esc(o.name)}</td><td>${SHAPE_LABEL[o.shape] || esc(o.shape)}</td>` +
-          `<td class="n">${L}</td><td class="n">${W}</td><td class="n">${H}</td>` + (hasSup ? `<td>${esc(supportText(o))}</td>` : '') +
+          cols.map((k) => `<td class="dims dims-${k}">${dims[i][k].join('')}</td>`).join('') + (hasSup ? `<td>${esc(supportText(o))}</td>` : '') +
           (hasLaw ? `<td>${lawText(o.law)}</td>` : '') +
           (hasVis ? `<td>${o.visible ? o.visible.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ') + ' s' : '<span class="muted">—</span>'}</td>` : '') +
           `<td class="n">${fmt(o.rms, 1)}</td></tr>`;
       }).join('');
-      h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th><th class="n">L (m)</th><th class="n">W (m)</th><th class="n">H (m)</th>` +
+      h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
         `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}` +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + focalVotes(s);
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' +
+        (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` : '') +
+        focalVotes(s);
     }
     if (q.measurement || q.provenance || q.quality) {
       h += `<details class="sfres"><summary>Diagnostics</summary><pre>${esc(JSON.stringify({
@@ -571,8 +598,16 @@
     }
     h += `<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>` +
       q.checks.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.which || c.name)}</code></td>` +
-        `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}</td></tr>`).join('') + '</table></div>';
+        `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}${c.name === 'plausible' ? dimsCheck(q.dims_check) : ''}</td></tr>`).join('') + '</table></div>';
     return h;
+  }
+  // plausible.dims: each object's largest dimension (an interval when a dimension is bound) against its class range
+  function dimsCheck(rows) {
+    if (!rows || !rows.length) return '';
+    return '<table class="dimchk"><tr><th>Object</th><th class="n">Largest dimension (m)</th><th class="n">Class range (m)</th></tr>' +
+      rows.map((r) => `<tr class="${r.pass ? '' : 'bad'}"><td>${esc(r.obj)}</td>` +
+        `<td class="n">${r.hi === r.lo ? fmtNum(r.lo) : interval(r.lo, r.hi)}</td>` +
+        `<td class="n">${r.range ? interval(r.range[0], r.range[1]) : '<span class="muted">—</span>'}</td></tr>`).join('') + '</table>';
   }
   // a scene object's motion law (v5 motion_law): the law, its rotation relation and pieces, or its state phases
   function lawText(l) {
