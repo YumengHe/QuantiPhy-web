@@ -625,6 +625,16 @@
         `<td class="n">${x.rms != null ? fmt(x.rms, 1) : ''}</td><td>${esc(x.law)}</td><td>${x.used ? 'used' : esc(x.why)}</td></tr>`).join('') +
       '</table></div>';
   }
+  // camera.f before the fusion replaced it (rule C1a camera.fused)
+  function wasText(fz) {
+    if (!fz) return '';
+    return `, was ${fz.was.f != null ? fmtNum(fz.was.f) + ' ' : ''}${esc(fz.was.source)}`;
+  }
+  // objects whose agency is unknown cast no gravity focal vote (rule agency.unknown)
+  function agencyUnknown(cam) {
+    if (!cam || !cam.agency_unknown) return '';
+    return cam.agency_unknown.map((x) => `<p class="facts muted"><code>agency.unknown</code> ${esc(x.object)} · ${esc(x.why)}</p>`).join('');
+  }
   const res3 = (p) => (p === true ? 'pass' : p === false ? 'fail' : 'untestable');
   const cls3 = (p) => (p === true ? 'ok' : p === false ? 'bad' : 'muted');
   // the focal length each prior or pendulum implies against the scene camera (rule C3a focal.consistent)
@@ -721,6 +731,7 @@
     const f = q.fit, s = v.scene;
     let h = '<h4>Reconstruction</h4>';
     if (q.binding_error) h += `<p class="fwarn">${esc(q.binding_error)}</p>`;
+    if (q.error) return h + `<p class="fwarn">${esc(q.error)}</p>`;
     if (q.measurements) {
       h += measurementBlock(q);
     } else if ((f || q.method || q.status) && q.checks) {
@@ -756,11 +767,11 @@
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
         segfitTable(s) + eventsTable(s) + pendulumTable(s) +
-        (s.camera ? `<p class="facts"><span title="${esc(s.camera.how)}">f ${plusMinus(s.camera.f, s.camera.sigma)} px${s.camera.source ? ` (${esc(s.camera.source)})` : ''}</span>`
+        (s.camera ? `<p class="facts"><span title="${esc(s.camera.how)}">f ${plusMinus(s.camera.f, s.camera.sigma)} px${s.camera.source ? ` (${esc(s.camera.source)}${wasText(s.camera.fused)})` : ''}</span>`
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') : '') +
         gravityBlock(s.gravity) +
@@ -865,7 +876,9 @@
   function sigmaLines(m) {
     let h = '';
     const c = m.chain;
-    if (c) {
+    if (c && c.chain === false) {
+      h += `<div>piece ${fmt(c.piece[0], 3)}–${fmt(c.piece[1], 3)} s · motion piece, no physics chain</div>`;
+    } else if (c) {
       const s3 = (x) => fmt(x, 3);
       const ev = c.events.map(([t, k]) => `${esc(k)} ${s3(t)} s`).join(' · ');
       const more = [c.window_short.length && `<code>window_short</code> ${esc(JSON.stringify(c.window_short))}`,
@@ -919,18 +932,32 @@
         `<tr class="${a.pass ? 'ok' : 'bad'}"><td><code>agree</code></td><td>${a.pass ? 'pass' : 'fail'}</td><td class="n">${chi}</td>` +
         `<td>${a.values.map(([k, v, sg]) => `<code>${esc(k)}</code> ${plusMinus(v, sg)}`).join(' · ')}</td></tr></table></div>`;
     }
-    if (q.constraints.length) {
+    const tested = q.constraints.filter((c) => c.pass !== null), untested = q.constraints.filter((c) => c.pass === null);
+    if (tested.length) {
+      const anyNo = tested.some((c) => !c.testable);
       h += '<div class="scroll-x"><table class="checks cons"><tr><th>Constraint</th><th></th><th class="n">Observed</th><th class="n">Predicted</th>' +
-        '<th class="n">|Δ|</th><th class="n">Bound</th><th>Stated</th><th class="n">σ stated</th><th class="n">σ pred</th><th>Testable</th></tr>' +
-        q.constraints.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.id)}</code></td><td>${c.pass ? 'pass' : 'fail'}</td>` +
+        `<th class="n">|Δ|</th><th class="n">Bound</th><th>Stated</th><th class="n">σ stated</th><th class="n">σ pred</th>${anyNo ? '<th>Testable</th>' : ''}</tr>` +
+        tested.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.id)}</code></td><td>${c.pass ? 'pass' : 'fail'}</td>` +
           `<td class="n">${fmtNum(c.observed)}</td><td class="n">${fmtNum(c.predicted)}</td><td class="n">${fmtNum(c.diff)}</td>` +
           `<td class="n">${fmtNum(c.bound)}</td><td>${c.stated && c.stated.text ? esc(c.stated.text) : ''}</td><td class="n">${fmtNum(c.sigma_stated)}</td><td class="n">${fmtNum(c.sigma_pred)}</td>` +
-          `<td>${c.testable ? 'yes' : 'no'}</td></tr>`).join('') + '</table></div>';
+          `${anyNo ? `<td>${c.testable ? 'yes' : 'no'}</td>` : ''}</tr>`).join('') + '</table></div>';
+    }
+    if (untested.length) {
+      h += '<div class="scroll-x"><table class="checks cons"><tr><th>Constraint</th><th></th><th class="n">Observed</th><th class="n">Predicted</th>' +
+        '<th>Stated</th><th class="n">σ pred</th><th>Reason</th></tr>' +
+        untested.map((c) => `<tr class="muted"><td><code>${esc(c.id)}</code></td><td>untestable</td>` +
+          `<td class="n">${fmtNum(c.observed)}</td><td class="n">${fmtNum(c.predicted)}</td><td>${c.stated && c.stated.text ? esc(c.stated.text) : ''}</td>` +
+          `<td class="n" title="${esc(c.untestable.source)}">${fmtNum(c.untestable.sigma_pred)}</td><td>${esc(c.untestable.reason)}</td></tr>`).join('') + '</table></div>';
     }
     h += `<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>` +
       q.checks.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.which || c.name)}</code></td>` +
-        `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}${c.name === 'plausible' ? dimsCheck(q.dims_check) : ''}</td></tr>`).join('') + '</table></div>';
+        `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}${c.name === 'plausible' ? dimsCheck(q.dims_check) + partsUntestable(q.plausible_untestable) : ''}</td></tr>`).join('') + '</table></div>';
     return h;
+  }
+  // plausible parts that could not judge an object (critic.agency_unknown)
+  function partsUntestable(rows) {
+    if (!rows) return '';
+    return rows.map(([part, rs]) => rs.map((r) => `<div class="muted"><code>${esc(part)}</code> untestable · ${esc(r)}</div>`).join('')).join('');
   }
   // plausible.dims: each object's largest dimension (an interval when a dimension is bound) against its class range
   function dimsCheck(rows) {
@@ -947,6 +974,7 @@
     if (l.rotation) parts.push(`${esc(l.rotation.rel)} ${esc(l.rotation.target || 'a fixed point')}`, l.rotation.pieces.map(esc).join(' → '));
     if (l.phases) parts.push(l.phases.map(([t, st]) => `${esc(st)} ${fmt(t, 2)}`).join(', ') + ' s');
     if (l.unknown) parts.push(`<span class="bad">unknown ${l.unknown.map(([a, b]) => span(a, b)).join(', ')}</span>`);
+    if (l.agency) parts.push(`<span class="muted">agency untestable · ${esc(l.agency.why)}</span>`);
     return parts.join(' · ');
   }
   // wall time of the question's own run, per pipeline step (answer record "timing"); reused = served from a sibling

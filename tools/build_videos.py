@@ -135,6 +135,14 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            focal.fusion; a fail adds the measurement check "focal"); a measurement's sigma text is "inputs"."sigma_how"
 #            with "inputs"."chain_piece" {piece, events, window_short, events_near_t} (rule fit.sigma_chain) or, when
 #            the fit has no chain piece, the text "inputs"."sigma"; "inputs"."sigma_events" {one_sided, event_unstable}
+#   fused    a scene with "f_source" "camera.fused" has "focal"."fused" {f, sigma, n_sources, how, was {f, source}}
+#            (rule C1a) and no other scene has it; "focal"."agency_unknown" [{object, why}] when present; a motion law
+#            may have "agency" "untestable" with "why" (rule agency.unknown); every fit measurement with a piece has
+#            "inputs"."chain_piece" with "chain" (bool) and "inputs"."piece" equal to its "piece" (rule C1b); a
+#            constraint residual with "pass" null has "untestable" {rule, sigma_pred, source, reason} and
+#            "checks"."constraints" has "untestable_ids" / "untestable" (rule G13); a failed unit's answer record has
+#            "error" (StageError: objects.llm_invalid / scenegraph.llm_invalid ...) and a timing prefix; a scene's
+#            plausible parts may have "untestable" [reason] (critic.agency_unknown)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -147,7 +155,7 @@ VERSION_FORMAT = {
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
-           "static": True, "fusion": True},
+           "static": True, "fusion": True, "fused": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -377,6 +385,10 @@ def motion_law(name: str, o: dict):
                "circle_candidate": bool(req(rot, "circle_candidate", "rotation law"))}
     phases = [[num(p[0], 4), text(p[1]), bool(p[2])] for p in law["phases"]] if law.get("phases") else None
     out = {"model": text(req(law, "model", f"object {name!r} motion law")), "rotation": rot, "phases": phases}
+    if FMT.get("fused") and law.get("agency") is not None:
+        if law["agency"] != "untestable":
+            raise ValueError(f"{AT['where']}: object {name!r} motion law agency {law['agency']!r}")
+        out["agency"] = {"why": text(req(law, "why", f"object {name!r} motion law"))}
     if FMT.get("selftest") and rot is None:
         out["unknown"] = [[num(a, 4), None if b >= OPEN_END else num(b, 4)]
                           for a, b in req(law, "unknown", f"object {name!r} motion law")] or None
@@ -503,6 +515,10 @@ def measurement_row(m: dict) -> dict:
     lst = lambda v: [num(x, 3) for x in v] if isinstance(v, list) else ([num(v, 3)] if v is not None else None)
     dof = parts.get("dof")
     inputs = req(m, "inputs", what) or {}
+    if FMT.get("fused") and inputs.get("piece") is not None:
+        cp = req(inputs, "chain_piece", what)
+        if [num(x, 4) for x in inputs["piece"]] != [num(x, 4) for x in req(cp, "piece", f"{what} chain_piece")]:
+            raise ValueError(f"{AT['where']}: {what} piece {inputs['piece']} differs from its chain_piece {cp['piece']}")
     return {"name": text(req(m, "name", what)), "method": text(req(m, "method", what)),
             "value": num(req(m, "value", what)), "unit": text(req(m, "unit", what)), "sigma": num(req(m, "sigma", what), 3),
             "terms": terms or None, "scale": lst(parts.get("scale")), "q": lst(parts.get("q")),
@@ -513,7 +529,8 @@ def measurement_row(m: dict) -> dict:
             "checks": [{"name": k, "pass": bool(req(c, "pass", f"{what} check {k!r}")),
                         "reason": text(req(c, "reason", f"{what} check {k!r}"))} for k, c in checks.items()],
             "window": [num(x, 4) for x in inputs["window"]] if inputs.get("window") else None,
-            "piece": [num(max(x, 0.0), 4) if x > -1e8 else None for x in inputs["piece"]] if inputs.get("piece") else None,
+            "piece": [num(max(x, 0.0), 4) if x > -1e8 else None for x in inputs["piece"]]
+            if inputs.get("piece") and not FMT.get("fused") else None,
             "n": inputs.get("n"), "state": text(inputs.get("state")) or None,
             "law": law_view(inputs["law"], what) if FMT.get("gravity") and inputs.get("law") else None,
             "profile": [profile_view(x, what) for x in inputs["at_bound.profile"]] if inputs.get("at_bound.profile") else None} \
@@ -544,6 +561,11 @@ def sigma_view(inputs: dict, what: str) -> dict:
         chain = {"piece": [num(x, 4) for x in req(cp, "piece", w)],
                  "events": [[num(t, 4), text(k)] for t, k in req(cp, "events", w)],
                  "window_short": plain(req(cp, "window_short", w)), "events_near_t": plain(req(cp, "events_near_t", w))}
+        if FMT.get("fused"):
+            ch = req(cp, "chain", w)
+            if not isinstance(ch, bool) or (not ch and chain["events"]):
+                raise ValueError(f"{AT['where']}: {w} chain = {ch!r} with events {chain['events']}")
+            chain["chain"] = ch
     else:
         if inputs.get("sigma_how") is not None:
             raise ValueError(f"{AT['where']}: {what} has sigma_how without chain_piece")
@@ -647,12 +669,32 @@ def agreement_view(result: dict, answer: dict, status: str) -> dict:
                      "diff": num(abs(float(pred) - float(obs)), 3) if pred is not None else None,
                      "sigma_stated": num(req(c, "sigma_stated", w), 3), "sigma_pred": num(req(c, "sigma_pred", w), 3),
                      "bound": num(req(c, "bound", w), 3), "pass": req(c, "pass", w), "testable": req(c, "testable", w)}
-                    | ({"stated": stated_view(req(c, "stated", w), w)} if FMT.get("kept") else {}))
+                    | ({"stated": stated_view(req(c, "stated", w), w)} if FMT.get("kept") else {})
+                    | ({"untestable": untestable_view(c, w)} if FMT.get("fused") and c.get("pass") is None else {}))
     ids = {r["id"] for r in rows}
     failed_ids = list(req(cs, "failed_ids", "constraints"))
     if not set(failed_ids) <= ids:
         raise ValueError(f"{AT['where']}: constraints failed_ids {failed_ids} not among the residuals {sorted(ids)}")
+    if FMT.get("fused"):
+        un_ids = list(req(cs, "untestable_ids", "constraints"))
+        if sorted(un_ids) != sorted(r["id"] for r in rows if r["pass"] is None) or \
+                len(req(cs, "untestable", "constraints")) != len(un_ids):
+            raise ValueError(f"{AT['where']}: constraints untestable_ids {un_ids} differ from the residuals with pass null")
     return {"measurements": ms, "chosen": chosen, "agree": agree, "constraints": rows}
+
+
+def untestable_view(c: dict, what: str) -> dict:
+    """A constraint that tests nothing (rule G13 constraint.untestable): its sigma_pred is at least its stated value;
+    {rule, sigma_pred, source (sigma_pred's delta-method text), reason}."""
+    if req(c, "testable", what) is not False:
+        raise ValueError(f"{AT['where']}: {what} pass null but testable {c['testable']!r}")
+    u = req(c, "untestable", what)
+    w = f"{what} untestable"
+    rule = text(req(u, "rule", w))
+    if rule != "constraint.untestable":
+        raise ValueError(f"{AT['where']}: {w} rule {rule!r}")
+    return {"rule": rule, "sigma_pred": num(req(u, "sigma_pred", w), 4), "source": text(req(u, "source", w)),
+            "reason": text(req(u, "reason", w))}
 
 
 def stated_view(st: dict, what: str) -> dict:
@@ -843,6 +885,13 @@ def dims_check(state: dict) -> list[dict]:
     if req(part, "pass", "plausible.dims") != all(r["pass"] for r in rows):
         raise ValueError(f"{AT['where']}: plausible.dims {part['pass']} differs from the recomputed intervals {rows}")
     return rows
+
+
+def plausible_untestable(state: dict):
+    """The plausible parts that could not judge an object (critic.agency_unknown): [[part, [reason]]] or None."""
+    parts = req(req(req(state, "checks", "scene"), "plausible", "scene checks"), "parts", "plausible")
+    out = [[text(k), [text(x) for x in v["untestable"]]] for k, v in parts.items() if v.get("untestable")]
+    return out or None
 
 
 def identity_view(key: str) -> dict:
@@ -1120,9 +1169,37 @@ def camera_view(state: dict) -> dict:
                      "diff": num(abs(float(fo) - float(f)), 3) if fo is not None and f is not None else None,
                      "pass": req(x, "pass", w), "reason": text(req(x, "reason", w)), "how": text(req(x, "how", w)),
                      "class_size": {"pass": bool(req(cs, "pass", w)), "reason": text(req(cs, "reason", w))} if cs else None})
-    return {"f": num(req(cam, "f", "camera"), 4), "sigma": num(req(cam, "f_sigma", "camera"), 3),
-            "how": text(req(cam, "f_sigma_how", "camera")), "source": text(req(state, "f_source", "scene")) or None,
-            "consistent": rows}
+    out = {"f": num(req(cam, "f", "camera"), 4), "sigma": num(req(cam, "f_sigma", "camera"), 3),
+           "how": text(req(cam, "f_sigma_how", "camera")), "source": text(req(state, "f_source", "scene")) or None,
+           "consistent": rows}
+    if FMT.get("fused"):
+        out |= {"fused": fused_view(state, out), "agency_unknown": agency_unknown_view(state)}
+    return out
+
+
+def fused_view(state: dict, cam: dict):
+    """camera.f as the fused focal estimate (rule C1a camera.fused): {f, sigma, n, how, was {f, source}}; None when
+    camera.f keeps its own source."""
+    fo = req(state, "focal", "scene")
+    if cam["source"] != "camera.fused":
+        if fo.get("fused") is not None:
+            raise ValueError(f"{AT['where']}: focal.fused with f_source {cam['source']!r}")
+        return None
+    fz, w = req(fo, "fused", "focal"), "focal.fused"
+    was = req(fz, "was", w)
+    out = {"f": num(req(fz, "f", w), 4), "sigma": num(req(fz, "sigma", w), 3), "n": int(req(fz, "n_sources", w)),
+           "how": text(req(fz, "how", w)),
+           "was": {"f": num(req(was, "f", f"{w} was"), 4), "source": text(req(was, "source", f"{w} was"))}}
+    if out["f"] != cam["f"]:
+        raise ValueError(f"{AT['where']}: focal.fused f {out['f']} is not camera.f {cam['f']}")
+    return out
+
+
+def agency_unknown_view(state: dict):
+    """Objects whose agency is unknown cast no gravity focal vote (rule agency.unknown): [{object, why}] or None."""
+    rows = req(state, "focal", "scene").get("agency_unknown") or []
+    return [{"object": text(req(x, "object", "focal.agency_unknown")), "why": text(req(x, "why", "focal.agency_unknown"))}
+            for x in rows] or None
 
 
 def support_plane_view(state: dict):
@@ -1410,13 +1487,32 @@ def run_rows(tag: str, csv_path: Path, manifest: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
-def timing_view(t: dict, csv_seconds) -> dict:
+def failed_unit(rec: dict, row: dict) -> dict:
+    """A unit whose chain stopped (answer record "execution_status" failed): its "error" as the harness wrote it (an
+    unresolved inventory or scene graph names its reason, objects.llm_invalid / scenegraph.llm_invalid), the steps it
+    ran; no answer, no scene."""
+    err = text(req(rec, "error", "answer record"))
+    if not err or req(rec, "answer", "answer record") is not None:
+        raise ValueError(f"{AT['where']}: failed unit with error {err!r} and an answer")
+    if text(row["status"]) != "failed" or text(row["source"]) != "execution_failed" or num(row["pred"]) is not None:
+        raise ValueError(f"{AT['where']}: failed unit with CSV status {row['status']!r} / source {row['source']!r}")
+    return {"error": err, "execution_status": "failed", "time": timing_view(req(rec, "timing", "answer record"),
+                                                                           row.get("seconds"), prefix=True),
+            "checks": [], "failed": [], "scene": None, "sgraph": None, "tracks": None, "overlays": [], "fit": None,
+            "rounds": None, "identity": None, "refmeasure": None, "extents": None, "depth_bindings": None,
+            "measurement": None, "provenance": None, "quality": {}, "align": None, "group": None, "binding_error": None}
+
+
+def timing_view(t: dict, csv_seconds, prefix: bool = False) -> dict:
     """A unit's timing ("timing" of its answer record) for the page: total seconds and one entry per step, in pipeline
-    order: {"step", "s", "reused" (false | "partial" | true), "cached", "shared"}. The CSV "seconds" must be the total."""
+    order: {"step", "s", "reused" (false | "partial" | true), "cached", "shared"}. The CSV "seconds" must be the total.
+    prefix: a failed unit, whose steps are the first steps of the order."""
     total = req(t, "total_seconds", "timing")
     if not (isinstance(csv_seconds, (int, float)) and math.isfinite(csv_seconds) and abs(csv_seconds - total) < 0.05):
         raise ValueError(f"{AT['where']}: CSV seconds {csv_seconds} differs from the answer record's total {total}")
     steps, order = req(t, "steps", "timing"), FMT["steps"]
+    if prefix:
+        order = order[:len(steps)]
     if list(steps) != list(order):
         raise ValueError(f"{AT['where']}: timing steps {list(steps)}, expected {list(order)}")
     out = []
@@ -1518,6 +1614,11 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                 exec_status = record["execution_status"]
             else:
                 rec = question_record(tag, unit, row)
+                if FMT.get("fused") and req(rec, "execution_status", "answer record") == "failed":
+                    query |= failed_unit(rec, row)
+                    query["tq"], query["tjump"] = question_times(query["q"], None)
+                    questions.append(query)
+                    continue
                 unit_json("objects", unit, "object inventory")
                 state = question_scene(unit, row, rec)
                 answer, error = req(rec, "answer", "answer record"), None
@@ -1563,6 +1664,8 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                 if FMT.get("identity"):
                     query |= {"identity": identity_view(unit),
                               "dims_check": dims_check(state) if state is not None else None}
+                if FMT.get("fused"):
+                    query["plausible_untestable"] = plausible_untestable(state) if state is not None else None
             query["tq"], query["tjump"] = question_times(query["q"], alignment)
             questions.append(query)
     overlays.save()
