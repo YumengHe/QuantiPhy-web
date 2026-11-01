@@ -546,7 +546,9 @@
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
         `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}` +
         (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' +
-        (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` : '') +
+        (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
+          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') +
+        gravityBlock(s.gravity) +
         focalVotes(s);
     }
     if (q.measurement || q.provenance || q.quality) {
@@ -557,6 +559,24 @@
         quality: q.quality, provenance: q.provenance }, null, 2))}</pre></details>`;
     }
     return h;
+  }
+  function checksTable(cs) {
+    return '<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>' +
+      cs.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.name)}</code></td><td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}</td></tr>`).join('') +
+      '</table></div>';
+  }
+  // the scene's gravity (rule B2): g and its source, every ballistic piece / physics probe it was judged on, its checks
+  function gravityBlock(g) {
+    if (!g) return '';
+    const ev = g.evidence.map((e) => e.kind === 'ballistic_piece'
+      ? `<tr class="${e.use ? '' : 'inadm'}"><td>${esc(e.obj)}</td><td>${span(e.t[0], e.t[1])}</td><td class="n">${e.n}</td>` +
+        `<td class="n">${plusMinus(e.g, e.sigma)}</td><td class="${e.law.pass ? 'ok' : 'bad'}">${e.law.pass ? 'pass' : 'fail'} · run ${e.law.run} / ${e.law.n_test}</td>` +
+        `<td>${e.use ? 'used' : esc(e.why || 'not used')}</td></tr>`
+      : `<tr><td>${esc(e.obj)}</td><td>physics probe</td><td class="n"></td><td class="n">${fmtNum(e.g)}</td><td>ρ ${fmtNum(e.rho)}</td>` +
+        `<td class="${e.agree ? 'ok' : 'bad'}">${e.agree ? 'agrees with Earth' : 'disagrees with Earth'}</td></tr>`).join('');
+    return `<p class="facts">g = ${plusMinus(g.g, g.sigma)} m/s² · ${esc(g.source)} · ${esc(g.rule)} · up: ${esc(g.up_source)}</p>` +
+      (ev ? '<div class="scroll-x"><table class="gev"><tr><th>Object</th><th>Piece</th><th class="n">n</th><th class="n">g (m/s²)</th><th>Law residual</th><th></th></tr>' + ev + '</table></div>' : '') +
+      checksTable(g.checks);
   }
   // ---------- v5: every measurement of the asked quantity, the checks agree / constraints ----------
   const span = (a, b) => `${a == null ? '…' : fmt(a, 2)}–${b == null ? '…' : fmt(b, 2)} s`;
@@ -571,7 +591,7 @@
     const val = m.value == null ? '<span class="muted">—</span>'
       : `<span${terms ? ` title="${esc(terms)}"` : ''}>${plusMinus(m.value, m.sigma)} ${esc(m.unit)}</span>${sigmaSub(m)}`;
     const inp = [m.window && `window ${span(m.window[0], m.window[1])}`, m.n != null && `n ${m.n}`,
-      m.piece && `piece ${span(m.piece[0], m.piece[1])}`, m.state].filter(Boolean).join(' · ');
+      m.piece && `piece ${span(m.piece[0], m.piece[1])}`, m.state, m.law && `ballistic g ${fmtNum(m.law.g)} (${m.law.source})`].filter(Boolean).join(' · ');
     const failed = m.failed.map((c) => `<div><code>${esc(c.which || c.name)}</code> ${esc(c.reason)}</div>`).join('');
     return `<tr class="${m.name === chosen ? 'chosen' : ''}${m.admissible ? '' : ' inadm'}"><td><code>${esc(m.name)}</code></td>` +
       `<td><code>${esc(m.method)}</code></td><td class="n mval">${val}</td>` +

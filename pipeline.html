@@ -209,17 +209,17 @@
         <li><code>border</code>: a track on the image border in ≥ 90 % of its frames needs a clear "yes" majority</li>
       </ul>
       Every candidate rejected → the object is <code>untracked</code> in this question: no track, no detector or foreground fallback</li>
-    <li>Merge into the run's cache; presence (absent / partial / visible) and per-object verification: shape, verify votes, relations, segments (jumps, area changes, gaps)</li>
+    <li>Merge into the run's cache with the inventory's presence label (absent / partial / visible). The identity record is the only judgement of a track: no box-shape rule, no second crop vote</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
     <li><code>tracks_&lt;tag&gt;raw/&lt;unit&gt;.json</code> → <code>tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>tracks{name: {boxes, scores, centroids, areas}}</code>; <code>meta.choose</code>, <code>meta.recheck</code>, <code>meta.shared{sam2_hits, sam2_misses}</code>, <code>meta.identity{name: {candidates[{source, frame, box, n_frames, moves, votes, class_size, presence, border_frac, outcome, why}], chosen, untracked}}</code></li>
-    <li><code>objects_&lt;tag&gt;_presence_v3/&lt;unit&gt;.json</code>; <code>trackcheck/tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>checks{name: {verified, suspect, reasons, votes, segments}}</code></li>
+    <li><code>objects_&lt;tag&gt;_presence_v3/&lt;unit&gt;.json</code>; <code>trackcheck/tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>, derived from <code>meta.identity</code>: <code>checks{name: {verified, reasons, votes, identity{chosen, n_candidates, rejected, source, outcome}}}</code></li>
   </ul></dd>
   <dt>Checks</dt>
   <dd><ul>
-    <li>An <code>untracked</code> object, fewer than 3 boxes, no box at the asked time, <code>verified: false</code>, or (direct) no minimal window around t → <b>tracked</b></li>
-    <li>The scale object's track suspect → <b>plausible</b> (scale_reference) for a prior-scaled scene; its track check → <b>scale</b></li>
+    <li>An <code>untracked</code> object (the reason carries the identity judge's why), fewer than 3 boxes, no box at the asked time, <code>verified: false</code>, or (direct) no minimal window around t → <b>tracked</b></li>
+    <li>The scale object (the prior's object, the free-flying gravity object, a tracked reference object) without a track chosen by its identity record → <b>scale</b> (<code>scale.checks.track</code>)</li>
     <li>A track on the wrong object that passes verification shows up later: <b>agree</b> (fit and direct disagree), <b>plausible</b> (dims, accelerations)</li>
     <li>Boxes on the image border → <b>visible</b> (direct window), truncated dimensions</li>
   </ul></dd>
@@ -249,8 +249,9 @@
   <dt>Checks</dt>
   <dd><ul>
     <li>Named checks of the record: <code>marked</code> (≥ 2 frames), <code>frames_agree</code>, <code>not_truncated</code>; a graduation: <code>unit_identified</code>, <code>graduations_agree</code>, <code>prior_interval</code>; a lane: <code>lane_profile</code>, <code>across_lane</code></li>
+    <li><code>endpoints_outside</code> (recomputed on every read against the current tracks): a tracked object's used end points lie inside its track box on their frames, within 1 % of the frame diagonal; the distances in px are in the scale's reason</li>
     <li>A failed record is not used (it stays in the cache with its reasons) → no reference scale → <b>scale</b>; the refmeasure / endpoints measurement is inadmissible</li>
-    <li>A reference measurement that disagrees with the fitted depth → <b>plausible</b> (scale_reference)</li>
+    <li>A tracked reference object fitted farther than 1.25 × nominal × f / px (nearest face, at the measurement's frame) → <b>scale</b> (<code>reference_depth</code>)</li>
   </ul></dd>
 </dl>
 <h3>5.2 Tracked supports</h3>
@@ -337,7 +338,7 @@
   </ul></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_source, scale_source, support_plane, s, metric}</code>, <code>scale{s, source, object, extent, checks, failed}</code>, <code>plane_ok</code>, <code>main_support</code></li>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_source, scale_source, support_plane, s, metric}</code>, <code>scale{s, source, object, extent, checks, failed}</code>, <code>gravity{g, sigma, source, rule, up, up_source, evidence[], checks, failed}</code>, <code>plane_ok</code>, <code>main_support</code></li>
     <li><code>objects[name]</code>: dims, <code>dim_source</code> (observed / prior / bound), <code>dim_bounds{dim: [lo, hi | null]}</code>, p0, v0, a, segments, mode, <code>motion_law{model, phases | rotation{rel, target, pieces, circle_candidate}}</code>, <code>physics</code>, <code>pendulum</code>, support</li>
     <li><code>results[0]</code>: <code>measurements[]</code>, <code>chosen</code>, <code>selection</code>, <code>pred</code>, <code>method</code>, <code>source</code>, <code>checks</code>, <code>failed</code>, <code>quality.align_tq</code>, <code>quality.measurement.constraint_residuals[]</code></li>
   </ul></dd>
@@ -375,25 +376,40 @@
   <li>All depths × s; fits run with f and the plane fixed</li>
 </ol></div>
 </div>
-<p>Sub-checks in <code>scale.checks</code>; any failure fails <b>scale</b>: <code>measured</code> (s exists), <code>side</code> (length vs width not ambiguous), <code>track</code> (mask area stable), <code>class_sizes</code>, <code>geometry</code> (the direct calibration's s within 1.5×), <code>free_fall</code> (free-flight windows found).</p>
+<p>Sub-checks in <code>scale.checks</code>; any failure fails <b>scale</b>: <code>measured</code> (s exists), <code>side</code> (length vs width not ambiguous), <code>track</code> (the scale object's track chosen by its identity record), <code>reference_depth</code> (the reference object's nearest face within 1.25 × nominal × f / px), <code>geometry</code> (the direct calibration's s within 1.5×), <code>free_fall</code> (free-flight windows found).</p>
 
 <h3>8.4 Motion law per state (<code>state_models</code>)</h3>
 <ol>
   <li>Each object's track is cut into phases at its scene-graph support changes (step 6); within a phase the image track is split into pieces</li>
-  <li>The phase's state gives the candidate models: airborne → ballistic (constant acceleration under g), unless locomotion is flies / floats / orbits (then the kinematic set); on / in a support → static, constant velocity, constant acceleration in the support plane; held / attached → the holder's kinematic set; no edge → the kinematic set. A circle is a candidate only under a rotation relation</li>
+  <li>The phase's state gives the candidate models: airborne → ballistic, unless locomotion is flies / floats / swims / orbits (then the kinematic set); a ballistic phase is one piece (no breakpoint inside it without a support change; a walker in a jump is in free flight), free in 3D, with a = g_scene along −up (8.5); on / in a support → static, constant velocity, constant acceleration in the support plane; held / attached → the holder's kinematic set; no edge → the kinematic set. A circle is a candidate only under a rotation relation</li>
   <li>Every object with a rotation plan gets the rotation law: plan mode rotation, no support plane, no gravity, each piece fitted with the circle among its candidates (<code>motion_law.rotation</code>)</li>
   <li>A hanging sphere → pendulum; a passive object → the physics chain (rest, bounce, flight, incline) when it fits within 1.5× the kinematic rms + 2 px</li>
 </ol>
-<p><b>segfit</b> (<code>segfit_law</code>), per piece in image space: the model's time law fitted to the box centre on the test frames (first / last frame, border frames and frames overlapping another tracked box left out). A violation is a residual above max(3σ_c, q_b) — σ_c the axis' track noise / √2, q_b the quantization bound (q/2)·max_i Σ_j |(I − H)_ij| — on ≥ 3 consecutive test frames. A failing model gives way to the next candidate of the state; none fits → <b>segfit</b> fails. A ballistic piece also needs a significant acceleration, |a| &gt; 3 SE(|a|); otherwise the airborne law is untestable there.</p>
+<p><b>segfit</b> (<code>segfit_law</code>), per piece in image space: the model's time law fitted to the box centre on the test frames (first / last frame, border frames and frames overlapping another tracked box left out). A violation is a residual above max(3σ_c, q_b) — σ_c the axis' track noise / √2, q_b the quantization bound (q/2)·max_i Σ_j |(I − H)_ij| — on ≥ 3 consecutive test frames. A failing model gives way to the next candidate of the state; none fits → <b>segfit</b> fails. A ballistic piece is tested under g_scene: the projected box centre against the tracked one, bound 3 × the piece's centre noise / √2 (at least the quantization bound), fail on ≥ 3 consecutive test frames; a centre residual counts only beyond half the difference between the tracked and the projected box size on that axis. Its segfit entry carries <code>law{g, source, up}</code>.</p>
 
-<h3>8.5 Fit</h3>
+<h3>8.5 Gravity</h3>
+<p>One gravity vector g_scene = −g · up for every passive airborne piece of the scene; up is the support plane normal, else the camera's −y (<code>gravity.up_source</code>).</p>
+<ol>
+  <li>Evidence: each ballistic piece with ≥ 7 frames refitted with g free; g_k ± σ_k by the delta method, calibrated by the piece's reduced χ². It counts when this free-g law passes the residual test and g is not at its bound. Physics-chain probes (passive balls) are listed with g and ρ</li>
+  <li><code>gravity.source</code>, in order: the prior states g → <code>prior</code> (σ from the stated digits); the texts name the moon, Mars, space or low gravity → <code>inferred</code> (no evidence: <code>unknown</code>); the evidence rejects 9.81 (χ² = Σ (g_k − 9.81)² / (σ_k² + 0.026²) &gt; χ²<sub>K</sub>(0.9973)), the pieces agree, no probe agrees with Earth and g / 9.81 lies outside 1/1.25–1.25 → <code>inferred</code>, the inverse-variance mean; otherwise <code>earth</code>, 9.81 ± 0.026</li>
+  <li>Every ballistic piece is refitted with a = g_scene, p0 and v0 free</li>
+</ol>
+<div class="scroll-x"><table>
+  <tr><th>Check</th><th>Fails when</th></tr>
+  <tr><td>gravity.earth</td><td>9.81 is rejected by the free flight</td></tr>
+  <tr><td>gravity.consistent</td><td>The pieces' g disagree: χ² about their mean above χ²<sub>K−1</sub>(0.9973)</td></tr>
+  <tr><td>gravity.scale</td><td>Inferred g with a scale that comes from gravity, or a hop with take-off and landing tracked whose law apex is off the middle of the graph's hop by more than one graph step (duration / 16); Earth / prior: the free flight rejects g inside the scale band</td></tr>
+</table></div>
+<p>A question read from a ballistic piece carries the check <b>gravity</b>: g unknown, or gravity.consistent / gravity.scale failing → fail. An acceleration at a time inside a ballistic piece is |g_scene| with g's σ.</p>
+
+<h3>8.6 Fit</h3>
 <ol>
   <li>Stage A: the prior's object (or, with a gravity prior, the object with the most anchors / the longest track) with focal votes, plane anchors and horizon</li>
   <li>Stage B: every other asked or reference object, placed by its plan: on the shared plane, on its own plane, hanging, or free in 3D</li>
   <li>Residuals (soft-L1): box sides, depth anchors, dense depth, prior, class and typical size, thickness and extent floors</li>
 </ol>
 
-<h3>8.6 Measurements of the asked quantity</h3>
+<h3>8.7 Measurements of the asked quantity</h3>
 <p>Every way to measure the quantity is listed with its prerequisites; unmet → inadmissible with the reason. No source is preferred.</p>
 <div class="scroll-x"><table>
   <tr><th>Measurement</th><th>Value</th><th>σ</th></tr>
@@ -410,10 +426,11 @@
   <tr><td>visible</td><td>The size comes from a prior or a bound, two sizes collapsed, an overhead height at the depth limit, the asked times outside the visible span; direct: boxes in the window touch the border</td></tr>
   <tr><td>fit</td><td>No fitted value or a degenerate one; <code>fit.frame</code>: the projection misses the tracked box at the asked frame (IoU &lt; 0.3); <code>fit.piece</code>: IoU &lt; 0.3 on ≥ 3 consecutive test frames of the answering piece; <code>fit.law</code>: an object rotating at the asked time fitted without the rotation law. Direct: the window's rms above its bound</td></tr>
   <tr><td>segfit</td><td>8.4, on the piece that gives the value (a size: the longest piece)</td></tr>
+  <tr><td>gravity</td><td>8.5</td></tr>
   <tr><td>contact</td><td>An object kept on the support plane leaves the fitted contact over 3 frames, or the answering piece spans a change of support</td></tr>
 </table></div>
 
-<h3>8.7 agree and constraints</h3>
+<h3>8.8 agree and constraints</h3>
 <div class="scroll-x"><table>
   <tr><th>Check</th><th>Rule</th></tr>
   <tr><td>agree</td><td>No admissible measurement → fail. An admissible one that fails its own checks → fail ("applicable but failed"; never switch to the one that passed). One admissible → pass. Two or more: χ² = Σ (v_i − v̄)² / σ_i² against the χ²<sub>M−1</sub> quantile at 0.9973 (M = 2: |v₁ − v₂| ≤ 3√(σ₁² + σ₂²)); pass → the smallest σ answers (<code>chosen</code>)</td></tr>
@@ -436,7 +453,7 @@
   <dd><ol>
     <li><b>plausible</b> (<code>critic.scene_checks</code>): see the table below</li>
     <li>Evidence: 3D overlays at even times and at the asked time, a crop at the asked time, visibility-mismatch overlays; text: inventory, graph edges, prior, scale, object dimensions (a bound dimension as its interval), failed checks with reasons, earlier rounds</li>
-    <li>Repair candidates from the failed checks: relation windows at the asked time, onset shifts, re-tracking a suspect track, <code>refit_free</code>, <code>limit_accel</code> for a self-propelled body beyond 1.5 g</li>
+    <li>Repair candidates from the failed checks: relation windows at the asked time, onset shifts, re-tracking an asked object failing <b>tracked</b> or an untracked scale object, <code>refit_free</code>, <code>limit_accel</code> for a self-propelled body beyond 1.5 g</li>
     <li>Observe tools (≤ 6 per round): frames, crop, overlay, tracks_summary, depth_at, scene_json, self_check, question_values, visible_count, reference_measure, model options</li>
     <li>Act tools (≤ 3 per round): re-track (<code>objects_set_count, objects_set_track, track_reselect, track_split_instance</code>) or refit (<code>scenegraph_set_relation, set_main_support, scene_mark_absent, scene_swap_axes, scene_set_support, scene_shift_onset, scene_refit_free, scene_set_plane, scene3d_try_fit_policy</code>)</li>
     <li>Back up the caches, rebuild the affected steps, accept on frozen evidence or restore; stop on an accepted round with every check passing, 2 rounds without improvement, or 10 rounds</li>
@@ -458,7 +475,6 @@
   <tr><td>agent_motion</td><td>A person, animal or vehicle accelerates beyond 1.5 g (median), or for longer than 0.25 s at a stretch</td></tr>
   <tr><td>support_plane</td><td><code>plane_ok: false</code> while an object stands on or moves above it, and the normal is within 20° of the optical axis</td></tr>
   <tr><td>heights</td><td>An object "on X" floats or sinks more than max(5 cm, its size), or sits outside X's footprint; objects on one support differ in height by more than max(2 m, 20 × size)</td></tr>
-  <tr><td>scale_reference</td><td>A reference measurement lies farther than value × f / px from the camera than its object; a prior-scaled scene whose scale object's track is suspect</td></tr>
   <tr><td>dims</td><td>The largest dimension is outside the class range widened 1.25×; with a bound dimension it is the interval [max of the lower ends, max of the upper ends], failing only when the whole interval is outside</td></tr>
 </table></div>
 </section>

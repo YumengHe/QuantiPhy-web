@@ -86,6 +86,9 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            judge: static / verify / class_size / presence / border); each scene object has "dim_bounds"
 #            {dimension: [lo, hi | null]} for exactly its "bound" dimensions; a prior-scaled scene's "scale" names its
 #            source, and a prior-extent scale its "extent" (the frames and depth observations it was measured on)
+#   gravity  the scene has "gravity" {g, sigma, source, rule, up_source, evidence, checks, failed} (rule B2) and a
+#            prior-scaled scene's "scale" its named "checks" / "failed"; a measurement read from a ballistic piece has
+#            "inputs"."law" {g, source, up}
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -96,7 +99,7 @@ VERSION_FORMAT = {
     "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "checks",
            "steps": STEPS_V4},
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
-           "steps": STEPS_V5, "identity": True},
+           "steps": STEPS_V5, "identity": True, "gravity": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -348,7 +351,13 @@ def measurement_row(m: dict) -> dict:
             "checks": [{"name": k, "pass": bool(req(c, "pass", f"{what} check {k!r}"))} for k, c in checks.items()],
             "window": [num(x, 4) for x in inputs["window"]] if inputs.get("window") else None,
             "piece": [num(max(x, 0.0), 4) if x > -1e8 else None for x in inputs["piece"]] if inputs.get("piece") else None,
-            "n": inputs.get("n"), "state": text(inputs.get("state")) or None}
+            "n": inputs.get("n"), "state": text(inputs.get("state")) or None,
+            "law": law_view(inputs["law"], what) if FMT.get("gravity") and inputs.get("law") else None}
+
+
+def law_view(law: dict, what: str) -> dict:
+    """The ballistic law a measurement was read under (rule B2): {"g", "source"}."""
+    return {"g": num(req(law, "g", f"{what} law")), "source": text(req(law, "source", f"{what} law"))}
 
 
 def agreement_view(result: dict, answer: dict, status: str) -> dict:
@@ -413,8 +422,53 @@ def scale_view(state: dict):
     ext = sc.get("extent")
     if src == "prior_object_extent" and not ext:
         raise ValueError(f"{AT['where']}: prior-extent scale without its 'extent'")
-    return {"s": num(req(sc, "s", "scale")), "source": src, "object": text(sc.get("object")) or None,
-            "prior": text(req(sc, "prior", "scale")), "how": text(req(sc, "how", "scale")), "extent": text(ext) or None}
+    out = {"s": num(req(sc, "s", "scale")), "source": src, "object": text(sc.get("object")) or None,
+           "prior": text(req(sc, "prior", "scale")), "how": text(req(sc, "how", "scale")), "extent": text(ext) or None}
+    if FMT.get("gravity"):
+        out["checks"] = named_checks(req(sc, "checks", "scale"), list(req(sc, "failed", "scale")), "scale")
+    return out
+
+
+def named_checks(checks: dict, failed: list, what: str) -> list[dict]:
+    """[{"name", "pass", "reason"}] of a record's named checks; `failed` must be exactly the ones that did not pass."""
+    out = [{"name": k, "pass": bool(req(c, "pass", f"{what} check {k!r}")), "reason": text(req(c, "reason", f"{what} check {k!r}"))}
+           for k, c in checks.items()]
+    if failed != [c["name"] for c in out if not c["pass"]]:
+        raise ValueError(f"{AT['where']}: {what} failed {failed} differs from its checks that did not pass")
+    return out
+
+
+GRAVITY_SOURCES = ("earth", "inferred", "prior", "unknown")
+
+
+def gravity_view(state: dict):
+    """The scene's gravity (scene_fit.gravity_pass, rule B2): g, sigma, source, rule, up source, every evidence entry
+    (a ballistic piece with its free-g fit and residual test, or a physics-chain probe) and the gravity checks."""
+    if not FMT.get("gravity"):
+        return None
+    g = req(state, "gravity", "scene")
+    src = text(req(g, "source", "gravity"))
+    if src not in GRAVITY_SOURCES:
+        raise ValueError(f"{AT['where']}: gravity source {src!r}")
+    ev = []
+    for e in req(g, "evidence", "gravity"):
+        w = f"gravity evidence {e.get('object')!r}"
+        kind = text(req(e, "kind", w))
+        if kind == "ballistic_piece":
+            law = req(e, "law", w)
+            ev.append({"obj": text(req(e, "object", w)), "kind": kind, "t": [num(x, 4) for x in req(e, "t", w)],
+                       "n": req(e, "n", w), "g": num(req(e, "g", w)), "sigma": num(req(e, "sigma", w), 3),
+                       "law": {"pass": bool(req(law, "pass", f"{w} law")), "run": req(law, "run", f"{w} law"),
+                               "n_test": req(law, "n_test", f"{w} law")},
+                       "use": bool(req(e, "use", w)), "why": text(e.get("why")) or None})
+        elif kind == "physics_probe":
+            ev.append({"obj": text(req(e, "object", w)), "kind": kind, "g": num(req(e, "g", w)),
+                       "rho": num(req(e, "rho", w), 3), "agree": bool(req(e, "agree", w))})
+        else:
+            raise ValueError(f"{AT['where']}: {w} kind {kind!r}")
+    return {"g": num(req(g, "g", "gravity")), "sigma": num(req(g, "sigma", "gravity"), 3), "source": src,
+            "rule": text(req(g, "rule", "gravity")), "up_source": text(req(g, "up_source", "gravity")), "evidence": ev,
+            "checks": named_checks(req(g, "checks", "gravity"), list(req(g, "failed", "gravity")), "gravity")}
 
 
 def dims_check(state: dict) -> list[dict]:
@@ -497,7 +551,7 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      "path": sampled_path(o) if any(req(o, k, what) for k in FMT["paths"]) else None,
                      "visible": [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None})
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
-            "scale": scale_view(j),
+            "scale": scale_view(j), "gravity": gravity_view(j),
             "main_support": req(j, "main_support", "scene"),
             "f_source": text(req(j, "f_source", "scene")) or None, "f_first": req(j, "f_first", "scene"),
             # an empty vote list is legitimate (no focal vote taken): written as null

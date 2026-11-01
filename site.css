@@ -79,6 +79,10 @@ table.meas td.ok { color: var(--muted); }
 table.meas td.bad div + div { margin-top: 3px; }
 table.agree, table.cons { width: auto; min-width: 50%; }
 table.checks td:first-child code { white-space: nowrap; }
+table.gev { width: auto; min-width: 60%; margin-bottom: 10px; }
+table.gev tr.inadm td:not(.bad) { color: var(--muted); }
+table.gev td.bad { color: var(--m1t, #8a1c12); }
+table.gev td.ok { color: var(--muted); }
 /* evaluation (v5): object dimensions in columns by source; a bound dimension is an interval */
 table.objs td.dims .dim { display: block; white-space: nowrap; font-variant-numeric: tabular-nums; }
 table.objs .dims-prior { color: var(--muted); }
