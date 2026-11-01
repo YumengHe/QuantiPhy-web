@@ -48,7 +48,7 @@
   <div class="rail"></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
-  <a class="node fc" href="#s6"><b>6 Scene graph (per frame)</b><span class="m">Phases, release, contacts; rotation phases kept only on a curved track</span>
+  <a class="node fc" href="#s6"><b>6 Scene graph (per frame)</b><span class="m">Phases, release at the last hand contact, contacts; rotation phases kept only on a curved track; untracked objects left out; agent edits keep every physical state</span>
     <span class="ck">segfit · fit.law · contact</span></a>
   <div class="rail ret edit"><span>relation / main support</span></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
@@ -58,11 +58,11 @@
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
   <a class="node fc" href="#s8"><b>8 Physics-guided Fitting</b><span class="m">Camera, scale, motion laws per state, every measurement of the asked quantity</span>
-    <span class="ck">tracked · scale · visible · fit · segfit · contact · agree · constraints</span></a>
+    <span class="ck">tracked · scale · visible · fit · segfit · gravity · contact · agree · constraints</span></a>
   <div class="rail ret"><span>refit</span></div>
   <div class="ac fc"><div class="arrow"></div><span class="el">a check fails</span></div><div class="rail"></div>
 
-  <a class="loop fc" href="#s9"><b>9 Agent loop</b><span class="m">Observe (≤ 6 tools) → act (≤ 3 tools) → rebuild → accept on frozen evidence or roll back; up to 10 rounds</span>
+  <a class="loop fc" href="#s9"><b>9 Agent loop</b><span class="m">Observe (≤ 6 tools) → act (≤ 3 tools) → rebuild → accept on frozen evidence or roll back; up to 10 rounds; the kept state answers</span>
     <span class="ck">plausible</span></a>
   <div class="rail bot out"></div>
   <div class="ac fc"><div class="arrow"></div></div>
@@ -74,17 +74,17 @@
 <h2 id="time">Time per step</h2>
 <div class="scroll-x"><table class="tt">
   <tr><th>Step</th><th>Timing key</th><th class="n">Median (s)</th><th class="n">Min</th><th class="n">Max</th></tr>
-  <tr><td>1 Objects</td><td><code>objects</code></td><td class="n">1.1</td><td class="n">1.0</td><td class="n">1.2</td></tr>
-  <tr><td>2 Scene graph (grid)</td><td><code>scenegraph_grid</code></td><td class="n">1.9</td><td class="n">1.6</td><td class="n">1.9</td></tr>
-  <tr><td>3 Observe</td><td><code>observe</code></td><td class="n">7.6</td><td class="n">7.2</td><td class="n">15.6</td></tr>
-  <tr><td>4 Track</td><td><code>track</code></td><td class="n">168.5</td><td class="n">71.6</td><td class="n">350.9</td></tr>
-  <tr><td>5 Measure</td><td><code>measure</code></td><td class="n">5.0</td><td class="n">1.6</td><td class="n">85.8</td></tr>
-  <tr><td>6 Scene graph (per frame)</td><td><code>scenegraph_pf</code></td><td class="n">20.0</td><td class="n">1.0</td><td class="n">138.2</td></tr>
-  <tr><td>7 Ground</td><td><code>ground</code></td><td class="n">2.5</td><td class="n">1.4</td><td class="n">53.9</td></tr>
-  <tr><td>8 Physics-guided Fitting</td><td><code>scene</code></td><td class="n">81.8</td><td class="n">39.0</td><td class="n">1109.3</td></tr>
-  <tr><td>9 Agent loop</td><td><code>agent</code></td><td class="n">45.5</td><td class="n">0.0</td><td class="n">547.7</td></tr>
+  <tr><td>1 Objects</td><td><code>objects</code></td><td class="n">0.8</td><td class="n">0.8</td><td class="n">0.9</td></tr>
+  <tr><td>2 Scene graph (grid)</td><td><code>scenegraph_grid</code></td><td class="n">1.2</td><td class="n">1.1</td><td class="n">1.3</td></tr>
+  <tr><td>3 Observe</td><td><code>observe</code></td><td class="n">9.4</td><td class="n">9.0</td><td class="n">18.4</td></tr>
+  <tr><td>4 Track</td><td><code>track</code></td><td class="n">71.2</td><td class="n">65.4</td><td class="n">110.8</td></tr>
+  <tr><td>5 Measure</td><td><code>measure</code></td><td class="n">6.5</td><td class="n">3.0</td><td class="n">14.8</td></tr>
+  <tr><td>6 Scene graph (per frame)</td><td><code>scenegraph_pf</code></td><td class="n">1.5</td><td class="n">1.0</td><td class="n">1.7</td></tr>
+  <tr><td>7 Ground</td><td><code>ground</code></td><td class="n">6.8</td><td class="n">1.2</td><td class="n">44.0</td></tr>
+  <tr><td>8 Physics-guided Fitting</td><td><code>scene</code></td><td class="n">65.4</td><td class="n">37.7</td><td class="n">1018.0</td></tr>
+  <tr><td>9 Agent loop</td><td><code>agent</code></td><td class="n">98.3</td><td class="n">0.0</td><td class="n">541.4</td></tr>
   <tr><td>10 Answer</td><td><code>answer</code></td><td class="n">0.0</td><td class="n">0.0</td><td class="n">0.0</td></tr>
-  <tr><td><b>Total</b></td><td><code>total_seconds</code></td><td class="n">469.3</td><td class="n">232.7</td><td class="n">1340.0</td></tr>
+  <tr><td><b>Total</b></td><td><code>total_seconds</code></td><td class="n">304.2</td><td class="n">178.6</td><td class="n">1122.9</td></tr>
 </table></div>
 <p class="muted small">The 10 questions of the v5gpt run (<code>outputs/harness/v5gpt/answers</code>, <code>timing.steps</code>); model calls replay from the run tag's memo where the request is unchanged.</p>
 
@@ -280,12 +280,15 @@
     <li>Labels smoothed (majority of 3), merged into phases; boundaries snap to a track event</li>
     <li>Rotation test <code>path_curve</code> on each rotation phase: the turning angle of the equivalent arc, θ = 4 atan(2s / L) from the sagitta s across the principal axis (minus 6σ of the track jitter). θ ≥ 30° <code>curved</code> → kept; 10–30° or &lt; 5 frames <code>untestable</code> → kept; θ &lt; 10° <code>straight</code> or a static centre → rejected, the phase takes its neighbour's relation (or is listed under <code>rejected</code>)</li>
     <li>Free-fall test of airborne phases (a downward-accelerating fall), except for objects whose locomotion is flies / floats / orbits; hops kept with a parabola per hop</li>
-    <li>Release at each held → airborne boundary: hand crop and a parabola test → <code>t_release</code></li>
+    <li>Release at each held → airborne boundary: while the hand is seen touching the object on some frame of the release window, the release is the last frame of that hand-contact run, and a free-flight interval cannot move it earlier (<code>release.last_contact</code>); no touching frame → the free-flight interval (<code>release.free_flight</code>)</li>
     <li>Contacts between nearby boxes, kept on ≥ 2 frames; edges cut to the track's present intervals</li>
+    <li>An object left untracked by its identity record (step 4) is not a node and has no edge; a holder or support it names stays a node</li>
+    <li>Agent edits (step 9, <code>scenegraph_set_relation</code>) may move a state boundary or change a state, never remove one: an edit that leaves an object with no motion state over an interval is rejected (<code>graph_edit.keeps_state</code>, result "rejected: …")</li>
+    <li>When step 8 loads the graph, an "above" edge of an object that is also on / in / held / attached / airborne at other times is airborne, so a flight it touches stays one ballistic piece (<code>above.airborne</code>; the edge keeps <code>was{rel, to}</code> and names its <code>rule</code>); an object whose edges are all "above" is an overhead structure and keeps them</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>scenegraph_&lt;tag&gt;/&lt;unit&gt;.json</code>: grid fields plus <code>events</code>, <code>per_frame{obj: [{t, label}]}</code>, edges with <code>geo</code>, <code>t_release</code>, rotation edges with <code>curve{theta_deg, extent_px, n}</code>, <code>rejected</code></li>
+    <li><code>scenegraph_&lt;tag&gt;/&lt;unit&gt;.json</code>: grid fields plus <code>events</code>, <code>per_frame{obj: [{t, label}]}</code>, edges with <code>geo</code>, <code>t_release</code>, <code>release_rule</code>, <code>release_why</code>, rotation edges with <code>curve{theta_deg, extent_px, n}</code>, <code>rejected</code>, <code>untracked{name: why}</code></li>
     <li>Read by step 8 as the phases of each object (<code>motion_phases</code>): state and allowed models per phase, cut where its support changes</li>
   </ul></dd>
   <dt>Checks</dt>
@@ -338,7 +341,7 @@
   </ul></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_source, scale_source, support_plane, s, metric}</code>, <code>scale{s, source, object, extent, checks, failed}</code>, <code>gravity{g, sigma, source, rule, up, up_source, evidence[], checks, failed}</code>, <code>plane_ok</code>, <code>main_support</code></li>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_source, scale_source, support_plane, s, metric}</code>, <code>scale{s, source, object, extent, checks, failed}</code>, <code>gravity{g, sigma, source, rule, up, up_source, evidence[], checks, failed}</code>, <code>plane_ok</code>, <code>main_support</code>, <code>scene_graph</code> (the graph as fitted; rewritten edges with <code>was</code>, <code>rule</code>)</li>
     <li><code>objects[name]</code>: dims, <code>dim_source</code> (observed / prior / bound), <code>dim_bounds{dim: [lo, hi | null]}</code>, p0, v0, a, segments, mode, <code>motion_law{model, phases | rotation{rel, target, pieces, circle_candidate}}</code>, <code>physics</code>, <code>pendulum</code>, support</li>
     <li><code>results[0]</code>: <code>measurements[]</code>, <code>chosen</code>, <code>selection</code>, <code>pred</code>, <code>method</code>, <code>source</code>, <code>checks</code>, <code>failed</code>, <code>quality.align_tq</code>, <code>quality.measurement.constraint_residuals[]</code></li>
   </ul></dd>
@@ -376,6 +379,7 @@
   <li>All depths × s; fits run with f and the plane fixed</li>
 </ol></div>
 </div>
+<p>Every stated number (dimension, speed, acceleration, depth, time) has σ<sub>stated</sub> = half a unit of its last digit as written in the question's own prior and depth statements, in the written unit, converted to SI ("2.4200 m" → 5e-05 m, "40 mm" → 0.0005 m); each constraint records <code>stated{text, digits, unit, sigma, source}</code>. A stated size is also the <code>class_size</code> reference of the track identity judge (step 4: <code>dims{candidate, ref}</code>, "stated: diameter 0.07 ± 0.005 m").</p>
 <p>Sub-checks in <code>scale.checks</code>; any failure fails <b>scale</b>: <code>measured</code> (s exists), <code>side</code> (length vs width not ambiguous), <code>track</code> (the scale object's track chosen by its identity record), <code>reference_depth</code> (the reference object's nearest face within 1.25 × nominal × f / px), <code>geometry</code> (the direct calibration's s within 1.5×), <code>free_fall</code> (free-flight windows found).</p>
 
 <h3>8.4 Motion law per state (<code>state_models</code>)</h3>
@@ -390,17 +394,18 @@
 <h3>8.5 Gravity</h3>
 <p>One gravity vector g_scene = −g · up for every passive airborne piece of the scene; up is the support plane normal, else the camera's −y (<code>gravity.up_source</code>).</p>
 <ol>
-  <li>Evidence: each ballistic piece with ≥ 7 frames refitted with g free; g_k ± σ_k by the delta method, calibrated by the piece's reduced χ². It counts when this free-g law passes the residual test and g is not at its bound. Physics-chain probes (passive balls) are listed with g and ρ</li>
-  <li><code>gravity.source</code>, in order: the prior states g → <code>prior</code> (σ from the stated digits); the texts name the moon, Mars, space or low gravity → <code>inferred</code> (no evidence: <code>unknown</code>); the evidence rejects 9.81 (χ² = Σ (g_k − 9.81)² / (σ_k² + 0.026²) &gt; χ²<sub>K</sub>(0.9973)), the pieces agree, no probe agrees with Earth and g / 9.81 lies outside 1/1.25–1.25 → <code>inferred</code>, the inverse-variance mean; otherwise <code>earth</code>, 9.81 ± 0.026</li>
+  <li>Evidence: each ballistic piece with ≥ 7 frames refitted with g free; g_k ± σ_k by the delta method, calibrated by the piece's reduced χ². A piece is admissible evidence only when its free-g law passes the residual test (<code>law</code>), g is not at a numerical bound (<code>bound</code>), σ is finite (<code>sigma</code>) and σ &lt; |g| (<code>distinguishable</code>); an inadmissible piece never tests or rejects a g. The initial fit and every agent refit judge the pieces with the same function. Physics-chain probes (passive balls) are listed with g and ρ</li>
+  <li><code>gravity.source</code>, in order: the prior states g → <code>prior</code> (σ from the stated digits); the texts name the moon, Mars, space or low gravity → <code>inferred</code> (no evidence: <code>unknown</code>); the evidence rejects 9.81 (χ² = Σ (g_k − 9.81)² / (σ_k² + 0.026²) &gt; χ²<sub>K</sub>(0.9973)), the pieces agree, no probe agrees with Earth and g / 9.81 lies outside 1/1.25–1.25 → <code>inferred</code>, the inverse-variance mean; otherwise <code>earth</code>, 9.81 ± 0.026. No admissible piece: <code>earth</code> (<code>unknown</code> under off-Earth texts), with gravity.earth, gravity.prior and gravity.consistent untestable</li>
   <li>Every ballistic piece is refitted with a = g_scene, p0 and v0 free</li>
 </ol>
 <div class="scroll-x"><table>
   <tr><th>Check</th><th>Fails when</th></tr>
-  <tr><td>gravity.earth</td><td>9.81 is rejected by the free flight</td></tr>
+  <tr><td>gravity.earth</td><td>9.81 is rejected by the free flight; on an inferred scene this test is the reason for the source, recorded as <code>gravity.earth_test</code></td></tr>
   <tr><td>gravity.consistent</td><td>The pieces' g disagree: χ² about their mean above χ²<sub>K−1</sub>(0.9973)</td></tr>
-  <tr><td>gravity.scale</td><td>Inferred g with a scale that comes from gravity, or a hop with take-off and landing tracked whose law apex is off the middle of the graph's hop by more than one graph step (duration / 16); Earth / prior: the free flight rejects g inside the scale band</td></tr>
+  <tr><td>gravity.scale</td><td>Inferred g (g ∝ s, so it cannot test s): the scale comes from gravity; the record names g ± σ and s. Earth / prior: the free flight rejects g inside the scale band; the record names s and the s the free flight implies</td></tr>
+  <tr><td>gravity.hop</td><td>Inferred g: the law apex (v0 · up / g) of a hop with take-off and landing tracked lies off the middle of the graph's hop by more than one graph step (duration / 16); apex rise and g T² / 8 recorded</td></tr>
 </table></div>
-<p>A question read from a ballistic piece carries the check <b>gravity</b>: g unknown, or gravity.consistent / gravity.scale failing → fail. An acceleration at a time inside a ballistic piece is |g_scene| with g's σ.</p>
+<p>Any failed scene-level gravity check (<code>gravity.failed</code>) fails the check <b>gravity</b> of every admissible scale-dependent measurement of the question (fit, direct, endpoints, refmeasure; not the prior), whatever piece it is read from: "scene gravity failed: gravity.&lt;name&gt;: …". An unknown g fails <b>gravity</b> only for a value read from a ballistic piece. An acceleration at a time inside a ballistic piece is |g_scene| with g's σ (<code>sigma_parts.gravity</code>).</p>
 
 <h3>8.6 Fit</h3>
 <ol>
@@ -414,15 +419,15 @@
 <div class="scroll-x"><table>
   <tr><th>Measurement</th><th>Value</th><th>σ</th></tr>
   <tr><td><code>fit</code></td><td>Read from the fitted state (speed at t inside a piece that passes segfit; a size from an observed, free dimension)</td><td>Delta method over the least-squares parameters, scaled by the fit's reduced χ² when above 1 (<code>sigma_parts.scale</code>, <code>dof</code>)</td></tr>
-  <tr><td><code>direct</code></td><td>Depth + image motion in the minimal window around t: symmetric, n ≥ deg + 2 frames, grown while every signal's rms ≤ max(3σ, q_b)</td><td>Local polynomial covariance, calibrated by the window's own rms; <code>q</code> the box quantization step</td></tr>
+  <tr><td><code>direct</code></td><td>Depth + image motion in the minimal window around t: symmetric, n ≥ deg + 2 frames, grown while every signal's rms ≤ max(3σ, q_b). With timed depth statements, depth from the size series Z = c / (size − b) through the anchors (two: exact; more: least squares; b the box bias)</td><td>Local polynomial covariance, calibrated by the window's own rms; <code>q</code> the box quantization step. The anchors' alignment σ carried through (c, b) and the window's Z polynomial (<code>align</code>); f from a motion prior adds |∂v/∂f| σ_f (<code>focal</code>)</td></tr>
   <tr><td><code>prior</code></td><td>The prior names the same quantity of the same object in the same state</td><td>Half a unit of the stated last digit</td></tr>
   <tr><td><code>endpoints</code>, <code>refmeasure</code></td><td>A structure's extent from marked end points (step 5.1)</td><td></td></tr>
 </table></div>
-<p>A measurement with σ ≥ |value| is inadmissible (not distinguishable from zero); a fit parameter at a bound makes the fit inadmissible. Each admissible measurement runs its own checks:</p>
+<p>A measurement with σ ≥ |value| is inadmissible (not distinguishable from zero); a fit parameter at a bound makes the fit inadmissible; with f from a motion prior, <code>focal.class_size</code> makes the direct measurement inadmissible when a tracked sphere-class object with timed depth statements implies a size (box side − b) · Z / f outside its class range widened by 1.25. Each admissible measurement runs its own checks:</p>
 <div class="scroll-x"><table>
   <tr><th>Check</th><th>Fails when</th></tr>
   <tr><td>tracked</td><td>The asked or reference object has no track over the asked times, or a rejected one; direct: no minimal window, or verify-rejected / identity-switch frames inside it</td></tr>
-  <tr><td>scale</td><td>8.3</td></tr>
+  <tr><td>scale</td><td>8.3; direct: <code>anchors</code>, an anchor not reproduced by the size series within 3√(σ_stated² + σ_frame²), or size ≤ b on a frame; the reason lists c, b and each anchor, stated against the series</td></tr>
   <tr><td>visible</td><td>The size comes from a prior or a bound, two sizes collapsed, an overhead height at the depth limit, the asked times outside the visible span; direct: boxes in the window touch the border</td></tr>
   <tr><td>fit</td><td>No fitted value or a degenerate one; <code>fit.frame</code>: the projection misses the tracked box at the asked frame (IoU &lt; 0.3); <code>fit.piece</code>: IoU &lt; 0.3 on ≥ 3 consecutive test frames of the answering piece; <code>fit.law</code>: an object rotating at the asked time fitted without the rotation law. Direct: the window's rms above its bound</td></tr>
   <tr><td>segfit</td><td>8.4, on the piece that gives the value (a size: the longest piece)</td></tr>
@@ -452,15 +457,17 @@
   <dt>Does</dt>
   <dd><ol>
     <li><b>plausible</b> (<code>critic.scene_checks</code>): see the table below</li>
-    <li>Evidence: 3D overlays at even times and at the asked time, a crop at the asked time, visibility-mismatch overlays; text: inventory, graph edges, prior, scale, object dimensions (a bound dimension as its interval), failed checks with reasons, earlier rounds</li>
+    <li>Evidence: 3D overlays at even times and at the asked time, a crop at the asked time, visibility-mismatch overlays; text: inventory, graph edges, prior, scale, the scene's gravity (g ± σ, source, each free-flight piece with its admissibility, the gravity checks), object dimensions (a bound dimension as its interval), failed checks with reasons, earlier rounds</li>
     <li>Repair candidates from the failed checks: relation windows at the asked time, onset shifts, re-tracking an asked object failing <b>tracked</b> or an untracked scale object, <code>refit_free</code>, <code>limit_accel</code> for a self-propelled body beyond 1.5 g</li>
     <li>Observe tools (≤ 6 per round): frames, crop, overlay, tracks_summary, depth_at, scene_json, self_check, question_values, visible_count, reference_measure, model options</li>
     <li>Act tools (≤ 3 per round): re-track (<code>objects_set_count, objects_set_track, track_reselect, track_split_instance</code>) or refit (<code>scenegraph_set_relation, set_main_support, scene_mark_absent, scene_swap_axes, scene_set_support, scene_shift_onset, scene_refit_free, scene_set_plane, scene3d_try_fit_policy</code>)</li>
     <li>Back up the caches, rebuild the affected steps, accept on frozen evidence or restore; stop on an accepted round with every check passing, 2 rounds without improvement, or 10 rounds</li>
+    <li>The kept state (the last accepted round, else the initial fit) is saved with the graph and tracks that produced it; the answer reads that scene, and the answer record names it (<code>kept_state{iter, scenegraph, tracks}</code>)</li>
+    <li>Model calls are memoized by request content, with option ids taken from the option text, so a rerun replays every unchanged call across code edits</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/agent/&lt;unit&gt;.json</code>: final scene, <code>critique.iterations[]</code> (<code>diagnosis, layer, observations, tool_calls, repair_candidates, accepted, why, rerun_from</code>), <code>agent_status</code></li>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/agent/&lt;unit&gt;.json</code>: final scene, <code>critique.iterations[]</code> (<code>diagnosis, layer, observations, tool_calls, repair_candidates, accepted, why, rerun_from</code>; each tool call's <code>result</code>), <code>agent_status</code></li>
   </ul></dd>
   <dt>Checks</dt>
   <dd><ul>
@@ -495,7 +502,7 @@
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>outputs/harness/&lt;tag&gt;/answers/&lt;unit&gt;.json</code> (<code>schema: unit-1</code>): <code>answer{pred, source, method, scene_value, checks, failed, measurement.constraint_residuals, status}</code>, <code>timing</code>, <code>iterations</code>, <code>paths</code></li>
+    <li><code>outputs/harness/&lt;tag&gt;/answers/&lt;unit&gt;.json</code> (<code>schema: unit-1</code>): <code>answer{pred, source, method, scene_value, checks, failed, measurement.constraint_residuals, status}</code>, <code>timing</code>, <code>iterations</code>, <code>kept_state</code>, <code>paths</code></li>
     <li><code>outputs/val_&lt;tag&gt;_answers.csv</code> with <code>failed</code> and <code>seconds</code></li>
   </ul></dd>
 </dl>

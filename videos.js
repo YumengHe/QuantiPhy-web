@@ -81,7 +81,7 @@
         const body = document.createElement('div');
         body.className = 'qbody';
         body.innerHTML = priorBlock(q) + mediaBlock(view, q) + overlayBlock(q) + trackBlock(a.tracks, view, q) +
-          sceneGraphTree(a.sgraph) + fitBlock(q, view) + timeBlock(q);
+          sceneGraphTree(a.sgraph) + refmeasureBlock(q.refmeasure) + fitBlock(q, view) + roundsBlock(q.rounds) + timeBlock(q);
         d.appendChild(body);
         video = body.querySelector('video');
         tqMarks(body, view, q);
@@ -210,7 +210,9 @@
   // presence / border), the accepted one carrying the accent bar; an untracked object spans the row with its reason
   function identityBlock(idt) {
     if (!idt) return '';
-    const sizeCell = (c) => c.size.map((x) => `<div class="${x.pass ? '' : 'bad'}">${fmtNum(x.ratio)} ${interval(x.bounds[0], x.bounds[1])} ${esc(x.ref)}</div>`).join('');
+    const dimsText = (d) => (d ? ['candidate', 'ref'].filter((k) => d[k] !== 'class').map((k) => `${k === 'ref' ? '' : 'candidate '}${d[k].replace(/\+-/g, '±')}`).join('; ') : '');
+    const sizeCell = (c) => c.size.map((x) => `<div class="${x.pass ? '' : 'bad'}">${fmtNum(x.ratio)} ${interval(x.bounds[0], x.bounds[1])} ${esc(x.ref)}` +
+      `${dimsText(x.dims) ? ` <span class="muted">(${esc(dimsText(x.dims))})</span>` : ''}</div>`).join('');
     const rows = Object.entries(idt).map(([name, v]) => {
       const n = v.candidates.length + (v.untracked ? 1 : 0);
       const cand = v.candidates.map((c, i) => {
@@ -290,7 +292,34 @@
     return sgCtx.measureText(s).width;
   };
   function sceneGraphTree(sg) {
-    if (!sg || !sg.nodes.length) return '';
+    if (!sg) return '';
+    const tree = sg.edges.length && sg.nodes.length ? sceneGraphSvg(sg) : '';
+    const rel = sg.releases ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th class="n">Release (s)</th><th>Rule</th><th></th></tr>' +
+      sg.releases.map((r) => `<tr><td>${esc(r.obj)}</td><td class="n">${r.t[0] === r.t[1] ? fmt(r.t[0], 3) : `${fmt(r.t[0], 3)}–${fmt(r.t[1], 3)}`}</td>` +
+        `<td><code>${esc(r.rule)}</code></td><td>${esc(r.why || '')}</td></tr>`).join('') + '</table></div>' : '';
+    const unt = sg.untracked ? '<div class="scroll-x"><table class="sgrel"><tr><th>Untracked</th><th></th></tr>' +
+      sg.untracked.map(([n, why]) => `<tr><td>${esc(n)}</td><td class="bad">${esc(why)}</td></tr>`).join('') + '</table></div>' : '';
+    const rw = sg.rewritten ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th><th>Was</th><th>Rule</th></tr>' +
+      sg.rewritten.map((e) => `<tr><td>${esc(e.obj)}</td><td>${esc(e.rel)}${e.to ? ` ${esc(e.to)}` : ''} ${span(e.t0, e.t1)}</td>` +
+        `<td>${esc(e.was.rel)}${e.was.to ? ` ${esc(e.was.to)}` : ''}</td><td><code>${esc(e.rule)}</code></td></tr>`).join('') + '</table></div>' : '';
+    return tree || rel || unt || rw ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${rel}${rw}${unt}` : '';
+  }
+  // the agent rounds (answer record "iterations"): each tool call with its result, the round's outcome; the kept round
+  // (the state the answer used) carries the accent bar
+  function roundsBlock(r) {
+    if (!r) return '';
+    const par = (p) => Object.entries(p).map(([k, v]) => `${k} ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · ');
+    const rows = r.rounds.map((x) => {
+      const calls = x.calls.map((c) => `<div><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span></div>`).join('');
+      const res = x.calls.map((c) => `<div class="${/^rejected:/.test(c.result) ? 'bad' : ''}">${esc(c.result)}</div>`).join('') +
+        x.rejected.map((w) => `<div class="bad">${esc(w)}</div>`).join('');
+      return `<tr class="${x.iter === r.kept ? 'chosen' : ''}"><td class="n">${x.iter}</td><td>${calls}</td><td>${res}</td>` +
+        `<td class="${x.accepted ? 'ok' : ''}">${esc(x.why)}</td></tr>`;
+    }).join('');
+    return '<h4>Agent rounds</h4><div class="scroll-x"><table class="rounds"><tr><th class="n">Round</th><th>Call</th><th>Result</th><th>Outcome</th></tr>' +
+      rows + '</table></div>';
+  }
+  function sceneGraphSvg(sg) {
     const AIR = '\u0000air', NF = 12.5, LF = 11, LL = 13, PADX = 10, GAPX = 16, M = 6, MAXW = window.innerWidth < 640 ? 96 : 176;
     const type = {}, order = [];
     const addNode = (id, t) => { if (!(id in type)) { type[id] = t || 'object'; order.push(id); } };
@@ -455,7 +484,7 @@
           `<text class="sgt" x="${x - 24}" y="${sy + 4}" text-anchor="end">${esc(t)}</text>`;
       });
     });
-    return `<h4>scene graph</h4><div class="sgwrap"><svg class="sg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="scene graph">${edges}${labels}${boxes}</svg></div>`;
+    return `<div class="sgwrap"><svg class="sg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="scene graph">${edges}${labels}${boxes}</svg></div>`;
   }
 
   // ---------- reconstruction: the question's own scene value, the fitted objects ----------
@@ -560,10 +589,17 @@
     }
     return h;
   }
-  function checksTable(cs) {
+  function checksTable(cs, extra = '') {
     return '<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>' +
       cs.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.name)}</code></td><td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}</td></tr>`).join('') +
-      '</table></div>';
+      extra + '</table></div>';
+  }
+  // the unit's reference measurements (step 5.1): object, quantity, graduation unit, length in px, named checks
+  function refmeasureBlock(rm) {
+    if (!rm) return '';
+    return '<h4>Reference measurement</h4>' + rm.map((r) =>
+      `<p class="facts">${esc(r.obj)} · ${esc(r.quantity)}${r.unit ? ` · ${esc(r.unit)}` : ''}${r.px != null ? ` · ${fmtNum(r.px)} px` : ''}` +
+      `${r.frame != null ? ` · frame ${r.frame}` : ''}${r.method ? ` · ${esc(r.method)}` : ''}</p>` + checksTable(r.checks)).join('');
   }
   // the scene's gravity (rule B2): g and its source, every ballistic piece / physics probe it was judged on, its checks
   function gravityBlock(g) {
@@ -571,25 +607,27 @@
     const ev = g.evidence.map((e) => e.kind === 'ballistic_piece'
       ? `<tr class="${e.use ? '' : 'inadm'}"><td>${esc(e.obj)}</td><td>${span(e.t[0], e.t[1])}</td><td class="n">${e.n}</td>` +
         `<td class="n">${plusMinus(e.g, e.sigma)}</td><td class="${e.law.pass ? 'ok' : 'bad'}">${e.law.pass ? 'pass' : 'fail'} · run ${e.law.run} / ${e.law.n_test}</td>` +
-        `<td>${e.use ? 'used' : esc(e.why || 'not used')}</td></tr>`
-      : `<tr><td>${esc(e.obj)}</td><td>physics probe</td><td class="n"></td><td class="n">${fmtNum(e.g)}</td><td>ρ ${fmtNum(e.rho)}</td>` +
+        `<td class="${e.admissible.pass ? 'ok' : 'bad'}">${esc(e.admissible.reason)}</td>` +
+        `<td>${e.use ? 'used' : esc(e.why && e.why !== e.admissible.reason ? e.why : 'not used')}</td></tr>`
+      : `<tr><td>${esc(e.obj)}</td><td>physics probe</td><td class="n"></td><td class="n">${fmtNum(e.g)}</td><td>ρ ${fmtNum(e.rho)}</td><td></td>` +
         `<td class="${e.agree ? 'ok' : 'bad'}">${e.agree ? 'agrees with Earth' : 'disagrees with Earth'}</td></tr>`).join('');
+    const et = g.earth_test ? `<tr class="et"><td><code>earth_test</code></td><td>${g.earth_test.pass ? 'pass' : 'fail'}</td><td>${esc(g.earth_test.reason)}</td></tr>` : '';
     return `<p class="facts">g = ${plusMinus(g.g, g.sigma)} m/s² · ${esc(g.source)} · ${esc(g.rule)} · up: ${esc(g.up_source)}</p>` +
-      (ev ? '<div class="scroll-x"><table class="gev"><tr><th>Object</th><th>Piece</th><th class="n">n</th><th class="n">g (m/s²)</th><th>Law residual</th><th></th></tr>' + ev + '</table></div>' : '') +
-      checksTable(g.checks);
+      (ev ? '<div class="scroll-x"><table class="gev"><tr><th>Object</th><th>Piece</th><th class="n">n</th><th class="n">g (m/s²)</th><th>Law residual</th><th>Admissible</th><th></th></tr>' + ev + '</table></div>' : '') +
+      checksTable(g.checks, et);
   }
   // ---------- v5: every measurement of the asked quantity, the checks agree / constraints ----------
   const span = (a, b) => `${a == null ? '…' : fmt(a, 2)}–${b == null ? '…' : fmt(b, 2)} s`;
   const plusMinus = (v, sg) => `${fmtNum(v)}${sg != null ? ` ± ${fmtNum(sg)}` : ''}`;
   function sigmaSub(m) {
     const j = (a) => a.map((x) => fmtNum(x)).join(' / ');
-    const parts = [m.scale && `scale ${j(m.scale)}`, m.dof && `dof ${m.dof.join(' / ')}`, m.q && `q ${j(m.q)}`].filter(Boolean);
+    const terms = m.terms ? Object.entries(m.terms).filter(([, v]) => v != null).map(([k, v]) => `${k} ${fmtNum(v)}`) : [];
+    const parts = [...terms, m.scale && `scale ${j(m.scale)}`, m.dof && `dof ${m.dof.join(' / ')}`, m.q && `q ${j(m.q)}`].filter(Boolean);
     return parts.length ? `<span class="msub">${esc(parts.join(' · '))}</span>` : '';
   }
   function measurementRow(m, chosen) {
-    const terms = m.terms ? Object.entries(m.terms).filter(([, v]) => v != null).map(([k, v]) => `${k} ${fmtNum(v)}`).join(' · ') : '';
     const val = m.value == null ? '<span class="muted">—</span>'
-      : `<span${terms ? ` title="${esc(terms)}"` : ''}>${plusMinus(m.value, m.sigma)} ${esc(m.unit)}</span>${sigmaSub(m)}`;
+      : `<span>${plusMinus(m.value, m.sigma)} ${esc(m.unit)}</span>${sigmaSub(m)}`;
     const inp = [m.window && `window ${span(m.window[0], m.window[1])}`, m.n != null && `n ${m.n}`,
       m.piece && `piece ${span(m.piece[0], m.piece[1])}`, m.state, m.law && `ballistic g ${fmtNum(m.law.g)} (${m.law.source})`].filter(Boolean).join(' · ');
     const failed = m.failed.map((c) => `<div><code>${esc(c.which || c.name)}</code> ${esc(c.reason)}</div>`).join('');
@@ -601,6 +639,12 @@
   function measurementBlock(q) {
     let h = '<div class="scroll-x"><table class="meas"><tr><th>Measurement</th><th>Method</th><th class="n">Value</th><th>Admissible</th><th>Failed</th><th>Inputs</th></tr>' +
       q.measurements.map((m) => measurementRow(m, q.chosen)).join('') + '</table></div>';
+    const other = q.measurements.filter((m) => m.name !== q.chosen && m.checks.length);
+    if (other.length) {
+      h += '<div class="scroll-x"><table class="checks mchecks"><tr><th>Check</th><th></th><th>Reason</th></tr>' +
+        other.map((m) => m.checks.map((c, i) => `<tr class="${c.pass ? 'ok' : 'bad'}${i ? '' : ' mfirst'}"><td><code>${esc(m.name)}</code> <code>${esc(c.name)}</code></td>` +
+          `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}</td></tr>`).join('')).join('') + '</table></div>';
+    }
     const a = q.agree;
     if (a.values.length) {
       const chi = a.chi2 != null ? `χ² ${fmtNum(a.chi2)} ${a.chi2 > a.bound ? '>' : '≤'} ${fmtNum(a.bound)} (dof ${a.dof})` : '<span class="muted">—</span>';
@@ -610,10 +654,10 @@
     }
     if (q.constraints.length) {
       h += '<div class="scroll-x"><table class="checks cons"><tr><th>Constraint</th><th></th><th class="n">Observed</th><th class="n">Predicted</th>' +
-        '<th class="n">|Δ|</th><th class="n">Bound</th><th class="n">σ stated</th><th class="n">σ pred</th><th>Testable</th></tr>' +
+        '<th class="n">|Δ|</th><th class="n">Bound</th><th>Stated</th><th class="n">σ stated</th><th class="n">σ pred</th><th>Testable</th></tr>' +
         q.constraints.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.id)}</code></td><td>${c.pass ? 'pass' : 'fail'}</td>` +
           `<td class="n">${fmtNum(c.observed)}</td><td class="n">${fmtNum(c.predicted)}</td><td class="n">${fmtNum(c.diff)}</td>` +
-          `<td class="n">${fmtNum(c.bound)}</td><td class="n">${fmtNum(c.sigma_stated)}</td><td class="n">${fmtNum(c.sigma_pred)}</td>` +
+          `<td class="n">${fmtNum(c.bound)}</td><td>${c.stated && c.stated.text ? esc(c.stated.text) : ''}</td><td class="n">${fmtNum(c.sigma_stated)}</td><td class="n">${fmtNum(c.sigma_pred)}</td>` +
           `<td>${c.testable ? 'yes' : 'no'}</td></tr>`).join('') + '</table></div>';
     }
     h += `<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>` +

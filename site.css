@@ -155,3 +155,13 @@ table.ident .isize div { white-space: nowrap; }
 .tt { width: auto; min-width: 60%; }
 @media (max-width: 640px) { .io { grid-template-columns: 1fr; } .io dt { border-top: 0; padding-top: 8px; }
   .io dd { border-top: 0; } .two { grid-template-columns: 1fr; } }
+table.sgrel { width: auto; min-width: 60%; margin: 6px 0 10px; }
+table.sgrel td.bad { color: var(--m1t, #8a1c12); }
+table.checks > tbody > tr.mfirst:not(:nth-child(2)) > td { border-top: 2px solid var(--border); }
+table.rounds { width: auto; min-width: 70%; margin: 6px 0 10px; font-size: 13px; }
+table.rounds td { vertical-align: top; }
+table.rounds td div + div { margin-top: 2px; }
+table.rounds td .bad { color: var(--m1t, #8a1c12); }
+table.rounds tr:not(.chosen) td:last-child:not(.ok) { color: var(--muted); }
+table.rounds tr.chosen td { background: var(--accent-soft); }
+table.rounds tr.chosen td:first-child { box-shadow: inset 3px 0 0 var(--accent); }

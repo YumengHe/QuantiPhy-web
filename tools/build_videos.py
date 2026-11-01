@@ -88,7 +88,16 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            source, and a prior-extent scale its "extent" (the frames and depth observations it was measured on)
 #   gravity  the scene has "gravity" {g, sigma, source, rule, up_source, evidence, checks, failed} (rule B2) and a
 #            prior-scaled scene's "scale" its named "checks" / "failed"; a measurement read from a ballistic piece has
-#            "inputs"."law" {g, source, up}
+#            "inputs"."law" {g, source, up}; each ballistic piece of the gravity evidence has "admissible" {pass, reason}
+#            and an inferred gravity its "earth_test" {pass, reason}
+#   release  every scene graph edge with "t_release" has its "release_rule" (release.last_contact / free_flight), an
+#            airborne one its "release_why"; the graph has "untracked" {name: why}
+#   refmeasure the reference measurement record outputs/refmeasure_v<refmeasure.VERSION>_<tag>/<unit>.json (when the
+#            unit has one) has "checks" / "failed" per "<object>|<quantity>" entry
+#   kept     the answer record has "kept_state" {iter, scenegraph, ...}: the scene graph the answer used (the agent
+#            round kept, 0 = the initial fit) and "iterations" (the agent rounds with their tool results); a scene graph
+#            edge rewritten by scene_fit carries "was" {rel, to} and "rule"; every constraint residual has "stated"
+#            {text, digits, unit, sigma, source}; an identity class_size entry has "dims" {candidate, ref}
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -99,7 +108,7 @@ VERSION_FORMAT = {
     "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "checks",
            "steps": STEPS_V4},
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
-           "steps": STEPS_V5, "identity": True, "gravity": True},
+           "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -188,17 +197,64 @@ def unit_json(kind: str, key: str, what: str):
     return j
 
 
-def sgraph(key: str):
-    """The run's scene graph cache outputs/scenegraph_<tag>/<key>.json as written, for the tree on the page:
+def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
+    """The run's scene graph cache outputs/scenegraph_<tag>/<key>.json as written (with FMT "kept": the graph the
+    answer used, the answer record's kept_state.scenegraph, and "kept" its agent round), for the tree on the page:
     {"nodes": [{"id", "type": object | support | holder}], "edges": [{"from", "to" (null: airborne), "rel", "t0", "t1"}]}
-    (t0 / t1 null = the whole video; contact edges dropped). None when the graph has no support relation."""
-    g = unit_json("sgraph", key, "scene graph")
+    (t0 / t1 null = the whole video; contact edges dropped); with FMT "release" also "releases" [{"obj", "t", "rule",
+    "why"}] (one per held -> airborne release) and "untracked" [[name, why]]; with FMT "kept" "rewritten" [{"obj", "rel",
+    "to", "t0", "t1", "was", "rule"}] (edges of the scene's own graph rewritten by scene_fit). None when it has none."""
+    if FMT.get("kept"):
+        ks = req(rec, "kept_state", "answer record")
+        g = read_json(ROOT / text(req(ks, "scenegraph", "kept_state")), "kept scene graph")
+        if req(g, "unit", "kept scene graph") != key:
+            raise ValueError(f"{AT['where']}: kept scene graph is for unit {g['unit']!r}")
+    else:
+        g = unit_json("sgraph", key, "scene graph")
     edges = [{"from": text(req(e, "from", "edge")), "to": text(req(e, "to", "edge")) or None,   # null "to": airborne
               "rel": text(e["rel"]), "t0": num(req(e, "t_start", "edge"), 4), "t1": num(req(e, "t_end", "edge"), 4)}
              for e in req(g, "edges", "scene graph cache") if req(e, "rel", "edge") in SUPPORT_RELS]
     nodes = [{"id": text(req(n, "id", "scene graph node")), "type": text(req(n, "type", "scene graph node"))}
              for n in req(g, "nodes", "scene graph cache")]
-    return {"nodes": nodes, "edges": edges} if edges else None
+    out = {"nodes": nodes, "edges": edges} if edges else {}
+    if FMT.get("release"):
+        rel = {}     # (object, t_release) -> {"obj", "t", "rule", "why"}: the held_by and the airborne edge of one release
+        for e in req(g, "edges", "scene graph cache"):
+            if "t_release" not in e:
+                continue
+            w = f"edge {e.get('from')!r} {e.get('rel')!r}"
+            rule = text(req(e, "release_rule", w))
+            if rule not in ("release.last_contact", "release.free_flight"):
+                raise ValueError(f"{AT['where']}: {w} release_rule {rule!r}")
+            t = [num(x, 4) for x in req(e, "t_release", w)]
+            r = rel.setdefault((text(e["from"]), tuple(t)), {"obj": text(e["from"]), "t": t, "rule": rule, "why": None})
+            if r["rule"] != rule:
+                raise ValueError(f"{AT['where']}: {w} release_rule {rule!r} differs from its other edge's {r['rule']!r}")
+            if e["rel"] == "airborne":
+                r["why"] = text(req(e, "release_why", w))
+        unt = req(g, "untracked", "scene graph cache")
+        if rel:
+            out["releases"] = list(rel.values())
+        if unt:
+            out["untracked"] = [[text(k), text(v)] for k, v in unt.items()]
+    if FMT.get("kept") and state is not None:
+        rw = []
+        for e in req(req(state, "scene_graph", "scene"), "edges", "scene graph"):
+            if "was" not in e:
+                continue
+            w = f"scene graph edge {e.get('from')!r} {e.get('rel')!r}"
+            was = req(e, "was", w)
+            rw.append({"obj": text(req(e, "from", w)), "rel": text(req(e, "rel", w)), "to": text(e.get("to")) or None,
+                       "t0": num(req(e, "t_start", w), 4), "t1": num(req(e, "t_end", w), 4),
+                       "was": {"rel": text(req(was, "rel", f"{w} was")), "to": text(was.get("to")) or None},
+                       "rule": text(req(e, "rule", w))})
+        if rw:
+            out["rewritten"] = rw
+    if out and "nodes" not in out:
+        out |= {"nodes": nodes, "edges": []}
+    if out and FMT.get("kept"):
+        out["kept"] = int(req(rec["kept_state"], "iter", "kept_state"))
+    return out or None
 
 
 def track_intervals(key: str):
@@ -337,7 +393,7 @@ def measurement_row(m: dict) -> dict:
         if k not in checks or checks[k]["pass"] is not False:
             raise ValueError(f"{AT['where']}: {what} lists {k!r} as failed, its checks do not")
     parts = req(m, "sigma_parts", what) or {}
-    terms = {k: num(v, 3) for k, v in parts.items() if k in ("track", "depth", "align", "fit_se", "stated")}
+    terms = {k: num(v, 3) for k, v in parts.items() if k in ("track", "depth", "align", "focal", "gravity", "fit_se", "stated")}
     lst = lambda v: [num(x, 3) for x in v] if isinstance(v, list) else ([num(v, 3)] if v is not None else None)
     dof = parts.get("dof")
     inputs = req(m, "inputs", what) or {}
@@ -348,7 +404,8 @@ def measurement_row(m: dict) -> dict:
             "shared": list(req(m, "shared", what)), "admissible": ok, "why": text(req(adm, "reason", f"{what} admissible")),
             "failed": [{"name": k, "reason": text(req(checks[k], "reason", f"{what} check {k!r}"))}
                        | ({"which": text(checks[k]["which"])} if checks[k].get("which") else {}) for k in failed],
-            "checks": [{"name": k, "pass": bool(req(c, "pass", f"{what} check {k!r}"))} for k, c in checks.items()],
+            "checks": [{"name": k, "pass": bool(req(c, "pass", f"{what} check {k!r}")),
+                        "reason": text(req(c, "reason", f"{what} check {k!r}"))} for k, c in checks.items()],
             "window": [num(x, 4) for x in inputs["window"]] if inputs.get("window") else None,
             "piece": [num(max(x, 0.0), 4) if x > -1e8 else None for x in inputs["piece"]] if inputs.get("piece") else None,
             "n": inputs.get("n"), "state": text(inputs.get("state")) or None,
@@ -390,12 +447,41 @@ def agreement_view(result: dict, answer: dict, status: str) -> dict:
                      "observed": num(obs), "predicted": num(pred),
                      "diff": num(abs(float(pred) - float(obs)), 3) if pred is not None else None,
                      "sigma_stated": num(req(c, "sigma_stated", w), 3), "sigma_pred": num(req(c, "sigma_pred", w), 3),
-                     "bound": num(req(c, "bound", w), 3), "pass": req(c, "pass", w), "testable": req(c, "testable", w)})
+                     "bound": num(req(c, "bound", w), 3), "pass": req(c, "pass", w), "testable": req(c, "testable", w)}
+                    | ({"stated": stated_view(req(c, "stated", w), w)} if FMT.get("kept") else {}))
     ids = {r["id"] for r in rows}
     failed_ids = list(req(cs, "failed_ids", "constraints"))
     if not set(failed_ids) <= ids:
         raise ValueError(f"{AT['where']}: constraints failed_ids {failed_ids} not among the residuals {sorted(ids)}")
     return {"measurements": ms, "chosen": chosen, "agree": agree, "constraints": rows}
+
+
+def stated_view(st: dict, what: str) -> dict:
+    """A constraint's stated number as written (rule G10): its text (null: no text of the unit states it), digits,
+    unit, sigma (SI, half a unit of the last written digit) and source."""
+    return {"text": text(req(st, "text", f"{what} stated")) or None, "digits": text(req(st, "digits", f"{what} stated")),
+            "unit": text(req(st, "unit", f"{what} stated")), "sigma": num(req(st, "sigma", f"{what} stated"), 3),
+            "source": text(req(st, "source", f"{what} stated"))}
+
+
+def rounds_view(rec: dict) -> dict | None:
+    """The agent rounds of an answer record ("iterations"): per round its tool calls with their results (a rejected
+    edit's result starts "rejected: "), the plan's rejected issues, whether it was accepted and why; "kept" = the
+    round whose state the answer used (kept_state.iter, 0 = the initial fit). None when the agent made no round."""
+    its = req(rec, "iterations", "answer record")
+    kept = int(req(req(rec, "kept_state", "answer record"), "iter", "kept_state"))
+    if kept and kept not in [it.get("iter") for it in its]:
+        raise ValueError(f"{AT['where']}: kept_state.iter {kept} is not an agent round")
+    rows = []
+    for it in its:
+        w = f"agent round {it.get('iter')!r}"
+        calls = [{"name": text(req(r, "name", w)), "params": {k: v for k, v in (r.get("params") or {}).items() if v is not None},
+                  "result": text(req(r, "result", w))} for r in req(it, "results", w)]
+        rej = [text(req(x, "why", f"{w} rejected")) for x in (it.get("rejected") or [])]
+        acc = req(it, "accepted", w)
+        rows.append({"iter": int(req(it, "iter", w)), "layer": text(it.get("layer")) or None, "calls": calls,
+                     "rejected": rej, "accepted": bool(acc), "why": text(req(it, "why", w))})
+    return {"kept": kept, "rounds": rows} if rows else None
 
 
 def dim_bounds(name: str, o: dict):
@@ -455,20 +541,49 @@ def gravity_view(state: dict):
         w = f"gravity evidence {e.get('object')!r}"
         kind = text(req(e, "kind", w))
         if kind == "ballistic_piece":
-            law = req(e, "law", w)
+            law, adm = req(e, "law", w), req(e, "admissible", w)
             ev.append({"obj": text(req(e, "object", w)), "kind": kind, "t": [num(x, 4) for x in req(e, "t", w)],
                        "n": req(e, "n", w), "g": num(req(e, "g", w)), "sigma": num(req(e, "sigma", w), 3),
                        "law": {"pass": bool(req(law, "pass", f"{w} law")), "run": req(law, "run", f"{w} law"),
                                "n_test": req(law, "n_test", f"{w} law")},
+                       "admissible": {"pass": bool(req(adm, "pass", f"{w} admissible")),
+                                      "reason": text(req(adm, "reason", f"{w} admissible"))},
                        "use": bool(req(e, "use", w)), "why": text(e.get("why")) or None})
         elif kind == "physics_probe":
             ev.append({"obj": text(req(e, "object", w)), "kind": kind, "g": num(req(e, "g", w)),
                        "rho": num(req(e, "rho", w), 3), "agree": bool(req(e, "agree", w))})
         else:
             raise ValueError(f"{AT['where']}: {w} kind {kind!r}")
+    et = g.get("earth_test")
+    if (et is not None) != (src == "inferred"):
+        raise ValueError(f"{AT['where']}: gravity source {src!r} with earth_test {et!r}")
     return {"g": num(req(g, "g", "gravity")), "sigma": num(req(g, "sigma", "gravity"), 3), "source": src,
+            "earth_test": {"pass": bool(req(et, "pass", "earth_test")), "reason": text(req(et, "reason", "earth_test"))}
+            if et is not None else None,
             "rule": text(req(g, "rule", "gravity")), "up_source": text(req(g, "up_source", "gravity")), "evidence": ev,
             "checks": named_checks(req(g, "checks", "gravity"), list(req(g, "failed", "gravity")), "gravity")}
+
+
+def refmeasure_view(tag: str, unit: str):
+    """The unit's reference measurements (pipeline.refmeasure record, keyed "<object>|<quantity>"): object, quantity,
+    graduation unit, length in px, its frame and named checks; None when the unit has no record."""
+    if not FMT.get("refmeasure"):
+        return None
+    from pipeline.refmeasure import VERSION as REFM_VERSION
+    p = ROOT / "outputs" / f"refmeasure_v{REFM_VERSION}_{tag}" / f"{unit}.json"
+    if not p.exists():
+        return None
+    j = read_json(p, "refmeasure record")
+    out = []
+    for key, e in j.items():
+        w = f"refmeasure {key!r}"
+        if req(e, "unit_id", w) != unit:
+            raise ValueError(f"{AT['where']}: {w} is for unit {e['unit_id']!r}")
+        out.append({"obj": text(req(e, "object", w)), "quantity": text(req(e, "quantity", w)),
+                    "method": text(e.get("method")) or None, "unit": text(e.get("unit")) or None,
+                    "px": num(e.get("px")), "frame": e.get("frame"), "pass": bool(req(e, "pass", w)),
+                    "checks": named_checks(req(e, "checks", w), list(req(e, "failed", w)), w)})
+    return out or None
 
 
 def dims_check(state: dict) -> list[dict]:
@@ -514,6 +629,8 @@ def identity_view(key: str) -> dict:
                          "size": [{"ref": text(x["ref"]), "ratio": num(x["ratio"], 3),
                                    "bounds": [num(b, 3) if b is not None else None for b in x["bounds"]],
                                    "view": text(x["view"]).split(" (")[0], "pass": bool(x["pass"])}
+                                  | ({"dims": {k: text(req(req(x, "dims", w), k, w)) for k in ("candidate", "ref")}}
+                                     if FMT.get("kept") else {})
                                   for x in c.get("class_size") or []],
                          "span": [pres["first"], pres["last"]] if pres and pres.get("pass") else None,
                          "border": num(c["border_frac"], 2) if c.get("border_frac") is not None else None,
@@ -942,8 +1059,11 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                                                vid if unit_kind == "video" else unit) if group else [],
                       "execution_status": exec_status}
             if unit_kind == "question":
+                query["refmeasure"] = refmeasure_view(tag, unit)
                 query |= {"scene": scene_view(state, DIRS["scenes"] / f"{unit}.json") if state is not None else None,
-                          "sgraph": sgraph(unit), "tracks": track_intervals(unit)}
+                          "sgraph": sgraph(unit, rec, state), "tracks": track_intervals(unit)}
+                if FMT.get("kept"):
+                    query["rounds"] = rounds_view(rec)
                 if FMT.get("identity"):
                     query |= {"identity": identity_view(unit),
                               "dims_check": dims_check(state) if state is not None else None}
@@ -1002,6 +1122,12 @@ def main():
             "val": build_harness_val([parse_run(s) for s in args.val_runs], args.rethumb)}
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
+    used = {Path(v["thumb"]).name for v in data["val"]["videos"]}
+    stale = [p for p in THUMBS.glob("*.jpg") if p.name not in used]
+    for p in stale:
+        p.unlink()
+    if stale:
+        print(f"{len(stale)} unreferenced thumbs removed")
     sizes = [p.stat().st_size for p in THUMBS.glob("*.jpg")]
     print(f"wrote {OUT} ({OUT.stat().st_size / 1e6:.2f} MB); {len(sizes)} thumbs, {sum(sizes) / 1e6:.2f} MB, max {max(sizes, default=0)} B")
 
