@@ -10,6 +10,8 @@
   .versions th { white-space: normal; }
   .versions td:first-child { font-weight: 600; white-space: nowrap; }
   .versions td.n, .versions th.n { width: 7.5em; }
+  .versions ol.batches { margin: 6px 0 0; padding-left: 22px; font-size: 14px; }
+  .versions ol.batches li { margin: 2px 0; }
   @media (max-width: 560px) {
     .versions, .versions tbody, .versions tr, .versions td { display: block; width: auto; }
     .versions tr:first-child { display: none; }
@@ -32,6 +34,13 @@
   <tr><td>v2</td><td>Physics-guided Fitting: passive objects follow physics-law motion models (rest, bounce, flight, incline, pushed, pendulum) with g fixed, and a gravity probe checks the scale. Planar scale fixed with category-size cross-checks, a heading rule and one shared yaw per track.</td><td class="n" data-k="10 questions">0.58</td><td class="n" data-k="Validation (159 questions)">—</td></tr>
   <tr><td>v3</td><td>One 3D path for every video: the planar camera mode is removed; videos without distance anchors get focal length and support plane from Depth Pro and one scale factor from the prior; objects have thickness.</td><td class="n" data-k="10 questions">0.58</td><td class="n" data-k="Validation (159 questions)">—</td></tr>
   <tr><td>v4</td><td>Planar remnants removed: the scene graph has no 2D prompt and no geometric contact relabelling; presence and direct measurement drop their planar special cases. Each question is processed on its own (bug fix): only its own text and prior. Answers come only from the scene: named pass/fail checks replace the confidence score, and a question that fails them stays unresolved.</td><td class="n" data-k="10 questions">0.27</td><td class="n" data-k="Validation (159 questions)">—</td></tr>
+  <tr><td>v5</td><td>Scene graph and motion: inventory <code>locomotion</code>; rotation relations (orbits, rotates_about, pivot) kept only on a curved track; motion models per scene-graph state (<code>state_models</code>), each piece tested against its own track noise (<code>segfit</code>, <code>fit.piece</code>), a rotation law for every rotating object (<code>fit.law</code>). Answering: every measurement of the asked quantity (fit, direct, prior) with its prerequisites, σ and own checks; an answer only when they <code>agree</code> and the stated <code>constraints</code> hold. 10 questions run with the GPT backend.
+    <ol class="batches">
+      <li>Batch 1, 0.51: <code>state_models</code>, <code>segfit</code> 2D law, <code>fit.piece</code>, rotation relations, <code>locomotion</code></li>
+      <li>Batch 2, 0.22: observe split with support masks by name; answer routing by prerequisites (<code>measurements[]</code>, <code>chosen</code>), the direct-kinematics override removed. Drops: a rotation-law bug on the second orbiting object, a ruler-spacing unit assumption after a track change, one honest unresolved, and the smaller-σ fit chosen without an agreement test</li>
+      <li>Batch 3, 0.10: rotation law for every rotating object; <code>agree</code> and <code>constraints</code>; σ ≥ |value| inadmissible; refmeasure graduation units. Answered: 0193 only; right answers blocked by noise-only σ</li>
+      <li>Batch 4, 0.17: σ calibrated by the reduced χ²; fit-term constraints testable; minimal direct window deg + 2; quantization bound. Answered: 0193 (1.0), 0034as (0.7, −29 %, shared scale bias); 8 unresolved with named checks; the remaining blocks are upstream (tracks on the wrong object, unobserved dimensions, prior scale on a free object, a scale bias shared by fit and direct)</li>
+    </ol></td><td class="n" data-k="10 questions">0.17</td><td class="n" data-k="Validation (159 questions)">—</td></tr>
 </table>
 
 </main>

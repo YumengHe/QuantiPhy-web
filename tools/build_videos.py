@@ -5,6 +5,7 @@ unit <video_id>_q<k> (k = its 1-based order among the video's rows of the split 
 
   python -B web/tools/build_videos.py --val-runs v1
   python -B web/tools/build_videos.py --val-runs v4=outputs/val_v4_answers_dev10.csv v1
+  python -B web/tools/build_videos.py --val-runs v5gpt=outputs/val_v5gpt_answers_dev10.csv v1
 
 Runs are listed in order of preference: each question is shown from the first run whose CSV has its row, and every
 value of that question (pred, MRA, source, scene, overlays, tracks, scene graph) comes from that run alone. The page
@@ -21,7 +22,8 @@ Inputs of a run <tag> (relative to the repo root):
   outputs/tracks_<tag>/<key>.json                      track cache (visible intervals per object)
   outputs/objects_<tag>/<key>.json                     object inventory (unit "question": identity checked)
   web/data/runtime/<tag>/overlays.json                 overlays rendered for that version (images beside it)
-<key> is the video for unit "video" and the question's unit <video_id>_q<k> for unit "question"; a unit-question file
+A run tag is a version, optionally with the model backend ("v5gpt": v5 run with --model-backend gpt) and "_control";
+its format is the version's. <key> is the video for unit "video" and the question's unit <video_id>_q<k> for unit "question"; a unit-question file
 whose "unit" (or video) is not that question's raises. Answer records of unit "question" have schema "unit-1", with
 the question's timing. Also docs/DEV10.md, the development question set -> val "dev"; each of its units must be in some run.
 
@@ -73,13 +75,24 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #   paths    object keys whose motion is sampled for the 3D viewer (pipeline.scene_state3d.position); v1 "ballistic"
 #            motion is not executable by scene_state3d, so v1 balls are drawn from p0 / v0 / a only
 #   unit     processing unit of the run: "video" (one scene per video and prior group) or "question"
-#   decide   how a scene value becomes the answer: "conf" (a numeric confidence: CSV / scene result "conf") or
-#            "checks" (named pass/fail checks: answer record "checks" / "failed" / "status", CSV "failed"; no conf)
+#   decide   how a scene value becomes the answer: "conf" (a numeric confidence: CSV / scene result "conf"),
+#            "checks" (named pass/fail checks: answer record "checks" / "failed" / "status", CSV "failed"; no conf) or
+#            "agree" (v5, docs/ANSWER_AGREEMENT.md section 5: the named checks, plus every measurement of the asked
+#            quantity in the scene result -- "measurements", "chosen", "selection" -- the checks "agree" {chi2, dof,
+#            bound, values} and "constraints" {failed_ids}, and the answer's "constraint_residuals" with sigma_stated /
+#            sigma_pred / bound / pass / testable; each scene object has a "motion_law")
+#   steps    the answer record's timing steps, in pipeline order (unit "question" only)
+STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
+STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
+            "answer")
 VERSION_FORMAT = {
     "v1": {"motion": "ballistic", "paths": ("segments",), "unit": "video", "decide": "conf"},
     "v2": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video", "decide": "conf"},
     "v3": {"motion": "physics", "paths": ("physics", "segments"), "unit": "video", "decide": "conf"},
-    "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "checks"},
+    "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "checks",
+           "steps": STEPS_V4},
+    "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
+           "steps": STEPS_V5},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -88,11 +101,29 @@ DIRS: dict = {}    # artifact dirs of the version being built
 AT = {"where": ""}  # "<version> <video or unit>" being read, for error messages
 
 
+TAG_RE = re.compile(r"(v\d+)(gpt)?(_control)?")
+
+
+def base_version(tag: str) -> str:
+    """The version of a run tag: "v5gpt" -> "v5" (a backend suffix), "v4_control" -> "v4"."""
+    m = TAG_RE.fullmatch(tag)
+    if not m:
+        raise ValueError(f"{tag}: not a run tag <version>[gpt][_control]")
+    return m.group(1)
+
+
 def version_format(tag: str) -> dict:
-    base = tag.removesuffix("_control")
+    base = base_version(tag)
     if base not in VERSION_FORMAT:
         raise ValueError(f"{tag}: no VERSION_FORMAT entry for {base}; declare its artifact format first")
     return VERSION_FORMAT[base]
+
+
+def run_label(tag: str, pipeline: str) -> bool:
+    """Is `pipeline` (an answer record's version.pipeline) the label of run `tag`? The harness writes the tag, with
+    "-dirty" when the run's working tree had uncommitted changes."""
+    t = tag.removesuffix("_control")
+    return pipeline in (t, f"{t}-dirty")
 
 
 def num(x, sig=4):
@@ -203,6 +234,21 @@ def motion_events(name: str, o: dict) -> list:
     return [] if record is None else list(req(record, "events", f"object {name!r} motion record"))
 
 
+def motion_law(name: str, o: dict):
+    """The motion law of a scene object (v5 "motion_law"): {"model", "rotation": {"rel", "target", "pieces",
+    "circle_candidate"} | None, "phases": [[t, state, moving]] | None}; None: no physics-law motion record."""
+    law = req(o, "motion_law", f"scene object {name!r}")
+    if law is None:
+        return None
+    rot = law.get("rotation")
+    if rot is not None:
+        rot = {"rel": text(req(rot, "rel", "rotation law")), "target": text(req(rot, "target", "rotation law")) or None,
+               "pieces": list(req(rot, "pieces", "rotation law")),
+               "circle_candidate": bool(req(rot, "circle_candidate", "rotation law"))}
+    phases = [[num(p[0], 4), text(p[1]), bool(p[2])] for p in law["phases"]] if law.get("phases") else None
+    return {"model": text(req(law, "model", f"object {name!r} motion law")), "rotation": rot, "phases": phases}
+
+
 def align(a):
     """t_q alignment check of one answer (scene result quality "align_tq"): {"iou", "dc", "t", "frame"} | None."""
     if a is None:
@@ -247,7 +293,8 @@ def answer_checks(answer: dict, row: dict) -> dict:
         ok = req(c, "pass", f"check {name!r}")
         if not isinstance(ok, bool):
             raise ValueError(f"{AT['where']}: check {name!r} pass = {ok!r}")
-        out.append({"name": name, "pass": ok, "reason": text(req(c, "reason", f"check {name!r}"))})
+        out.append({"name": name, "pass": ok, "reason": text(req(c, "reason", f"check {name!r}"))}
+                   | ({"which": text(c["which"])} if c.get("which") else {}))
     if failed != [c["name"] for c in out if not c["pass"]]:
         raise ValueError(f"{AT['where']}: failed {failed} differs from the checks that did not pass")
     csv_failed = [x for x in text(req(row, "failed", "harness CSV row")).split(";") if x]
@@ -268,6 +315,74 @@ def answer_checks(answer: dict, row: dict) -> dict:
     if status == "unresolved" and answer.get("scene_value") is not None:   # kept for inspection, not the answer
         res["scene_value"] = num(answer["scene_value"])
     return res
+
+
+def measurement_row(m: dict) -> dict:
+    """One measurement of the asked quantity (scene result "measurements", docs/ANSWER_AGREEMENT.md section 5)."""
+    what = f"measurement {m.get('name')!r}"
+    adm = req(m, "admissible", what)
+    ok = req(adm, "pass", f"{what} admissible")
+    if not isinstance(ok, bool):
+        raise ValueError(f"{AT['where']}: {what} admissible pass = {ok!r}")
+    checks = req(m, "checks", what)
+    failed = list(req(m, "failed", what))
+    for k in failed:
+        if k not in checks or checks[k]["pass"] is not False:
+            raise ValueError(f"{AT['where']}: {what} lists {k!r} as failed, its checks do not")
+    parts = req(m, "sigma_parts", what) or {}
+    terms = {k: num(v, 3) for k, v in parts.items() if k in ("track", "depth", "align", "fit_se", "stated")}
+    lst = lambda v: [num(x, 3) for x in v] if isinstance(v, list) else ([num(v, 3)] if v is not None else None)
+    dof = parts.get("dof")
+    inputs = req(m, "inputs", what) or {}
+    return {"name": text(req(m, "name", what)), "method": text(req(m, "method", what)),
+            "value": num(req(m, "value", what)), "unit": text(req(m, "unit", what)), "sigma": num(req(m, "sigma", what), 3),
+            "terms": terms or None, "scale": lst(parts.get("scale")), "q": lst(parts.get("q")),
+            "dof": [int(x) for x in dof] if isinstance(dof, list) else ([int(dof)] if dof is not None else None),
+            "shared": list(req(m, "shared", what)), "admissible": ok, "why": text(req(adm, "reason", f"{what} admissible")),
+            "failed": [{"name": k, "reason": text(req(checks[k], "reason", f"{what} check {k!r}"))}
+                       | ({"which": text(checks[k]["which"])} if checks[k].get("which") else {}) for k in failed],
+            "checks": [{"name": k, "pass": bool(req(c, "pass", f"{what} check {k!r}"))} for k, c in checks.items()],
+            "window": [num(x, 4) for x in inputs["window"]] if inputs.get("window") else None,
+            "piece": [num(max(x, 0.0), 4) if x > -1e8 else None for x in inputs["piece"]] if inputs.get("piece") else None,
+            "n": inputs.get("n"), "state": text(inputs.get("state")) or None}
+
+
+def agreement_view(result: dict, answer: dict, status: str) -> dict:
+    """The measurements of the asked quantity (scene result), the chosen one, and the checks "agree" / "constraints"
+    of the answer with each constraint residual (answer "measurement"."constraint_residuals")."""
+    ms = [measurement_row(m) for m in req(result, "measurements", "scene result")]
+    names = [m["name"] for m in ms]
+    if len(set(names)) != len(names):
+        raise ValueError(f"{AT['where']}: measurement names repeat: {names}")
+    chosen = req(result, "chosen", "scene result")
+    req(result, "selection", "scene result")
+    if chosen is not None:
+        m = next((x for x in ms if x["name"] == chosen), None)
+        if m is None or not m["admissible"]:
+            raise ValueError(f"{AT['where']}: chosen {chosen!r} is not an admissible measurement")
+        kept = num(answer.get("pred") if status == "resolved" else answer.get("scene_value"))
+        if kept != m["value"]:
+            raise ValueError(f"{AT['where']}: the answer's value {kept} is not the chosen measurement's {m['value']}")
+    checks = req(answer, "checks", "answer")
+    ag, cs = req(checks, "agree", "answer checks"), req(checks, "constraints", "answer checks")
+    agree = {"pass": req(ag, "pass", "agree"), "chi2": num(req(ag, "chi2", "agree"), 4), "dof": req(ag, "dof", "agree"),
+             "bound": num(req(ag, "bound", "agree"), 4),
+             "values": [[k, num(v[0]), num(v[1], 3)] for k, v in req(ag, "values", "agree").items()]}
+    res = req(req(answer, "measurement", "answer"), "constraint_residuals", "answer measurement")
+    rows = []
+    for c in res:
+        w = f"constraint {c.get('id')!r}"
+        obs, pred = req(c, "observed", w), req(c, "predicted", w)
+        rows.append({"id": text(req(c, "id", w)), "kind": text(req(c, "kind", w)), "units": text(req(c, "units", w)),
+                     "observed": num(obs), "predicted": num(pred),
+                     "diff": num(abs(float(pred) - float(obs)), 3) if pred is not None else None,
+                     "sigma_stated": num(req(c, "sigma_stated", w), 3), "sigma_pred": num(req(c, "sigma_pred", w), 3),
+                     "bound": num(req(c, "bound", w), 3), "pass": req(c, "pass", w), "testable": req(c, "testable", w)})
+    ids = {r["id"] for r in rows}
+    failed_ids = list(req(cs, "failed_ids", "constraints"))
+    if not set(failed_ids) <= ids:
+        raise ValueError(f"{AT['where']}: constraints failed_ids {failed_ids} not among the residuals {sorted(ids)}")
+    return {"measurements": ms, "chosen": chosen, "agree": agree, "constraints": rows}
 
 
 def scene_view(state: dict, source_path: Path) -> dict:
@@ -293,6 +408,7 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      "hang": req(o, "hang", what), "mode": req(o, "mode", what),
                      "out_of_frame": req(o, "out_of_frame", what), "visibility": req(o, "visibility", what),
                      "overhead": bool(req(o, "overhead", what)), "events": motion_events(name, o)[:12],
+                     "law": motion_law(name, o) if FMT["decide"] == "agree" else None,
                      # motion that is not a single parabola: sample the centre for the viewer
                      "path": sampled_path(o) if any(req(o, k, what) for k in FMT["paths"]) else None,
                      "visible": [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None})
@@ -395,7 +511,7 @@ class Overlays:
     def __init__(self, tag: str):
         self.tag, self.dir = tag, WEB / "data" / "runtime" / tag
         self.file = self.dir / "overlays.json"
-        self.render = tag == CURRENT
+        self.render = base_version(tag) == CURRENT
         if not self.file.exists() and not self.render:
             raise ValueError(f"{tag} is not the current version ({CURRENT}) and has no overlay record {self.file.relative_to(WEB)}")
         self.record = json.loads(self.file.read_text()) if self.file.exists() else {}
@@ -546,20 +662,17 @@ def run_rows(tag: str, csv_path: Path, manifest: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
-TIME_STEPS = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
-
-
 def timing_view(t: dict, csv_seconds) -> dict:
     """A unit's timing ("timing" of its answer record) for the page: total seconds and one entry per step, in pipeline
     order: {"step", "s", "reused" (false | "partial" | true), "cached", "shared"}. The CSV "seconds" must be the total."""
     total = req(t, "total_seconds", "timing")
     if not (isinstance(csv_seconds, (int, float)) and math.isfinite(csv_seconds) and abs(csv_seconds - total) < 0.05):
         raise ValueError(f"{AT['where']}: CSV seconds {csv_seconds} differs from the answer record's total {total}")
-    steps = req(t, "steps", "timing")
-    if list(steps) != list(TIME_STEPS):
-        raise ValueError(f"{AT['where']}: timing steps {list(steps)}, expected {list(TIME_STEPS)}")
+    steps, order = req(t, "steps", "timing"), FMT["steps"]
+    if list(steps) != list(order):
+        raise ValueError(f"{AT['where']}: timing steps {list(steps)}, expected {list(order)}")
     out = []
-    for name in TIME_STEPS:
+    for name in order:
         x = steps[name]
         reused = req(x, "reused", f"timing step {name}")
         if reused not in (False, True, "partial"):
@@ -578,7 +691,7 @@ def question_record(tag: str, unit: str, row: dict) -> dict:
     for key in ("k", "row", "question", "prior", "depth_info"):
         if text(req(rec, key, "answer record")) != text(row[key]):
             raise ValueError(f"{unit}: answer record {key} {rec[key]!r} differs from the table's {row[key]!r}")
-    if req(rec, "version", "answer record")["pipeline"] != tag.removesuffix("_control"):
+    if not run_label(tag, req(rec, "version", "answer record")["pipeline"]):
         raise ValueError(f"{unit}: answer artifact version {rec['version']['pipeline']} differs from requested {tag}")
     return rec
 
@@ -668,10 +781,14 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                 result = own_result(state, row) if state is not None else None
                 exec_status = rec["execution_status"]
                 query["time"] = timing_view(req(rec, "timing", "answer record"), row.get("seconds"))
-            if FMT["decide"] == "checks":
+            if FMT["decide"] in ("checks", "agree"):
                 if unit_kind != "question":
                     raise ValueError(f"{tag}: named checks are read from per-question answer records only")
                 query |= answer_checks(answer, row)
+            if FMT["decide"] == "agree":
+                if result is None:
+                    raise ValueError(f"{unit}: the scene has no result for this question")
+                query |= agreement_view(result, answer, query["status"])
             quality = req(result, "quality", "scene result") if result else {}
             alignment = align(quality.get("align_tq"))   # absent or null when no alignment check ran
             mid = (result or {}).get("measurement_id")
@@ -720,7 +837,8 @@ def build_harness_val(runs: list[tuple[str, Path]], make_thumb: bool = False) ->
         questions += build_run(tag, frames[tag], manifest, units, videos, make_thumb)
     questions.sort(key=lambda q: q["row"])
     print(f"val: {len(questions)} questions ({len(dev)} DEV10), {len(videos)} videos")
-    return {"runs": [{"version": t, "unit": version_format(t)["unit"], "csv": str(p.relative_to(ROOT))} for t, p in runs],
+    return {"runs": [{"version": t, "unit": version_format(t)["unit"], "decide": version_format(t)["decide"],
+                      "csv": str(p.relative_to(ROOT))} for t, p in runs],
             "dev": dev, "videos": [videos[v] for v in sorted(videos)], "questions": questions}
 
 

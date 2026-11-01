@@ -15,11 +15,12 @@
 <p class="lede">Given a video, reconstruct the scene at real-world scale: what the objects are, how large they are, where they are and how they move. Quantitative questions about size, speed and distance are then measured directly in the reconstructed scene.</p>
 
 <h2 id="pipeline">Pipeline</h2>
-<p>The prior, the known facts a question gives (an object's size or speed, or its distance to the camera), sets the scale. Every video runs the same pipeline and is fitted as a 3D scene: focal length and support-plane pose are estimated from the image, and objects have thickness. A scene value becomes the answer only when it passes a set of named checks; otherwise the question stays unresolved.</p>
+<p>The prior, the known facts a question gives (an object's size or speed, or its distance to the camera), sets the scale. Every video runs the same pipeline and is fitted as a 3D scene: focal length and support-plane pose are estimated from the image, and objects have thickness. Every measurement of the asked quantity in the scene is kept with its uncertainty and named checks; a value becomes the answer only when the measurements agree and every check passes, otherwise the question stays unresolved.</p>
 <div class="steps" aria-label="Pipeline overview">
-  <span class="s">Object list</span><span class="ar">→</span><span class="s">scene graph</span><span class="ar">→</span><span class="s">Tracking</span><span class="ar">→</span>
-  <span class="s">Observations</span><span class="ar">→</span><span class="s">Physics-guided Fitting</span><span class="ar">→</span>
-  <span class="s">agent loop (2–10 rounds)</span><span class="ar">→</span><span class="s">Answer from the scene</span>
+  <span class="s">Objects</span><span class="ar">→</span><span class="s">Scene graph (grid)</span><span class="ar">→</span><span class="s">Observe</span><span class="ar">→</span>
+  <span class="s">Track</span><span class="ar">→</span><span class="s">Measure</span><span class="ar">→</span><span class="s">Scene graph (per frame)</span><span class="ar">→</span>
+  <span class="s">Ground</span><span class="ar">→</span><span class="s">Physics-guided Fitting</span><span class="ar">→</span>
+  <span class="s">Agent loop</span><span class="ar">→</span><span class="s">Answer</span>
 </div>
 <p><a href="pipeline.html">Each step in detail</a></p>
 

@@ -485,7 +485,9 @@
     const f = q.fit, s = v.scene;
     let h = '<h4>Reconstruction</h4>';
     if (q.binding_error) h += `<p class="fwarn">${esc(q.binding_error)}</p>`;
-    if ((f || q.method || q.status) && q.checks) {
+    if (q.measurements) {
+      h += measurementBlock(q);
+    } else if ((f || q.method || q.status) && q.checks) {
       // decided by named checks: an unresolved question shows the scene value its record kept, never as the answer
       const unres = q.status === 'unresolved';
       const val = unres ? (q.scene_value != null ? `<span class="notans">${fmtNum(q.scene_value)}</span>` : '—') : fmtNum(f && f.pred);
@@ -506,15 +508,17 @@
     }
     if (s) {
       const hasSup = s.objects.some((o) => o.support), hasVis = s.objects.some((o) => o.visible);
+      const hasLaw = s.objects.some((o) => o.law);
       const rows = s.objects.map((o, i) => {
         const [L, W, H] = dimsText(o);
         return `<tr><td><span class="swatch" style="background:${PALETTE[i % PALETTE.length]}"></span></td><td>${esc(o.name)}</td><td>${SHAPE_LABEL[o.shape] || esc(o.shape)}</td>` +
           `<td class="n">${L}</td><td class="n">${W}</td><td class="n">${H}</td>` + (hasSup ? `<td>${esc(supportText(o))}</td>` : '') +
+          (hasLaw ? `<td>${lawText(o.law)}</td>` : '') +
           (hasVis ? `<td>${o.visible ? o.visible.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ') + ' s' : '<span class="muted">—</span>'}</td>` : '') +
           `<td class="n">${fmt(o.rms, 1)}</td></tr>`;
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th><th class="n">L (m)</th><th class="n">W (m)</th><th class="n">H (m)</th>` +
-        (hasSup ? '<th>Support</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
+        (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
         `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}` +
         (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + focalVotes(s);
     }
@@ -527,15 +531,67 @@
     }
     return h;
   }
+  // ---------- v5: every measurement of the asked quantity, the checks agree / constraints ----------
+  const span = (a, b) => `${a == null ? '…' : fmt(a, 2)}–${b == null ? '…' : fmt(b, 2)} s`;
+  const plusMinus = (v, sg) => `${fmtNum(v)}${sg != null ? ` ± ${fmtNum(sg)}` : ''}`;
+  function sigmaSub(m) {
+    const j = (a) => a.map((x) => fmtNum(x)).join(' / ');
+    const parts = [m.scale && `scale ${j(m.scale)}`, m.dof && `dof ${m.dof.join(' / ')}`, m.q && `q ${j(m.q)}`].filter(Boolean);
+    return parts.length ? `<span class="msub">${esc(parts.join(' · '))}</span>` : '';
+  }
+  function measurementRow(m, chosen) {
+    const terms = m.terms ? Object.entries(m.terms).filter(([, v]) => v != null).map(([k, v]) => `${k} ${fmtNum(v)}`).join(' · ') : '';
+    const val = m.value == null ? '<span class="muted">—</span>'
+      : `<span${terms ? ` title="${esc(terms)}"` : ''}>${plusMinus(m.value, m.sigma)} ${esc(m.unit)}</span>${sigmaSub(m)}`;
+    const inp = [m.window && `window ${span(m.window[0], m.window[1])}`, m.n != null && `n ${m.n}`,
+      m.piece && `piece ${span(m.piece[0], m.piece[1])}`, m.state].filter(Boolean).join(' · ');
+    const failed = m.failed.map((c) => `<div><code>${esc(c.which || c.name)}</code> ${esc(c.reason)}</div>`).join('');
+    return `<tr class="${m.name === chosen ? 'chosen' : ''}${m.admissible ? '' : ' inadm'}"><td><code>${esc(m.name)}</code></td>` +
+      `<td><code>${esc(m.method)}</code></td><td class="n mval">${val}</td>` +
+      `<td class="${m.admissible ? 'ok' : 'bad'}">${m.admissible ? 'admissible' : esc(m.why)}</td>` +
+      `<td class="bad">${failed}</td><td class="muted">${esc(inp)}</td></tr>`;
+  }
+  function measurementBlock(q) {
+    let h = '<div class="scroll-x"><table class="meas"><tr><th>Measurement</th><th>Method</th><th class="n">Value</th><th>Admissible</th><th>Failed</th><th>Inputs</th></tr>' +
+      q.measurements.map((m) => measurementRow(m, q.chosen)).join('') + '</table></div>';
+    const a = q.agree;
+    if (a.values.length) {
+      const chi = a.chi2 != null ? `χ² ${fmtNum(a.chi2)} ${a.chi2 > a.bound ? '>' : '≤'} ${fmtNum(a.bound)} (dof ${a.dof})` : '<span class="muted">—</span>';
+      h += '<div class="scroll-x"><table class="checks agree"><tr><th>Check</th><th></th><th class="n">χ²</th><th>Values</th></tr>' +
+        `<tr class="${a.pass ? 'ok' : 'bad'}"><td><code>agree</code></td><td>${a.pass ? 'pass' : 'fail'}</td><td class="n">${chi}</td>` +
+        `<td>${a.values.map(([k, v, sg]) => `<code>${esc(k)}</code> ${plusMinus(v, sg)}`).join(' · ')}</td></tr></table></div>`;
+    }
+    if (q.constraints.length) {
+      h += '<div class="scroll-x"><table class="checks cons"><tr><th>Constraint</th><th></th><th class="n">Observed</th><th class="n">Predicted</th>' +
+        '<th class="n">|Δ|</th><th class="n">Bound</th><th class="n">σ stated</th><th class="n">σ pred</th><th>Testable</th></tr>' +
+        q.constraints.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.id)}</code></td><td>${c.pass ? 'pass' : 'fail'}</td>` +
+          `<td class="n">${fmtNum(c.observed)}</td><td class="n">${fmtNum(c.predicted)}</td><td class="n">${fmtNum(c.diff)}</td>` +
+          `<td class="n">${fmtNum(c.bound)}</td><td class="n">${fmtNum(c.sigma_stated)}</td><td class="n">${fmtNum(c.sigma_pred)}</td>` +
+          `<td>${c.testable ? 'yes' : 'no'}</td></tr>`).join('') + '</table></div>';
+    }
+    h += `<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>` +
+      q.checks.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.which || c.name)}</code></td>` +
+        `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}</td></tr>`).join('') + '</table></div>';
+    return h;
+  }
+  // a scene object's motion law (v5 motion_law): the law, its rotation relation and pieces, or its state phases
+  function lawText(l) {
+    if (!l) return '<span class="muted">—</span>';
+    const parts = [esc(l.model)];
+    if (l.rotation) parts.push(`${esc(l.rotation.rel)} ${esc(l.rotation.target || 'a fixed point')}`, l.rotation.pieces.map(esc).join(' → '));
+    if (l.phases) parts.push(l.phases.map(([t, st]) => `${esc(st)} ${fmt(t, 2)}`).join(', ') + ' s');
+    return parts.join(' · ');
+  }
   // wall time of the question's own run, per pipeline step (answer record "timing"); reused = served from a sibling
   // question's vision memo (SAM 2 propagation, floor masks), cached = this question's file from an earlier run kept
-  const STEP_LABEL = { objects: 'Objects', scenegraph_grid: 'Scene graph (grid)', track: 'Tracking',
-    scenegraph_pf: 'Scene graph (per frame)', observe: 'Observation', scene: 'Physics-guided Fitting', agent: 'Agent loop', answer: 'Answer' };
+  const STEP_LABEL = { objects: 'Objects', scenegraph_grid: 'Scene graph (grid)', track: 'Tracking', measure: 'Measure',
+    scenegraph_pf: 'Scene graph (per frame)', observe: 'Observe', ground: 'Ground', scene: 'Physics-guided Fitting', agent: 'Agent loop', answer: 'Answer' };
   function reuseText(x) {
     if (x.cached) return 'cached';
     if (!x.reused) return '';
     const sh = x.shared || {};
-    const hits = sh.sam2_hits != null ? ` (SAM 2 ${sh.sam2_hits}/${sh.sam2_hits + (sh.sam2_misses || 0)})` : sh.ground_floor === 'shared' ? ' (floor)' : '';
+    const hits = sh.sam2_hits != null ? ` (SAM 2 ${sh.sam2_hits}/${sh.sam2_hits + (sh.sam2_misses || 0)})`
+      : sh.ground_floor === 'shared' ? ' (floor)' : sh.support_masks === 'shared' ? ' (support masks)' : '';
     return (x.reused === true ? 'reused' : 'partly reused') + hits;
   }
   function timeBlock(q) {
