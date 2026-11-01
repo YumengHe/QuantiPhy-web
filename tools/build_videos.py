@@ -130,6 +130,11 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            used, why}]} or null (rule camera.one) and "depth_bindings" {given, bound [{name, node, as, used {by,
 #            why}}], unbound [{name, reason}]} (rule C14); a direct speed measurement may have "inputs"."centred"
 #            {from, extremum, stop} (rule window.centred); the harness CSV has "unit_set"
+#   fusion   the scene's "focal" has "fusion" {pass, reason, f, sigma, n_sources, camera_f, camera_sigma, sources
+#            [{object, kind, f, sigma, n_votes, camera, how, verdict (used / outlier / disagree), why, bounded?}]} (rule
+#            focal.fusion; a fail adds the measurement check "focal"); a measurement's sigma text is "inputs"."sigma_how"
+#            with "inputs"."chain_piece" {piece, events, window_short, events_near_t} (rule fit.sigma_chain) or, when
+#            the fit has no chain piece, the text "inputs"."sigma"; "inputs"."sigma_events" {one_sided, event_unstable}
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -142,7 +147,7 @@ VERSION_FORMAT = {
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
-           "static": True},
+           "static": True, "fusion": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -512,7 +517,42 @@ def measurement_row(m: dict) -> dict:
             "n": inputs.get("n"), "state": text(inputs.get("state")) or None,
             "law": law_view(inputs["law"], what) if FMT.get("gravity") and inputs.get("law") else None,
             "profile": [profile_view(x, what) for x in inputs["at_bound.profile"]] if inputs.get("at_bound.profile") else None} \
-        | (direct_view(m, what) if FMT.get("camera") else {})
+        | (direct_view(m, what) if FMT.get("camera") else {}) | (sigma_view(inputs, what) if FMT.get("fusion") else {})
+
+
+def plain(x):
+    """A JSON value as plain JSON (numbers rounded), for records shown as written."""
+    if isinstance(x, (list, tuple)):
+        return [plain(a) for a in x]
+    if isinstance(x, dict):
+        return {text(k): plain(v) for k, v in x.items()}
+    if isinstance(x, bool) or x is None or isinstance(x, str):
+        return x
+    if isinstance(x, (int, float)):
+        return num(x, 4)
+    return text(x)
+
+
+def sigma_view(inputs: dict, what: str) -> dict:
+    """How the measurement's sigma was found (rule fit.sigma_chain): the text "sigma_how" with the chain piece holding
+    t {piece, events [[t, kind]], window_short, events_near_t}; without a chain piece the text "sigma" when the
+    measurement records one; the whole-fit events whose finite difference was one-sided or unstable."""
+    cp = inputs.get("chain_piece")
+    if cp is not None:
+        w = f"{what} chain_piece"
+        how = text(req(inputs, "sigma_how", what))
+        chain = {"piece": [num(x, 4) for x in req(cp, "piece", w)],
+                 "events": [[num(t, 4), text(k)] for t, k in req(cp, "events", w)],
+                 "window_short": plain(req(cp, "window_short", w)), "events_near_t": plain(req(cp, "events_near_t", w))}
+    else:
+        if inputs.get("sigma_how") is not None:
+            raise ValueError(f"{AT['where']}: {what} has sigma_how without chain_piece")
+        sg = inputs.get("sigma")
+        how = text(sg) if isinstance(sg, str) else None
+        chain = None
+    se = inputs.get("sigma_events") or {}
+    flags = {k: plain(se.get(k) or []) for k in ("one_sided", "event_unstable")}
+    return {"sigma_how": how, "chain": chain, "sigma_flags": {k: v for k, v in flags.items() if v} or None}
 
 
 def direct_view(m: dict, what: str) -> dict:
@@ -1022,7 +1062,39 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"focal": focal_view(j), "horizon": horizon_view(j)} if FMT.get("horizon") else {}) | \
         ({"camera": camera_view(j), "support_plane": support_plane_view(j)} if FMT.get("camera") else {}) | \
         ({"camera_roll": camera_roll_view(j)} if FMT.get("roll") else {}) | \
-        ({"camera_one": camera_one_view(j)} if FMT.get("static") else {})
+        ({"camera_one": camera_one_view(j)} if FMT.get("static") else {}) | \
+        ({"fusion": fusion_view(j)} if FMT.get("fusion") else {})
+
+
+FUSION_VERDICTS = ("used", "outlier", "disagree")
+
+
+def fusion_view(state: dict) -> dict:
+    """The scene's focal votes fused by independent source (rule focal.fusion): one row per source (object x kind)
+    with its fused f +- sigma, votes, whether it is one of camera.f's own sources, verdict and why; the fused f +- sigma,
+    the number of sources, pass (None: untestable) and reason, and camera.f the fits keep."""
+    fu = req(req(state, "focal", "scene"), "fusion", "focal")
+    w = "focal.fusion"
+    rows = []
+    for x in req(fu, "sources", w):
+        v = text(req(x, "verdict", f"{w} source"))
+        if v not in FUSION_VERDICTS:
+            raise ValueError(f"{AT['where']}: {w} verdict {v!r}")
+        b = x.get("bounded")
+        rows.append({"object": text(req(x, "object", f"{w} source")), "kind": text(req(x, "kind", f"{w} source")),
+                     "f": num(req(x, "f", f"{w} source"), 4), "sigma": num(req(x, "sigma", f"{w} source"), 3),
+                     "n": int(req(x, "n_votes", f"{w} source")), "camera": bool(req(x, "camera", f"{w} source")),
+                     "how": text(req(x, "how", f"{w} source")), "verdict": v, "why": text(req(x, "why", f"{w} source")) or None,
+                     "bounded": [num(a, 4) for a in b] if b else None})
+    n = int(req(fu, "n_sources", w))
+    if n != len(rows):
+        raise ValueError(f"{AT['where']}: {w} n_sources {n} with {len(rows)} sources")
+    ok = req(fu, "pass", w)
+    if ok not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {w} pass = {ok!r}")
+    return {"sources": rows, "n": n, "f": num(fu.get("f"), 4), "sigma": num(fu.get("sigma"), 3),
+            "camera_f": num(req(fu, "camera_f", w), 4), "camera_sigma": num(req(fu, "camera_sigma", w), 3),
+            "pass": ok, "reason": text(req(fu, "reason", w))}
 
 
 def camera_view(state: dict) -> dict:

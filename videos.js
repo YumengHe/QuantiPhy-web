@@ -653,6 +653,23 @@
         `<td class="n">${plusMinus(x.f, x.sigma)}</td><td>${x.used ? 'used' : esc(x.why)}</td></tr>`).join('') +
       `<tr class="camf"><td colspan="2" title="${esc(co.how)}">camera.f</td><td class="n">${plusMinus(co.f, co.sigma)}</td><td></td></tr></table></div>`;
   }
+  // the scene's focal votes fused by independent source (rule focal.fusion); an outlier or disagreeing source is
+  // marked, the last row is the fused f (camera.f is on the line above), then every measurement the fusion failed (check focal)
+  function fusionTable(fu, q) {
+    if (!fu) return '';
+    const vcls = (v) => (v === 'used' ? '' : 'bad');
+    const why = fu.reason.replace(/^untestable:\s*/, '');
+    const failed = ((q && q.measurements) || []).flatMap((m) => m.failed.filter((c) => c.name === 'focal').map((c) => [m.name, c]));
+    return '<div class="scroll-x"><table class="focal fusion"><tr><th><code>focal.fusion</code></th><th>Object</th><th class="n">f (px)</th>' +
+      '<th class="n">Votes</th><th>Camera</th><th></th><th></th></tr>' +
+      fu.sources.map((x) => `<tr class="${vcls(x.verdict)}"><td>${esc(x.kind)}</td><td>${esc(x.object)}</td>` +
+        `<td class="n" title="${esc(x.how)}">${plusMinus(x.f, x.sigma)}${x.bounded ? `<div class="muted">${fmtNum(x.bounded[0])}–${fmtNum(x.bounded[1])}</div>` : ''}</td>` +
+        `<td class="n">${x.n}</td><td>${x.camera ? 'yes' : 'no'}</td><td>${esc(x.verdict)}</td><td>${x.why ? esc(x.why) : ''}</td></tr>`).join('') +
+      `<tr class="camf ${cls3(fu.pass)}"><td colspan="2">fused · ${fu.n} source${fu.n === 1 ? '' : 's'}</td><td class="n">${fu.f != null ? plusMinus(fu.f, fu.sigma) : '—'}</td>` +
+      `<td></td><td></td><td>${res3(fu.pass)}</td><td>${fu.pass === true ? '' : esc(why)}</td></tr>` +
+      failed.map(([n, c]) => `<tr class="bad"><td colspan="2"><code>${esc(n)}</code> <code>focal</code></td><td colspan="5">${esc(c.reason)}</td></tr>`).join('') +
+      '</table></div>';
+  }
   // the support plane's acceptance with its sub-tests (rule D9 support.plane); a recorded sub-test has no verdict
   function supportPlaneTable(sp) {
     if (!sp) return '';
@@ -743,7 +760,7 @@
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + consistentTable(s.camera) + focalTable(s.focal) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') : '') +
         gravityBlock(s.gravity) +
@@ -835,14 +852,29 @@
     const val = m.value == null ? '<span class="muted">—</span>'
       : `<span>${plusMinus(m.value, m.sigma)} ${esc(m.unit)}</span>${sigmaSub(m)}`;
     const inp = [!m.wstate && m.window && `window ${span(m.window[0], m.window[1])}`, m.n != null && `n ${m.n}`,
-      m.piece && `piece ${span(m.piece[0], m.piece[1])}`, m.state, m.law && `ballistic g ${fmtNum(m.law.g)} (${m.law.source})`].filter(Boolean).join(' · ');
+      !m.chain && m.piece && `piece ${span(m.piece[0], m.piece[1])}`, m.state, m.law && `ballistic g ${fmtNum(m.law.g)} (${m.law.source})`].filter(Boolean).join(' · ');
     const failed = m.failed.map((c) => `<div><code>${esc(c.which || c.name)}</code> ${esc(c.reason)}</div>`).join('');
     const prof = m.profile ? m.profile.map((p) => `<div class="${p.pass ? 'ok' : 'bad'}"><code>at_bound.profile</code> ${esc(p.param)} ` +
       `${fmtNum(p.bound)} → ${fmtNum(p.values[0])} · ${fmtNum(p.at)} → ${fmtNum(p.values[1])} · |Δ| ${fmtNum(p.delta)} ${p.pass ? '<' : '≥'} σ ${fmtNum(p.sigma_answer)}</div>`).join('') : '';
     return `<tr class="${m.name === chosen ? 'chosen' : ''}${m.admissible ? '' : ' inadm'}"><td><code>${esc(m.name)}</code></td>` +
       `<td><code>${esc(m.method)}</code></td><td class="n mval">${val}</td>` +
       `<td class="${m.admissible ? 'ok' : 'bad'}">${m.admissible ? 'admissible' : esc(m.why)}</td>` +
-      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${directLines(m)}${prof}</td></tr>`;
+      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${sigmaLines(m)}${directLines(m)}${prof}</td></tr>`;
+  }
+  // how the measurement's sigma was found: the chain piece holding t with its fixed events (rule fit.sigma_chain)
+  function sigmaLines(m) {
+    let h = '';
+    const c = m.chain;
+    if (c) {
+      const s3 = (x) => fmt(x, 3);
+      const ev = c.events.map(([t, k]) => `${esc(k)} ${s3(t)} s`).join(' · ');
+      const more = [c.window_short.length && `<code>window_short</code> ${esc(JSON.stringify(c.window_short))}`,
+        c.events_near_t.length && `events near t ${esc(JSON.stringify(c.events_near_t))}`].filter(Boolean);
+      h += `<div><code>fit.sigma_chain</code> piece ${s3(c.piece[0])}–${s3(c.piece[1])} s · ${ev}${more.length ? ' · ' + more.join(' · ') : ''}</div>`;
+    }
+    if (m.sigma_how) h += `<div class="muted">${esc(m.sigma_how)}</div>`;
+    if (m.sigma_flags) h += Object.entries(m.sigma_flags).map(([k, v]) => `<div class="bad"><code>${esc(k)}</code> ${esc(JSON.stringify(v))}</div>`).join('');
+    return h;
   }
   // the direct path's state span (rule window.state) and its support-plane depth with the silhouette cross-check (C12)
   function directLines(m) {
