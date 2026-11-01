@@ -227,3 +227,23 @@ table.fitobj tr.muted td { color: var(--muted); }
 table.cons tr.inadm td { color: var(--muted); }
 table.fitfacts { font-size: 13px; color: var(--muted); }
 table.fitfacts td .dim { display: block; white-space: nowrap; }
+/* batch 20: track ends and same-class overlap, size.full_extent, window.impulse speeds */
+.trk-ov { position: absolute; bottom: 0; height: 4px; background: var(--text); opacity: .55; border-radius: 1px; }
+table.trkends, table.fullext { font-size: 13px; }
+table.fullext tr.bad td { color: var(--m1t, #8a1c12); }
+table.fullext tr.muted td { color: var(--muted); }
+.impulse-win { max-width: 640px; margin: 6px 0 10px; }
+.impulse-win .ramp { border-bottom: 2px solid var(--accent); }
+.impulse-win .piece { background: var(--accent-soft); padding: 0 3px; border-radius: 3px; }
+.impulse-win .win { border: 1.5px dashed var(--muted); padding: 0 3px; border-radius: 3px; }
+.impulse-win .win.bad { border-color: var(--m1t, #8a1c12); color: var(--m1t, #8a1c12); }
+svg.impchart { display: block; width: 100%; height: auto; font: 11px var(--sans); }
+svg.impchart text { fill: var(--muted); font-variant-numeric: tabular-nums; }
+svg.impchart rect.piece { fill: var(--accent-soft); }
+svg.impchart rect.win { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+svg.impchart rect.win.bad { stroke: var(--m1t, #8a1c12); }
+svg.impchart line.axis { stroke: var(--border); }
+svg.impchart line.onset { stroke: var(--muted); stroke-dasharray: 2 3; }
+svg.impchart line.ramp { stroke: var(--accent); stroke-width: 2; }
+svg.impchart polyline { fill: none; stroke: var(--text); stroke-width: 2; }
+svg.impchart circle { fill: var(--text); stroke: var(--panel); stroke-width: 2; }

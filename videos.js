@@ -219,13 +219,26 @@
       .filter((e) => e.event && e.t0 != null) : [];
     const ticks = (name) => evs.filter((e) => e.from === name || e.to === name).map((e) =>
       `<span class="trk-ev${e.unknown ? ' unk' : ''}" style="left:${pct(e.t0)}" title="${esc(`${e.from} ${e.rel}${e.to ? ' ' + e.to : ''} ${span(e.t0, e.t1)} · ${e.event}`)}"></span>`).join('');
+    const te = q.track_ends, fps = te ? te.fps : 0;
+    // frames a track overlaps another instance of its class (rule track.visible_span), as runs under its bar
+    const overlap = (name) => (te && te.tracks[name] ? runsOf(te.tracks[name].overlap_same_class) : []).map(([a, b]) =>
+      `<span class="trk-ov" style="left:${pct(a / fps)};width:calc(${pct(b / fps)} - ${pct(a / fps)} + 2px)" title="${a === b ? a : `${a}–${b}`}"></span>`).join('');
     const rows = Object.entries(tracks).map(([name, ivs]) => {
       const i = order.indexOf(name), col = i >= 0 ? PALETTE[i % PALETTE.length] : 'var(--muted)';
       const segs = (ivs || []).map(([a, b]) => `<span class="trk-seg" style="left:${pct(a)};width:calc(${pct(b)} - ${pct(a)} + 2px);background:${col}" title="${fmt(a, 2)}–${fmt(b, 2)} s"></span>`).join('');
-      return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${lines}${ticks(name)}</span></div>`;
+      return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${overlap(name)}${lines}${ticks(name)}</span></div>`;
     }).join('');
     return `<h4>Tracks</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>` +
-      presenceBlock(q.presence) + identityBlock(q.identity) + extentsBlock(q.extents);
+      trackEndsTable(te) + presenceBlock(q.presence) + identityBlock(q.identity) + extentsBlock(q.extents);
+  }
+  // each track's first and last frame with why it starts and ends there, and its same-class overlap frames
+  function trackEndsTable(te) {
+    if (!te) return '';
+    const end = (e) => `<td class="n">${e.frame}</td><td title="${esc(e.why)}"><code>${esc(e.reason)}</code></td>`;
+    return '<div class="scroll-x"><table class="sgrel trkends"><tr><th><code>track.visible_span</code></th><th class="n">Start</th><th></th><th class="n">End</th><th></th>' +
+      '<th><code>overlap_same_class</code></th></tr>' +
+      Object.entries(te.tracks).map(([name, t]) => `<tr><td>${esc(name)}</td>${end(t.ends.start)}${end(t.ends.end)}` +
+        `<td>${t.overlap_same_class.length ? frameRuns(t.overlap_same_class) : ''}</td></tr>`).join('') + '</table></div>';
   }
   // the inventory's presence verdict per object (rules decisions.no_conf, presence.split_vote): the grid votes, the
   // zoom re-check's votes (an unknown vote is a third state, not "not visible"), the rule, its reason, recorded errors
@@ -240,13 +253,16 @@
       '</table></div>';
   }
   // frames and set-of-frames as compact ranges: [27, 28, 29, 30] -> 27–30
-  function frameRuns(fs) {
+  function runsOf(fs) {
     const out = [];
     fs.forEach((f) => {
       const r = out[out.length - 1];
       if (r && f === r[1] + 1) r[1] = f; else out.push([f, f]);
     });
-    return out.map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(', ');
+    return out;
+  }
+  function frameRuns(fs) {
+    return runsOf(fs).map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(', ');
   }
   // per tracked object its frames and overlay-ring frames (extents2d, rule extent.overlay), and per dimension and
   // anchor the blur-free extent the scene used (rule extent.static): value ± σ, frames used, frames rejected with why
@@ -751,13 +767,31 @@
   }
   // each object's silhouette depth against its support-plane depth before the fit (rule scale.contact_rescale): a
   // failing object's dense depth rows leave the fit
-  function depthRowsTable(rows) {
+  function depthRowsTable(rows, qid) {
     if (!rows) return '';
     return '<div class="scroll-x"><table class="sgrel contact"><tr><th><code>direct.depth_agree</code></th><th class="n">Silhouette (m)</th><th class="n">Plane (m)</th>' +
       '<th class="n">|Δ| (m)</th><th class="n">Rows</th><th></th></tr>' +
-      rows.map((d) => `<tr class="${cls3(d.pass)}"><td>${esc(d.obj)}</td><td class="n">${fmtNum(d.z_mask)}</td><td class="n">${fmtNum(d.z_plane)}</td>` +
+      rows.map((d, i) => `<tr class="${cls3(d.pass)}" id="${esc(depthRowId(qid, i))}"><td>${esc(d.obj)}</td><td class="n">${fmtNum(d.z_mask)}</td><td class="n">${fmtNum(d.z_plane)}</td>` +
         `<td class="n">${d.pass == null ? '' : `${fmtNum(Math.abs(d.z_mask - d.z_plane))} ${d.pass ? '≤' : '>'} ${fmtNum(d.bound)}`}</td>` +
         `<td class="n">${d.dropped ? `${d.n_rows} dropped` : d.n_rows}</td><td title="${esc(d.reason)}">${res3(d.pass)}</td></tr>`).join('') + '</table></div>';
+  }
+  const depthRowId = (qid, i) => `depth-rows-${qid}-${i}`;
+  // each articulated agent's upright, unmerged extent (rule size.full_extent): frames used, frames excluded by kind,
+  // the median box height over the used frames against all clear frames, h z against its reference
+  function fullExtentTable(s) {
+    const os = s.objects.filter((o) => o['size.full_extent']);
+    if (!os.length) return '';
+    return '<div class="scroll-x"><table class="objs fullext"><tr><th><code>size.full_extent</code></th><th class="n">Used</th>' +
+      '<th>Overlap</th><th>Shrink</th><th>Border</th><th>No depth</th><th class="n">Extent (px)</th><th class="n">h z (px m)</th><th>Depth</th><th></th></tr>' +
+      os.map((o) => fullExtentRow(o.name, o['size.full_extent'])).join('') + '</table></div>';
+  }
+  function fullExtentRow(name, e) {
+    const x = e.excluded;
+    return `<tr class="${cls3(e.pass)}"><td>${esc(name)}</td><td class="n">${e.used.length}</td>` +
+      ['overlap', 'shrink', 'border', 'no_depth'].map((k) => `<td>${x[k].length ? frameRuns(x[k]) : ''}</td>`).join('') +
+      `<td class="n">${fmtNum(e.extent_px)} <span class="muted">/ ${fmtNum(e.extent_px_all)}</span></td>` +
+      `<td class="n">${fmtNum(e.extent_norm)} <span class="muted">/ ${fmtNum(e.ref_norm)}</span></td><td>${esc(e.depth)}</td>` +
+      `<td class="${cls3(e.pass)}" title="${esc(e.reason)}">${res3(e.pass)}</td></tr>`;
   }
   // each object's fit as a whole (rule fit.object): s² against its bound, χ² / n per row kind; a failed fit is marked
   function fitObjectTable(s) {
@@ -779,16 +813,16 @@
     const fs = os.filter((o) => 'box_test' in o.fit_object);
     if (!fs.length) return '';
     const px = (a) => a.map((x) => fmtNum(x)).join(' / ');
-    return '<div class="scroll-x"><table class="objs fitfacts"><tr><th><code>fit.object_noise</code></th><th>Stated z</th><th class="n">Box noise (px)</th>' +
+    return '<div class="scroll-x"><table class="objs fitfacts"><tr><th><code>fit.object_noise</code></th><th>Stated z</th><th>Sides</th><th class="n">Box noise (px)</th>' +
       '<th class="n">Box bias (px)</th><th class="n">Box rms (px)</th><th class="n">Box-noise s²</th><th><code>state_mismatch</code></th></tr>' +
       fs.map((o) => {
         const f = o.fit_object, bt = f.box_test, sm = f.mismatch;
         return `<tr><td>${esc(o.name)}</td>` +
           `<td>${(f.stated || []).map((x) => `<span class="dim" title="${esc(`residual ${x.residual} · σ stated ${x.s_stated} · σ pred ${x.s_pred}`)}">${esc(x.kind)} ${fmtNum(x.z)}</span>`).join('')}</td>` +
-          `<td class="n">${f.box_noise ? px(f.box_noise) : ''}</td><td class="n">${f.box_bias ? px(f.box_bias) : ''}</td>` +
+          `<td>${f.sides ? esc(f.sides.join(' / ')) : ''}</td><td class="n">${f.box_noise ? px(f.box_noise) : ''}</td><td class="n">${f.box_bias ? px(f.box_bias) : ''}</td>` +
           `<td class="n">${f.box_rms ? f.box_rms.map(([a, b]) => `${fmtNum(a)} → ${fmtNum(b)}`).join(' / ') : ''}</td>` +
-          `<td class="n" title="${esc(bt ? bt.why : '')}">${bt ? `${fmtNum(bt.s2)} vs ${fmtNum(bt.bound)}` : ''}</td>` +
-          `<td title="${esc(sm ? sm.reason : '')}">${!sm ? '' : sm.pass === null ? '<span class="muted">untestable</span>' : sm.pass ? '0 frames' : `${sm.frames} frames ${span(sm.t[0], sm.t[1])}`}</td></tr>`;
+          `<td class="n${bt ? ' ' + cls3(bt.pass) : ''}" title="${esc(bt ? bt.why : '')}">${!bt ? '' : bt.pass === null ? `untestable · dof ${bt.dof}` : `${fmtNum(bt.s2)} ${bt.pass ? '≤' : '>'} ${fmtNum(bt.bound)}`}</td>` +
+          `<td title="${esc(sm ? sm.reason : '')}">${sm.pass === null ? '<span class="muted">untestable</span>' : sm.pass ? '0 frames' : `${sm.frames} frames ${span(sm.t[0], sm.t[1])}`}</td></tr>`;
       }).join('') + '</table></div>';
   }
   // the support plane's pitch source and its horizon check (rule support.horizon)
@@ -865,14 +899,14 @@
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
-        fitObjectTable(s) + segfitTable(s) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) +
+        fullExtentTable(s) + fitObjectTable(s) + segfitTable(s) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) +
         (s.camera ? `<p class="facts"><span title="${esc(s.camera.how)}">f ${plusMinus(s.camera.f, s.camera.sigma)} px${s.camera.source ? ` (${esc(s.camera.source)}${wasText(s.camera.fused)})` : ''}</span>`
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
         (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
-          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows) +
+          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) +
         gravityBlock(s.gravity) +
         focalVotes(s);
     }
@@ -993,6 +1027,7 @@
   }
   // ---------- v5: every measurement of the asked quantity, the checks agree / constraints ----------
   const span = (a, b) => (a != null && a === b ? `${fmt(a, 2)} s` : `${a == null ? '…' : fmt(a, 2)}–${b == null ? '…' : fmt(b, 2)} s`);
+  const span3 = ([a, b]) => `${fmt(a, 3)}–${fmt(b, 3)} s`;
   const plusMinus = (v, sg) => `${fmtNum(v)}${sg != null ? ` ± ${fmtNum(sg)}` : ''}`;
   function sigmaSub(m) {
     const j = (a) => a.map((x) => fmtNum(x)).join(' / ');
@@ -1000,7 +1035,8 @@
     const parts = [...terms, m.scale && `scale ${j(m.scale)}`, m.dof && `dof ${m.dof.join(' / ')}`, m.q && `q ${j(m.q)}`].filter(Boolean);
     return parts.length ? `<span class="msub">${esc(parts.join(' · '))}</span>` : '';
   }
-  function measurementRow(m, chosen) {
+  function measurementRow(m, q) {
+    const chosen = q.chosen;
     const val = m.value == null ? '<span class="muted">—</span>'
       : `<span>${plusMinus(m.value, m.sigma)} ${esc(m.unit)}</span>${sigmaSub(m)}`;
     const inp = [!m.wstate && m.window && `window ${span(m.window[0], m.window[1])}`, m.n != null && `n ${m.n}`,
@@ -1011,7 +1047,12 @@
     return `<tr class="${m.name === chosen ? 'chosen' : ''}${m.admissible ? '' : ' inadm'}"><td><code>${esc(m.name)}</code></td>` +
       `<td><code>${esc(m.method)}</code></td><td class="n mval">${val}</td>` +
       `<td class="${m.admissible ? 'ok' : 'bad'}">${m.admissible ? 'admissible' : esc(m.why)}</td>` +
-      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${sigmaLines(m)}${directLines(m)}${onsetLine(m.kin_onset)}${prof}</td></tr>`;
+      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${sigmaLines(m)}${directLines(m, q)}${impulseLine(m.window_impulse)}${onsetLine(m.kin_onset)}${prof}</td></tr>`;
+  }
+  // the window this measurement reads inside the piece after a kick's ramp (rule window.impulse)
+  function impulseLine(w) {
+    if (!w) return '';
+    return `<div class="${cls3(w.pass)}" title="${esc(w.reason)}"><code>window.impulse</code> ${res3(w.pass)} · window ${span3(w.window)} · piece ${span3(w.piece)}</div>`;
   }
   // a law-driven start from rest bounds the speed (rule kinematic.onset): |v| <= ∫|a| dt + 3σ
   function onsetLine(k) {
@@ -1037,7 +1078,7 @@
     return h;
   }
   // the direct path's state span (rule window.state) and its support-plane depth with the silhouette cross-check (C12)
-  function directLines(m) {
+  function directLines(m, q) {
     let h = '';
     const w = m.wstate;
     if (w) {
@@ -1061,13 +1102,41 @@
     if (a && a.pass == null) {
       h += `<div class="muted"><code>direct.depth_agree</code> ${esc(a.reason)}</div>`;
     } else if (a) {
-      h += `<div class="${a.pass ? 'ok' : 'bad'}"><code>direct.depth_agree</code> ${a.pass ? 'pass' : 'fail'} · silhouette ${fmtNum(a.z_mask)} m vs plane ${fmtNum(a.z_plane)} m · |Δ| ${fmtNum(a.diff)} ${a.pass ? '≤' : '>'} ${fmtNum(a.bound)}</div>`;
+      const rows = (q.scene && q.scene.depth_rows) || [], i = rows.findIndex((r) => r.reason === a.reason);
+      const see = a.see ? ` · ${a.dropped ? `${a.n_rows} rows dropped · ` : ''}<a href="#${esc(depthRowId(q.id, i))}"><code>${esc(a.see)}</code></a>` : '';
+      h += `<div class="${a.pass ? 'ok' : 'bad'}" title="${esc(a.reason)}"><code>direct.depth_agree</code> ${a.pass ? 'pass' : 'fail'} · silhouette ${fmtNum(a.z_mask)} m vs plane ${fmtNum(a.z_plane)} m · |Δ| ${fmtNum(a.diff)} ${a.pass ? '≤' : '>'} ${fmtNum(a.bound)}${see}</div>`;
+    }
+    const e = m['size.full_extent'];
+    if (e) {
+      h += `<div class="${cls3(e.pass)}" title="${esc(e.reason)}"><code>size.full_extent</code> ${res3(e.pass)} · ${e.used.length} frames · ${fmtNum(e.extent_px)} px · h z ${fmtNum(e.extent_norm)} px m</div>`;
     }
     return h;
   }
+  // the kick's ramp and the piece after it (rule window.impulse): frame-pair 3D speeds after the onset, the ramp's end
+  // at their first maximum, the piece from there, and the direct measurement's minimal window, whose verdict this is
+  function impulseBlock(w) {
+    if (!w) return '';
+    const W = 600, H = 150, L = 44, R = 12, T = 12, B = 26;
+    const ts = w.speeds.map((p) => p[0]), vs = w.speeds.map((p) => p[1]);
+    const t0 = Math.min(w.onset, ...ts, w.window[0]), t1 = Math.max(...ts, w.window[1]);
+    const pad = (t1 - t0) * 0.04, x0 = t0 - pad, x1 = t1 + pad, vmax = Math.max(...vs) * 1.15;
+    const X = (t) => L + (W - L - R) * (Math.min(Math.max(t, x0), x1) - x0) / (x1 - x0), Y = (v) => T + (H - T - B) * (1 - v / vmax);
+    const band = (a, b, cls) => `<rect class="${cls}" x="${X(a)}" y="${T}" width="${Math.max(X(b) - X(a), 1)}" height="${H - T - B}"></rect>`;
+    const vline = (t, cls) => `<line class="${cls}" x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H - B}"></line>`;
+    const xt = [w.onset, w.ramp_end].map((t) => `<text x="${X(t)}" y="${H - 8}" text-anchor="middle">${fmt(t, 3)}</text>`).join('');
+    const yt = [0, vmax / 1.15].map((v) => `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${fmt(v, 2)}</text>`).join('');
+    const svg = `<svg class="impchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="frame-pair speeds after the onset">` +
+      band(w.piece[0], w.piece[1], 'piece') + band(w.window[0], w.window[1], `win ${cls3(w.pass)}`) + vline(w.onset, 'onset') + vline(w.ramp_end, 'ramp') +
+      `<line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"></line>` +
+      `<polyline points="${w.speeds.map(([t, v]) => `${X(t)},${Y(v)}`).join(' ')}"></polyline>` +
+      w.speeds.map(([t, v]) => `<circle cx="${X(t)}" cy="${Y(v)}" r="4"><title>${fmt(t, 3)} s · ${fmt(v, 3)} m/s</title></circle>`).join('') + xt + yt + '</svg>';
+    return `<div class="impulse-win"><p class="facts"><code>window.impulse</code> ${esc(w.verdict)}${w.agent ? ` by ${esc(w.agent)}` : ''} · onset ${fmt(w.onset, 3)} s · ` +
+      `<span class="ramp">ramp end ${fmt(w.ramp_end, 3)} s</span> · <span class="piece">piece ${span3(w.piece)}</span> · first frame ${fmt(w.first_frame, 3)} s · ` +
+      `<span class="win ${cls3(w.pass)}" title="${esc(w.reason)}">direct window ${span3(w.window)} ${res3(w.pass)}</span></p>${svg}</div>`;
+  }
   function measurementBlock(q) {
     let h = '<div class="scroll-x"><table class="meas"><tr><th>Measurement</th><th>Method</th><th class="n">Value</th><th>Admissible</th><th>Failed</th><th>Inputs</th></tr>' +
-      q.measurements.map((m) => measurementRow(m, q.chosen)).join('') + '</table></div>';
+      q.measurements.map((m) => measurementRow(m, q)).join('') + '</table></div>' + impulseBlock(q.window_impulse);
     const other = q.measurements.filter((m) => m.name !== q.chosen && m.checks.length);
     if (other.length) {
       h += '<div class="scroll-x"><table class="checks mchecks"><tr><th>Check</th><th></th><th>Reason</th></tr>' +

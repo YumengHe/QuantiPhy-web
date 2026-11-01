@@ -174,8 +174,20 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            "sigma_plane_depth", a contact refit has "rescaled" (rules scale.contact_reach, scale.contact_rescale);
 #            the scene has "depth_rows" {object: {name "direct.depth_agree", pass, z_mask, z_plane, bound, n_rows,
 #            n_matched, dropped, reason}}; every fit_object has "stated" [{kind, residual, sigma_stated, sigma_pred,
-#            z}], "box_noise_px", "box_bias_px", "box_noise_test" (null without box rows) and "state_mismatch" (null
-#            without a chain), recorded facts (rule fit.object_noise); every presence verdict has "reason"
+#            z}], "box_noise_px", "box_bias_px", "box_noise_test" (null without box rows) and "state_mismatch",
+#            recorded facts (rule fit.object_noise); every presence verdict has "reason"
+#   span     every track has "ends" {start, end: {frame, reason (out_of_frame / occluded / presence_no / clip_end), why}}
+#            on its first and last boxed frame and "overlap_same_class" [frames] (rule track.visible_span); every scene
+#            object has "size.full_extent" (null unless an articulated agent sizes it) {name, pass, reason, frames_used,
+#            frames_excluded {overlap, shrink, border, no_depth}, extent_px, extent_norm, ref_norm, depth, ..}, so has a
+#            direct size of that object (rule size.full_extent); a result after an accepted kick has "window_impulse"
+#            {name, pass (the direct minimal window's), reason, onset, agent, verdict, ramp_end, first_frame, piece,
+#            window, speeds}, its fit / direct measurements "window_impulse" and, when testable, the check
+#            "window.impulse" {pass, reason, onset, ramp_end, piece, window}; an inadmissible direct may carry it too
+#            (rule window.impulse); fit_object "box_noise_px" / "box_bias_px" have "sides" ([x1, y1, x2, y2] or a
+#            pendulum's [u, v, d]), "box_noise_test" may be untestable {pass null, dof, why}, "state_mismatch" is
+#            never null; a direct "direct.depth_agree" copied from the scene's depth_rows has "see" "depth_rows" with
+#            n_rows / n_matched / dropped (rule fit.object.record); the scene has no "caches"."objects_mode"
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -188,7 +200,8 @@ VERSION_FORMAT = {
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
-           "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True},
+           "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
+           "span": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -442,6 +455,74 @@ def track_intervals(key: str):
     return out or None
 
 
+TRACK_END_REASONS = ("out_of_frame", "occluded", "presence_no", "clip_end")
+
+
+def track_ends(key: str):
+    """Each track's span with the reason it starts and ends there and the frames it overlaps another instance of its
+    class (rule track.visible_span): {"fps", "tracks": {name: {"ends": {"start" / "end": {frame, reason, why}},
+    "overlap_same_class": [frames]}}}; the start / end frames are the track's first / last boxed frame. None when it has no track."""
+    j = unit_json("tracks", key, "track cache")
+    out = {}
+    for name, tr in req(j, "tracks", "track cache").items():
+        w = f"track {name!r}"
+        ends, ov = req(tr, "ends", w), req(tr, "overlap_same_class", w)
+        if ends is None or ov is None:
+            raise ValueError(f"{AT['where']}: {w} ends {ends!r} / overlap_same_class {ov!r} not recorded")
+        fr = sorted(int(k) for k, b in req(tr, "boxes", w).items() if b is not None)
+        row = {}
+        for side, f in (("start", fr[0]), ("end", fr[-1])):
+            e = req(ends, side, f"{w} ends")
+            r = text(req(e, "reason", f"{w} ends {side}"))
+            if r not in TRACK_END_REASONS or int(req(e, "frame", f"{w} ends {side}")) != f:
+                raise ValueError(f"{AT['where']}: {w} {side} frame {e.get('frame')} reason {r!r}; boxed frames {fr[0]}-{fr[-1]}")
+            row.setdefault("ends", {})[side] = {"frame": f, "reason": r, "why": text(req(e, "why", f"{w} ends {side}"))}
+        row["overlap_same_class"] = sorted(int(x) for x in ov)
+        out[name] = row
+    return {"fps": num(j["info"]["fps"], 6), "tracks": out} if out else None
+
+
+def full_extent_view(fe: dict | None, what: str):
+    """An articulated agent's upright, unmerged extent (rule size.full_extent): pass (None: untestable), frames used,
+    frames excluded by overlap / shrink / border / no_depth, the median box height over the used frames against all
+    clear frames, and the depth-normalised extent h z against its reference. None for an object it does not size."""
+    if fe is None:
+        return None
+    w = f"{what} size.full_extent"
+    if req(fe, "name", w) != "size.full_extent":
+        raise ValueError(f"{AT['where']}: {w} name {fe['name']!r}")
+    ok = req(fe, "pass", w)
+    if ok not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {w} pass {ok!r}")
+    ex = req(fe, "frames_excluded", w)
+    if set(ex) != {"overlap", "shrink", "border", "no_depth"}:
+        raise ValueError(f"{AT['where']}: {w} frames_excluded keys {sorted(ex)}")
+    return {"pass": ok, "reason": text(req(fe, "reason", w)), "used": [int(x) for x in req(fe, "frames_used", w)],
+            "excluded": {k: [int(x) for x in ex[k]] for k in ("overlap", "shrink", "border", "no_depth")},
+            "extent_px": num(req(fe, "extent_px", w), 4), "extent_px_all": num(req(fe, "extent_px_all", w), 4),
+            "extent_norm": num(req(fe, "extent_norm", w), 5), "ref_norm": num(req(fe, "ref_norm", w), 5),
+            "depth": text(req(fe, "depth", w))}
+
+
+def impulse_window_view(x: dict, what: str, result: bool = False) -> dict:
+    """Rule window.impulse: the kick's ramp end, the piece after it, and the window read inside it; a result's record
+    (result=True) also has the agent, the verdict, the first observed frame and the frame-pair speeds [[t, m/s]]."""
+    w = f"{what} window_impulse"
+    if req(x, "name", w) != "window.impulse":
+        raise ValueError(f"{AT['where']}: {w} name {x['name']!r}")
+    ok = req(x, "pass", w)
+    if ok not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {w} pass {ok!r}")
+    t4 = lambda v: [num(a, 5) for a in v] if v is not None else None
+    out = {"pass": ok, "reason": text(req(x, "reason", w)), "onset": num(req(x, "onset", w), 5),
+           "ramp_end": num(req(x, "ramp_end", w), 5), "piece": t4(req(x, "piece", w)), "window": t4(req(x, "window", w))}
+    if result:
+        out |= {"agent": text(req(x, "agent", w)) or None, "verdict": text(req(x, "verdict", w)),
+                "first_frame": num(req(x, "first_frame", w), 5),
+                "speeds": [[num(t, 5), num(v, 4)] for t, v in req(x, "speeds", w)]}
+    return out
+
+
 PATH_DT = 1 / 24     # sampling step (s) of non-parabolic object paths for the 3D viewer
 
 
@@ -637,7 +718,7 @@ def measurement_row(m: dict) -> dict:
             "shared": list(req(m, "shared", what)), "admissible": ok, "why": text(req(adm, "reason", f"{what} admissible")),
             "failed": [{"name": k, "reason": text(req(checks[k], "reason", f"{what} check {k!r}"))}
                        | ({"which": text(checks[k]["which"])} if checks[k].get("which") else {}) for k in failed],
-            "checks": [{"name": k, "pass": bool(req(c, "pass", f"{what} check {k!r}")),
+            "checks": [{"name": k, "pass": check_pass(c, f"{what} check {k!r}"),
                         "reason": text(req(c, "reason", f"{what} check {k!r}"))} for k, c in checks.items()],
             "window": [num(x, 4) for x in inputs["window"]] if inputs.get("window") else None,
             "piece": [num(max(x, 0.0), 4) if x > -1e8 else None for x in inputs["piece"]]
@@ -646,7 +727,27 @@ def measurement_row(m: dict) -> dict:
             "law": law_view(inputs["law"], what) if FMT.get("gravity") and inputs.get("law") else None,
             "profile": [profile_view(x, what) for x in inputs["at_bound.profile"]] if inputs.get("at_bound.profile") else None} \
         | (direct_view(m, what) if FMT.get("camera") else {}) | (sigma_view(inputs, what) if FMT.get("fusion") else {}) \
-        | (onset_check_view(m, what) if FMT.get("impulse") and "kinematic_onset" in m else {})
+        | (onset_check_view(m, what) if FMT.get("impulse") and "kinematic_onset" in m else {}) \
+        | (span_view(m, what) if FMT.get("span") else {})
+
+
+def span_view(m: dict, what: str) -> dict:
+    """A measurement's window.impulse record (its check, when testable, is the same record) and a direct size's
+    size.full_extent; each None when the measurement does not carry it."""
+    wi = m.get("window_impulse")
+    if wi is not None and "window.impulse" in req(m, "checks", what):
+        c = m["checks"]["window.impulse"]
+        if {k: c.get(k) for k in ("pass", "reason", "piece", "window")} != {k: wi.get(k) for k in ("pass", "reason", "piece", "window")}:
+            raise ValueError(f"{AT['where']}: {what} check window.impulse differs from its window_impulse record")
+    return {"window_impulse": impulse_window_view(wi, what) if wi is not None else None,
+            "size.full_extent": full_extent_view(m["size.full_extent"], what) if "size.full_extent" in m else None}
+
+
+def check_pass(c: dict, what: str) -> bool:
+    ok = req(c, "pass", what)
+    if not isinstance(ok, bool):
+        raise ValueError(f"{AT['where']}: {what} pass = {ok!r}")
+    return ok
 
 
 def onset_check_view(m: dict, what: str) -> dict:
@@ -739,12 +840,20 @@ def direct_view(m: dict, what: str) -> dict:
     if da is None:
         dav = None
     elif req(da, "pass", f"{what} direct.depth_agree") is None:
-        # untestable (rule scale.contact_rescale dropped the silhouette's rows: no depth-model samples left)
+        # untestable: the direct path's own sample series tests nothing (no scene-level depth_rows verdict to copy)
+        if "see" in da:
+            raise ValueError(f"{AT['where']}: {what} direct.depth_agree copies {da['see']!r} with pass null")
         dav = {"pass": None, "reason": text(req(da, "reason", f"{what} direct.depth_agree"))}
     else:
         w = f"{what} direct.depth_agree"
         dav = {"pass": da["pass"], "z_mask": num(req(da, "z_mask", w), 3), "z_plane": num(req(da, "z_plane", w), 3),
-               "diff": num(abs(float(da["z_mask"]) - float(da["z_plane"])), 3), "bound": num(req(da, "bound", w), 3)}
+               "diff": num(abs(float(da["z_mask"]) - float(da["z_plane"])), 3), "bound": num(req(da, "bound", w), 3),
+               "reason": text(req(da, "reason", w))}
+        if "see" in da:    # rule fit.object.record (c): the scene-level depth_rows verdict, copied
+            if da["see"] != "depth_rows":
+                raise ValueError(f"{AT['where']}: {w} see {da['see']!r}")
+            dav |= {"see": "depth_rows", "n_rows": int(req(da, "n_rows", w)), "n_matched": int(req(da, "n_matched", w)),
+                    "dropped": bool(req(da, "dropped", w))}
     ce = (m.get("inputs") or {}).get("centred") if FMT.get("static") else None
     cev = None if ce is None else {
         "from": [num(x, 4) for x in req(ce, "from", f"{what} centred")],
@@ -816,7 +925,9 @@ def agreement_view(result: dict, answer: dict, status: str) -> dict:
         if sorted(in_ids) != sorted(r["id"] for r in rows if "inadmissible" in r) or \
                 len(req(cs, "inadmissible", "constraints")) != len(in_ids):
             raise ValueError(f"{AT['where']}: constraints inadmissible_ids {in_ids} differ from the residuals marked inadmissible")
-    return {"measurements": ms, "chosen": chosen, "agree": agree, "constraints": rows}
+    wi = result.get("window_impulse") if FMT.get("span") else None
+    return {"measurements": ms, "chosen": chosen, "agree": agree, "constraints": rows,
+            "window_impulse": impulse_window_view(wi, "scene result", result=True) if wi is not None else None}
 
 
 def inadmissible_view(c: dict, what: str) -> dict:
@@ -1252,7 +1363,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      "pendulum": pendulum_view(req(o, "pendulum", what), what) if FMT.get("pendulum") else None}
                     | ({"segfit": segfit_view(name, o), "events_graph": events_view(name, o)} if FMT.get("selftest") else {})
                     | (impulse_view(name, o) if FMT.get("impulse") else {})
-                    | ({"fit_object": fit_object_view(name, o)} if FMT.get("contact") else {}))
+                    | ({"fit_object": fit_object_view(name, o)} if FMT.get("contact") else {})
+                    | ({"size.full_extent": full_extent_view(req(o, "size.full_extent", what), what)} if FMT.get("span") else {}))
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
             "scale": scale_view(j), "gravity": gravity_view(j),
             "main_support": req(j, "main_support", "scene"),
@@ -1628,28 +1740,42 @@ def fit_object_facts(fo: dict, w: str) -> dict:
     bn, bb, bt = req(fo, "box_noise_px", w), req(fo, "box_bias_px", w), req(fo, "box_noise_test", w)
     if (bn is None) != (bb is None) or (bn is None) != (bt is None):
         raise ValueError(f"{AT['where']}: {w} box_noise_px / box_bias_px / box_noise_test not all present or all null")
-    out = {"stated": st or None, "box_noise": None, "box_bias": None, "box_rms": None, "box_test": None, "mismatch": None}
-    if bn is not None:     # null for a fit without box-side series (0027s's pendulum)
-        out |= {"box_noise": [num(x, 3) for x in req(bn, "sigma", f"{w} box_noise_px")],
-                "box_bias": [num(x, 3) for x in req(bb, "bias_px", f"{w} box_bias_px")],
-                "box_rms": [[num(a, 3), num(b, 3)] for a, b in zip(req(bb, "rms_raw", f"{w} box_bias_px"),
-                                                                   req(bb, "rms_left", f"{w} box_bias_px"))]}
-    if bt is not None:
+    out = {"stated": st or None, "sides": None, "box_noise": None, "box_bias": None, "box_rms": None, "box_test": None,
+           "mismatch": None}
+    if bn is not None:
+        sides = list(req(bn, "sides", f"{w} box_noise_px"))
+        if sides not in BOX_SIDES or list(req(bb, "sides", f"{w} box_bias_px")) != sides:
+            raise ValueError(f"{AT['where']}: {w} box sides {sides} / {bb.get('sides')}")
+        cols = {"box_noise": req(bn, "sigma", f"{w} box_noise_px"), "box_bias": req(bb, "bias_px", f"{w} box_bias_px"),
+                "box_rms": list(zip(req(bb, "rms_raw", f"{w} box_bias_px"), req(bb, "rms_left", f"{w} box_bias_px")))}
+        if any(len(v) != len(sides) for v in cols.values()):
+            raise ValueError(f"{AT['where']}: {w} per-side lists differ in length from sides {sides}")
+        out |= {"sides": sides, "box_noise": [num(x, 3) for x in cols["box_noise"]],
+                "box_bias": [num(x, 3) for x in cols["box_bias"]],
+                "box_rms": [[num(a, 3), num(b, 3)] for a, b in cols["box_rms"]]}
         wt = f"{w} box_noise_test"
-        out["box_test"] = {"pass": bool(req(bt, "pass", wt)), "s2": num(req(bt, "s2", wt), 4), "bound": num(req(bt, "bound", wt), 4),
-                           "dof": int(req(bt, "dof", wt)), "why": text(req(bt, "why", wt))}
+        ok = req(bt, "pass", wt)
+        if ok is None:     # untestable: no dof left after the bias parameters
+            out["box_test"] = {"pass": None, "dof": int(req(bt, "dof", wt)), "why": text(req(bt, "why", wt))}
+        elif isinstance(ok, bool):
+            out["box_test"] = {"pass": ok, "s2": num(req(bt, "s2", wt), 4), "bound": num(req(bt, "bound", wt), 4),
+                               "dof": int(req(bt, "dof", wt)), "why": text(req(bt, "why", wt))}
+        else:
+            raise ValueError(f"{AT['where']}: {wt} pass {ok!r}")
     sm = req(fo, "state_mismatch", w)
-    if sm is not None:
-        ws = f"{w} state_mismatch"
-        if req(sm, "name", ws) != "fit.object.state_mismatch":
-            raise ValueError(f"{AT['where']}: {ws} name {sm['name']!r}")
-        ok = req(sm, "pass", ws)
-        if ok not in (True, False, None):
-            raise ValueError(f"{AT['where']}: {ws} pass {ok!r}")
-        t = req(sm, "t", ws)
-        out["mismatch"] = {"pass": ok, "frames": int(req(sm, "frames", ws)), "t": [num(x, 4) for x in t] if t else None,
-                           "reason": text(req(sm, "reason", ws))}
+    ws = f"{w} state_mismatch"
+    if sm is None or req(sm, "name", ws) != "fit.object.state_mismatch":
+        raise ValueError(f"{AT['where']}: {ws} is {sm!r}, expected a fit.object.state_mismatch record")
+    ok = req(sm, "pass", ws)
+    if ok not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {ws} pass {ok!r}")
+    t = req(sm, "t", ws)
+    out["mismatch"] = {"pass": ok, "frames": int(req(sm, "frames", ws)), "t": [num(x, 4) for x in t] if t else None,
+                       "reason": text(req(sm, "reason", ws))}
     return out
+
+
+BOX_SIDES = (["x1", "y1", "x2", "y2"], ["u", "v", "d"])   # box sides, or a pendulum's centre u, v and diameter d
 
 
 def pendulum_view(p: dict | None, what: str):
@@ -2093,6 +2219,10 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                     query["depth_bindings"] = depth_bindings_view(state) if state is not None else None
                 query |= {"scene": scene_view(state, DIRS["scenes"] / f"{unit}.json") if state is not None else None,
                           "sgraph": sgraph(unit, rec, state), "tracks": track_intervals(unit)}
+                if FMT.get("span"):
+                    query["track_ends"] = track_ends(unit)
+                    if state is not None and "measurements" in query:
+                        same_depth_rows(state, query["measurements"])
                 if FMT.get("kept"):
                     query["rounds"] = rounds_view(rec)
                 if FMT.get("identity"):
@@ -2107,6 +2237,16 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
     overlays.save()
     print(f"{tag}: {len(questions)} questions, {overlays.added} overlays rendered")
     return questions
+
+
+def same_depth_rows(state: dict, ms: list[dict]):
+    """A direct depth_agree copied from the scene (see "depth_rows") must be one of the scene's depth_rows records."""
+    key = lambda x: (x["pass"], x["n_rows"], x["n_matched"], x["dropped"], x["reason"])
+    rows = {key(r) for r in depth_rows_view(state) or []}
+    for m in ms:
+        a = m.get("depth_agree")
+        if a and a.get("see") and key(a) not in rows:
+            raise ValueError(f"{AT['where']}: measurement {m['name']!r} direct.depth_agree names depth_rows, no scene row matches")
 
 
 def build_harness_val(runs: list[tuple[str, Path]], make_thumb: bool = False) -> dict:
