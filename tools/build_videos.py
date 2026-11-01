@@ -103,6 +103,11 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            merged, unknown} (rule builder.self_test); each scene object has "segfit" [piece] | null with "point" /
 #            "sigma" / "bound" / "rms" / "run" / "pass" (rule segfit.point), a physics record "events_graph" and a
 #            motion law "events" / "unknown" (rule events.graph)
+#   horizon  the scene has "focal" {votes [{object, span, hop, f, sigma, law, n, rms, used, why}], f_votes, sigma,
+#            n_votes, f, source} (rule focal.gravity_hop) and "support_horizon" {pass, reason, phi_plane_deg,
+#            phi_horizon_deg, sigma_deg, z, row_plane, row_horizon, horizon {...}, repaired} (rule support.horizon);
+#            camera.support_plane has "pitch_source" / "depth_plane"; the answer record has "stop" {reason, round, why,
+#            tried} and each agent round "newly_failed" {check: reason}
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -114,7 +119,7 @@ VERSION_FORMAT = {
            "steps": STEPS_V4},
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
-           "pendulum": True, "selftest": True},
+           "pendulum": True, "selftest": True, "horizon": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -565,9 +570,21 @@ def rounds_view(rec: dict) -> dict | None:
                  for r in req(it, "results", w)]
         rej = [text(req(x, "why", f"{w} rejected")) for x in (it.get("rejected") or [])]
         acc = req(it, "accepted", w)
-        rows.append({"iter": int(req(it, "iter", w)), "layer": text(it.get("layer")) or None, "calls": calls,
-                     "rejected": rej, "accepted": bool(acc), "why": text(req(it, "why", w))})
-    return {"kept": kept, "rounds": rows} if rows else None
+        row = {"iter": int(req(it, "iter", w)), "layer": text(it.get("layer")) or None, "calls": calls,
+               "rejected": rej, "accepted": bool(acc), "why": text(req(it, "why", w))}
+        if FMT.get("horizon"):
+            row["newly_failed"] = [[text(k), text(v)] for k, v in (it.get("newly_failed") or {}).items()]
+        rows.append(row)
+    out = {"kept": kept, "rounds": rows}
+    if FMT.get("horizon"):
+        st = req(rec, "stop", "answer record")
+        tried = [{"iter": x.get("iter"), "name": text(req(x, "name", "stop.tried")),
+                  "params": {k: v for k, v in (x.get("params") or {}).items() if v is not None},
+                  "class": text(req(x, "class", "stop.tried")), "outcome": text(x.get("outcome"))}
+                 for x in (st.get("tried") or [])]
+        out["stop"] = {"reason": text(req(st, "reason", "stop")), "round": st.get("round"),
+                       "why": text(st.get("why")) or None, "tried": tried}
+    return out if rows else None
 
 
 def dim_bounds(name: str, o: dict):
@@ -725,6 +742,46 @@ def identity_view(key: str) -> dict:
     return out
 
 
+def focal_view(state: dict):
+    """The scene's focal record (rule focal.gravity_hop): one row per hop of every passive object's airborne edges."""
+    fo = req(state, "focal", "scene")
+    rows = []
+    for x in req(fo, "votes", "focal"):
+        w = "focal vote"
+        law = req(x, "law", w)
+        rows.append({"object": text(req(x, "object", w)), "span": [num(a, 4) for a in req(x, "span", w)],
+                     "hop": [num(a, 4) for a in req(x, "hop", w)], "f": num(req(x, "f", w), 4),
+                     "sigma": num(req(x, "sigma", w), 3), "law": text(req(law, "result", w)),
+                     "n": x.get("n"), "rms": num(x.get("rms"), 3), "used": bool(req(x, "used", w)),
+                     "why": text(req(x, "why", w))})
+    return {"votes": rows, "f_votes": num(fo.get("f_votes"), 4), "sigma": num(fo.get("sigma"), 3),
+            "n_votes": fo.get("n_votes"), "f": num(req(fo, "f", "focal"), 4), "source": text(req(fo, "source", "focal"))}
+
+
+def horizon_view(state: dict):
+    """The support plane's pitch check (rule support.horizon) and the support plane's pitch source; None when the
+    scene has no support plane record and no horizon record."""
+    sh = req(state, "support_horizon", "scene")
+    sp = (req(state, "camera", "scene") or {}).get("support_plane")
+    plane = None
+    if sp:
+        dp = sp.get("depth_plane")
+        plane = {"tilt": num(sp.get("tilt_from_up_deg"), 3), "pitch_source": text(sp.get("pitch_source")) or None,
+                 "depth_tilt": num(dp.get("tilt_from_up_deg"), 3) if dp else None}
+    if sh is None:
+        return {"plane": plane, "check": None} if plane else None
+    hz = req(sh, "horizon", "support_horizon")
+    far = hz.get("far")
+    check = {"pass": sh.get("pass"), "reason": text(req(sh, "reason", "support_horizon")), "repaired": bool(sh.get("repaired")),
+             "phi_plane": num(sh.get("phi_plane_deg"), 3), "phi_horizon": num(sh.get("phi_horizon_deg"), 3),
+             "sigma": num(sh.get("sigma_deg"), 2), "z": num(sh.get("z"), 2),
+             "row_plane": num(sh.get("row_plane"), 4), "row_horizon": num(sh.get("row_horizon"), 4),
+             "status": text(req(hz, "status", "horizon")), "row": num(hz.get("row"), 4), "sigma_row": num(hz.get("sigma_row"), 2),
+             "spread": num(hz.get("spread_px"), 3), "n_found": hz.get("n_found"), "n_frames": hz.get("n_frames"),
+             "far": {"band": num(far.get("band"), 3), "support_p95": num(far.get("support_p95"), 3)} if far else None}
+    return {"plane": plane, "check": check}
+
+
 def scene_view(state: dict, source_path: Path) -> dict:
     """A saved scene as the page draws it, without the per-question results (a shared scene must not show other
     questions' answers)."""
@@ -763,7 +820,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
             # an empty vote list is legitimate (no focal vote taken): written as null
             "focal_votes": [{"source": text(req(x, "source", "focal vote")), "value": num(req(x, "value", "focal vote"), 4),
                              "weight": num(req(x, "weight", "focal vote"), 3)}
-                            for x in req(j, "focal_votes", "scene")] or None}
+                            for x in req(j, "focal_votes", "scene")] or None} | \
+        ({"focal": focal_view(j), "horizon": horizon_view(j)} if FMT.get("horizon") else {})
 
 
 def pendulum_view(p: dict | None, what: str):

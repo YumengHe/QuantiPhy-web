@@ -356,6 +356,7 @@
   <li>Monocular depth on every 4th frame plus anchor frames, aligned per frame on background pixels</li>
   <li>Each anchor is located by its track; 1/Z = a·d + b fitted to the anchors (one anchor: scale only)</li>
   <li>Focal votes: typical heights, gravity on free flights, the size prior at its depth</li>
+  <li>Gravity votes per hop (<code>focal.gravity_hop</code>, Earth scenes): every free-flight hop of every passive object's airborne edges whose ballistic law passes the graph builder's test votes once. With Z(t) = Z<sub>a</sub> s<sub>a</sub> / s(t) from a timed anchor and the box short side, w(t) = (v − c<sub>y</sub>) Z(t) on the mask centroid has curvature f g, so f = w″ / g; σ by the delta method (curvature, the anchor's stated digits, the anchor frame's box noise), weight 1 / σ<sub>rel</sub>. A hop without a vote names why: no anchor, law not passing, &lt; 7 usable frames, f outside 0.2–3 × the width, σ ≥ |f|. Record: <code>focal{votes[{object, span, hop, f, sigma, law, n, rms, used, why}], f_votes, sigma, n_votes, f, source}</code></li>
 </ol></div>
 <div><b>Without depth_info</b><ol>
   <li>Depth Pro on 12 evenly spaced frames at its own (nominal) scale; f from its per-frame focal lengths, <code>f_source: depth_model</code></li>
@@ -367,6 +368,7 @@
   <li>A plane fitted to the floor mask on each depth frame; frames far from the median normal dropped</li>
   <li>Normals spread &gt; 10° → <code>support_rejected</code>: no plane, objects fitted free in 3D</li>
   <li>With depth_info the plane is fitted in stage A; <code>plane_ok</code> needs a plausible camera height and roll</li>
+  <li>Visible horizon (<code>support.horizon</code>, depth-model planes): on the graph's 16 frames, the topmost straight, full-width, near-horizontal strong edge (not a letterbox bar, not curved), found on ≥ 75 % of frames within 3 % of the height; the depth model must put the band below it at ≥ 2 × the support points' p95 depth (<code>horizon.far</code>). Its row gives the pitch atan((y<sub>h</sub> − c<sub>y</sub>) / f); |φ<sub>plane</sub> − φ<sub>h</sub>| &gt; 3σ → the horizon's pitch replaces the plane's (roll kept) and the distance is refitted through the same support points (<code>camera.support_plane.pitch_source: horizon</code>, <code>depth_plane</code> kept). Record: <code>support_horizon{pass, phi_plane_deg, phi_horizon_deg, sigma_deg, z, row_plane, row_horizon, horizon, repaired}</code></li>
 </ol>
 <p class="fl"><b>Checks</b> <code>plane_ok: false</code> with objects on it → <b>plausible</b> (support_plane).</p>
 
@@ -464,16 +466,17 @@
   <dd><ol>
     <li><b>plausible</b> (<code>critic.scene_checks</code>): see the table below</li>
     <li>Evidence: 3D overlays at even times and at the asked time, a crop at the asked time, visibility-mismatch overlays; text: inventory, graph edges, prior, scale, the scene's gravity (g ± σ, source, each free-flight piece with its admissibility, the gravity checks), object dimensions (a bound dimension as its interval), failed checks with reasons, earlier rounds</li>
-    <li>Repair candidates from the failed checks: relation windows at the asked time, split at the graph's motion onset (an onset moves only through a re-tested graph edit); for a failed <b>state</b>, each other state (on a support, airborne, held) over the unknown span; re-tracking an asked object failing <b>tracked</b> or an untracked scale object, <code>refit_free</code>, <code>limit_accel</code> for a self-propelled body beyond 1.5 g</li>
+    <li>Repair candidates from the failed checks, each dry-run first: only a candidate the tool does not reject, not tried before and not equivalent to a tried call (same tool, same parameters, windows within one graph step, same outcome class) is offered (<code>repair.applicable</code>); a relation target must be a node of the unit's graph (<code>graph_edit.known_target</code>). Candidates: relation windows at the asked time, split at the graph's motion onset (an onset moves only through a re-tested graph edit); for a failed <b>state</b>, each other state (on a support, airborne, held) over the unknown span; re-tracking an asked object failing <b>tracked</b> or an untracked scale object, <code>refit_free</code>, <code>limit_accel</code> for a self-propelled body beyond 1.5 g</li>
     <li>Observe tools (≤ 6 per round): frames, crop, overlay, tracks_summary, depth_at, scene_json, self_check, question_values, visible_count, reference_measure, model options</li>
     <li>Act tools (≤ 3 per round): re-track (<code>objects_set_count, objects_set_track, track_reselect, track_split_instance</code>) or refit (<code>scenegraph_set_relation, set_main_support, scene_mark_absent, scene_swap_axes, scene_set_support, scene_refit_free, scene_set_plane, scene3d_try_fit_policy</code>)</li>
-    <li>Back up the caches, rebuild the affected steps, accept on frozen evidence or restore; stop on an accepted round with every check passing, 2 rounds without improvement, or 10 rounds</li>
+    <li>Back up the caches, rebuild the affected steps, accept on frozen evidence or restore; a rejected round records the checks it newly failed (<code>newly_failed{check: reason}</code>)</li>
+    <li>Stop with a named reason, <code>stop{reason, round, why, tried}</code>: <code>checks_passed</code>, <code>accepted</code>; <code>loop.exhausted</code> (every proposed call repeats a tried one, or two rounds without improvement, and no live candidate is left); <code>loop.no_repair</code> (the planner reports done while a check fails and no candidate is left); <code>loop.cap</code> (10 rounds)</li>
     <li>The kept state (the last accepted round, else the initial fit) is saved with the graph and tracks that produced it; the answer reads that scene, and the answer record names it (<code>kept_state{iter, scenegraph, tracks}</code>)</li>
     <li>Model calls are memoized by request content, with option ids taken from the option text, so a rerun replays every unchanged call across code edits</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/agent/&lt;unit&gt;.json</code>: final scene, <code>critique.iterations[]</code> (<code>diagnosis, layer, observations, tool_calls, repair_candidates, accepted, why, rerun_from</code>; each tool call's <code>result</code>), <code>agent_status</code></li>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/agent/&lt;unit&gt;.json</code>: final scene, <code>critique.iterations[]</code> (<code>diagnosis, layer, observations, tool_calls, repair_candidates, repair_candidates_dropped, accepted, why, newly_failed, rerun_from</code>; each tool call's <code>result</code>), <code>agent_status.stop</code></li>
   </ul></dd>
   <dt>Checks</dt>
   <dd><ul>

@@ -80,7 +80,7 @@
         view = { ...v, scene: a.scene };
         const body = document.createElement('div');
         body.className = 'qbody';
-        body.innerHTML = priorBlock(q) + mediaBlock(view, q) + overlayBlock(q) + trackBlock(a.tracks, view, q) +
+        body.innerHTML = priorBlock(q) + mediaBlock(view, q) + overlayBlock(q, view) + trackBlock(a.tracks, view, q) +
           sceneGraphTree(a.sgraph) + refmeasureBlock(q.refmeasure) + fitBlock(q, view) + roundsBlock(q.rounds) + timeBlock(q);
         d.appendChild(body);
         video = body.querySelector('video');
@@ -182,11 +182,15 @@
   }
 
   // overlays rendered by the pipeline from the saved scene at the question's times
-  function overlayBlock(q) {
+  // with a support.horizon record: the visible horizon row and the depth-model plane's vanishing row as two thin lines
+  function overlayBlock(q, v) {
     const ims = q.overlays;
     if (!ims.length) return '';
+    const hc = v.scene && v.scene.horizon && v.scene.horizon.check, H = v.size && v.size[1];
+    const rows = hc && H && hc.row_horizon != null && hc.row_plane != null
+      ? `<span class="hrow hrow-horizon" style="top:${(100 * hc.row_horizon) / H}%"></span><span class="hrow hrow-plane" style="top:${(100 * hc.row_plane) / H}%"></span>` : '';
     return '<h4>Overlays</h4><div class="runtime-frames">' + ims.map((im) => im.path
-      ? `<figure class="runtime-frame"><a href="${esc(im.path)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(im.path)}" alt="t = ${esc(im.t)} s"></a>` +
+      ? `<figure class="runtime-frame"><a class="ovimg" href="${esc(im.path)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(im.path)}" alt="t = ${esc(im.t)} s">${rows}</a>` +
         `<figcaption>t = ${fmt(im.t, 2)} s</figcaption></figure>`
       : `<p class="fwarn">t = ${fmt(im.t, 2)} s: ${esc(im.unavailable)}</p>`).join('') + '</div>';
   }
@@ -322,18 +326,27 @@
   }
   // the agent rounds (answer record "iterations"): each tool call with its result, the round's outcome; the kept round
   // (the state the answer used) carries the accent bar
+  // with the loop's stop record: its reason on the heading, each tried call's outcome class, each rejected round's
+  // newly failed checks
   function roundsBlock(r) {
     if (!r) return '';
     const par = (p) => Object.entries(p).map(([k, v]) => `${k} ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · ');
+    const key = (it, c) => `${it} ${c.name} ${JSON.stringify(Object.keys(c.params).sort().map((k) => [k, c.params[k]]))}`;
+    const cls = new Map(((r.stop && r.stop.tried) || []).map((t) => [key(t.iter, t), t.class]));
     const rows = r.rounds.map((x) => {
-      const calls = x.calls.map((c) => `<div><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span></div>`).join('');
+      const calls = x.calls.map((c) => {
+        const k = cls.get(key(x.iter, c));
+        return `<div><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span>${k ? ` <span class="tclass">${esc(k)}</span>` : ''}</div>`;
+      }).join('');
       const res = x.calls.map((c) => `<div class="${/^rejected\b/.test(c.result) ? 'bad' : ''}">${esc(c.result)}</div>` +
         (c.test ? `<div class="${c.test.result === 'pass' ? 'ok' : c.test.result === 'fail' ? 'bad' : 'muted'}"><code>${esc(c.test.name)}</code> ${esc(c.test.result)}</div>` : '')).join('') +
         x.rejected.map((w) => `<div class="bad">${esc(w)}</div>`).join('');
       return `<tr class="${x.iter === r.kept ? 'chosen' : ''}"><td class="n">${x.iter}</td><td>${calls}</td><td>${res}</td>` +
-        `<td class="${x.accepted ? 'ok' : ''}">${esc(x.why)}</td></tr>`;
+        `<td class="${x.accepted ? 'ok' : ''}">${esc(x.why)}` +
+        (x.newly_failed || []).map(([c, w]) => `<div class="bad"><code>${esc(c)}</code> ${esc(w)}</div>`).join('') + '</td></tr>';
     }).join('');
-    return '<h4>Agent rounds</h4><div class="scroll-x"><table class="rounds"><tr><th class="n">Round</th><th>Call</th><th>Result</th><th>Outcome</th></tr>' +
+    const st = r.stop ? ` <span class="stop"><code>${esc(r.stop.reason)}</code> round ${esc(r.stop.round)}${r.stop.why ? ` · ${esc(r.stop.why)}` : ''}</span>` : '';
+    return `<h4>Agent rounds${st}</h4><div class="scroll-x"><table class="rounds"><tr><th class="n">Round</th><th>Call</th><th>Result</th><th>Outcome</th></tr>` +
       rows + '</table></div>';
   }
   function sceneGraphSvg(sg) {
@@ -552,6 +565,38 @@
       s.focal_votes.map((x) => `<tr><td>${esc(F_SRC[x.source] || x.source)}</td><td class="n">${fmtNum(x.value)}</td><td class="n">${fmtNum(x.weight)}${tw ? ` <span class="muted">(${fmt((100 * x.weight) / tw, 0)}%)</span>` : ''}</td></tr>`).join('') +
       '</table></div></details>';
   }
+  // per-hop gravity focal votes (scene json "focal", rule focal.gravity_hop); a hop without a vote is muted
+  function focalTable(fo) {
+    if (!fo || !fo.votes.length) return '';
+    const iv = (a) => `${fmt(a[0], 2)}–${fmt(a[1], 2)}`;
+    return '<div class="scroll-x"><table class="focal"><tr><th>Object</th><th>Airborne</th><th>Hop (s)</th><th class="n">f (px)</th>' +
+      '<th class="n">n</th><th class="n">rms (px)</th><th>Law</th><th></th></tr>' +
+      fo.votes.map((x) => `<tr class="${x.used ? '' : 'muted'}"><td>${esc(x.object)}</td><td>${iv(x.span)}</td><td>${iv(x.hop)}</td>` +
+        `<td class="n">${x.f != null ? `${fmtNum(x.f)} ± ${fmtNum(x.sigma)}` : '—'}</td><td class="n">${x.n != null ? esc(x.n) : ''}</td>` +
+        `<td class="n">${x.rms != null ? fmt(x.rms, 1) : ''}</td><td>${esc(x.law)}</td><td>${x.used ? 'used' : esc(x.why)}</td></tr>`).join('') +
+      '</table></div>';
+  }
+  // the support plane's pitch source and its horizon check (rule support.horizon)
+  function horizonLines(h) {
+    if (!h) return '';
+    const deg = (x) => `${fmt(x, 2)}°`;
+    let out = '';
+    if (h.plane) {
+      out += `<p class="facts">support plane ${deg(h.plane.tilt)} from up` + (h.plane.pitch_source ? ` · pitch from ${esc(h.plane.pitch_source)}` : '') +
+        (h.plane.depth_tilt != null ? ` · depth model ${deg(h.plane.depth_tilt)}` : '') + '</p>';
+    }
+    const c = h.check;
+    if (!c) return out;
+    const res = c.pass === true ? 'pass' : c.pass === false ? 'fail' : 'untestable';
+    if (c.phi_plane == null) {
+      return out + `<p class="facts"><code>support.horizon</code> <span class="muted">${esc(c.reason)}</span></p>`;
+    }
+    return out + `<p class="facts"><code>support.horizon</code> <span class="${c.pass ? 'ok' : c.pass === false ? 'bad' : 'muted'}">${res}</span>` +
+      ` · plane ${deg(c.phi_plane)} vs horizon ${deg(c.phi_horizon)} ± ${fmt(c.sigma, 2)}°, z ${fmt(c.z, 1)}` +
+      ` · row ${fmtNum(c.row)} ± ${fmt(c.sigma_row, 1)} px (plane ${fmtNum(c.row_plane)}), spread ${fmtNum(c.spread)} px, ${esc(c.n_found)}/${esc(c.n_frames)} frames` +
+      (c.far ? ` · far: band ${fmtNum(c.far.band)} m vs support p95 ${fmtNum(c.far.support_p95)} m` : '') +
+      (c.repaired ? ' · refit' : '') + '</p>';
+  }
   function fitBlock(q, v) {
     const f = q.fit, s = v.scene;
     let h = '<h4>Reconstruction</h4>';
@@ -593,7 +638,8 @@
         segfitTable(s) + eventsTable(s) + pendulumTable(s) +
         `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}` +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' +
+        (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + focalTable(s.focal) + horizonLines(s.horizon) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') : '') +
         gravityBlock(s.gravity) +
