@@ -197,7 +197,7 @@
 
   // tracked intervals per object on the video's time axis; the question's times as vertical lines
   function trackBlock(tracks, v, q) {
-    if (!tracks || !Object.keys(tracks).length) return q.identity ? '<h4>Tracks</h4>' + identityBlock(q.identity) : '';
+    if (!tracks || !Object.keys(tracks).length) return q.identity || q.extents ? '<h4>Tracks</h4>' + identityBlock(q.identity) + extentsBlock(q.extents) : '';
     const T = v.duration;
     const order = v.scene ? v.scene.objects.map((o) => o.name) : [];
     const pct = (t) => `${(100 * Math.min(Math.max(t / T, 0), 1)).toFixed(2)}%`;
@@ -208,7 +208,21 @@
       return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${lines}</span></div>`;
     }).join('');
     return `<h4>Tracks</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>` +
-      identityBlock(q.identity);
+      identityBlock(q.identity) + extentsBlock(q.extents);
+  }
+  // per-frame mask extents of every tracked frame (extents2d, rule extent.overlay): one row per object, the extent
+  // range on static frames against the largest extent on moving frames
+  function extentsBlock(e) {
+    if (!e) return '';
+    const r2 = (a) => (a[0] === a[1] ? fmtNum(a[0]) : `${fmtNum(a[0])}–${fmtNum(a[1])}`);
+    return `<div class="scroll-x"><table class="extents"><tr><th>Object</th><th class="n">Frames</th><th class="n">Overlay</th>` +
+      `<th class="n">Static &lt; ${fmtNum(e.static_px)} px/frame</th><th class="n">Largest moving</th></tr>` +
+      e.rows.map((x) => `<tr><td>${esc(x.obj)}${x.kind ? ` <span class="muted">${esc(x.kind)}</span>` : ''}</td>` +
+        `<td class="n">${x.n} <span class="muted">(${x.frames[0]}–${x.frames[1]})</span></td>` +
+        `<td class="n${x.overlay ? ' bad' : ''}">${x.overlay}${x.ring != null ? ` · ring ${fmtNum(x.ring)} px` : ''}</td>` +
+        `<td class="n">${x.static ? `${r2(x.static.major)} × ${r2(x.static.minor)} px <span class="muted">(${x.static.n})</span>` : '—'}</td>` +
+        `<td class="n">${x.moving ? `${fmtNum(x.moving.extent[0])} × ${fmtNum(x.moving.extent[1])} px · f${x.moving.frame} · ${fmtNum(x.moving.speed)} px/frame <span class="muted">(${x.moving.n})</span>` : '—'}</td></tr>`).join('') +
+      '</table></div>';
   }
   // the track identity judge per object: every candidate in the order judged (static / verify / class_size /
   // presence / border), the accepted one carrying the accent bar; an untracked object spans the row with its reason
@@ -342,7 +356,10 @@
       const res = x.calls.map((c) => `<div class="${/^rejected\b/.test(c.result) ? 'bad' : ''}">${esc(c.result)}</div>` +
         (c.test ? `<div class="${c.test.result === 'pass' ? 'ok' : c.test.result === 'fail' ? 'bad' : 'muted'}"><code>${esc(c.test.name)}</code> ${esc(c.test.result)}</div>` : '')).join('') +
         x.rejected.map((w) => `<div class="bad">${esc(w)}</div>`).join('');
-      return `<tr class="${x.iter === r.kept ? 'chosen' : ''}"><td class="n">${x.iter}</td><td>${calls}</td><td>${res}</td>` +
+      const cand = (x.candidates || []).map((c) => `<div class="cand"><code>${esc(c.for)}</code> ← <code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span></div>`).join('') +
+        (x.dropped || []).map((c) => `<div class="cand drop"><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span>` +
+          `<div class="bad">${c.rule ? `<code>${esc(c.rule)}</code> ` : ''}${esc(c.why)}</div></div>`).join('');
+      return `<tr class="${x.iter === r.kept ? 'chosen' : ''}"><td class="n">${x.iter}</td><td>${cand}</td><td>${calls}</td><td>${res}</td>` +
         `<td class="${x.accepted ? 'ok' : ''}">${esc(x.swap ? x.why.replace(/;?\s*checks fixed \[[^\]]*\] -> broken \[[^\]]*\]\s*$/, '') : x.why)}` +
         (x.swap ? `<div class="swap">fixed ${list(x.swap[0])} → broken ${list(x.swap[1])}</div>` : '') +
         (x.rebuilt ? `<div>rebuilt ${x.rebuilt.steps.map((k) => `<code>${esc(k)}</code>`).join(' → ') || 'none'}` +
@@ -351,7 +368,7 @@
         (x.newly_failed || []).map(([c, w]) => `<div class="bad"><code>${esc(c)}</code> ${esc(w)}</div>`).join('') + '</td></tr>';
     }).join('');
     const st = r.stop ? ` <span class="stop"><code>${esc(r.stop.reason)}</code> round ${esc(r.stop.round)}${r.stop.why ? ` · ${esc(r.stop.why)}` : ''}</span>` : '';
-    return `<h4>Agent rounds${st}</h4><div class="scroll-x"><table class="rounds"><tr><th class="n">Round</th><th>Call</th><th>Result</th><th>Outcome</th></tr>` +
+    return `<h4>Agent rounds${st}</h4><div class="scroll-x"><table class="rounds"><tr><th class="n">Round</th><th>Candidates</th><th>Call</th><th>Result</th><th>Outcome</th></tr>` +
       rows + '</table></div>';
   }
   function sceneGraphSvg(sg) {
@@ -627,6 +644,22 @@
       (c.far ? ` · far: band ${fmtNum(c.far.band)} m vs support p95 ${fmtNum(c.far.support_p95)} m` : '') +
       (c.repaired ? ' · refit' : '') + '</p>';
   }
+  // the scene's roll against the roll of the image's near-vertical segments (rule camera.roll), the pose refit on fail
+  function rollLines(r) {
+    if (!r) return '';
+    const deg = (x) => `${fmt(x, 2)}°`;
+    if (r.pass === null) {
+      const why = r.reason.replace(/^camera\.roll untestable:\s*/, '');
+      return `<p class="facts"><code>camera.roll</code> <span class="muted">untestable · ${esc(why)}</span></p>`;
+    }
+    const im = r.image || {};
+    const rf = r.refit;
+    return `<p class="facts"><code>camera.roll</code> <span class="${r.pass ? 'ok' : 'bad'}">${r.pass ? 'pass' : 'fail'}</span>` +
+      ` · <span title="${esc(r.how || '')}">fit ${deg(r.fit)}</span> vs image ${deg(r.image_roll)} ± ${fmt(r.sigma, 2)}°` +
+      ` (${esc(im.n_lines)} segments, ${esc(im.n_frames)} frames), z ${fmt(r.z, 1)} · roll from ${esc(r.source)}` +
+      (rf ? ` · refit roll ${deg(rf.roll_deg[0])} → ${deg(rf.roll_deg[1])}, pitch ${deg(rf.pitch_deg[0])} → ${deg(rf.pitch_deg[1])},` +
+        ` dist ${fmtNum(rf.dist[0])} → ${fmtNum(rf.dist[1])}, rms ${fmt(rf.rms[0], 1)} → ${fmt(rf.rms[1], 1)} px` : '') + '</p>';
+  }
   function fitBlock(q, v) {
     const f = q.fit, s = v.scene;
     let h = '<h4>Reconstruction</h4>';
@@ -670,7 +703,7 @@
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + consistentTable(s.camera) + focalTable(s.focal) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + consistentTable(s.camera) + focalTable(s.focal) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') : '') +
         gravityBlock(s.gravity) +
@@ -778,7 +811,10 @@
     if (w) {
       const s3 = (a, b) => `${a == null ? '…' : fmt(a, 3)}–${b == null ? '…' : fmt(b, 3)} s`;
       h += `<div><code>window.state</code> ${esc(w.state || '—')} · span ${s3(w.t0, w.t1)} · clipped by ${esc(w.start || '—')} / ${esc(w.end || '—')}` +
-        (w.used ? ` · window ${s3(w.used[0], w.used[1])}` : '') + '</div>';
+        (w.used ? ` · window ${s3(w.used[0], w.used[1])}` : '') + (w.check ? ` · ${w.law ? esc(w.law) : 'no law'} · <code>${esc(w.check)}</code>` : '') + '</div>';
+      if (w.driven) {
+        h += `<div><code>window.driven</code> ${esc(w.driven.state)} · <span title="${esc(w.driven.how)}">noise ${w.driven.noise.map((x) => fmtNum(x)).join(' / ')} px</span></div>`;
+      }
       if (/^window\.short/.test(m.why)) h += `<div class="bad"><code>window.short</code> ${esc(m.why.replace(/^window\.short:\s*/, ''))}</div>`;
     }
     const d = m.support_depth;

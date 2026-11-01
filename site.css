@@ -189,3 +189,9 @@ table.checks.splane > tbody > tr.bad:first-child th:nth-child(2) { color: var(--
 table.checks.splane > tbody > tr > td:first-child { padding-left: 1.2em; }
 table.meas td div.bad, table.fcons td div.bad { color: var(--m1t, #8a1c12); }
 table.meas td div.ok, table.meas td div.muted { color: var(--muted); }
+table.rounds td .cand { font-size: 12px; }
+table.rounds td .cand.drop > code, table.rounds td .cand.drop > .muted { color: var(--muted); text-decoration: line-through; }
+table.rounds td .cand .bad { font-size: 12px; }
+table.extents { width: auto; min-width: 60%; margin: 6px 0 10px; font-size: 13px; }
+table.extents td.n { white-space: nowrap; }
+table.extents td.bad { color: var(--m1t, #8a1c12); }

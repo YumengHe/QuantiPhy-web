@@ -116,6 +116,13 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            window.state), a direct size "support_depth" {applies, ..} and, when it applies, "cross_checks"
 #            {"direct.depth_agree"} (rule C12); each agent round past the accept test has "checks_fixed" /
 #            "checks_broken" (rule accept.full_checks) and a rebuilding round "rebuilt" {steps, failed, self_test}
+#   roll     the scene has "camera_roll" {pass, reason, roll_source, roll_fit_deg?, roll_fit_how?, roll_image_deg?,
+#            sigma_deg?, z?, image {status, why, n_lines, n_frames, ..}?, refit {was, now}?} (rule camera.roll); a
+#            direct window has "law" / "check" (rule window.driven: law null, check "window.smooth", inputs "driven" /
+#            "noise_px" / "noise_how"); an agent round has "repair_candidates" [{for, call, class}] and
+#            "repair_candidates_dropped" [{call, why}] (rule repair.window_checks); the unit's extents record
+#            outputs/extents2d_<tag>/<unit>.json, when it exists, has "format" 3 with per-frame "extent" /
+#            "speed_px" / "overlay" (rule extent.overlay)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -127,8 +134,9 @@ VERSION_FORMAT = {
            "steps": STEPS_V4},
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
-           "pendulum": True, "selftest": True, "horizon": True, "camera": True},
+           "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True},
 }
+STATIC_PX = 1.0   # extents table: a frame is static below this image speed (px / frame)
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
 FMT: dict = {}     # VERSION_FORMAT entry of the version being built
@@ -512,6 +520,15 @@ def direct_view(m: dict, what: str) -> dict:
                "start": text(req(cb, "start", f"{what} window clipped_by")) or None,
                "end": text(req(cb, "end", f"{what} window clipped_by")) or None,
                "used": [num(x, 4) for x in w["window"]] if req(w, "window", f"{what} window") else None}
+        if FMT.get("roll"):
+            inputs = req(m, "inputs", what) or {}
+            win |= {"law": text(req(w, "law", f"{what} window")) or None, "check": text(req(w, "check", f"{what} window"))}
+            if win["law"] is None:   # rule window.driven: the state's own jitter is the noise of window.smooth
+                if win["check"] != "window.smooth" or "window.smooth" not in req(m, "checks", what):
+                    raise ValueError(f"{AT['where']}: {what} driven window without the check window.smooth")
+                win["driven"] = {"state": text(req(inputs, "driven", f"{what} inputs")),
+                                 "noise": [num(x, 3) for x in req(inputs, "noise_px", f"{what} inputs")],
+                                 "how": text(req(inputs, "noise_how", f"{what} inputs"))}
     sd = m.get("support_depth")
     sdv = None
     if sd is not None:
@@ -595,6 +612,16 @@ def stated_view(st: dict, what: str) -> dict:
             "source": text(req(st, "source", f"{what} stated"))}
 
 
+def dropped_view(c: dict, what: str) -> dict:
+    """A repair candidate the loop dropped before the planner: its call and the rule that rejected it with the test's
+    reason ("rule repair.applicable: rejected (rule <name>): <reason>")."""
+    why = text(req(c, "why", f"{what} dropped candidate"))
+    m = re.match(r"^rule repair\.applicable: rejected \(rule ([\w.]+)\):\s*(.*)$", why, re.S)
+    call = req(c, "call", f"{what} dropped candidate")
+    return {"name": text(req(call, "name", what)), "params": {k: v for k, v in (call.get("params") or {}).items() if v is not None},
+            "rule": m.group(1) if m else None, "why": m.group(2) if m else why}
+
+
 def rounds_view(rec: dict) -> dict | None:
     """The agent rounds of an answer record ("iterations"): per round its tool calls with their results (a rejected
     edit's result starts "rejected: "), the plan's rejected issues, whether it was accepted and why; "kept" = the
@@ -627,6 +654,11 @@ def rounds_view(rec: dict) -> dict | None:
                 "steps": [text(x) for x in req(rb, "steps", f"{w} rebuilt")], "failed": text(req(rb, "failed", f"{w} rebuilt")) or None,
                 "self_test": {k: v for k, v in (req(rb, "self_test", f"{w} rebuilt") or {}).items()
                               if isinstance(v, (int, float, str, bool))} or None}
+        if FMT.get("roll"):
+            row["candidates"] = [{"for": text(req(c, "for", f"{w} repair candidate")), "name": text(req(req(c, "call", w), "name", w)),
+                                  "params": {k: v for k, v in (c["call"].get("params") or {}).items() if v is not None},
+                                  "class": text(c.get("class")) or None} for c in (it.get("repair_candidates") or [])]
+            row["dropped"] = [dropped_view(c, w) for c in (it.get("repair_candidates_dropped") or [])]
         rows.append(row)
     out = {"kept": kept, "rounds": rows}
     if FMT.get("horizon"):
@@ -835,6 +867,63 @@ def horizon_view(state: dict):
     return {"plane": plane, "check": check}
 
 
+def camera_roll_view(state: dict) -> dict:
+    """The scene's roll check (rule camera.roll): the roll the scene used against the roll of the image's
+    near-vertical segments, and the pose refit when they disagree."""
+    cr = req(state, "camera_roll", "scene")
+    ok = req(cr, "pass", "camera_roll")
+    out = {"pass": ok, "reason": text(req(cr, "reason", "camera_roll")), "source": text(req(cr, "roll_source", "camera_roll")) or None,
+           "fit": num(cr.get("roll_fit_deg"), 6), "how": text(cr.get("roll_fit_how")) or None, "image": None, "refit": None}
+    im = cr.get("image")
+    if im:
+        out["image"] = {"status": text(req(im, "status", "camera_roll image")), "why": text(req(im, "why", "camera_roll image")),
+                        "n_lines": im.get("n_lines"), "n_frames": im.get("n_frames")}
+    if ok is not None:
+        out |= {"image_roll": num(req(cr, "roll_image_deg", "camera_roll"), 6), "sigma": num(req(cr, "sigma_deg", "camera_roll"), 4),
+                "z": num(req(cr, "z", "camera_roll"), 3)}
+    rf = cr.get("refit")
+    if rf is not None:
+        if ok is not False:
+            raise ValueError(f"{AT['where']}: camera_roll refit without a failed check")
+        out["refit"] = {k: [num(req(rf[s], k, f"camera_roll refit {s}"), 6) for s in ("was", "now")]
+                        for k in ("roll_deg", "pitch_deg", "dist", "rms")}
+    return out
+
+
+def extents_view(tag: str, unit: str):
+    """The unit's per-frame mask extents (pipeline.extents2d format 3, rule extent.overlay), one row per tracked
+    object: tracked frames, frames with an overlay ring (median ring width), the extent range on static frames
+    (speed < STATIC_PX px / frame) and the largest extent on moving frames; None when the unit has no record."""
+    p = ROOT / "outputs" / f"extents2d_{tag}" / f"{unit}.json"
+    if not p.exists():
+        return None
+    j = read_json(p, "extents2d record")
+    if req(j, "format", "extents2d record") != 3 or req(j, "unit", "extents2d record") != unit:
+        raise ValueError(f"{AT['where']}: extents2d record format {j.get('format')} / unit {j.get('unit')!r}")
+    kinds = req(j, "tracks", "extents2d record")
+    rows = []
+    for kind, objs in kinds.items():
+        for name, frames in objs.items():
+            w = f"extents2d {kind} {name!r}"
+            fs = sorted((int(k), v) for k, v in frames.items())
+            if not fs:
+                continue
+            ext = {k: [float(x) for x in req(v, "extent", w)] for k, v in fs}
+            sp = {k: req(v, "speed_px", w) for k, v in fs}
+            ov = [k for k, v in fs if req(v, "overlay", w)]
+            rings = [float(req(v, "ring_px", w)) for k, v in fs if v["overlay"]]
+            static = [k for k in ext if sp[k] is not None and sp[k] < STATIC_PX]
+            moving = [k for k in ext if sp[k] is not None and sp[k] >= STATIC_PX]
+            rng = lambda ks, i: [num(min(ext[k][i] for k in ks), 3), num(max(ext[k][i] for k in ks), 3)]
+            top = max(moving, key=lambda k: ext[k][0]) if moving else None
+            rows.append({"obj": name, "kind": kind if len(kinds) > 1 else None, "n": len(fs), "frames": [fs[0][0], fs[-1][0]],
+                         "overlay": len(ov), "ring": num(float(np.median(rings)), 3) if rings else None,
+                         "static": {"n": len(static), "major": rng(static, 0), "minor": rng(static, 1)} if static else None,
+                         "moving": {"n": len(moving), "frame": top, "extent": [num(x, 3) for x in ext[top]],
+                                    "speed": num(sp[top], 3)} if moving else None})
+    return {"static_px": STATIC_PX, "rows": rows} if rows else None
+
+
 def scene_view(state: dict, source_path: Path) -> dict:
     """A saved scene as the page draws it, without the per-question results (a shared scene must not show other
     questions' answers)."""
@@ -875,7 +964,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                              "weight": num(req(x, "weight", "focal vote"), 3)}
                             for x in req(j, "focal_votes", "scene")] or None} | \
         ({"focal": focal_view(j), "horizon": horizon_view(j)} if FMT.get("horizon") else {}) | \
-        ({"camera": camera_view(j), "support_plane": support_plane_view(j)} if FMT.get("camera") else {})
+        ({"camera": camera_view(j), "support_plane": support_plane_view(j)} if FMT.get("camera") else {}) | \
+        ({"camera_roll": camera_roll_view(j)} if FMT.get("roll") else {})
 
 
 def camera_view(state: dict) -> dict:
@@ -1324,6 +1414,8 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                       "execution_status": exec_status}
             if unit_kind == "question":
                 query["refmeasure"] = refmeasure_view(tag, unit)
+                if FMT.get("roll"):
+                    query["extents"] = extents_view(tag, unit)
                 query |= {"scene": scene_view(state, DIRS["scenes"] / f"{unit}.json") if state is not None else None,
                           "sgraph": sgraph(unit, rec, state), "tracks": track_intervals(unit)}
                 if FMT.get("kept"):
