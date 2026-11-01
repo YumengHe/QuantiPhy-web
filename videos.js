@@ -358,7 +358,8 @@
     const tree = sg.edges.length && sg.nodes.length ? sceneGraphSvg(sg) : '';
     const rel = sg.releases ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th class="n">Release (s)</th><th>Rule</th><th></th></tr>' +
       sg.releases.map((r) => `<tr><td>${esc(r.obj)}</td><td class="n">${r.t[0] === r.t[1] ? fmt(r.t[0], 3) : `${fmt(r.t[0], 3)}–${fmt(r.t[1], 3)}`}</td>` +
-        `<td><code>${esc(r.rule)}</code></td><td>${esc(r.why || '')}</td></tr>`).join('') + '</table></div>' : '';
+        `<td><code>${esc(r.rule.rule)}</code> lo ${esc(r.rule.lo)} · hi ${esc(r.rule.hi)}</td>` +
+        `<td>${esc(r.why || '')}</td></tr>`).join('') + '</table></div>' : '';
     const unt = sg.untracked ? '<div class="scroll-x"><table class="sgrel"><tr><th>Untracked</th><th></th></tr>' +
       sg.untracked.map(([n, why]) => `<tr><td>${esc(n)}</td><td class="bad">${esc(why)}</td></tr>`).join('') + '</table></div>' : '';
     const rw = sg.rewritten ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th><th>Was</th><th>Rule</th></tr>' +
@@ -729,20 +730,34 @@
   // the contacts (rule scale.contact_refit) and the equations re-checked
   function scaleContactBlock(sc) {
     if (!sc) return '';
+    const hasReach = sc.events.some((e) => e.reach);
+    const reachCell = (e) => (!hasReach ? '' : e.reach
+      ? `<td class="n" title="${esc(`${e.reach.point} · H ${fmtNum(e.reach.H)} m · ${e.reach.H_how}`)}">${fmtNum(e.reach.sigma)}</td>` : '<td></td>');
     if (!sc.events.length) return `<p class="facts"><code>scale.contact</code> ${esc(sc.object)} <span class="muted">${esc(sc.reason.replace(/^untestable:\s*/, 'untestable · '))}</span></p>`;
     const table = (evs, p) => '<div class="scroll-x"><table class="sgrel contact"><tr>' +
-      `<th><code>scale.contact</code> ${esc(sc.object)}</th><th class="n">t (s)</th><th>Other</th><th class="n">Z scale (m)</th><th class="n">Z other (m)</th><th class="n">z</th><th>${res3(p)}</th></tr>` +
+      `<th><code>scale.contact</code> ${esc(sc.object)}</th><th class="n">t (s)</th><th>Other</th><th class="n">Z scale (m)</th><th class="n">Z other (m)</th>${hasReach ? '<th class="n">Reach σ (m)</th>' : ''}<th class="n">z</th><th>${res3(p)}</th></tr>` +
       evs.map((e) => `<tr class="${cls3(e.pass)}"><td title="${esc(e.source)}">${esc(e.kind)}</td><td class="n">${fmt(e.t, 3)}</td><td>${esc(e.other)}</td>` +
-        `<td class="n">${plusMinus(e.z_scale, e.s_scale)}</td><td class="n" title="${esc(e.n != null ? `${e.n} frames, nearest ${fmt(e.gap, 3)} s` : '')}">${plusMinus(e.z_other, e.s_other)}</td>` +
-        `<td class="n">${fmt(e.z, 1)}</td><td title="${esc(e.why)}">${res3(e.pass)}</td></tr>`).join('') + '</table></div>';
+        `<td class="n">${plusMinus(e.z_scale, e.s_scale)}</td><td class="n" title="${esc((e.n != null ? `${e.n} frames, nearest ${fmt(e.gap, 3)} s` : '') + (e.s_plane != null ? ` · plane σ ${fmtNum(e.s_plane)} m` : ''))}">${plusMinus(e.z_other, e.s_other)}</td>` +
+        `${reachCell(e)}<td class="n">${fmt(e.z, 1)}</td><td title="${esc(e.why)}">${res3(e.pass)}</td></tr>`).join('') + '</table></div>';
     let h = table(sc.events, sc.pass);
     const r = sc.refit;
     if (r) {
       h += `<p class="facts"><code>scale.contact_refit</code> k ${fmtNum(r.k)} <span class="muted">(σ log k ${fmtNum(r.sigma_log_k)})</span>` +
         ` · camera height ${fmtNum(r.height[0])} → ${fmtNum(r.height[1])} ± ${fmtNum(r.dist_sigma)} m · <span class="muted">${esc(r.cross_check)}</span></p>` +
+        (r.rescaled ? `<p class="facts"><code>${esc(r.rescaled.rule)}</code> k ${fmtNum(r.rescaled.k)} · ${r.rescaled.n_dense} dense rows · ${r.rescaled.n_plane_anchors} plane anchors · ${r.rescaled.n_depth_contacts} ground contacts · ${r.rescaled.n_extents} extents</p>` : '') +
         table(sc.after.events, sc.after.pass);
     }
     return h;
+  }
+  // each object's silhouette depth against its support-plane depth before the fit (rule scale.contact_rescale): a
+  // failing object's dense depth rows leave the fit
+  function depthRowsTable(rows) {
+    if (!rows) return '';
+    return '<div class="scroll-x"><table class="sgrel contact"><tr><th><code>direct.depth_agree</code></th><th class="n">Silhouette (m)</th><th class="n">Plane (m)</th>' +
+      '<th class="n">|Δ| (m)</th><th class="n">Rows</th><th></th></tr>' +
+      rows.map((d) => `<tr class="${cls3(d.pass)}"><td>${esc(d.obj)}</td><td class="n">${fmtNum(d.z_mask)}</td><td class="n">${fmtNum(d.z_plane)}</td>` +
+        `<td class="n">${d.pass == null ? '' : `${fmtNum(Math.abs(d.z_mask - d.z_plane))} ${d.pass ? '≤' : '>'} ${fmtNum(d.bound)}`}</td>` +
+        `<td class="n">${d.dropped ? `${d.n_rows} dropped` : d.n_rows}</td><td title="${esc(d.reason)}">${res3(d.pass)}</td></tr>`).join('') + '</table></div>';
   }
   // each object's fit as a whole (rule fit.object): s² against its bound, χ² / n per row kind; a failed fit is marked
   function fitObjectTable(s) {
@@ -755,6 +770,25 @@
         return `<tr class="${cls3(f.pass)}"><td>${esc(o.name)}</td><td class="n">${fmtNum(f.s2)}</td><td class="n">${f.bound != null ? `${f.pass ? '≤' : '>'} ${fmtNum(f.bound)}` : ''}</td>` +
           `<td class="n">${f.dof}</td><td class="n">${f.n_fits}</td><td>${f.rows.map(([k, c, n]) => `<span class="dim">${esc(k)} ${fmtNum(c)} / ${n}</span>`).join('')}</td>` +
           `<td class="${cls3(f.pass)}" title="${esc(f.reason)}">${f.pass === false ? 'failed' : res3(f.pass)}</td></tr>`;
+      }).join('') + '</table></div>' + fitObjectFacts(os);
+  }
+  // what fit.object records beside its verdict (rule fit.object_noise), none of it a gate: each stated row's tension,
+  // the box sides' noise and bias (rms before → after the bias), the box-noise s² against its bound, the frames where
+  // the chain flies while the graph puts the object on a support
+  function fitObjectFacts(os) {
+    const fs = os.filter((o) => 'box_test' in o.fit_object);
+    if (!fs.length) return '';
+    const px = (a) => a.map((x) => fmtNum(x)).join(' / ');
+    return '<div class="scroll-x"><table class="objs fitfacts"><tr><th><code>fit.object_noise</code></th><th>Stated z</th><th class="n">Box noise (px)</th>' +
+      '<th class="n">Box bias (px)</th><th class="n">Box rms (px)</th><th class="n">Box-noise s²</th><th><code>state_mismatch</code></th></tr>' +
+      fs.map((o) => {
+        const f = o.fit_object, bt = f.box_test, sm = f.mismatch;
+        return `<tr><td>${esc(o.name)}</td>` +
+          `<td>${(f.stated || []).map((x) => `<span class="dim" title="${esc(`residual ${x.residual} · σ stated ${x.s_stated} · σ pred ${x.s_pred}`)}">${esc(x.kind)} ${fmtNum(x.z)}</span>`).join('')}</td>` +
+          `<td class="n">${f.box_noise ? px(f.box_noise) : ''}</td><td class="n">${f.box_bias ? px(f.box_bias) : ''}</td>` +
+          `<td class="n">${f.box_rms ? f.box_rms.map(([a, b]) => `${fmtNum(a)} → ${fmtNum(b)}`).join(' / ') : ''}</td>` +
+          `<td class="n" title="${esc(bt ? bt.why : '')}">${bt ? `${fmtNum(bt.s2)} vs ${fmtNum(bt.bound)}` : ''}</td>` +
+          `<td title="${esc(sm ? sm.reason : '')}">${!sm ? '' : sm.pass === null ? '<span class="muted">untestable</span>' : sm.pass ? '0 frames' : `${sm.frames} frames ${span(sm.t[0], sm.t[1])}`}</td></tr>`;
       }).join('') + '</table></div>';
   }
   // the support plane's pitch source and its horizon check (rule support.horizon)
@@ -838,7 +872,7 @@
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
         (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
-          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') + scaleContactBlock(s.scale_contact) +
+          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows) +
         gravityBlock(s.gravity) +
         focalVotes(s);
     }
@@ -870,7 +904,7 @@
     return '<div class="scroll-x"><table class="objs events"><tr><th>Object</th><th class="n">Phase</th><th>Graph event</th><th class="n">t (s)</th>' +
       '<th class="n">Window (s)</th><th>Precision</th><th class="n">t fit (s)</th><th>Kick</th></tr>' +
       os.map((o) => o.events_graph.map((e, i) => `<tr><td>${i ? '' : esc(o.name)}</td><td class="n">${e.phase}</td><td>${esc(e.event)}</td>` +
-        `<td class="n">${e.t == null ? '—' : fmt(e.t, 3)}</td><td class="n">${e.window ? `${fmt(e.window[0], 3)}–${fmt(e.window[1], 3)}` : '—'}</td>` +
+        `<td class="n">${e.t == null ? '—' : Array.isArray(e.t) ? `${fmt(e.t[0], 3)}–${fmt(e.t[1], 3)}` : fmt(e.t, 3)}</td><td class="n">${e.window ? `${fmt(e.window[0], 3)}–${fmt(e.window[1], 3)}` : '—'}</td>` +
         `<td>${esc(e.precision || '')}</td><td class="n">${fmt(e.t_fit, 3)}</td><td>${e.kick ? 'yes' : ''}</td></tr>`).join('')).join('') +
       '</table></div>';
   }
@@ -1024,7 +1058,9 @@
         : `<div class="muted"><code>support_depth</code> ${esc(d.reason)}</div>`;
     }
     const a = m.depth_agree;
-    if (a) {
+    if (a && a.pass == null) {
+      h += `<div class="muted"><code>direct.depth_agree</code> ${esc(a.reason)}</div>`;
+    } else if (a) {
       h += `<div class="${a.pass ? 'ok' : 'bad'}"><code>direct.depth_agree</code> ${a.pass ? 'pass' : 'fail'} · silhouette ${fmtNum(a.z_mask)} m vs plane ${fmtNum(a.z_plane)} m · |Δ| ${fmtNum(a.diff)} ${a.pass ? '≤' : '>'} ${fmtNum(a.bound)}</div>`;
     }
     return h;
@@ -1096,6 +1132,10 @@
     if (l.phases) parts.push(l.phases.map(([t, st]) => `${esc(st)} ${fmt(t, 2)}`).join(', ') + ' s');
     if (l.unknown) parts.push(`<span class="bad">unknown ${l.unknown.map(([a, b]) => span(a, b)).join(', ')}</span>`);
     if (l.agency) parts.push(`<span class="muted">agency untestable · ${esc(l.agency.why)}</span>`);
+    if (l.release_fit) {
+      const r = l.release_fit;
+      parts.push(`<span title="${esc(r.why)}"><code>release.fit</code> ${r.t == null ? 'none' : `${fmt(r.t, 3)} s`} in ${fmt(r.lo, 3)}–${fmt(r.hi, 3)} s, flight to ${fmt(r.t_stop, 3)} s</span>`);
+    }
     return parts.join(' · ');
   }
   // wall time of the question's own run, per pipeline step (answer record "timing"); reused = served from a sibling

@@ -166,6 +166,16 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            "event" "flight_end" (zero length allowed, rule scenegraph.flight_end); a presence record may have
 #            "reason", "zoom_errors" / "errors" [{where, type, msg}] and zoom votes true / false / null (unknown)
 #            (rules presence.split_vote, errors.recorded); a main-plane roll refit has no "rms"
+#   interval a held_by -> airborne release has "t_release" [lo, hi], "release_rule" {rule "release.interval", lo, hi} on
+#            both edges and "release_why" {why, lo, hi, last_contact, first_no_contact, bounce, frames} on the airborne
+#            edge (rule release.interval); a physics event's "t" may be that interval, with "t_fit_release"; a motion
+#            law may have "release_fit" {name "release.fit", t, lo, hi, t_stop, sigma_px, tried, why, ..} (rule
+#            window.release); every scale_contact event has "reach" ({point, H, H_how, sigma_reach} or null) and
+#            "sigma_plane_depth", a contact refit has "rescaled" (rules scale.contact_reach, scale.contact_rescale);
+#            the scene has "depth_rows" {object: {name "direct.depth_agree", pass, z_mask, z_plane, bound, n_rows,
+#            n_matched, dropped, reason}}; every fit_object has "stated" [{kind, residual, sigma_stated, sigma_pred,
+#            z}], "box_noise_px", "box_bias_px", "box_noise_test" (null without box rows) and "state_mismatch" (null
+#            without a chain), recorded facts (rule fit.object_noise); every presence verdict has "reason"
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -178,7 +188,7 @@ VERSION_FORMAT = {
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
-           "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True},
+           "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -305,15 +315,35 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
             if "t_release" not in e:
                 continue
             w = f"edge {e.get('from')!r} {e.get('rel')!r}"
-            rule = text(req(e, "release_rule", w))
-            if rule not in ("release.last_contact", "release.free_flight"):
-                raise ValueError(f"{AT['where']}: {w} release_rule {rule!r}")
             t = [num(x, 4) for x in req(e, "t_release", w)]
+            if FMT.get("interval"):
+                rr = req(e, "release_rule", w)
+                if not isinstance(rr, dict) or req(rr, "rule", f"{w} release_rule") != "release.interval" or \
+                        len(t) != 2 or None in t or t[0] > t[1]:
+                    raise ValueError(f"{AT['where']}: {w} release_rule {rr!r} t_release {t}")
+                rule = {"rule": "release.interval", "lo": text(req(rr, "lo", f"{w} release_rule")),
+                        "hi": text(req(rr, "hi", f"{w} release_rule"))}
+            else:
+                rule = text(req(e, "release_rule", w))
+                if rule not in ("release.last_contact", "release.free_flight"):
+                    raise ValueError(f"{AT['where']}: {w} release_rule {rule!r}")
             r = rel.setdefault((text(e["from"]), tuple(t)), {"obj": text(e["from"]), "t": t, "rule": rule, "why": None})
             if r["rule"] != rule:
                 raise ValueError(f"{AT['where']}: {w} release_rule {rule!r} differs from its other edge's {r['rule']!r}")
             if e["rel"] == "airborne":
-                r["why"] = text(req(e, "release_why", w))
+                if FMT.get("interval"):
+                    rw, ww = req(e, "release_why", w), f"{w} release_why"
+                    if [num(req(rw, "lo", ww), 4), num(req(rw, "hi", ww), 4)] != t:
+                        raise ValueError(f"{AT['where']}: {ww} [lo, hi] differs from t_release {t}")
+                    r["why"] = text(req(rw, "why", ww))
+                    r["last_contact"] = num(req(rw, "last_contact", ww), 4)
+                    r["first_no_contact"] = num(req(rw, "first_no_contact", ww), 4)
+                    r["bounce"] = num(req(rw, "bounce", ww), 4)
+                    req(rw, "frames", ww)
+                else:
+                    r["why"] = text(req(e, "release_why", w))
+        if FMT.get("interval") and any(r["why"] is None for r in rel.values()):
+            raise ValueError(f"{AT['where']}: a release interval without its airborne edge's release_why")
         unt = req(g, "untracked", "scene graph cache")
         if rel:
             out["releases"] = list(rel.values())
@@ -451,6 +481,15 @@ def motion_law(name: str, o: dict):
         if law["agency"] != "untestable":
             raise ValueError(f"{AT['where']}: object {name!r} motion law agency {law['agency']!r}")
         out["agency"] = {"why": text(req(law, "why", f"object {name!r} motion law"))}
+    if FMT.get("interval") and "release_fit" in law:
+        rf, wr = law["release_fit"], f"object {name!r} motion_law release_fit"
+        if req(rf, "name", wr) != "release.fit":
+            raise ValueError(f"{AT['where']}: {wr} name {rf['name']!r}")
+        out["release_fit"] = {"t": num(req(rf, "t", wr), 4), "lo": num(req(rf, "lo", wr), 4), "hi": num(req(rf, "hi", wr), 4),
+                              "t_stop": num(req(rf, "t_stop", wr), 4),
+                              "sigma_px": [num(x, 3) for x in req(rf, "sigma_px", wr)],
+                              "tried": [[num(a, 4), bool(b), int(c)] for a, b, c in req(rf, "tried", wr)],
+                              "why": text(req(rf, "why", wr))}
     if FMT.get("selftest") and rot is None:
         out["unknown"] = [[num(a, 4), None if b >= OPEN_END else num(b, 4)]
                           for a, b in req(law, "unknown", f"object {name!r} motion law")] or None
@@ -486,9 +525,19 @@ def events_view(name: str, o: dict):
     if ph is None:
         return None
     w = f"object {name!r} physics events_graph"
-    return [{"phase": int(req(e, "phase", w)), "event": text(req(e, "event", w)), "t": num(e["t"], 4) if e.get("t") is not None else None,
+
+    def t_of(e):     # a time, or (FMT "interval") a release interval [lo, hi]
+        t = e.get("t")
+        if isinstance(t, list):
+            if not FMT.get("interval") or len(t) != 2:
+                raise ValueError(f"{AT['where']}: {w} event {e.get('event')!r} t = {t!r}")
+            return [num(x, 4) for x in t]
+        return num(t, 4) if t is not None else None
+
+    return [{"phase": int(req(e, "phase", w)), "event": text(req(e, "event", w)), "t": t_of(e),
              "window": [num(x, 4) for x in e["window"]] if e.get("window") else None,
              "precision": text(e.get("precision")) or None, "t_fit": num(req(e, "t_fit", w), 4), "kick": bool(req(e, "kick", w))}
+            | ({"t_fit_release": num(e["t_fit_release"], 4)} if FMT.get("interval") and "t_fit_release" in e else {})
             for e in req(ph, "events_graph", w)] or None
 
 
@@ -573,7 +622,7 @@ def measurement_row(m: dict) -> dict:
         if k not in checks or checks[k]["pass"] is not False:
             raise ValueError(f"{AT['where']}: {what} lists {k!r} as failed, its checks do not")
     parts = req(m, "sigma_parts", what) or {}
-    terms = {k: num(v, 3) for k, v in parts.items() if k in ("track", "depth", "align", "focal", "gravity", "fit_se", "stated")}
+    terms = {k: num(v, 3) for k, v in parts.items() if k in ("track", "depth", "align", "focal", "gravity", "fit_se", "stated", "scale.contact_refit")}
     lst = lambda v: [num(x, 3) for x in v] if isinstance(v, list) else ([num(v, 3)] if v is not None else None)
     dof = parts.get("dof")
     inputs = req(m, "inputs", what) or {}
@@ -687,11 +736,15 @@ def direct_view(m: dict, what: str) -> dict:
     da = (m.get("cross_checks") or {}).get("direct.depth_agree")
     if sdv and sdv["applies"] and da is None:
         raise ValueError(f"{AT['where']}: {what} has a support-plane depth without direct.depth_agree")
-    dav = None if da is None else {
-        "pass": req(da, "pass", f"{what} direct.depth_agree"), "z_mask": num(req(da, "z_mask", f"{what} direct.depth_agree"), 3),
-        "z_plane": num(req(da, "z_plane", f"{what} direct.depth_agree"), 3),
-        "diff": num(abs(float(da["z_mask"]) - float(da["z_plane"])), 3),
-        "bound": num(req(da, "bound", f"{what} direct.depth_agree"), 3)}
+    if da is None:
+        dav = None
+    elif req(da, "pass", f"{what} direct.depth_agree") is None:
+        # untestable (rule scale.contact_rescale dropped the silhouette's rows: no depth-model samples left)
+        dav = {"pass": None, "reason": text(req(da, "reason", f"{what} direct.depth_agree"))}
+    else:
+        w = f"{what} direct.depth_agree"
+        dav = {"pass": da["pass"], "z_mask": num(req(da, "z_mask", w), 3), "z_plane": num(req(da, "z_plane", w), 3),
+               "diff": num(abs(float(da["z_mask"]) - float(da["z_plane"])), 3), "bound": num(req(da, "bound", w), 3)}
     ce = (m.get("inputs") or {}).get("centred") if FMT.get("static") else None
     cev = None if ce is None else {
         "from": [num(x, 4) for x in req(ce, "from", f"{what} centred")],
@@ -1215,7 +1268,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"camera_one": camera_one_view(j)} if FMT.get("static") else {}) | \
         ({"fusion": fusion_view(j)} if FMT.get("fusion") else {}) | \
         ({"incline": incline_view(j)} if FMT.get("impulse") else {}) | \
-        ({"scale_contact": scale_contact_view(j), "main_plane": main_plane_view(j)} if FMT.get("contact") else {})
+        ({"scale_contact": scale_contact_view(j), "main_plane": main_plane_view(j)} if FMT.get("contact") else {}) | \
+        ({"depth_rows": depth_rows_view(j)} if FMT.get("interval") else {})
 
 
 IMPULSE_VERDICTS = ("kick", "agent.unobserved", "chain ends", "no_law")   # or "rejected: <why>"
@@ -1296,7 +1350,7 @@ def presence_view(tag: str, unit: str):
         errs = [{k: text(req(e, k, f"{w} error")) for k in ("where", "type", "msg")}
                 for e in (v.get("zoom_errors") or []) + (v.get("errors") or [])]
         out.append({"name": text(name), "present": req(v, "present", w), "rule": rule,
-                    "reason": text(v["reason"]) if "reason" in v else None,
+                    "reason": text(req(v, "reason", w)) if FMT.get("interval") else text(v["reason"]) if "reason" in v else None,
                     "votes": [text(x) for x in req(v, "votes", w)],
                     "zoom": [ZOOM_VOTES[x] for x in zv] if zv else None, "errors": errs or None})
     return out or None
@@ -1466,7 +1520,25 @@ def contact_event_view(e: dict, what: str) -> dict:
             "source": text(req(e, "source", what)), "z_scale": num(req(e, "Z_scale", what), 4),
             "s_scale": num(req(e, "sigma_scale", what), 3), "z_other": num(req(e, "Z_other", what), 4),
             "s_other": num(req(e, "sigma_other", what), 3), "n": e.get("n_frames"), "gap": num(e.get("gap_s"), 3),
-            "z": num(req(e, "z", what), 3), "pass": ok, "why": text(req(e, "why", what))}
+            "z": num(req(e, "z", what), 3), "pass": ok, "why": text(req(e, "why", what))} \
+        | (reach_view(e, what) if FMT.get("interval") else {})
+
+
+REACH_POINTS = ("support", "hand")
+
+
+def reach_view(e: dict, what: str) -> dict:
+    """The reach of an articulated agent in a contact's sigma (rule scale.contact_reach): {"s_plane", "reach": {point,
+    H, H_how, sigma} | None (the other object is no agent)}."""
+    r = req(e, "reach", what)
+    out = {"s_plane": num(req(e, "sigma_plane_depth", what), 3), "reach": None}
+    if r is not None:
+        w = f"{what} reach"
+        if req(r, "point", w) not in REACH_POINTS:
+            raise ValueError(f"{AT['where']}: {w} point {r['point']!r}")
+        out["reach"] = {"point": r["point"], "H": num(req(r, "H", w), 3), "H_how": text(req(r, "H_how", w)),
+                        "sigma": num(req(r, "sigma_reach", w), 3)}
+    return out
 
 
 def scale_contact_view(state: dict):
@@ -1496,10 +1568,32 @@ def scale_contact_view(state: dict):
     out["refit"] = {"k": num(rf["k"], 4), "sigma_log_k": num(req(rf, "sigma_log_k", wr), 3),
                     "height": [num(req(rf, "camera_height_was", wr), 4), num(req(rf, "camera_height", wr), 4)],
                     "dist_sigma": num(req(rf, "dist_sigma", wr), 3), "cross_check": text(req(rf, "depth_model_plane", wr))}
+    if FMT.get("interval"):
+        rs, wrs = req(rf, "rescaled", wr), f"{wr} rescaled"
+        out["refit"]["rescaled"] = {"rule": text(req(rs, "rule", wrs)), "k": num(req(rs, "k", wrs), 4)} | \
+            {k: int(req(rs, k, wrs)) for k in ("n_dense", "n_plane_anchors", "n_depth_contacts", "n_extents")}
     af = req(sc, "after", w)
     out["after"] = {"pass": req(af, "pass", f"{w} after"), "reason": text(req(af, "reason", f"{w} after")),
                     "events": [contact_event_view(e, f"{w} after event") for e in req(af, "events", f"{w} after")]}
     return out
+
+
+def depth_rows_view(state: dict):
+    """Each object's silhouette depth against its support-plane depth before the fit (rule scale.contact_rescale,
+    test direct.depth_agree): [{obj, pass (None: untestable), z_mask, z_plane, bound, n_rows, n_matched, dropped,
+    reason}] | None."""
+    out = []
+    for name, d in req(state, "depth_rows", "scene").items():
+        w = f"depth_rows {name!r}"
+        if req(d, "name", w) != "direct.depth_agree":
+            raise ValueError(f"{AT['where']}: {w} name {d['name']!r}")
+        ok, dropped = req(d, "pass", w), req(d, "dropped", w)
+        if ok not in (True, False, None) or dropped is not (ok is False):
+            raise ValueError(f"{AT['where']}: {w} pass {ok!r} with dropped {dropped!r}")
+        out.append({"obj": text(name), "pass": ok, "z_mask": num(req(d, "z_mask", w), 4), "z_plane": num(req(d, "z_plane", w), 4),
+                    "bound": num(req(d, "bound", w), 3), "n_rows": int(req(d, "n_rows", w)),
+                    "n_matched": int(req(d, "n_matched", w)), "dropped": dropped, "reason": text(req(d, "reason", w))})
+    return out or None
 
 
 FIT_OBJECT_ROWS = ("box", "depth_anchor", "prior")
@@ -1521,7 +1615,41 @@ def fit_object_view(name: str, o: dict) -> dict:
     return {"pass": ok, "s2": num(req(fo, "s2", w), 4), "bound": num(fo["bound"], 4), "dof": int(req(fo, "dof", w)),
             "chi2": num(req(fo, "chi2", w), 4), "n_fits": int(req(fo, "n_fits", w)),
             "rows": [[k, num(req(rows[k], "chi2", w), 4), int(req(rows[k], "n", w))] for k in FIT_OBJECT_ROWS if k in rows],
-            "reason": text(req(fo, "reason", w))}
+            "reason": text(req(fo, "reason", w))} | (fit_object_facts(fo, w) if FMT.get("interval") else {})
+
+
+def fit_object_facts(fo: dict, w: str) -> dict:
+    """The facts fit.object records beside its verdict (rule fit.object_noise), none of them a gate: each stated row's
+    tension z, the box sides' measured noise and bias, the box-noise test's s^2 vs its bound, and where the chain
+    flies while the graph puts the object on a support."""
+    st = [{"kind": text(req(x, "kind", f"{w} stated")), "z": num(req(x, "z", f"{w} stated"), 3),
+           "residual": num(req(x, "residual", f"{w} stated"), 3), "s_stated": num(req(x, "sigma_stated", f"{w} stated"), 3),
+           "s_pred": num(req(x, "sigma_pred", f"{w} stated"), 3)} for x in req(fo, "stated", w)]
+    bn, bb, bt = req(fo, "box_noise_px", w), req(fo, "box_bias_px", w), req(fo, "box_noise_test", w)
+    if (bn is None) != (bb is None) or (bn is None) != (bt is None):
+        raise ValueError(f"{AT['where']}: {w} box_noise_px / box_bias_px / box_noise_test not all present or all null")
+    out = {"stated": st or None, "box_noise": None, "box_bias": None, "box_rms": None, "box_test": None, "mismatch": None}
+    if bn is not None:     # null for a fit without box-side series (0027s's pendulum)
+        out |= {"box_noise": [num(x, 3) for x in req(bn, "sigma", f"{w} box_noise_px")],
+                "box_bias": [num(x, 3) for x in req(bb, "bias_px", f"{w} box_bias_px")],
+                "box_rms": [[num(a, 3), num(b, 3)] for a, b in zip(req(bb, "rms_raw", f"{w} box_bias_px"),
+                                                                   req(bb, "rms_left", f"{w} box_bias_px"))]}
+    if bt is not None:
+        wt = f"{w} box_noise_test"
+        out["box_test"] = {"pass": bool(req(bt, "pass", wt)), "s2": num(req(bt, "s2", wt), 4), "bound": num(req(bt, "bound", wt), 4),
+                           "dof": int(req(bt, "dof", wt)), "why": text(req(bt, "why", wt))}
+    sm = req(fo, "state_mismatch", w)
+    if sm is not None:
+        ws = f"{w} state_mismatch"
+        if req(sm, "name", ws) != "fit.object.state_mismatch":
+            raise ValueError(f"{AT['where']}: {ws} name {sm['name']!r}")
+        ok = req(sm, "pass", ws)
+        if ok not in (True, False, None):
+            raise ValueError(f"{AT['where']}: {ws} pass {ok!r}")
+        t = req(sm, "t", ws)
+        out["mismatch"] = {"pass": ok, "frames": int(req(sm, "frames", ws)), "t": [num(x, 4) for x in t] if t else None,
+                           "reason": text(req(sm, "reason", ws))}
+    return out
 
 
 def pendulum_view(p: dict | None, what: str):

@@ -225,3 +225,5 @@ table.fitobj tr.bad td { color: var(--m1t, #8a1c12); }
 table.fitobj tr.bad td:last-child { font-weight: 600; }
 table.fitobj tr.muted td { color: var(--muted); }
 table.cons tr.inadm td { color: var(--muted); }
+table.fitfacts { font-size: 13px; color: var(--muted); }
+table.fitfacts td .dim { display: block; white-space: nowrap; }
