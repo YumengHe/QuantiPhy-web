@@ -302,7 +302,16 @@
     const rw = sg.rewritten ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th><th>Was</th><th>Rule</th></tr>' +
       sg.rewritten.map((e) => `<tr><td>${esc(e.obj)}</td><td>${esc(e.rel)}${e.to ? ` ${esc(e.to)}` : ''} ${span(e.t0, e.t1)}</td>` +
         `<td>${esc(e.was.rel)}${e.was.to ? ` ${esc(e.was.to)}` : ''}</td><td><code>${esc(e.rule)}</code></td></tr>`).join('') + '</table></div>' : '';
-    return tree || rel || unt || rw ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${rel}${rw}${unt}` : '';
+    const tested = sg.edges.filter((e) => e.test);
+    const ts = tested.length ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th><th>Test</th><th></th><th></th></tr>' +
+      tested.map((e) => `<tr><td>${esc(e.from)}</td><td>${esc(e.rel)}${e.to ? ` ${esc(e.to)}` : ''} ${span(e.t0, e.t1)}</td>` +
+        `<td><code>${esc(e.test.name)}</code></td>${testCells(e.test)}</tr>`).join('') + '</table></div>' : '';
+    return tree || rel || unt || rw || ts ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${ts}${rel}${rw}${unt}` : '';
+  }
+  // the geometric test of an agent state edit (rule graph_edit.retest): result and its reason
+  function testCells(t) {
+    const cls = t.result === 'pass' ? 'ok' : t.result === 'fail' ? 'bad' : 'muted';
+    return `<td class="${cls}">${esc(t.result)}</td><td>${esc(t.why)}</td>`;
   }
   // the agent rounds (answer record "iterations"): each tool call with its result, the round's outcome; the kept round
   // (the state the answer used) carries the accent bar
@@ -311,7 +320,8 @@
     const par = (p) => Object.entries(p).map(([k, v]) => `${k} ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · ');
     const rows = r.rounds.map((x) => {
       const calls = x.calls.map((c) => `<div><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span></div>`).join('');
-      const res = x.calls.map((c) => `<div class="${/^rejected:/.test(c.result) ? 'bad' : ''}">${esc(c.result)}</div>`).join('') +
+      const res = x.calls.map((c) => `<div class="${/^rejected\b/.test(c.result) ? 'bad' : ''}">${esc(c.result)}</div>` +
+        (c.test ? `<div class="${c.test.result === 'pass' ? 'ok' : c.test.result === 'fail' ? 'bad' : 'muted'}"><code>${esc(c.test.name)}</code> ${esc(c.test.result)}</div>` : '')).join('') +
         x.rejected.map((w) => `<div class="bad">${esc(w)}</div>`).join('');
       return `<tr class="${x.iter === r.kept ? 'chosen' : ''}"><td class="n">${x.iter}</td><td>${calls}</td><td>${res}</td>` +
         `<td class="${x.accepted ? 'ok' : ''}">${esc(x.why)}</td></tr>`;
@@ -573,7 +583,9 @@
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
+        pendulumTable(s) +
         `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}` +
+        (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') : '') +
@@ -588,6 +600,20 @@
         quality: q.quality, provenance: q.provenance }, null, 2))}</pre></details>`;
     }
     return h;
+  }
+  // pendulum objects (rules scale.converged / pendulum.period): fitted L, swing period, f solved with the stated size
+  function pendulumTable(s) {
+    const ps = s.objects.filter((o) => o.pendulum);
+    if (!ps.length) return '';
+    return '<div class="scroll-x"><table class="objs"><tr><th>Pendulum</th><th class="n">L (m)</th><th class="n">Period (s)</th>' +
+      '<th class="n">f start → f (px)</th><th class="n">f bounds (px)</th><th class="n">D / D stated (m)</th><th>Converged</th></tr>' +
+      ps.map((o) => {
+        const p = o.pendulum, ff = p.f_free;
+        return `<tr><td>${esc(o.name)}</td><td class="n">${fmtNum(p.L)}</td><td class="n">${plusMinus(p.period, p.period_sigma)} <span class="muted">(${p.periods}, ${esc(p.period_from)})</span></td>` +
+          (ff ? `<td class="n">${fmtNum(ff.f_start)} → ${fmtNum(ff.f)}</td><td class="n${ff.at_bound ? ' bad' : ''}">${fmtNum(ff.bounds[0])}–${fmtNum(ff.bounds[1])}${ff.at_bound ? ` · ${esc(ff.at_bound)}` : ''}</td>` +
+            `<td class="n">${fmtNum(ff.D)} / ${fmtNum(ff.D_prior)} <span class="muted">(${fmt(100 * ff.rel, 1)}%)</span></td><td class="${ff.converged ? 'ok' : 'bad'}">${ff.converged ? 'yes' : 'no'}</td>`
+            : `<td class="n">${fmtNum(p.f)}</td><td></td><td></td><td></td>`) + '</tr>';
+      }).join('') + '</table></div>';
   }
   function checksTable(cs, extra = '') {
     return '<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>' +
@@ -631,10 +657,12 @@
     const inp = [m.window && `window ${span(m.window[0], m.window[1])}`, m.n != null && `n ${m.n}`,
       m.piece && `piece ${span(m.piece[0], m.piece[1])}`, m.state, m.law && `ballistic g ${fmtNum(m.law.g)} (${m.law.source})`].filter(Boolean).join(' · ');
     const failed = m.failed.map((c) => `<div><code>${esc(c.which || c.name)}</code> ${esc(c.reason)}</div>`).join('');
+    const prof = m.profile ? m.profile.map((p) => `<div class="${p.pass ? 'ok' : 'bad'}"><code>at_bound.profile</code> ${esc(p.param)} ` +
+      `${fmtNum(p.bound)} → ${fmtNum(p.values[0])} · ${fmtNum(p.at)} → ${fmtNum(p.values[1])} · |Δ| ${fmtNum(p.delta)} ${p.pass ? '<' : '≥'} σ ${fmtNum(p.sigma_answer)}</div>`).join('') : '';
     return `<tr class="${m.name === chosen ? 'chosen' : ''}${m.admissible ? '' : ' inadm'}"><td><code>${esc(m.name)}</code></td>` +
       `<td><code>${esc(m.method)}</code></td><td class="n mval">${val}</td>` +
       `<td class="${m.admissible ? 'ok' : 'bad'}">${m.admissible ? 'admissible' : esc(m.why)}</td>` +
-      `<td class="bad">${failed}</td><td class="muted">${esc(inp)}</td></tr>`;
+      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${prof}</td></tr>`;
   }
   function measurementBlock(q) {
     let h = '<div class="scroll-x"><table class="meas"><tr><th>Measurement</th><th>Method</th><th class="n">Value</th><th>Admissible</th><th>Failed</th><th>Inputs</th></tr>' +

@@ -108,7 +108,8 @@ VERSION_FORMAT = {
     "v4": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "checks",
            "steps": STEPS_V4},
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
-           "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True},
+           "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
+           "pendulum": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -213,6 +214,7 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
         g = unit_json("sgraph", key, "scene graph")
     edges = [{"from": text(req(e, "from", "edge")), "to": text(req(e, "to", "edge")) or None,   # null "to": airborne
               "rel": text(e["rel"]), "t0": num(req(e, "t_start", "edge"), 4), "t1": num(req(e, "t_end", "edge"), 4)}
+             | ({"test": test_view(e["test"], f"edge {e.get('from')!r} {e.get('rel')!r}")} if "test" in e else {})
              for e in req(g, "edges", "scene graph cache") if req(e, "rel", "edge") in SUPPORT_RELS]
     nodes = [{"id": text(req(n, "id", "scene graph node")), "type": text(req(n, "type", "scene graph node"))}
              for n in req(g, "nodes", "scene graph cache")]
@@ -255,6 +257,17 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
     if out and FMT.get("kept"):
         out["kept"] = int(req(rec["kept_state"], "iter", "kept_state"))
     return out or None
+
+
+TEST_RESULTS = ("pass", "fail", "untestable")
+
+
+def test_view(t: dict, what: str) -> dict:
+    """The geometric test of an agent state edit (rule graph_edit.retest): {"name", "result", "why"}."""
+    r = text(req(t, "result", f"{what} test"))
+    if r not in TEST_RESULTS:
+        raise ValueError(f"{AT['where']}: {what} test result {r!r}")
+    return {"name": text(req(t, "name", f"{what} test")), "result": r, "why": text(req(t, "why", f"{what} test"))}
 
 
 def track_intervals(key: str):
@@ -409,7 +422,18 @@ def measurement_row(m: dict) -> dict:
             "window": [num(x, 4) for x in inputs["window"]] if inputs.get("window") else None,
             "piece": [num(max(x, 0.0), 4) if x > -1e8 else None for x in inputs["piece"]] if inputs.get("piece") else None,
             "n": inputs.get("n"), "state": text(inputs.get("state")) or None,
-            "law": law_view(inputs["law"], what) if FMT.get("gravity") and inputs.get("law") else None}
+            "law": law_view(inputs["law"], what) if FMT.get("gravity") and inputs.get("law") else None,
+            "profile": [profile_view(x, what) for x in inputs["at_bound.profile"]] if inputs.get("at_bound.profile") else None}
+
+
+def profile_view(x: dict, what: str) -> dict:
+    """One parameter of rule at_bound.profile: the answer at the physical bound and at the bound + 1 sigma inward."""
+    w = f"{what} at_bound.profile"
+    return {"param": text(req(x, "param", w)), "side": text(req(x, "side", w)), "bound": num(req(x, "bound", w), 3),
+            "sigma": num(req(x, "sigma", w), 3), "at": num(req(x, "profiled_at", w), 3),
+            "beyond": bool(req(x, "beyond_range", w)), "values": [num(v) for v in req(x, "values", w)],
+            "delta": num(req(x, "delta", w), 3), "sigma_answer": num(req(x, "sigma_answer", w), 3),
+            "pass": bool(req(x, "pass", w)), "why": text(req(x, "why", w))}
 
 
 def law_view(law: dict, what: str) -> dict:
@@ -476,7 +500,9 @@ def rounds_view(rec: dict) -> dict | None:
     for it in its:
         w = f"agent round {it.get('iter')!r}"
         calls = [{"name": text(req(r, "name", w)), "params": {k: v for k, v in (r.get("params") or {}).items() if v is not None},
-                  "result": text(req(r, "result", w))} for r in req(it, "results", w)]
+                  "result": text(req(r, "result", w))}
+                 | ({"test": test_view(r["test"], w)} if FMT.get("pendulum") and r.get("test") else {})
+                 for r in req(it, "results", w)]
         rej = [text(req(x, "why", f"{w} rejected")) for x in (it.get("rejected") or [])]
         acc = req(it, "accepted", w)
         rows.append({"iter": int(req(it, "iter", w)), "layer": text(it.get("layer")) or None, "calls": calls,
@@ -666,15 +692,45 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      "law": motion_law(name, o) if FMT["decide"] == "agree" else None,
                      # motion that is not a single parabola: sample the centre for the viewer
                      "path": sampled_path(o) if any(req(o, k, what) for k in FMT["paths"]) else None,
-                     "visible": [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None})
+                     "visible": [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None,
+                     "pendulum": pendulum_view(req(o, "pendulum", what), what) if FMT.get("pendulum") else None})
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
             "scale": scale_view(j), "gravity": gravity_view(j),
             "main_support": req(j, "main_support", "scene"),
             "f_source": text(req(j, "f_source", "scene")) or None, "f_first": req(j, "f_first", "scene"),
+            "f_first_clamp": clamp_view(req(j, "f_first_clamp", "scene")) if FMT.get("pendulum") else None,
             # an empty vote list is legitimate (no focal vote taken): written as null
             "focal_votes": [{"source": text(req(x, "source", "focal vote")), "value": num(req(x, "value", "focal vote"), 4),
                              "weight": num(req(x, "weight", "focal vote"), 3)}
                             for x in req(j, "focal_votes", "scene")] or None}
+
+
+def pendulum_view(p: dict | None, what: str):
+    """A pendulum object's record (rules scale.converged / pendulum.period): fitted L, the swing period and its sigma,
+    and the focal length solved jointly with the swing under the stated size (f_free). None for a non-pendulum."""
+    if p is None:
+        return None
+    w = f"{what} pendulum"
+    ff = req(p, "f_free", w)
+    out = {"L": num(req(p, "L", w), 4), "period": num(req(p, "period_s", w), 4), "period_sigma": num(req(p, "period_sigma_s", w), 3),
+           "periods": req(p, "periods", w), "period_from": text(req(p, "period_from", w)), "f": num(req(p, "f", w), 4),
+           "f_free": None}
+    if ff is not None:
+        wf = f"{w} f_free"
+        ab = req(ff, "at_bound", wf)
+        out["f_free"] = {"f": num(req(ff, "f", wf), 4), "f_start": num(req(ff, "f_start", wf), 4),
+                         "bounds": [num(x, 4) for x in req(ff, "bounds", wf)], "at_bound": text(ab) if ab is not None else None,
+                         "D": num(req(ff, "D", wf), 4), "D_prior": num(req(ff, "D_prior", wf), 4),
+                         "rel": num(req(ff, "rel", wf), 3), "converged": bool(req(ff, "converged", wf))}
+    return out
+
+
+def clamp_view(c: dict | None):
+    """The first focal estimate clamped into the person-height band (scene f_first_clamp), reported; None if unclamped."""
+    if c is None:
+        return None
+    return {"from": num(req(c, "from", "f_first_clamp"), 4), "to": num(req(c, "to", "f_first_clamp"), 4),
+            "band": [num(x, 4) for x in req(c, "band", "f_first_clamp")]}
 
 
 def video_meta(vid: str, make_thumb: bool):
