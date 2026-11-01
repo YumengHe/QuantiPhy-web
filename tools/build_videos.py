@@ -154,6 +154,18 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            t_end, edges, why}] (rule scenegraph.overlap); the presence record
 #            outputs/objects_<tag>_presence_v4/<unit>.json has {name: {present, rule, votes, zoom_votes?}} and no
 #            confidence (rule decisions.no_conf)
+#   contact  the scene has "scale_contact" ({} without a prior scale; {name, object, pass, reason, events [{t, other,
+#            kind, source, Z_scale, sigma_scale, Z_other, sigma_other, n_frames, gap_s, z, pass, why}], refit?, after?},
+#            rule scale.contact / scale.contact_refit, the refit mirrored in camera.support_plane.contact_refit),
+#            "main_plane" ({} unless the plane is the main support's own, rule support.main; refit {was, now} by rule
+#            support.level_refit) and support_plane.tests.level {angle_deg, sigma_deg (inf allowed), sigma_parts_deg};
+#            every scene object has "fit_object" {name, pass, s2, dof, bound, chi2, n_fits, rows, reason} (rule
+#            fit.object); a constraint residual of a failed object fit has "inadmissible" {rule, reason} and
+#            "checks"."constraints" has "inadmissible_ids" / "inadmissible"; a focal.fusion source may have verdict
+#            "excluded" or "no sigma" (listed, not counted in n_sources); a scene-graph edge or unknown span may have
+#            "event" "flight_end" (zero length allowed, rule scenegraph.flight_end); a presence record may have
+#            "reason", "zoom_errors" / "errors" [{where, type, msg}] and zoom votes true / false / null (unknown)
+#            (rules presence.split_vote, errors.recorded); a main-plane roll refit has no "rms"
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -166,7 +178,7 @@ VERSION_FORMAT = {
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
-           "static": True, "fusion": True, "fused": True, "impulse": True},
+           "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -279,6 +291,7 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
     edges = [{"from": text(req(e, "from", "edge")), "to": text(req(e, "to", "edge")) or None,   # null "to": airborne
               "rel": text(e["rel"]), "t0": num(req(e, "t_start", "edge"), 4), "t1": num(req(e, "t_end", "edge"), 4)}
              | ({"source": text(e["source"])} if FMT.get("impulse") else {})
+             | ({"event": edge_event(e, f"edge {e.get('from')!r} {e.get('rel')!r}")} if FMT.get("contact") and "event" in e else {})
              | ({"test": test_view(e["test"], f"edge {e.get('from')!r} {e.get('rel')!r}")} if "test" in e else {})
              | ({"absorbed": [span_edge(x, f"edge {e.get('from')!r} {e.get('rel')!r} absorbed") for x in e["absorbed"]]}
                 if FMT.get("selftest") and e.get("absorbed") else {})
@@ -311,6 +324,7 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
         out["self_test"] = {k: int(req(st, k, "self_test")) for k in ("tested", "fail", "merged", "unknown")}
         unk = [span_edge(x, "unknown span") | {"obj": text(req(x, "from", "unknown span")),
                                                  "reason": text(req(x, "reason", "unknown span"))}
+               | ({"event": edge_event(x, "unknown span")} if FMT.get("contact") and "event" in x else {})
                for x in req(g, "unknown", "scene graph cache")]
         if unk:
             out["unknown"] = unk
@@ -339,6 +353,15 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
 
 
 TEST_RESULTS = ("pass", "fail", "untestable")
+EDGE_EVENTS = ("flight_end",)   # pipeline.scenegraph: an edge that is an event, kept at zero length (scenegraph.flight_end)
+
+
+def edge_event(e: dict, what: str) -> str:
+    """The event an edge of the graph stands for (rule scenegraph.flight_end): its "event" field, a known name."""
+    ev = text(e["event"])
+    if ev not in EDGE_EVENTS:
+        raise ValueError(f"{AT['where']}: {what} event {ev!r}")
+    return ev
 EDGE_SOURCES = ("agent", "per-frame", "grid")   # pipeline.scenegraph.EDGE_SOURCES
 
 
@@ -723,17 +746,35 @@ def agreement_view(result: dict, answer: dict, status: str) -> dict:
                      "sigma_stated": num(req(c, "sigma_stated", w), 3), "sigma_pred": num(req(c, "sigma_pred", w), 3),
                      "bound": num(req(c, "bound", w), 3), "pass": req(c, "pass", w), "testable": req(c, "testable", w)}
                     | ({"stated": stated_view(req(c, "stated", w), w)} if FMT.get("kept") else {})
-                    | ({"untestable": untestable_view(c, w)} if FMT.get("fused") and c.get("pass") is None else {}))
+                    | ({"untestable": untestable_view(c, w)}
+                       if FMT.get("fused") and c.get("pass") is None and c.get("inadmissible") is None else {})
+                    | ({"inadmissible": inadmissible_view(c, w)} if FMT.get("contact") and c.get("inadmissible") is not None else {}))
     ids = {r["id"] for r in rows}
     failed_ids = list(req(cs, "failed_ids", "constraints"))
     if not set(failed_ids) <= ids:
         raise ValueError(f"{AT['where']}: constraints failed_ids {failed_ids} not among the residuals {sorted(ids)}")
     if FMT.get("fused"):
         un_ids = list(req(cs, "untestable_ids", "constraints"))
-        if sorted(un_ids) != sorted(r["id"] for r in rows if r["pass"] is None) or \
+        if sorted(un_ids) != sorted(r["id"] for r in rows if r["pass"] is None and "inadmissible" not in r) or \
                 len(req(cs, "untestable", "constraints")) != len(un_ids):
             raise ValueError(f"{AT['where']}: constraints untestable_ids {un_ids} differ from the residuals with pass null")
+    if FMT.get("contact"):
+        in_ids = list(req(cs, "inadmissible_ids", "constraints"))
+        if sorted(in_ids) != sorted(r["id"] for r in rows if "inadmissible" in r) or \
+                len(req(cs, "inadmissible", "constraints")) != len(in_ids):
+            raise ValueError(f"{AT['where']}: constraints inadmissible_ids {in_ids} differ from the residuals marked inadmissible")
     return {"measurements": ms, "chosen": chosen, "agree": agree, "constraints": rows}
+
+
+def inadmissible_view(c: dict, what: str) -> dict:
+    """A constraint of a failed object fit (rule fit.object): no verdict, not scale evidence; {rule, reason}."""
+    if req(c, "pass", what) is not None or req(c, "testable", what) is not False:
+        raise ValueError(f"{AT['where']}: {what} inadmissible with pass {c['pass']!r} / testable {c['testable']!r}")
+    u, w = c["inadmissible"], f"{what} inadmissible"
+    rule = text(req(u, "rule", w))
+    if rule != "fit.object":
+        raise ValueError(f"{AT['where']}: {w} rule {rule!r}")
+    return {"rule": rule, "reason": text(req(u, "reason", w))}
 
 
 def untestable_view(c: dict, what: str) -> dict:
@@ -925,17 +966,20 @@ def dims_check(state: dict) -> list[dict]:
     (a bound dimension contributes its dim_bounds interval) against the class range widened by critic.SIZE_MARGIN;
     fails only when the whole interval is outside. Recomputed from the saved scene and checked against the scene's
     own checks.plausible.parts.dims."""
-    from pipeline.critic import SIZE_MARGIN, _class_range, _size_interval
+    from pipeline.critic import SIZE_MARGIN, _class_range, _size_interval, fit_failed
     rows = []
     for name, o in req(state, "objects", "scene").items():
         lo, hi, _ = _size_interval(o)
         rng = _class_range(name)
         tested = rng is not None and not (hi is not None and hi <= 0)
         ok = not tested or not (lo > rng[1] * SIZE_MARGIN or (hi is not None and hi < rng[0] / SIZE_MARGIN))
+        # rule critic.dims_untestable: a failed object fit is listed as untestable, not judged
+        if FMT.get("contact") and fit_failed(o):
+            ok = None
         rows.append({"obj": name, "lo": num(lo), "hi": None if hi is None else num(hi),
                      "range": [num(rng[0] / SIZE_MARGIN), num(rng[1] * SIZE_MARGIN)] if tested else None, "pass": ok})
     part = req(req(req(req(state, "checks", "scene"), "plausible", "scene checks"), "parts", "plausible"), "dims", "plausible parts")
-    if req(part, "pass", "plausible.dims") != all(r["pass"] for r in rows):
+    if req(part, "pass", "plausible.dims") != all(r["pass"] is not False for r in rows):
         raise ValueError(f"{AT['where']}: plausible.dims {part['pass']} differs from the recomputed intervals {rows}")
     return rows
 
@@ -1038,8 +1082,10 @@ def camera_roll_view(state: dict) -> dict:
     if rf is not None:
         if ok is not False:
             raise ValueError(f"{AT['where']}: camera_roll refit without a failed check")
-        out["refit"] = {k: [num(req(rf[s], k, f"camera_roll refit {s}"), 6) for s in ("was", "now")]
-                        for k in ("roll_deg", "pitch_deg", "dist", "rms")}
+        # the main support's evidence plane (rule support.main) is re-rolled without a stage-A refit: no rms
+        keys = ("roll_deg", "pitch_deg", "dist") + \
+            (("rms",) if not (FMT.get("contact") and state.get("main_plane")) or "rms" in req(rf, "was", "camera_roll refit") else ())
+        out["refit"] = {k: [num(req(rf[s], k, f"camera_roll refit {s}"), 6) for s in ("was", "now")] for k in keys}
     return out
 
 
@@ -1152,7 +1198,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      "visible": [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None,
                      "pendulum": pendulum_view(req(o, "pendulum", what), what) if FMT.get("pendulum") else None}
                     | ({"segfit": segfit_view(name, o), "events_graph": events_view(name, o)} if FMT.get("selftest") else {})
-                    | (impulse_view(name, o) if FMT.get("impulse") else {}))
+                    | (impulse_view(name, o) if FMT.get("impulse") else {})
+                    | ({"fit_object": fit_object_view(name, o)} if FMT.get("contact") else {}))
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
             "scale": scale_view(j), "gravity": gravity_view(j),
             "main_support": req(j, "main_support", "scene"),
@@ -1167,7 +1214,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"camera_roll": camera_roll_view(j)} if FMT.get("roll") else {}) | \
         ({"camera_one": camera_one_view(j)} if FMT.get("static") else {}) | \
         ({"fusion": fusion_view(j)} if FMT.get("fusion") else {}) | \
-        ({"incline": incline_view(j)} if FMT.get("impulse") else {})
+        ({"incline": incline_view(j)} if FMT.get("impulse") else {}) | \
+        ({"scale_contact": scale_contact_view(j), "main_plane": main_plane_view(j)} if FMT.get("contact") else {})
 
 
 IMPULSE_VERDICTS = ("kick", "agent.unobserved", "chain ends", "no_law")   # or "rejected: <why>"
@@ -1226,9 +1274,13 @@ def incline_view(state: dict):
     return out or None
 
 
+ZOOM_VOTES = {True: "visible", False: "not visible", None: "unknown"}   # a zoom vote: True / False / None (unknown)
+
+
 def presence_view(tag: str, unit: str):
-    """The unit's presence verdicts (outputs/objects_<tag>_presence_v4/<unit>.json, rule decisions.no_conf): [[name,
-    present (visible / partial / absent / null), rule, votes, zoom_votes | null]]."""
+    """The unit's presence verdicts (outputs/objects_<tag>_presence_v4/<unit>.json, rules decisions.no_conf,
+    presence.split_vote): [{name, present (visible / partial / absent / null), rule, reason (null: the record has
+    none), votes, zoom (visible / not visible / unknown per zoom vote) | null, errors [{where, type, msg}] | null}]."""
     j = read_json(ROOT / "outputs" / f"objects_{tag}_presence_v4" / f"{unit}.json", "presence record")
     out = []
     for name, v in j.items():
@@ -1238,12 +1290,19 @@ def presence_view(tag: str, unit: str):
         rule = text(req(v, "rule", w))
         if not rule.startswith("presence."):
             raise ValueError(f"{AT['where']}: {w} rule {rule!r}")
-        out.append([text(name), req(v, "present", w), rule, [text(x) for x in req(v, "votes", w)],
-                    [text(x) for x in v["zoom_votes"]] if v.get("zoom_votes") else None])
+        zv = v.get("zoom_votes")
+        if zv is not None and any(x not in ZOOM_VOTES for x in zv):
+            raise ValueError(f"{AT['where']}: {w} zoom votes {zv}")
+        errs = [{k: text(req(e, k, f"{w} error")) for k in ("where", "type", "msg")}
+                for e in (v.get("zoom_errors") or []) + (v.get("errors") or [])]
+        out.append({"name": text(name), "present": req(v, "present", w), "rule": rule,
+                    "reason": text(v["reason"]) if "reason" in v else None,
+                    "votes": [text(x) for x in req(v, "votes", w)],
+                    "zoom": [ZOOM_VOTES[x] for x in zv] if zv else None, "errors": errs or None})
     return out or None
 
 
-FUSION_VERDICTS = ("used", "outlier", "disagree")
+FUSION_VERDICTS = ("used", "outlier", "disagree", "no sigma", "excluded")   # excluded: rule fit.object
 
 
 def fusion_view(state: dict) -> dict:
@@ -1264,7 +1323,7 @@ def fusion_view(state: dict) -> dict:
                      "how": text(req(x, "how", f"{w} source")), "verdict": v, "why": text(req(x, "why", f"{w} source")) or None,
                      "bounded": [num(a, 4) for a in b] if b else None})
     n = int(req(fu, "n_sources", w))
-    if n != len(rows):
+    if n != len([r for r in rows if r["verdict"] not in ("no sigma", "excluded")]):   # listed, not fused
         raise ValueError(f"{AT['where']}: {w} n_sources {n} with {len(rows)} sources")
     ok = req(fu, "pass", w)
     if ok not in (True, False, None):
@@ -1339,11 +1398,130 @@ def support_plane_view(state: dict):
             raise ValueError(f"{AT['where']}: support_plane without a result has sub-tests")
         return {"pass": None, "reason": text(req(sp, "reason", "support_plane")), "tests": []}
     tests = [{"name": k, "pass": req(t, "pass", f"support.plane {k}"), "reason": text(req(t, "reason", f"support.plane {k}"))}
+             | ({"level": level_view(t)} if FMT.get("contact") and k == "level" else {})
              for k, t in req(sp, "tests", "support_plane").items()]
     failed = list(req(sp, "failed", "support_plane"))
     if failed != [t["name"] for t in tests if t["pass"] is False] or bool(req(sp, "pass", "support_plane")) == bool(failed):
         raise ValueError(f"{AT['where']}: support_plane pass / failed {failed} differ from its sub-tests")
     return {"pass": bool(sp["pass"]), "reason": None, "tests": tests}
+
+
+def num_inf(x, sig=3):
+    """num(), but an infinite sigma (a value that depends on no least-squares parameter) stays "inf"."""
+    return "inf" if isinstance(x, float) and math.isinf(x) and x > 0 else num(x, sig)
+
+
+LEVEL_PARTS = ("depth_plane", "depth_plane_frames", "depth_alignment", "scene_plane")
+
+
+def level_view(t: dict, what: str = "support.plane level") -> dict:
+    """The support plane against the depth model's plane through the main support's mask (rule support.main, sub-test
+    level): angle vs 3 sigma, sigma and its parts (the depth plane: per-frame spread, alignment; the scene plane's own);
+    every field null when there is no depth-model plane of the main support."""
+    sp = req(t, "sigma_parts_deg", what)
+    if sp is not None and set(sp) != set(LEVEL_PARTS):
+        raise ValueError(f"{AT['where']}: {what} sigma parts {sorted(sp)}")
+    return {"angle": num(req(t, "angle_deg", what), 3), "sigma": num_inf(req(t, "sigma_deg", what)),
+            "parts": {k: num_inf(sp[k]) for k in LEVEL_PARTS} if sp is not None else None}
+
+
+def main_plane_view(state: dict):
+    """The plane through the main support's own evidence (rule support.main): its source, mask points, contacts,
+    roll / pitch, residual, the objects fitted free because they stand on another support, and the refit when stage A's
+    plane was not level (rule support.level_refit) as was -> now; None when the scene's plane is not from it."""
+    mp = req(state, "main_plane", "scene")
+    if not mp:
+        return None
+    w = "main_plane"
+    tilt = req(mp, "tilt_deg", w)
+    out = {"source": text(req(mp, "source", w)), "how": text(req(mp, "how", w)), "n_mask": int(req(mp, "n_mask_points", w)),
+           "n_contacts": int(req(mp, "n_contacts", w)), "roll": num(tilt[0], 3), "pitch": num(tilt[1], 3),
+           "height": num(-float(req(mp, "dist", w)), 4), "residual": num(req(mp, "residual_mad_m", w), 3),
+           "spread": num(req(mp, "spread_deg", w), 3), "roll_source": text(mp.get("roll_source")) or None,
+           "excluded": {text(k): [text(x) for x in v] for k, v in (mp.get("supports_excluded") or {}).items()} or None,
+           "refit": None}
+    if [text(x) for x in req(mp, "excluded", w)] != list(out["excluded"] or {}):
+        raise ValueError(f"{AT['where']}: {w} excluded {mp['excluded']} differs from supports_excluded")
+    rf = mp.get("refit")
+    if rf is not None:
+        wr = f"{w} refit"
+        was, now = req(rf, "was", wr), req(rf, "now", wr)
+        lv = req(was, "level", f"{wr} was")
+        if req(lv, "level", f"{wr} was level") is not False:
+            raise ValueError(f"{AT['where']}: {wr} of a level plane")
+        out["refit"] = {k: [num(req(was, k, wr), 4), num(req(now, k, wr), 4)] for k in ("roll_deg", "pitch_deg", "rms")} | \
+            {"height": [num(-float(req(was, "dist", wr)), 4), num(-float(req(now, "dist", wr)), 4)],
+             "f": [num(req(was, "f", wr), 4), num(req(now, "f", wr), 4)], "level": level_view(lv, f"{wr} was level"),
+             "why": text(req(lv, "why", f"{wr} was level")), "rule": text(req(mp, "why", w))}
+    return out
+
+
+def contact_event_view(e: dict, what: str) -> dict:
+    """A contact of the scale object as a depth equation (rule scale.contact): the free-flight depth Z_scale against
+    the other object's support-plane depth at the contact."""
+    ok = req(e, "pass", what)
+    if ok not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {what} pass = {ok!r}")
+    return {"t": num(req(e, "t", what), 4), "other": text(req(e, "other", what)), "kind": text(req(e, "kind", what)),
+            "source": text(req(e, "source", what)), "z_scale": num(req(e, "Z_scale", what), 4),
+            "s_scale": num(req(e, "sigma_scale", what), 3), "z_other": num(req(e, "Z_other", what), 4),
+            "s_other": num(req(e, "sigma_other", what), 3), "n": e.get("n_frames"), "gap": num(e.get("gap_s"), 3),
+            "z": num(req(e, "z", what), 3), "pass": ok, "why": text(req(e, "why", what))}
+
+
+def scale_contact_view(state: dict):
+    """The scale object's contacts as depth equations (rule scale.contact): every event, pass (None: untestable) and
+    reason; on a fail the plane's distance rescaled by the contacts (rule scale.contact_refit) with the camera height
+    was -> now and the re-check after it. None when the scene has no prior scale (an empty record)."""
+    sc = req(state, "scale_contact", "scene")
+    if not sc:
+        return None
+    w = "scale_contact"
+    if req(sc, "name", w) != "scale.contact":
+        raise ValueError(f"{AT['where']}: {w} name {sc['name']!r}")
+    ok = req(sc, "pass", w)
+    out = {"object": text(req(sc, "object", w)), "pass": ok, "reason": text(req(sc, "reason", w)),
+           "events": [contact_event_view(e, f"{w} event") for e in req(sc, "events", w)], "refit": None, "after": None}
+    rf = sc.get("refit")
+    cr = ((req(state, "camera", "scene") or {}).get("support_plane") or {}).get("contact_refit")
+    if rf is None:
+        if cr is not None:
+            raise ValueError(f"{AT['where']}: camera.support_plane.contact_refit without a {w} refit")
+        return out
+    wr = f"{w} refit"
+    if ok is not False or text(req(rf, "rule", wr)) != "scale.contact_refit":
+        raise ValueError(f"{AT['where']}: {wr} rule {rf.get('rule')!r} with pass {ok!r}")
+    if cr is None or num(cr.get("k"), 6) != num(req(rf, "k", wr), 6):
+        raise ValueError(f"{AT['where']}: {wr} k differs from camera.support_plane.contact_refit")
+    out["refit"] = {"k": num(rf["k"], 4), "sigma_log_k": num(req(rf, "sigma_log_k", wr), 3),
+                    "height": [num(req(rf, "camera_height_was", wr), 4), num(req(rf, "camera_height", wr), 4)],
+                    "dist_sigma": num(req(rf, "dist_sigma", wr), 3), "cross_check": text(req(rf, "depth_model_plane", wr))}
+    af = req(sc, "after", w)
+    out["after"] = {"pass": req(af, "pass", f"{w} after"), "reason": text(req(af, "reason", f"{w} after")),
+                    "events": [contact_event_view(e, f"{w} after event") for e in req(af, "events", f"{w} after")]}
+    return out
+
+
+FIT_OBJECT_ROWS = ("box", "depth_anchor", "prior")
+
+
+def fit_object_view(name: str, o: dict) -> dict:
+    """An object's fit as a whole against its calibration rows (rule fit.object): s^2 vs its bound (None: untestable,
+    no stated row), dof, and chi^2 / n per row kind; a fail is a failed object fit."""
+    w = f"object {name!r} fit_object"
+    fo = req(o, "fit_object", f"scene object {name!r}")
+    if req(fo, "name", w) != "fit.object":
+        raise ValueError(f"{AT['where']}: {w} name {fo['name']!r}")
+    ok = req(fo, "pass", w)
+    if ok not in (True, False, None) or (ok is None) != (req(fo, "bound", w) is None):
+        raise ValueError(f"{AT['where']}: {w} pass {ok!r} with bound {fo.get('bound')!r}")
+    rows = req(fo, "rows", w)
+    if not set(rows) <= set(FIT_OBJECT_ROWS):
+        raise ValueError(f"{AT['where']}: {w} row kinds {sorted(rows)}")
+    return {"pass": ok, "s2": num(req(fo, "s2", w), 4), "bound": num(fo["bound"], 4), "dof": int(req(fo, "dof", w)),
+            "chi2": num(req(fo, "chi2", w), 4), "n_fits": int(req(fo, "n_fits", w)),
+            "rows": [[k, num(req(rows[k], "chi2", w), 4), int(req(rows[k], "n", w))] for k in FIT_OBJECT_ROWS if k in rows],
+            "reason": text(req(fo, "reason", w))}
 
 
 def pendulum_view(p: dict | None, what: str):

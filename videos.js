@@ -80,7 +80,7 @@
         view = { ...v, scene: a.scene };
         const body = document.createElement('div');
         body.className = 'qbody';
-        body.innerHTML = priorBlock(q) + depthBindings(q.depth_bindings) + mediaBlock(view, q) + overlayBlock(q, view) + trackBlock(a.tracks, view, q) +
+        body.innerHTML = priorBlock(q) + depthBindings(q.depth_bindings) + mediaBlock(view, q) + overlayBlock(q, view) + trackBlock(a.tracks, view, q, a.sgraph) +
           sceneGraphTree(a.sgraph) + refmeasureBlock(q.refmeasure) + fitBlock(q, view) + roundsBlock(q.rounds) + timeBlock(q);
         d.appendChild(body);
         video = body.querySelector('video');
@@ -207,27 +207,36 @@
       : `<p class="fwarn">t = ${fmt(im.t, 2)} s: ${esc(im.unavailable)}</p>`).join('') + '</div>';
   }
 
-  // tracked intervals per object on the video's time axis; the question's times as vertical lines
-  function trackBlock(tracks, v, q) {
+  // tracked intervals per object on the video's time axis; the question's times as vertical lines; a scene-graph edge
+  // that is an event (rule scenegraph.flight_end, zero length allowed) is a tick on both objects' rows
+  function trackBlock(tracks, v, q, sg) {
     if (!tracks || !Object.keys(tracks).length) return q.identity || q.extents || q.presence ? '<h4>Tracks</h4>' + presenceBlock(q.presence) + identityBlock(q.identity) + extentsBlock(q.extents) : '';
     const T = v.duration;
     const order = v.scene ? v.scene.objects.map((o) => o.name) : [];
     const pct = (t) => `${(100 * Math.min(Math.max(t / T, 0), 1)).toFixed(2)}%`;
     const lines = q.tq.filter((t) => t <= T + 1e-6).map((t) => `<span class="trk-tq" style="left:${pct(t)}"></span>`).join('');
+    const evs = sg ? [...sg.edges.map((e) => ({ ...e, unknown: false })), ...(sg.unknown || []).map((u) => ({ ...u, from: u.obj, unknown: true }))]
+      .filter((e) => e.event && e.t0 != null) : [];
+    const ticks = (name) => evs.filter((e) => e.from === name || e.to === name).map((e) =>
+      `<span class="trk-ev${e.unknown ? ' unk' : ''}" style="left:${pct(e.t0)}" title="${esc(`${e.from} ${e.rel}${e.to ? ' ' + e.to : ''} ${span(e.t0, e.t1)} · ${e.event}`)}"></span>`).join('');
     const rows = Object.entries(tracks).map(([name, ivs]) => {
       const i = order.indexOf(name), col = i >= 0 ? PALETTE[i % PALETTE.length] : 'var(--muted)';
       const segs = (ivs || []).map(([a, b]) => `<span class="trk-seg" style="left:${pct(a)};width:calc(${pct(b)} - ${pct(a)} + 2px);background:${col}" title="${fmt(a, 2)}–${fmt(b, 2)} s"></span>`).join('');
-      return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${lines}</span></div>`;
+      return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${lines}${ticks(name)}</span></div>`;
     }).join('');
     return `<h4>Tracks</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>` +
       presenceBlock(q.presence) + identityBlock(q.identity) + extentsBlock(q.extents);
   }
-  // the inventory's presence verdict per object (rule decisions.no_conf): the grid votes and the rule they decide by
+  // the inventory's presence verdict per object (rules decisions.no_conf, presence.split_vote): the grid votes, the
+  // zoom re-check's votes (an unknown vote is a third state, not "not visible"), the rule, its reason, recorded errors
   function presenceBlock(p) {
     if (!p) return '';
-    return '<div class="scroll-x"><table class="sgrel presence"><tr><th>Object</th><th>Present</th><th>Votes</th><th>Rule</th></tr>' +
-      p.map(([n, pr, rule, votes, zoom]) => `<tr><td>${esc(n)}</td><td class="${pr === 'absent' ? 'bad' : pr == null ? 'muted' : ''}">${esc(pr == null ? 'unknown' : pr)}</td>` +
-        `<td>${votes.map(esc).join(' · ')}${zoom ? ` <span class="muted">zoom ${zoom.map(esc).join(' · ')}</span>` : ''}</td><td><code>${esc(rule)}</code></td></tr>`).join('') +
+    const hasWhy = p.some((x) => x.reason != null || x.errors), hasZoom = p.some((x) => x.zoom);
+    const zoom = (z) => z.map((x) => `<span class="${x === 'unknown' ? 'zunk' : ''}">${esc(x)}</span>`).join(' · ');
+    return `<div class="scroll-x"><table class="sgrel presence"><tr><th>Object</th><th>Present</th><th>Votes</th>${hasZoom ? '<th>Zoom</th>' : ''}<th>Rule</th>${hasWhy ? '<th></th>' : ''}</tr>` +
+      p.map((x) => `<tr><td>${esc(x.name)}</td><td class="${x.present === 'absent' ? 'bad' : x.present == null ? 'muted' : ''}">${esc(x.present == null ? 'unknown' : x.present)}</td>` +
+        `<td>${x.votes.map(esc).join(' · ')}</td>${hasZoom ? `<td>${x.zoom ? zoom(x.zoom) : ''}</td>` : ''}<td><code>${esc(x.rule)}</code></td>` +
+        (hasWhy ? `<td>${esc(x.reason || '')}${(x.errors || []).map((e) => `<div class="bad"><code>${esc(e.where)}</code> ${esc(e.type)}: ${esc(e.msg)}</div>`).join('')}</td>` : '') + '</tr>').join('') +
       '</table></div>';
   }
   // frames and set-of-frames as compact ranges: [27, 28, 29, 30] -> 27–30
@@ -357,19 +366,20 @@
         `<td>${esc(e.was.rel)}${e.was.to ? ` ${esc(e.was.to)}` : ''}</td><td><code>${esc(e.rule)}</code></td></tr>`).join('') + '</table></div>' : '';
     const tested = sg.edges.filter((e) => e.test);
     const edgeText = (e) => `${esc(e.rel)}${e.to ? ` ${esc(e.to)}` : ''} ${span(e.t0, e.t1)}`;
-    const hasSrc = sg.edges.some((e) => e.source);
-    const listed = sg.edges.filter((e) => e.test || e.source);
-    const ts = listed.length ? `<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th>${hasSrc ? '<th>Source</th>' : ''}<th>Test</th><th></th><th></th></tr>` +
-      listed.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}</td>${hasSrc ? `<td>${esc(e.source || '')}</td>` : ''}` +
+    const hasSrc = sg.edges.some((e) => e.source), hasEv = sg.edges.some((e) => e.event);
+    const evCell = (e) => (hasEv ? `<td>${e.event ? `<code>${esc(e.event)}</code>` : ''}</td>` : '');
+    const listed = sg.edges.filter((e) => e.test || e.source || e.event);
+    const ts = listed.length ? `<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th>${hasSrc ? '<th>Source</th>' : ''}${hasEv ? '<th>Event</th>' : ''}<th>Test</th><th></th><th></th></tr>` +
+      listed.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}</td>${hasSrc ? `<td>${esc(e.source || '')}</td>` : ''}${evCell(e)}` +
         (e.test ? `<td><code>${esc(e.test.name)}</code></td>${testCells(e.test)}` : '<td></td><td></td><td></td>') + '</tr>' +
-        (e.absorbed || []).map((x) => `<tr class="absorbed"><td></td><td>↳ ${edgeText(x)}</td>${hasSrc ? '<td></td>' : ''}<td><code>${esc(x.test.name)}</code></td>${testCells(x.test)}</tr>`).join('')).join('') +
+        (e.absorbed || []).map((x) => `<tr class="absorbed"><td></td><td>↳ ${edgeText(x)}</td>${hasSrc ? '<td></td>' : ''}${hasEv ? '<td></td>' : ''}<td><code>${esc(x.test.name)}</code></td>${testCells(x.test)}</tr>`).join('')).join('') +
       '</table></div>' : '';
     const cf = sg.conflicts ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th><code>scenegraph.overlap</code></th><th>Edges</th><th>Source</th><th></th></tr>' +
       sg.conflicts.map((c) => `<tr><td>${esc(c.obj)}</td><td class="bad">${span(c.t0, c.t1)}</td><td>${c.edges.map(edgeText).join('<br>')}</td>` +
         `<td>${esc(c.source)}</td><td>${esc(c.why)}</td></tr>`).join('') + '</table></div>' : '';
     const st = sg.self_test ? `<p class="facts"><code>builder.self_test</code> tested ${sg.self_test.tested} · fail ${sg.self_test.fail} · merged ${sg.self_test.merged} · unknown ${sg.self_test.unknown}</p>` : '';
     const unk = sg.unknown ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Unknown span</th><th>Removed edge</th><th>Reason</th></tr>' +
-      sg.unknown.map((u) => `<tr><td>${esc(u.obj)}</td><td class="bad">${span(u.t0, u.t1)}</td><td>${esc(u.rel)}${u.to ? ` ${esc(u.to)}` : ''} <code>${esc(u.test.name)}</code></td>` +
+      sg.unknown.map((u) => `<tr><td>${esc(u.obj)}</td><td class="bad">${span(u.t0, u.t1)}</td><td>${esc(u.rel)}${u.to ? ` ${esc(u.to)}` : ''}${u.event ? ` <code>${esc(u.event)}</code>` : ''} <code>${esc(u.test.name)}</code></td>` +
         `<td>${esc(u.reason)}</td></tr>`).join('') + '</table></div>' : '';
     return tree || rel || unt || rw || ts || unk || cf ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${cf}${unk}${rel}${rw}${unt}` : '';
   }
@@ -430,7 +440,7 @@
     });
     const relText = (r) => {
       if (!r.spans.length) return r.rel === 'on' || r.rel === 'airborne' ? '' : r.rel;
-      return `${r.rel} ${r.spans.sort((a, b) => a[0] - b[0]).map(([a, b]) => `${fmt(a, 2)}–${b == null ? '' : fmt(b, 2)}`).join(', ')} s`;
+      return `${r.rel} ${r.spans.sort((a, b) => a[0] - b[0]).map(([a, b]) => (a === b ? fmt(a, 2) : `${fmt(a, 2)}–${b == null ? '' : fmt(b, 2)}`)).join(', ')} s`;
     };
     // first parent in time; an object with nothing to rest on but an airborne span goes under the airborne root
     const parent = {}, treeRel = {}, extra = [], stubs = {};
@@ -667,7 +677,7 @@
   // marked, the last row is the fused f (camera.f is on the line above), then every measurement the fusion failed (check focal)
   function fusionTable(fu, q) {
     if (!fu) return '';
-    const vcls = (v) => (v === 'used' ? '' : 'bad');
+    const vcls = (v) => (v === 'used' ? '' : v === 'excluded' || v === 'no sigma' ? 'muted' : 'bad');
     const why = fu.reason.replace(/^untestable:\s*/, '');
     const failed = ((q && q.measurements) || []).flatMap((m) => m.failed.filter((c) => c.name === 'focal').map((c) => [m.name, c]));
     return '<div class="scroll-x"><table class="focal fusion"><tr><th><code>focal.fusion</code></th><th>Object</th><th class="n">f (px)</th>' +
@@ -684,11 +694,68 @@
   function supportPlaneTable(sp) {
     if (!sp) return '';
     if (!sp.tests.length) return `<p class="facts"><code>support.plane</code> <span class="muted">${esc(sp.reason)}</span></p>`;
-    const v = (t) => (t.pass === null && !/^untestable/.test(t.reason) ? 'recorded' : res3(t.pass));
+    const v = (t) => (t.pass === null && !t.level && !/^untestable/.test(t.reason) ? 'recorded' : res3(t.pass));
     return '<div class="scroll-x"><table class="checks splane">' +
       `<tr class="${cls3(sp.pass)}"><th><code>support.plane</code></th><th>${res3(sp.pass)}</th><th></th></tr>` +
-      sp.tests.map((t) => `<tr class="${cls3(t.pass)}"><td>${esc(t.name)}</td><td>${v(t)}</td><td>${esc(t.reason.replace(/^untestable:\s*/, ''))}</td></tr>`).join('') +
+      sp.tests.map((t) => `<tr class="${cls3(t.pass)}"><td>${esc(t.name)}</td><td>${v(t)}</td><td>${esc(t.reason.replace(/^untestable:\s*/, ''))}${levelLine(t.level)}</td></tr>`).join('') +
       '</table></div>';
+  }
+  const deg = (x) => (x === 'inf' ? '∞' : `${fmtNum(x)}°`);
+  // support.plane level (rule support.main): the angle against 3σ, σ in quadrature of the depth plane's (per-frame
+  // spread, alignment) and the scene plane's own
+  function levelLine(l) {
+    if (!l || l.angle == null) return '';
+    const p = l.parts;
+    return `<div class="sub">${deg(l.angle)} vs 3 × ${deg(l.sigma)}` +
+      (p ? ` = depth plane ${deg(p.depth_plane)} (frames ${deg(p.depth_plane_frames)}, alignment ${deg(p.depth_alignment)}) ⊕ scene plane ${deg(p.scene_plane)}` : '') + '</div>';
+  }
+  // the plane through the main support's own evidence (rule support.main) and its refit when stage A's plane was not
+  // level (rule support.level_refit)
+  function mainPlaneLines(mp, main) {
+    if (!mp) return '';
+    const ex = mp.excluded ? Object.entries(mp.excluded).map(([o, sups]) => `${esc(o)} on ${sups.map(esc).join(', ')}`).join('; ') : '';
+    let h = `<p class="facts"><code>support.main</code> ${esc(main || '')} · <span title="${esc(mp.how)}">${mp.n_mask} mask points · ${mp.n_contacts} contacts</span>` +
+      ` · roll ${deg(mp.roll)}${mp.roll_source ? ` <span class="muted">(${esc(mp.roll_source)})</span>` : ''} · pitch ${deg(mp.pitch)} · height ${fmtNum(mp.height)} m` +
+      ` · residual ${fmtNum(mp.residual)} m · spread ${deg(mp.spread)}${ex ? ` · fitted free: ${ex}` : ''}</p>`;
+    const r = mp.refit;
+    if (r) {
+      h += `<p class="facts"><code>support.level_refit</code> <span class="bad" title="${esc(r.why)}">${deg(r.level.angle)} &gt; 3 × ${deg(r.level.sigma)}</span>` +
+        ` · roll ${deg(r.roll_deg[0])} → ${deg(r.roll_deg[1])} · pitch ${deg(r.pitch_deg[0])} → ${deg(r.pitch_deg[1])}` +
+        ` · height ${fmtNum(r.height[0])} → ${fmtNum(r.height[1])} m · rms ${fmt(r.rms[0], 1)} → ${fmt(r.rms[1], 1)} px</p>`;
+    }
+    return h;
+  }
+  // the scale object's contacts as depth equations (rule scale.contact); on a fail the plane's distance is rescaled by
+  // the contacts (rule scale.contact_refit) and the equations re-checked
+  function scaleContactBlock(sc) {
+    if (!sc) return '';
+    if (!sc.events.length) return `<p class="facts"><code>scale.contact</code> ${esc(sc.object)} <span class="muted">${esc(sc.reason.replace(/^untestable:\s*/, 'untestable · '))}</span></p>`;
+    const table = (evs, p) => '<div class="scroll-x"><table class="sgrel contact"><tr>' +
+      `<th><code>scale.contact</code> ${esc(sc.object)}</th><th class="n">t (s)</th><th>Other</th><th class="n">Z scale (m)</th><th class="n">Z other (m)</th><th class="n">z</th><th>${res3(p)}</th></tr>` +
+      evs.map((e) => `<tr class="${cls3(e.pass)}"><td title="${esc(e.source)}">${esc(e.kind)}</td><td class="n">${fmt(e.t, 3)}</td><td>${esc(e.other)}</td>` +
+        `<td class="n">${plusMinus(e.z_scale, e.s_scale)}</td><td class="n" title="${esc(e.n != null ? `${e.n} frames, nearest ${fmt(e.gap, 3)} s` : '')}">${plusMinus(e.z_other, e.s_other)}</td>` +
+        `<td class="n">${fmt(e.z, 1)}</td><td title="${esc(e.why)}">${res3(e.pass)}</td></tr>`).join('') + '</table></div>';
+    let h = table(sc.events, sc.pass);
+    const r = sc.refit;
+    if (r) {
+      h += `<p class="facts"><code>scale.contact_refit</code> k ${fmtNum(r.k)} <span class="muted">(σ log k ${fmtNum(r.sigma_log_k)})</span>` +
+        ` · camera height ${fmtNum(r.height[0])} → ${fmtNum(r.height[1])} ± ${fmtNum(r.dist_sigma)} m · <span class="muted">${esc(r.cross_check)}</span></p>` +
+        table(sc.after.events, sc.after.pass);
+    }
+    return h;
+  }
+  // each object's fit as a whole (rule fit.object): s² against its bound, χ² / n per row kind; a failed fit is marked
+  function fitObjectTable(s) {
+    const os = s.objects.filter((o) => o.fit_object);
+    if (!os.length) return '';
+    return '<div class="scroll-x"><table class="objs fitobj"><tr><th><code>fit.object</code></th><th class="n">s²</th><th class="n">Bound</th><th class="n">n − p</th>' +
+      '<th class="n">Fits</th><th>χ² / n</th><th></th></tr>' +
+      os.map((o) => {
+        const f = o.fit_object;
+        return `<tr class="${cls3(f.pass)}"><td>${esc(o.name)}</td><td class="n">${fmtNum(f.s2)}</td><td class="n">${f.bound != null ? `${f.pass ? '≤' : '>'} ${fmtNum(f.bound)}` : ''}</td>` +
+          `<td class="n">${f.dof}</td><td class="n">${f.n_fits}</td><td>${f.rows.map(([k, c, n]) => `<span class="dim">${esc(k)} ${fmtNum(c)} / ${n}</span>`).join('')}</td>` +
+          `<td class="${cls3(f.pass)}" title="${esc(f.reason)}">${f.pass === false ? 'failed' : res3(f.pass)}</td></tr>`;
+      }).join('') + '</table></div>';
   }
   // the support plane's pitch source and its horizon check (rule support.horizon)
   function horizonLines(h) {
@@ -725,7 +792,7 @@
       ` · <span title="${esc(r.how || '')}">fit ${deg(r.fit)}</span> vs image ${deg(r.image_roll)} ± ${fmt(r.sigma, 2)}°` +
       ` (${esc(im.n_lines)} segments, ${esc(im.n_frames)} frames), z ${fmt(r.z, 1)} · roll from ${esc(r.source)}` +
       (rf ? ` · refit roll ${deg(rf.roll_deg[0])} → ${deg(rf.roll_deg[1])}, pitch ${deg(rf.pitch_deg[0])} → ${deg(rf.pitch_deg[1])},` +
-        ` dist ${fmtNum(rf.dist[0])} → ${fmtNum(rf.dist[1])}, rms ${fmt(rf.rms[0], 1)} → ${fmt(rf.rms[1], 1)} px` : '') + '</p>';
+        ` dist ${fmtNum(rf.dist[0])} → ${fmtNum(rf.dist[1])}${rf.rms ? `, rms ${fmt(rf.rms[0], 1)} → ${fmt(rf.rms[1], 1)} px` : ''}` : '') + '</p>';
   }
   function fitBlock(q, v) {
     const f = q.fit, s = v.scene;
@@ -764,14 +831,14 @@
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
-        segfitTable(s) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) +
+        fitObjectTable(s) + segfitTable(s) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) +
         (s.camera ? `<p class="facts"><span title="${esc(s.camera.how)}">f ${plusMinus(s.camera.f, s.camera.sigma)} px${s.camera.source ? ` (${esc(s.camera.source)}${wasText(s.camera.fused)})` : ''}</span>`
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
-          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') +
+          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') + scaleContactBlock(s.scale_contact) +
         gravityBlock(s.gravity) +
         focalVotes(s);
     }
@@ -891,7 +958,7 @@
       checksTable(g.checks, et);
   }
   // ---------- v5: every measurement of the asked quantity, the checks agree / constraints ----------
-  const span = (a, b) => `${a == null ? '…' : fmt(a, 2)}–${b == null ? '…' : fmt(b, 2)} s`;
+  const span = (a, b) => (a != null && a === b ? `${fmt(a, 2)} s` : `${a == null ? '…' : fmt(a, 2)}–${b == null ? '…' : fmt(b, 2)} s`);
   const plusMinus = (v, sg) => `${fmtNum(v)}${sg != null ? ` ± ${fmtNum(sg)}` : ''}`;
   function sigmaSub(m) {
     const j = (a) => a.map((x) => fmtNum(x)).join(' / ');
@@ -978,7 +1045,8 @@
         `<tr class="${a.pass ? 'ok' : 'bad'}"><td><code>agree</code></td><td>${a.pass ? 'pass' : 'fail'}</td><td class="n">${chi}</td>` +
         `<td>${a.values.map(([k, v, sg]) => `<code>${esc(k)}</code> ${plusMinus(v, sg)}`).join(' · ')}</td></tr></table></div>`;
     }
-    const tested = q.constraints.filter((c) => c.pass !== null), untested = q.constraints.filter((c) => c.pass === null);
+    const tested = q.constraints.filter((c) => c.pass !== null), untested = q.constraints.filter((c) => c.pass === null && !c.inadmissible);
+    const inadm = q.constraints.filter((c) => c.inadmissible);
     if (tested.length) {
       const anyNo = tested.some((c) => !c.testable);
       h += '<div class="scroll-x"><table class="checks cons"><tr><th>Constraint</th><th></th><th class="n">Observed</th><th class="n">Predicted</th>' +
@@ -995,6 +1063,13 @@
           `<td class="n">${fmtNum(c.observed)}</td><td class="n">${fmtNum(c.predicted)}</td><td>${c.stated && c.stated.text ? esc(c.stated.text) : ''}</td>` +
           `<td class="n" title="${esc(c.untestable.source)}">${fmtNum(c.untestable.sigma_pred)}</td><td>${esc(c.untestable.reason)}</td></tr>`).join('') + '</table></div>';
     }
+    if (inadm.length) {
+      h += '<div class="scroll-x"><table class="checks cons"><tr><th>Constraint</th><th></th><th class="n">Observed</th><th class="n">Predicted</th>' +
+        '<th>Stated</th><th>Rule</th><th>Reason</th></tr>' +
+        inadm.map((c) => `<tr class="inadm"><td><code>${esc(c.id)}</code></td><td>inadmissible</td>` +
+          `<td class="n">${fmtNum(c.observed)}</td><td class="n">${fmtNum(c.predicted)}</td><td>${c.stated && c.stated.text ? esc(c.stated.text) : ''}</td>` +
+          `<td><code>${esc(c.inadmissible.rule)}</code></td><td>${esc(c.inadmissible.reason.replace(/^fit\.object:\s*/, ''))}</td></tr>`).join('') + '</table></div>';
+    }
     h += `<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>` +
       q.checks.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.which || c.name)}</code></td>` +
         `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}${c.name === 'plausible' ? dimsCheck(q.dims_check) + partsUntestable(q.plausible_untestable) : ''}</td></tr>`).join('') + '</table></div>';
@@ -1009,7 +1084,7 @@
   function dimsCheck(rows) {
     if (!rows || !rows.length) return '';
     return '<table class="dimchk"><tr><th>Object</th><th class="n">Largest dimension (m)</th><th class="n">Class range (m)</th></tr>' +
-      rows.map((r) => `<tr class="${r.pass ? '' : 'bad'}"><td>${esc(r.obj)}</td>` +
+      rows.map((r) => `<tr class="${r.pass ? '' : r.pass === null ? 'muted' : 'bad'}"><td>${esc(r.obj)}</td>` +
         `<td class="n">${r.hi === r.lo ? fmtNum(r.lo) : interval(r.lo, r.hi)}</td>` +
         `<td class="n">${r.range ? interval(r.range[0], r.range[1]) : '<span class="muted">—</span>'}</td></tr>`).join('') + '</table>';
   }
