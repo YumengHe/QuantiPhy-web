@@ -209,7 +209,7 @@
 
   // tracked intervals per object on the video's time axis; the question's times as vertical lines
   function trackBlock(tracks, v, q) {
-    if (!tracks || !Object.keys(tracks).length) return q.identity || q.extents ? '<h4>Tracks</h4>' + identityBlock(q.identity) + extentsBlock(q.extents) : '';
+    if (!tracks || !Object.keys(tracks).length) return q.identity || q.extents || q.presence ? '<h4>Tracks</h4>' + presenceBlock(q.presence) + identityBlock(q.identity) + extentsBlock(q.extents) : '';
     const T = v.duration;
     const order = v.scene ? v.scene.objects.map((o) => o.name) : [];
     const pct = (t) => `${(100 * Math.min(Math.max(t / T, 0), 1)).toFixed(2)}%`;
@@ -220,7 +220,15 @@
       return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${lines}</span></div>`;
     }).join('');
     return `<h4>Tracks</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>` +
-      identityBlock(q.identity) + extentsBlock(q.extents);
+      presenceBlock(q.presence) + identityBlock(q.identity) + extentsBlock(q.extents);
+  }
+  // the inventory's presence verdict per object (rule decisions.no_conf): the grid votes and the rule they decide by
+  function presenceBlock(p) {
+    if (!p) return '';
+    return '<div class="scroll-x"><table class="sgrel presence"><tr><th>Object</th><th>Present</th><th>Votes</th><th>Rule</th></tr>' +
+      p.map(([n, pr, rule, votes, zoom]) => `<tr><td>${esc(n)}</td><td class="${pr === 'absent' ? 'bad' : pr == null ? 'muted' : ''}">${esc(pr == null ? 'unknown' : pr)}</td>` +
+        `<td>${votes.map(esc).join(' · ')}${zoom ? ` <span class="muted">zoom ${zoom.map(esc).join(' · ')}</span>` : ''}</td><td><code>${esc(rule)}</code></td></tr>`).join('') +
+      '</table></div>';
   }
   // frames and set-of-frames as compact ranges: [27, 28, 29, 30] -> 27–30
   function frameRuns(fs) {
@@ -349,16 +357,21 @@
         `<td>${esc(e.was.rel)}${e.was.to ? ` ${esc(e.was.to)}` : ''}</td><td><code>${esc(e.rule)}</code></td></tr>`).join('') + '</table></div>' : '';
     const tested = sg.edges.filter((e) => e.test);
     const edgeText = (e) => `${esc(e.rel)}${e.to ? ` ${esc(e.to)}` : ''} ${span(e.t0, e.t1)}`;
-    const ts = tested.length ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th><th>Test</th><th></th><th></th></tr>' +
-      tested.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}</td>` +
-        `<td><code>${esc(e.test.name)}</code></td>${testCells(e.test)}</tr>` +
-        (e.absorbed || []).map((x) => `<tr class="absorbed"><td></td><td>↳ ${edgeText(x)}</td><td><code>${esc(x.test.name)}</code></td>${testCells(x.test)}</tr>`).join('')).join('') +
+    const hasSrc = sg.edges.some((e) => e.source);
+    const listed = sg.edges.filter((e) => e.test || e.source);
+    const ts = listed.length ? `<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th>${hasSrc ? '<th>Source</th>' : ''}<th>Test</th><th></th><th></th></tr>` +
+      listed.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}</td>${hasSrc ? `<td>${esc(e.source || '')}</td>` : ''}` +
+        (e.test ? `<td><code>${esc(e.test.name)}</code></td>${testCells(e.test)}` : '<td></td><td></td><td></td>') + '</tr>' +
+        (e.absorbed || []).map((x) => `<tr class="absorbed"><td></td><td>↳ ${edgeText(x)}</td>${hasSrc ? '<td></td>' : ''}<td><code>${esc(x.test.name)}</code></td>${testCells(x.test)}</tr>`).join('')).join('') +
       '</table></div>' : '';
+    const cf = sg.conflicts ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th><code>scenegraph.overlap</code></th><th>Edges</th><th>Source</th><th></th></tr>' +
+      sg.conflicts.map((c) => `<tr><td>${esc(c.obj)}</td><td class="bad">${span(c.t0, c.t1)}</td><td>${c.edges.map(edgeText).join('<br>')}</td>` +
+        `<td>${esc(c.source)}</td><td>${esc(c.why)}</td></tr>`).join('') + '</table></div>' : '';
     const st = sg.self_test ? `<p class="facts"><code>builder.self_test</code> tested ${sg.self_test.tested} · fail ${sg.self_test.fail} · merged ${sg.self_test.merged} · unknown ${sg.self_test.unknown}</p>` : '';
     const unk = sg.unknown ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Unknown span</th><th>Removed edge</th><th>Reason</th></tr>' +
       sg.unknown.map((u) => `<tr><td>${esc(u.obj)}</td><td class="bad">${span(u.t0, u.t1)}</td><td>${esc(u.rel)}${u.to ? ` ${esc(u.to)}` : ''} <code>${esc(u.test.name)}</code></td>` +
         `<td>${esc(u.reason)}</td></tr>`).join('') + '</table></div>' : '';
-    return tree || rel || unt || rw || ts || unk ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${unk}${rel}${rw}${unt}` : '';
+    return tree || rel || unt || rw || ts || unk || cf ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${cf}${unk}${rel}${rw}${unt}` : '';
   }
   // the geometric test of an agent state edit (rule graph_edit.retest): result and its reason
   function testCells(t) {
@@ -592,19 +605,6 @@
     if (o.out_of_frame && o.out_of_frame.length) t += `; out of frame ${o.out_of_frame.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ')} s`;
     return t;
   }
-  // conf-lowering signals of one scene answer (quality fields written by scene_fit)
-  function confSignals(q) {
-    if (!q) return [];
-    const out = [];
-    if (q.own_plane) out.push('own plane');
-    if (q.support_uncertain) out.push('support uncertain');
-    if (q.support_consistency != null && q.support_consistency < 1) out.push(`support consistency ${fmt(q.support_consistency, 2)}`);
-    if (q.dim_source === 'bound') out.push('unseen (bound)');
-    if (q.collapsed) out.push('collapsed');
-    if (q.structure) out.push('structure');
-    if (q.t_cover === false) out.push('t_q not visible');
-    return out;
-  }
   // focal-length votes of the fit (scene json "focal_votes")
   const F_SRC = { gravity: 'gravity parabola', lab_prior: 'lab prior', size_prior_depth: 'size prior + depth', typical_votes: 'typical size', typical_height: 'typical height', prior_kinematic: 'kinematic prior', person: 'person height', votes_first: 'votes first' };
   function focalVotes(s) {
@@ -746,12 +746,10 @@
         q.checks.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.name)}</code></td>` +
           `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}</td></tr>`).join('') + '</table></div>';
     } else if (f || q.method || q.status) {
-      const sig = confSignals(f && f.quality);
       h += '<div class="scroll-x"><table class="fit"><tr><th>Object</th><th>Method</th><th class="n">Scene value</th>' +
-        '<th class="n">Confidence</th><th class="n">t_q alignment</th><th>Status</th></tr>' +
-        `<tr><td>${f ? esc(f.obj) : '—'}</td><td><code>${esc(q.method)}</code>${sig.length ? '<br>' + sig.map((x) => `<span class="sigtag">${esc(x)}</span>`).join(' ') : ''}</td>` +
-        `<td class="n">${fmtNum(f && f.pred)}</td>` +
-        `<td class="n">${fmt(q.conf, 3)}</td>${alignCell(q.align)}<td><code>${esc(q.status)}</code></td></tr></table></div>`;
+        '<th class="n">t_q alignment</th><th>Status</th></tr>' +
+        `<tr><td>${f ? esc(f.obj) : '—'}</td><td><code>${esc(q.method)}</code></td>` +
+        `<td class="n">${fmtNum(f && f.pred)}</td>${alignCell(q.align)}<td><code>${esc(q.status)}</code></td></tr></table></div>`;
     }
     if (s) {
       const hasSup = s.objects.some((o) => o.support), hasVis = s.objects.some((o) => o.visible);
@@ -766,7 +764,7 @@
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
-        segfitTable(s) + eventsTable(s) + pendulumTable(s) +
+        segfitTable(s) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) +
         (s.camera ? `<p class="facts"><span title="${esc(s.camera.how)}">f ${plusMinus(s.camera.f, s.camera.sigma)} px${s.camera.source ? ` (${esc(s.camera.source)}${wasText(s.camera.fused)})` : ''}</span>`
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
@@ -808,6 +806,48 @@
         `<td class="n">${e.t == null ? '—' : fmt(e.t, 3)}</td><td class="n">${e.window ? `${fmt(e.window[0], 3)}–${fmt(e.window[1], 3)}` : '—'}</td>` +
         `<td>${esc(e.precision || '')}</td><td class="n">${fmt(e.t_fit, 3)}</td><td>${e.kick ? 'yes' : ''}</td></tr>`).join('')).join('') +
       '</table></div>';
+  }
+  // every impulse decision of each physics chain (rule law.impulse): the agent that delivers it, or the track's
+  // velocity jump against its noise, or why the state law needs none
+  function impulseTable(s) {
+    const os = s.objects.filter((o) => o.impulse);
+    if (!os.length) return '';
+    const cls = (v) => (v === 'kick' || v === 'agent.unobserved' ? 'ok' : v.startsWith('rejected') ? 'bad' : '');
+    return '<div class="scroll-x"><table class="objs impulse"><tr><th>Object</th><th class="n">t (s)</th><th>Event</th><th>Agent</th>' +
+      '<th class="n">Jump (px/s)</th><th><code>law.impulse</code></th><th></th></tr>' +
+      os.map((o) => o.impulse.map((x, i) => `<tr><td>${i ? '' : esc(o.name)}</td><td class="n">${fmt(x.t, 3)}</td><td>${esc(x.event)}</td>` +
+        `<td>${x.agent ? `${esc(x.agent)}${x.source ? ` <span class="muted">${esc(x.source)}</span>` : ''}` : '<span class="muted">none</span>'}</td>` +
+        `<td class="n"${x.jump_how ? ` title="${esc(x.jump_how)}"` : ''}>${x.jump != null ? plusMinus(x.jump, x.sigma) : ''}</td>` +
+        `<td class="${cls(x.verdict)}">${esc(x.verdict)}</td><td>${esc(x.why)}</td></tr>`).join('')).join('') +
+      '</table></div>';
+  }
+  // the measured slope of each inclined support and the rolling law it gives (rule support.incline), with the
+  // refined onset of each start from rest (rule kinematic.onset)
+  function inclineBlock(s) {
+    let h = '';
+    (s.incline || []).forEach((x) => {
+      h += `<p class="facts"><code>support.incline</code> ${esc(x.support)} · <span title="${esc(x.why)}">θ ${plusMinus(x.theta, x.sigma)}°</span>` +
+        `${x.sigma_f == null && x.sigma_f_how ? ` <span class="muted">(${esc(x.sigma_f_how)})</span>` : x.sigma_f != null ? ` · σ_f ${fmtNum(x.sigma_f)}°` : ''}` +
+        `${x.length != null ? ` · ${fmtNum(x.length)} m` : ''} · ${esc(x.method)} · <span class="${x.inclined ? '' : 'muted'}">${x.inclined ? 'inclined' : 'not inclined'}</span></p>` +
+        `<p class="facts">up: ${esc(x.up.source)} · <span class="${x.up.level ? '' : 'bad'}" title="${esc(x.up.why)}">${x.up.level ? 'level' : 'not level'} · ${plusMinus(x.up.angle, x.up.sigma)}°</span></p>`;
+    });
+    const ls = s.objects.filter((o) => o.incline_law || o.onset);
+    if (ls.length) {
+      h += '<div class="scroll-x"><table class="objs"><tr><th>Object</th><th class="n">Phase</th><th class="n">t_on (s)</th><th>Support</th>' +
+        '<th class="n">a (m/s²)</th><th class="n">a geometry (m/s²)</th><th class="n">κ</th><th class="n">θ (°)</th><th>Law</th></tr>' +
+        ls.map((o) => {
+          const ph = new Set([...(o.onset || []).map((x) => x.phase), ...(o.incline_law || []).map((x) => x.phase)]);
+          return [...ph].sort((a, b) => a - b).map((p, i) => {
+            const on = (o.onset || []).find((x) => x.phase === p), l = (o.incline_law || []).find((x) => x.phase === p);
+            const t = l ? plusMinus(l.t_on, l.sigma_t_on) : on ? plusMinus(on.t, on.sigma) : '';
+            return `<tr><td>${i ? '' : esc(o.name)}</td><td class="n">${p}</td><td class="n"${on ? ` title="${esc(on.how)}"` : ''}>${t}</td>` +
+              (l ? `<td>${esc(l.support)}</td><td class="n">${plusMinus(l.accel, l.sigma_accel)} <span class="muted">${esc(l.accel_source)}</span></td>` +
+                `<td class="n">${fmtNum(l.accel_geometry)}</td><td class="n" title="${esc(l.shape)}">${fmtNum(l.kappa)}</td><td class="n">${fmtNum(l.theta)}</td><td>${esc(l.law)}</td>`
+                : '<td></td><td></td><td></td><td></td><td></td><td></td>') + '</tr>';
+          }).join('');
+        }).join('') + '</table></div>';
+    }
+    return h;
   }
   // pendulum objects (rules scale.converged / pendulum.period): fitted L, swing period, f solved with the stated size
   function pendulumTable(s) {
@@ -870,7 +910,13 @@
     return `<tr class="${m.name === chosen ? 'chosen' : ''}${m.admissible ? '' : ' inadm'}"><td><code>${esc(m.name)}</code></td>` +
       `<td><code>${esc(m.method)}</code></td><td class="n mval">${val}</td>` +
       `<td class="${m.admissible ? 'ok' : 'bad'}">${m.admissible ? 'admissible' : esc(m.why)}</td>` +
-      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${sigmaLines(m)}${directLines(m)}${prof}</td></tr>`;
+      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${sigmaLines(m)}${directLines(m)}${onsetLine(m.kin_onset)}${prof}</td></tr>`;
+  }
+  // a law-driven start from rest bounds the speed (rule kinematic.onset): |v| <= ∫|a| dt + 3σ
+  function onsetLine(k) {
+    if (!k) return '';
+    return `<div class="${cls3(k.pass)}"><code>kinematic.onset</code> ${res3(k.pass)} · |v| ${fmtNum(k.v)} ${k.pass === false ? '>' : '≤'} ` +
+      `${fmtNum(k.integral)} + 3 × ${fmtNum(k.sigma)} = ${fmtNum(k.bound)} · t_on ${plusMinus(k.t_on, k.sigma_t_on)} s</div>`;
   }
   // how the measurement's sigma was found: the chain piece holding t with its fixed events (rule fit.sigma_chain)
   function sigmaLines(m) {

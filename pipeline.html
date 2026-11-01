@@ -48,7 +48,7 @@
   <div class="rail"></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
-  <a class="node fc" href="#s6"><b>6 Scene graph (per frame)</b><span class="m">Phases, release at the last hand contact, contacts; every edge tested by the builder, a failed span absorbed or unknown; untracked objects left out; agent edits keep every physical state</span>
+  <a class="node fc" href="#s6"><b>6 Scene graph (per frame)</b><span class="m">Phases, release at the last hand contact, contacts; every edge tested by the builder and named by its source, a failed span absorbed or unknown, overlapping edges a conflict; untracked objects left out; agent edits keep every physical state</span>
     <span class="ck">segfit · fit.law · contact · state</span></a>
   <div class="rail ret edit"><span>relation / main support</span></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
@@ -57,8 +57,8 @@
   <div class="rail"></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
-  <a class="node fc" href="#s8"><b>8 Physics-guided Fitting</b><span class="m">Camera, scale, motion laws per state, every measurement of the asked quantity</span>
-    <span class="ck">tracked · scale · visible · fit · segfit · state · gravity · focal · contact · agree · constraints</span></a>
+  <a class="node fc" href="#s8"><b>8 Physics-guided Fitting</b><span class="m">Camera, scale, measured slopes, motion laws per state with every impulse's agent, every measurement of the asked quantity</span>
+    <span class="ck">tracked · scale · visible · fit · segfit · state · gravity · focal · contact · kinematic.onset · agree · constraints</span></a>
   <div class="rail ret"><span>refit</span></div>
   <div class="ac fc"><div class="arrow"></div><span class="el">a check fails</span></div><div class="rail"></div>
 
@@ -74,17 +74,17 @@
 <h2 id="time">Time per step</h2>
 <div class="scroll-x"><table class="tt">
   <tr><th>Step</th><th>Timing key</th><th class="n">Median (s)</th><th class="n">Min</th><th class="n">Max</th></tr>
-  <tr><td>1 Objects</td><td><code>objects</code></td><td class="n">0.7</td><td class="n">0.7</td><td class="n">0.8</td></tr>
+  <tr><td>1 Objects</td><td><code>objects</code></td><td class="n">0.8</td><td class="n">0.7</td><td class="n">0.8</td></tr>
   <tr><td>2 Scene graph (grid)</td><td><code>scenegraph_grid</code></td><td class="n">1.2</td><td class="n">1.1</td><td class="n">1.3</td></tr>
-  <tr><td>3 Observe</td><td><code>observe</code></td><td class="n">8.5</td><td class="n">8.3</td><td class="n">16.6</td></tr>
-  <tr><td>4 Track</td><td><code>track</code></td><td class="n">46.4</td><td class="n">40.9</td><td class="n">74.1</td></tr>
-  <tr><td>5 Measure</td><td><code>measure</code></td><td class="n">55.6</td><td class="n">43.1</td><td class="n">93.7</td></tr>
-  <tr><td>6 Scene graph (per frame)</td><td><code>scenegraph_pf</code></td><td class="n">1.4</td><td class="n">1.3</td><td class="n">1.8</td></tr>
-  <tr><td>7 Ground</td><td><code>ground</code></td><td class="n">6.4</td><td class="n">2.2</td><td class="n">30.5</td></tr>
-  <tr><td>8 Physics-guided Fitting</td><td><code>scene</code></td><td class="n">50.1</td><td class="n">20.5</td><td class="n">964.9</td></tr>
-  <tr><td>9 Agent loop</td><td><code>agent</code></td><td class="n">0.2</td><td class="n">0.1</td><td class="n">104.3</td></tr>
+  <tr><td>3 Observe</td><td><code>observe</code></td><td class="n">8.8</td><td class="n">8.5</td><td class="n">17.3</td></tr>
+  <tr><td>4 Track</td><td><code>track</code></td><td class="n">49.2</td><td class="n">43.3</td><td class="n">85.6</td></tr>
+  <tr><td>5 Measure</td><td><code>measure</code></td><td class="n">53.8</td><td class="n">45.5</td><td class="n">131.5</td></tr>
+  <tr><td>6 Scene graph (per frame)</td><td><code>scenegraph_pf</code></td><td class="n">1.5</td><td class="n">1.3</td><td class="n">1.7</td></tr>
+  <tr><td>7 Ground</td><td><code>ground</code></td><td class="n">6.8</td><td class="n">2.9</td><td class="n">32.4</td></tr>
+  <tr><td>8 Physics-guided Fitting</td><td><code>scene</code></td><td class="n">37.6</td><td class="n">29.5</td><td class="n">978.7</td></tr>
+  <tr><td>9 Agent loop</td><td><code>agent</code></td><td class="n">0.2</td><td class="n">0.1</td><td class="n">110.7</td></tr>
   <tr><td>10 Answer</td><td><code>answer</code></td><td class="n">0.0</td><td class="n">0.0</td><td class="n">0.0</td></tr>
-  <tr><td><b>Total</b></td><td><code>total_seconds</code></td><td class="n">234.8</td><td class="n">137.1</td><td class="n">1114.5</td></tr>
+  <tr><td><b>Total</b></td><td><code>total_seconds</code></td><td class="n">219.0</td><td class="n">148.6</td><td class="n">1125.1</td></tr>
 </table></div>
 <p class="muted small">The 10 questions of the v5gpt run (<code>outputs/harness/v5gpt/answers</code>, <code>timing.steps</code>); model calls replay from the run tag's memo where the request is unchanged.</p>
 
@@ -140,10 +140,11 @@
     <li>Rotation relations (<code>ROTATION_RELS</code>): <code>orbits</code> (a closed curve around a body), <code>rotates_about</code> (a fixed centre on a circular path), <code>pivot</code> (turns about a fixed point); <code>to</code> = the centre or pivot, null = an unnamed fixed point; only for an object whose path curves around a centre</li>
     <li><code>_clean</code>, <code>_canon_targets</code>: unknown objects and relations dropped; support names mapped to inventory objects</li>
     <li><code>table_plane</code> sets <code>main_support</code></li>
+    <li>Every edge names its source (<code>source</code>: <code>grid</code> here, <code>per-frame</code> in step 6, <code>agent</code> for an agent edit) and carries no confidence (<code>decisions.no_conf</code>); where edges disagree the source order agent &gt; per-frame &gt; grid decides, then the longer edge</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>scenegraph_grid_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>nodes</code>, <code>edges[{from, to, rel, t_start, t_end}]</code>, <code>frames_t</code>, <code>size_order</code>, <code>main_support</code>, <code>support_objects</code></li>
+    <li><code>scenegraph_grid_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>nodes</code>, <code>format: 2</code>, <code>edges[{from, to, rel, t_start, t_end, source}]</code>, <code>frames_t</code>, <code>size_order</code>, <code>main_support</code>, <code>support_objects</code></li>
     <li>Its support nodes are the names step 3 segments (<code>scenegraph.support_names</code>)</li>
   </ul></dd>
   <dt>Checks</dt>
@@ -210,12 +211,13 @@
         <li><code>border</code>: a track on the image border in ≥ 90 % of its frames needs a clear "yes" majority</li>
       </ul>
       Every candidate rejected → the object is <code>untracked</code> in this question: no track, no detector or foreground fallback</li>
+    <li>Inventory presence (<code>presence.verdict</code>) by the grid votes alone, no confidence and no detector-score gate: some grid votes visible → visible (<code>presence.visible_vote</code>); none visible and one partial → partial (<code>presence.partial_vote</code>); every grid votes absent → a zoom re-check on enlarged crops around the object's track, unless that track rides on another object: a "visible" majority → partial (<code>presence.zoom_found</code>, the detector score recorded), else absent (<code>presence.absent_all_grids</code>); no vote → unknown (<code>presence.incomplete</code>)</li>
     <li>Merge into the run's cache with the inventory's presence label (absent / partial / visible). The identity record is the only judgement of a track: no box-shape rule, no second crop vote</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
     <li><code>tracks_&lt;tag&gt;raw/&lt;unit&gt;.json</code> → <code>tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>tracks{name: {boxes, scores, centroids, areas}}</code>; <code>meta.choose</code>, <code>meta.recheck</code>, <code>meta.shared{sam2_hits, sam2_misses}</code>, <code>meta.identity{name: {candidates[{source, frame, box, n_frames, moves, votes, class_size, presence, border_frac, outcome, why}], chosen, untracked}}</code></li>
-    <li><code>objects_&lt;tag&gt;_presence_v3/&lt;unit&gt;.json</code>; <code>trackcheck/tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>, derived from <code>meta.identity</code>: <code>checks{name: {verified, reasons, votes, identity{chosen, n_candidates, rejected, source, outcome}}}</code></li>
+    <li><code>objects_&lt;tag&gt;_presence_v4/&lt;unit&gt;.json</code>: <code>{name: {present, rule, votes, zoom_votes}}</code>; <code>trackcheck/tracks_&lt;tag&gt;/&lt;unit&gt;.json</code>, derived from <code>meta.identity</code>: <code>checks{name: {verified, reasons, votes, identity{chosen, n_candidates, rejected, source, outcome}}}</code></li>
   </ul></dd>
   <dt>Checks</dt>
   <dd><ul>
@@ -304,19 +306,20 @@
     <li>A failed span merges into the previous, else the next, edge only if that edge's state re-tested over the joined span passes (<code>absorbed</code> on that edge); otherwise it is removed and listed in <code>unknown</code> with its test and reason (<code>state.unknown</code>); untestable spans stay</li>
     <li>Release at each held → airborne boundary: while the hand is seen touching the object on some frame of the release window, the release is the last frame of that hand-contact run, and a free-flight interval cannot move it earlier (<code>release.last_contact</code>); no touching frame → the free-flight interval (<code>release.free_flight</code>)</li>
     <li>Contacts between nearby boxes, kept on ≥ 2 frames; edges cut to the track's present intervals</li>
+    <li>Two state edges of one object from the same source with different relations over a common span are a conflict (<code>scenegraph.overlap</code>): the relation is unknown there, no confidence or order picks one; step 8 adds the span to the object's unknown spans</li>
     <li>An object left untracked by its identity record (step 4) is not a node and has no edge; a holder or support it names stays a node</li>
     <li>Agent edits (step 9, <code>scenegraph_set_relation</code>) may move a state boundary or change a state, never remove one: an edit that leaves an object with no motion state over an interval is rejected (<code>graph_edit.keeps_state</code>, result "rejected: …"). A state an edit sets (any relation but contact) is re-tested by the same geometric tests over its state run — the edited window joined with the touching edges of the same object, state and target — on the unit's own tracks, support masks and locomotion (<code>graph_edit.retest</code>); fail → rejected, "rejected (rule graph_edit.retest): …" with the test's name and numbers; pass / untestable → the edge is written with <code>test{name, result, why, values}</code>, and a tested state set over a builder-unknown span replaces that part of <code>unknown</code></li>
     <li>When step 8 loads the graph, an "above" edge of an object that is also on / in / held / attached / airborne at other times is airborne, so a flight it touches stays one ballistic piece (<code>above.airborne</code>; the edge keeps <code>was{rel, to}</code> and names its <code>rule</code>); an object whose edges are all "above" is an overhead structure and keeps them</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>scenegraph_&lt;tag&gt;/&lt;unit&gt;.json</code>: grid fields plus <code>events</code>, <code>per_frame{obj: [{t, label}]}</code>, edges with <code>test</code>, <code>absorbed</code>, <code>t_release</code>, <code>release_rule</code>, <code>release_why</code>, rotation edges with <code>curve{theta_deg, extent_px, n}</code>, <code>untracked{name: why}</code>, <code>unknown[{from, rel, to, t_start, t_end, test, reason}]</code>, <code>self_test{tested, fail, merged, unknown}</code></li>
+    <li><code>scenegraph_&lt;tag&gt;/&lt;unit&gt;.json</code>: grid fields plus <code>events</code>, <code>per_frame{obj: [{t, label}]}</code>, edges with <code>test</code>, <code>absorbed</code>, <code>t_release</code>, <code>release_rule</code>, <code>release_why</code>, rotation edges with <code>curve{theta_deg, extent_px, n}</code>, <code>untracked{name: why}</code>, <code>unknown[{from, rel, to, t_start, t_end, test, reason}]</code>, <code>self_test{tested, fail, merged, unknown}</code>, <code>conflicts[{name, from, source, t_start, t_end, edges, why}]</code></li>
     <li>Read by step 8 as the phases of each object (<code>motion_phases</code>): state and allowed models per phase, cut where its support changes and at every unknown span (before the first edge, between two edges, after the last)</li>
   </ul></dd>
   <dt>Checks</dt>
   <dd><ul>
     <li>Wrong phase state → wrong model set → <b>segfit</b> (no model of the state fits the piece)</li>
-    <li>An asked time inside an unknown span → <b>state</b></li>
+    <li>An asked time inside an unknown span or a conflict → <b>state</b>, the reason naming the conflict</li>
     <li>A rotation phase kept or rejected wrongly → <b>fit.law</b> (rotation without the rotation law) or a circle where there is none</li>
     <li>A support change inside a motion piece → <b>contact</b> (the piece spans the change)</li>
     <li>Wrong <code>t_release</code> or phase bounds → <b>fit.piece</b>, <b>plausible</b> (passive_motion)</li>
@@ -364,11 +367,11 @@
   </ul></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_sigma, f_sigma_how, f_source, scale_source, support_plane, s, metric}</code>, <code>focal{votes, f, source, consistent[], fusion{pass, reason, f, sigma, n_sources, camera_f, camera_sigma, sources[{object, kind, f, sigma, n_votes, camera, verdict, why, bounded}]}}</code>, <code>support_plane{pass, failed, reason, tests}</code>, <code>support_horizon</code>, <code>camera_roll</code>, <code>scale{s, source, object, extent, checks, failed}</code>, <code>gravity{g, sigma, source, rule, up, up_source, evidence[], checks, failed}</code>, <code>plane_ok</code> (= <code>support_plane.pass</code>), <code>main_support</code>, <code>scene_graph</code> (the graph as fitted; rewritten edges with <code>was</code>, <code>rule</code>)</li>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_sigma, f_sigma_how, f_source, scale_source, support_plane, s, metric}</code>, <code>focal{votes, f, source, consistent[], fusion{pass, reason, f, sigma, n_sources, camera_f, camera_sigma, sources[{object, kind, f, sigma, n_votes, camera, verdict, why, bounded}]}}</code>, <code>support_plane{pass, failed, reason, tests}</code>, <code>support_horizon</code>, <code>camera_roll</code>, <code>scale{s, source, object, extent, checks, failed}</code>, <code>gravity{g, sigma, source, rule, up, up_source, evidence[], checks, failed}</code>, <code>plane_ok</code> (= <code>support_plane.pass</code>), <code>main_support</code>, <code>support_incline{support: {method, theta_deg, sigma_deg, sigma_f_deg, length_m, inclined, down, ends, up{level, angle_deg, sigma_deg, source, why}, why}}</code>, <code>incline_up</code>, <code>scene_graph</code> (the graph as fitted; rewritten edges with <code>was</code>, <code>rule</code>)</li>
     <li><code>extents{object: {dim: {sigma_mask, sigma_mask_how, at: {label: {value, sigma, frames_used, frames_rejected[{frame, speed_px, extent, why}], how}}}}}</code> (also <code>objects[name].extent</code>), <code>camera_sources[{object, frames, t, rule}]</code>, <code>camera_one{f, sigma, how, votes[{source, object, f, sigma, used, why}]}</code>, <code>depth_bindings{given, bound[{name, node, as, used{by, why}}], unbound[{name, reason}]}</code></li>
-    <li><code>objects[name]</code>: dims, <code>dim_source</code> (observed / prior / bound), <code>dim_bounds{dim: [lo, hi | null]}</code>, p0, v0, a, segments, mode, <code>motion_law{model, phases | rotation{rel, target, pieces, circle_candidate}}</code>, <code>physics</code>, <code>pendulum{L, period_s, period_sigma_s, periods, f_free{f, f_start, bounds, at_bound, D, D_prior, rel, converged}}</code>, support</li>
+    <li><code>objects[name]</code>: dims, <code>dim_source</code> (observed / prior / bound), <code>dim_bounds{dim: [lo, hi | null]}</code>, p0, v0, a, segments, mode, <code>motion_law{model, phases | rotation{rel, target, pieces, circle_candidate}, impulse}</code>, <code>physics{impulse[{t, event, agent, source, verdict, why, jump_px_s, sigma_px_s}], onset{phase: {t, sigma, how}}, incline_law[{support, t_on, sigma_t_on, accel, sigma_accel, accel_source, accel_geometry, kappa, shape, theta_deg, law}]}</code>, <code>pendulum{L, period_s, period_sigma_s, periods, f_free{f, f_start, bounds, at_bound, D, D_prior, rel, converged}}</code>, support</li>
     <li><code>f_first_clamp{from, to, band}</code>: the first focal estimate moved into the person-height band, reported</li>
-    <li><code>results[0]</code>: <code>measurements[]</code>, <code>chosen</code>, <code>selection</code>, <code>pred</code>, <code>method</code>, <code>source</code>, <code>checks</code>, <code>failed</code>, <code>quality.align_tq</code>, <code>quality.measurement.constraint_residuals[]</code>; a fit measurement's <code>inputs{sigma_how, chain_piece{piece, events, window_short, events_near_t}, sigma_events{events, one_sided, event_unstable}}</code></li>
+    <li><code>results[0]</code>: <code>measurements[]</code>, <code>chosen</code>, <code>selection</code>, <code>pred</code>, <code>method</code>, <code>source</code>, <code>checks</code>, <code>failed</code>, <code>quality.align_tq</code>, <code>quality.measurement.constraint_residuals[]</code>; a fit measurement's <code>inputs{sigma_how, chain_piece{piece, events, window_short, events_near_t}, sigma_events{events, one_sided, event_unstable}}</code>, <code>kinematic_onset{pass, t_on, sigma_t_on, v, integral, sigma, bound, reason}</code></li>
   </ul></dd>
 </dl>
 
@@ -407,6 +410,8 @@
   <tr><td>points</td><td>depth_info</td><td>The depth model's ground-contact points of the objects on the support, aligned to the depth statements, sit off the plane: median |r<sub>i</sub>| / σ<sub>i</sub> &gt; 3, σ<sub>i</sub> = |n·ray<sub>i</sub>| Z<sub>i</sub> × the alignment's leave-one-out error</td></tr>
   <tr><td>contacts</td><td>Both</td><td>An object fitted standing on the plane lifts its tracked box bottom off the fitted contact by more than 0.25 × its projected height</td></tr>
 </table></div>
+<p>The main support is the support with the longest total duration of "on" edges of the objects that stand on something; a tie goes to the edge source agent &gt; per-frame &gt; grid. No edge confidence.</p>
+<p>Inclined supports (<code>support.incline</code>): the slope of every support a moving object rests on, other than the main support, is measured from the scene. Its two bound end statements (far / near, top / bottom) are grounded on their frame — two places: their box centres; one place: the support box's top and bottom edges at its centre column, the depth model naming the far edge — and each end is put at its stated distance along its pixel ray; without them, the depth model's planes through the support's masks. Up is the depth model's plane through the main support's mask, else the scene's support plane; the scene plane is level when the two agree within 3σ. θ ± σ from the stated digits, the end rows' grounding spread and at least the 1 / √6 px edge quantisation (the focal part σ<sub>f</sub> apart); inclined when θ − 3σ &gt; 0. A scene plane that is not level carries no law past a measured slope: the chain ends at the slope's end and later frames are kinematic pieces.</p>
 <p class="fl"><b>Checks</b> <code>plane_ok</code> = <code>support.plane</code> passes; <code>plane_ok: false</code> with objects on it → <b>plausible</b> (support_plane), whose reason quotes the failed sub-tests.</p>
 
 <h3>8.3 Scale</h3>
@@ -431,6 +436,9 @@
   <li>The phase's state gives the candidate models: airborne → ballistic, unless locomotion is flies / floats / swims / orbits (then the kinematic set); a ballistic phase is one piece (no breakpoint inside it without a support change; a walker in a jump is in free flight), free in 3D, with a = g_scene along −up (8.5); on / in a support → static, constant velocity, constant acceleration in the support plane; held / attached → the holder's kinematic set; no edge → the kinematic set. A circle is a candidate only under a rotation relation</li>
   <li>Every object with a rotation plan gets the rotation law: plan mode rotation, no support plane, no gravity, each piece fitted with the circle among its candidates (<code>motion_law.rotation</code>)</li>
   <li>A hanging sphere → pendulum; a passive object → the physics chain (rest, bounce, flight, incline) when it fits within 1.5× the kinematic rms + 2 px</li>
+  <li>An "on" edge to an inclined support is an incline phase along the measured downhill direction, the body's centre one radius above the slope's surface; its acceleration is the prior's stated one inside the phase, else κ g sin θ (κ 5/7 solid, 3/5 hollow sphere). From rest v = a (t − t<sub>on</sub>), free of f and scale, with the law's σ (<code>physics.incline_law</code>, <code>sigma_how</code> "law.incline")</li>
+  <li>An impulse needs evidence (<code>law.impulse</code>): a kick — the onset of a rest-then-move, or a turn on the support — needs an agent at that time: a held_by / attached_to / contact edge over the kick's window widened by one graph step, or another tracked object's box within 3 / √6 px inside the window widened by one frame; never the support the object rests on. Without one, a body at rest on a level support whose image velocity jumps at the onset by more than 3σ of its own rest noise within one graph step was started by an unseen agent (<code>agent.unobserved</code>). An onset the state law explains — rolling from rest on an incline, a release into free flight — is never a kick (<code>rejected: state law explains the onset</code>); a turn without an agent is no event; a level support with neither → <code>no_law</code>. Every decision is recorded: <code>physics.impulse[{t, event, agent, source, verdict, why}]</code></li>
+  <li>A start from rest (<code>kinematic.onset</code>): the onset's window reaches back one graph step before the graph's onset and forward one frame; the onset is refined between frames at the vertex of the parabola through the box rms² of the best candidate frame and its neighbours, σ from its curvature (<code>physics.onset</code>). For a law-driven onset (verdict rejected), every admissible speed satisfies |v(t)| ≤ ∫<sub>t<sub>on</sub></sub><sup>t</sup> |a| dt + 3σ, a from the state law of each phase it passes (incline: the law's a, flight: g, level support: 0); a fail is the check <b>kinematic.onset</b></li>
   <li>Only a known agency is passive or driven (<code>agency.unknown</code>): an object whose inventory agency is unknown gets no physics chain (kinematic pieces, <code>motion_law{model: driven, agency: untestable, why}</code>) and casts no gravity focal vote (<code>focal.agency_unknown[{object, why}]</code>), never a default</li>
 </ol>
 <p>Pendulum (<code>fit_pendulum</code>, <code>pendulum_checks</code>). When the ball's stated size is the scene's only scale source (size prior, no depth statement, no kinematic prior), log f in [0.3 W, 3 W] is a parameter of the pendulum least squares, solved jointly with the swing under the stated size (<code>f_free</code>); <code>scale.converged</code> passes when |D / D<sub>prior</sub> − 1| &lt; 3 % at that solution. <code>pendulum.period</code>: the string length the swing period implies at the fitted amplitude and damping, L<sub>T</sub> = g T₀² / (16 K(sin²(θ<sub>amp</sub>/2))²), T₀ = T √(1 − (cT/4π)²), agrees with the fitted L within 3√(σ₁² + σ₂²); σ<sub>T</sub> is the spread of the minima spacings over √n, at least the frame quantization.</p>

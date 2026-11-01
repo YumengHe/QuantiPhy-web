@@ -143,6 +143,17 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            "checks"."constraints" has "untestable_ids" / "untestable" (rule G13); a failed unit's answer record has
 #            "error" (StageError: objects.llm_invalid / scenegraph.llm_invalid ...) and a timing prefix; a scene's
 #            plausible parts may have "untestable" [reason] (critic.agency_unknown)
+#   impulse  every physics record has "impulse" [{t, event, agent, source, verdict (kick / agent.unobserved / rejected:
+#            .. / chain ends / no_law), why, jump_px_s?, sigma_px_s?, jump_how?}] equal to its motion law's (rule
+#            law.impulse), "onset" {phase: {t, sigma, how}} and "incline_law" [{support, t_on, sigma_t_on, accel,
+#            sigma_accel, accel_source, accel_geometry, kappa, shape, theta_deg, law}] (rule support.incline); the scene
+#            has "support_incline" {support: {method, theta_deg, sigma_deg, length_m, inclined, up {level, angle_deg,
+#            sigma_deg, source, why}, why}} and "incline_up"; a measurement may have "kinematic_onset" {pass, t_on,
+#            sigma_t_on, v, integral, sigma, bound, reason} (rule kinematic.onset); the scene graph cache has "format" 2:
+#            every edge a "source" (agent / per-frame / grid) and no "conf", "conflicts" [{name, from, source, t_start,
+#            t_end, edges, why}] (rule scenegraph.overlap); the presence record
+#            outputs/objects_<tag>_presence_v4/<unit>.json has {name: {present, rule, votes, zoom_votes?}} and no
+#            confidence (rule decisions.no_conf)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -155,7 +166,7 @@ VERSION_FORMAT = {
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
-           "static": True, "fusion": True, "fused": True},
+           "static": True, "fusion": True, "fused": True, "impulse": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -258,8 +269,16 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
             raise ValueError(f"{AT['where']}: kept scene graph is for unit {g['unit']!r}")
     else:
         g = unit_json("sgraph", key, "scene graph")
+    if FMT.get("impulse"):
+        if req(g, "format", "scene graph") != 2:
+            raise ValueError(f"{AT['where']}: scene graph format {g['format']!r}, expected 2")
+        for e in req(g, "edges", "scene graph cache"):
+            if "conf" in e or req(e, "source", "edge") not in EDGE_SOURCES:
+                raise ValueError(f"{AT['where']}: edge {e.get('from')!r} {e.get('rel')!r} source {e.get('source')!r}"
+                                 f"{' with a conf' if 'conf' in e else ''}")
     edges = [{"from": text(req(e, "from", "edge")), "to": text(req(e, "to", "edge")) or None,   # null "to": airborne
               "rel": text(e["rel"]), "t0": num(req(e, "t_start", "edge"), 4), "t1": num(req(e, "t_end", "edge"), 4)}
+             | ({"source": text(e["source"])} if FMT.get("impulse") else {})
              | ({"test": test_view(e["test"], f"edge {e.get('from')!r} {e.get('rel')!r}")} if "test" in e else {})
              | ({"absorbed": [span_edge(x, f"edge {e.get('from')!r} {e.get('rel')!r} absorbed") for x in e["absorbed"]]}
                 if FMT.get("selftest") and e.get("absorbed") else {})
@@ -295,6 +314,10 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
                for x in req(g, "unknown", "scene graph cache")]
         if unk:
             out["unknown"] = unk
+    if FMT.get("impulse"):
+        cf = [conflict_view(x) for x in req(g, "conflicts", "scene graph cache")]
+        if cf:
+            out["conflicts"] = cf
     if FMT.get("kept") and state is not None:
         rw = []
         for e in req(req(state, "scene_graph", "scene"), "edges", "scene graph"):
@@ -316,6 +339,22 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
 
 
 TEST_RESULTS = ("pass", "fail", "untestable")
+EDGE_SOURCES = ("agent", "per-frame", "grid")   # pipeline.scenegraph.EDGE_SOURCES
+
+
+def conflict_view(x: dict) -> dict:
+    """An overlap of two same-source state edges of one object (rule scenegraph.overlap): {"obj", "source", "t0", "t1"
+    (null: open), "edges": [{"rel", "to", "t0", "t1"} x 2], "why"}."""
+    w = "scene graph conflict"
+    if req(x, "name", w) != "scenegraph.overlap":
+        raise ValueError(f"{AT['where']}: {w} name {x['name']!r}")
+    es = req(x, "edges", w)
+    if len(es) != 2:
+        raise ValueError(f"{AT['where']}: {w} has {len(es)} edges")
+    return {"obj": text(req(x, "from", w)), "source": text(req(x, "source", w)), "t0": num(req(x, "t_start", w), 4),
+            "t1": num(req(x, "t_end", w), 4),
+            "edges": [{"rel": text(req(e, "rel", w)), "to": text(e.get("to")) or None, "t0": num(req(e, "t_start", w), 4),
+                       "t1": num(req(e, "t_end", w), 4)} for e in es], "why": text(req(x, "why", w))}
 
 
 def span_edge(x: dict, what: str) -> dict:
@@ -454,7 +493,7 @@ def fit_row(r: dict) -> dict:
            "pred": num(req(r, "pred", "scene result")), "method": req(r, "method", "scene result"),
            "quality": {k: (num(v, 3) if isinstance(v, float) else v) for k, v in qual.items() if k != "conf"} or None}
     if FMT["decide"] == "conf":
-        out["conf"] = num(req(qual, "conf", "scene result quality"), 3)
+        req(qual, "conf", "scene result quality")    # read as the format's field, not shown (decisions.no_conf)
     elif "conf" in qual:
         raise ValueError(f"{AT['where']}: scene result quality has a 'conf' field; this version decides by named checks")
     return out
@@ -534,7 +573,21 @@ def measurement_row(m: dict) -> dict:
             "n": inputs.get("n"), "state": text(inputs.get("state")) or None,
             "law": law_view(inputs["law"], what) if FMT.get("gravity") and inputs.get("law") else None,
             "profile": [profile_view(x, what) for x in inputs["at_bound.profile"]] if inputs.get("at_bound.profile") else None} \
-        | (direct_view(m, what) if FMT.get("camera") else {}) | (sigma_view(inputs, what) if FMT.get("fusion") else {})
+        | (direct_view(m, what) if FMT.get("camera") else {}) | (sigma_view(inputs, what) if FMT.get("fusion") else {}) \
+        | (onset_check_view(m, what) if FMT.get("impulse") and "kinematic_onset" in m else {})
+
+
+def onset_check_view(m: dict, what: str) -> dict:
+    """A law-driven onset's speed bound (rule kinematic.onset): {"kin_onset": {pass (null: untestable), t_on,
+    sigma_t_on, v, integral, sigma, bound, reason}}."""
+    k = req(m, "kinematic_onset", what)
+    w = f"{what} kinematic_onset"
+    ok = req(k, "pass", w)
+    if ok not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {w} pass {ok!r}")
+    return {"kin_onset": {"pass": ok, "t_on": num(k.get("t_on"), 5), "sigma_t_on": num(k.get("sigma_t_on"), 3),
+                          "v": num(k.get("v"), 4), "integral": num(k.get("integral"), 4), "sigma": num(k.get("sigma"), 3),
+                          "bound": num(k.get("bound"), 4), "reason": text(req(k, "reason", w))}}
 
 
 def plain(x):
@@ -1098,7 +1151,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      "path": sampled_path(o) if any(req(o, k, what) for k in FMT["paths"]) else None,
                      "visible": [[num(a, 5), num(b, 5)] for a, b in vis] if vis else None,
                      "pendulum": pendulum_view(req(o, "pendulum", what), what) if FMT.get("pendulum") else None}
-                    | ({"segfit": segfit_view(name, o), "events_graph": events_view(name, o)} if FMT.get("selftest") else {}))
+                    | ({"segfit": segfit_view(name, o), "events_graph": events_view(name, o)} if FMT.get("selftest") else {})
+                    | (impulse_view(name, o) if FMT.get("impulse") else {}))
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
             "scale": scale_view(j), "gravity": gravity_view(j),
             "main_support": req(j, "main_support", "scene"),
@@ -1112,7 +1166,81 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"camera": camera_view(j), "support_plane": support_plane_view(j)} if FMT.get("camera") else {}) | \
         ({"camera_roll": camera_roll_view(j)} if FMT.get("roll") else {}) | \
         ({"camera_one": camera_one_view(j)} if FMT.get("static") else {}) | \
-        ({"fusion": fusion_view(j)} if FMT.get("fusion") else {})
+        ({"fusion": fusion_view(j)} if FMT.get("fusion") else {}) | \
+        ({"incline": incline_view(j)} if FMT.get("impulse") else {})
+
+
+IMPULSE_VERDICTS = ("kick", "agent.unobserved", "chain ends", "no_law")   # or "rejected: <why>"
+
+
+def impulse_view(name: str, o: dict) -> dict:
+    """The physics record's impulse decisions (rule law.impulse), its refined onsets (kinematic.onset) and incline laws
+    (support.incline): {"impulse": [{t, event, agent, source, verdict, why, jump, sigma, jump_how}] | None,
+    "onset": [{phase, t, sigma, how}] | None, "incline_law": [{..}] | None}; all None without a physics record."""
+    ph = req(o, "physics", f"scene object {name!r}")
+    if ph is None:
+        return {"impulse": None, "onset": None, "incline_law": None}
+    w = f"object {name!r} physics"
+    imp = req(ph, "impulse", w)
+    if (o.get("motion_law") or {}).get("impulse", imp) != imp:
+        raise ValueError(f"{AT['where']}: {w} impulse differs from its motion law's")
+    rows = []
+    for x in imp:
+        v = text(req(x, "verdict", f"{w} impulse"))
+        if v not in IMPULSE_VERDICTS and not v.startswith("rejected: "):
+            raise ValueError(f"{AT['where']}: {w} impulse verdict {v!r}")
+        rows.append({"t": num(req(x, "t", f"{w} impulse"), 4), "event": text(req(x, "event", f"{w} impulse")),
+                     "agent": text(req(x, "agent", f"{w} impulse")) or None,
+                     "source": text(req(x, "source", f"{w} impulse")) or None, "verdict": v,
+                     "why": text(req(x, "why", f"{w} impulse")), "jump": num(x.get("jump_px_s"), 3),
+                     "sigma": num(x.get("sigma_px_s"), 3), "jump_how": text(x.get("jump_how")) or None})
+    onset = [{"phase": int(k), "t": num(req(v, "t", f"{w} onset"), 5), "sigma": num(req(v, "sigma", f"{w} onset"), 3),
+              "how": text(req(v, "how", f"{w} onset"))} for k, v in req(ph, "onset", w).items()]
+    il = []
+    for x in req(ph, "incline_law", w):
+        wl = f"{w} incline_law"
+        il.append({"phase": int(req(x, "phase", wl)), "support": text(req(x, "support", wl)),
+                   "t_on": num(req(x, "t_on", wl), 5), "sigma_t_on": num(req(x, "sigma_t_on", wl), 3),
+                   "accel": num(req(x, "accel", wl), 4), "sigma_accel": num(req(x, "sigma_accel", wl), 3),
+                   "accel_source": text(req(x, "accel_source", wl)), "accel_geometry": num(req(x, "accel_geometry", wl), 4),
+                   "kappa": num(req(x, "kappa", wl), 4), "shape": text(req(x, "shape", wl)),
+                   "theta": num(req(x, "theta_deg", wl), 4), "law": text(req(x, "law", wl))})
+    return {"impulse": rows or None, "onset": onset or None, "incline_law": il or None}
+
+
+def incline_view(state: dict):
+    """The measured slope of every inclined support (rule support.incline): [{support, method, theta, sigma, sigma_f,
+    length, inclined, up {level, angle, sigma, source, why}, why}] | None."""
+    out = []
+    for name, x in req(state, "support_incline", "scene").items():
+        w = f"support_incline {name!r}"
+        up = req(x, "up", w)
+        out.append({"support": text(name), "method": text(req(x, "method", w)), "theta": num(req(x, "theta_deg", w), 4),
+                    "sigma": num(req(x, "sigma_deg", w), 3), "sigma_f": num(x.get("sigma_f_deg"), 3),
+                    "sigma_f_how": text(x.get("sigma_f_how")) or None, "length": num(x.get("length_m"), 4),
+                    "inclined": bool(req(x, "inclined", w)),
+                    "up": {"level": bool(req(up, "level", f"{w} up")), "angle": num(req(up, "angle_deg", f"{w} up"), 3),
+                           "sigma": num(req(up, "sigma_deg", f"{w} up"), 3), "source": text(req(up, "source", f"{w} up")),
+                           "why": text(req(up, "why", f"{w} up"))},
+                    "why": text(req(x, "why", w))})
+    return out or None
+
+
+def presence_view(tag: str, unit: str):
+    """The unit's presence verdicts (outputs/objects_<tag>_presence_v4/<unit>.json, rule decisions.no_conf): [[name,
+    present (visible / partial / absent / null), rule, votes, zoom_votes | null]]."""
+    j = read_json(ROOT / "outputs" / f"objects_{tag}_presence_v4" / f"{unit}.json", "presence record")
+    out = []
+    for name, v in j.items():
+        w = f"presence of {name!r}"
+        if any("conf" in k for k in v):
+            raise ValueError(f"{AT['where']}: {w} has a confidence field; format 4 decides by votes")
+        rule = text(req(v, "rule", w))
+        if not rule.startswith("presence."):
+            raise ValueError(f"{AT['where']}: {w} rule {rule!r}")
+        out.append([text(name), req(v, "present", w), rule, [text(x) for x in req(v, "votes", w)],
+                    [text(x) for x in v["zoom_votes"]] if v.get("zoom_votes") else None])
+    return out or None
 
 
 FUSION_VERDICTS = ("used", "outlier", "disagree")
@@ -1606,7 +1734,7 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                      "src": text(row["source"]), "status": text(row["status"]),
                      "method": row["method"], "scene_id": text(row["scene_id"]), "time": None}
             if FMT["decide"] == "conf":
-                query["conf"] = num(req(row, "conf", "harness CSV row"), 6)
+                req(row, "conf", "harness CSV row")    # read as the format's field, not shown (decisions.no_conf)
             if unit_kind == "video":
                 answer, group, error = bind_harness_question(row, record["answers"], groups)
                 state = group["state"] if group else {}
@@ -1666,6 +1794,8 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                               "dims_check": dims_check(state) if state is not None else None}
                 if FMT.get("fused"):
                     query["plausible_untestable"] = plausible_untestable(state) if state is not None else None
+                if FMT.get("impulse"):
+                    query["presence"] = presence_view(tag, unit)
             query["tq"], query["tjump"] = question_times(query["q"], alignment)
             questions.append(query)
     overlays.save()
