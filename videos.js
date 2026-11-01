@@ -333,6 +333,7 @@
     const par = (p) => Object.entries(p).map(([k, v]) => `${k} ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · ');
     const key = (it, c) => `${it} ${c.name} ${JSON.stringify(Object.keys(c.params).sort().map((k) => [k, c.params[k]]))}`;
     const cls = new Map(((r.stop && r.stop.tried) || []).map((t) => [key(t.iter, t), t.class]));
+    const list = (a) => (a.length ? a.map((k) => `<code>${esc(k)}</code>`).join(' ') : 'none');
     const rows = r.rounds.map((x) => {
       const calls = x.calls.map((c) => {
         const k = cls.get(key(x.iter, c));
@@ -342,7 +343,11 @@
         (c.test ? `<div class="${c.test.result === 'pass' ? 'ok' : c.test.result === 'fail' ? 'bad' : 'muted'}"><code>${esc(c.test.name)}</code> ${esc(c.test.result)}</div>` : '')).join('') +
         x.rejected.map((w) => `<div class="bad">${esc(w)}</div>`).join('');
       return `<tr class="${x.iter === r.kept ? 'chosen' : ''}"><td class="n">${x.iter}</td><td>${calls}</td><td>${res}</td>` +
-        `<td class="${x.accepted ? 'ok' : ''}">${esc(x.why)}` +
+        `<td class="${x.accepted ? 'ok' : ''}">${esc(x.swap ? x.why.replace(/;?\s*checks fixed \[[^\]]*\] -> broken \[[^\]]*\]\s*$/, '') : x.why)}` +
+        (x.swap ? `<div class="swap">fixed ${list(x.swap[0])} → broken ${list(x.swap[1])}</div>` : '') +
+        (x.rebuilt ? `<div>rebuilt ${x.rebuilt.steps.map((k) => `<code>${esc(k)}</code>`).join(' → ') || 'none'}` +
+          (x.rebuilt.failed ? ` · <span class="bad">failed <code>${esc(x.rebuilt.failed)}</code></span>` : '') +
+          (x.rebuilt.self_test ? ` · self-test ${Object.entries(x.rebuilt.self_test).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(', ')}` : '') + '</div>' : '') +
         (x.newly_failed || []).map(([c, w]) => `<div class="bad"><code>${esc(c)}</code> ${esc(w)}</div>`).join('') + '</td></tr>';
     }).join('');
     const st = r.stop ? ` <span class="stop"><code>${esc(r.stop.reason)}</code> round ${esc(r.stop.round)}${r.stop.why ? ` · ${esc(r.stop.why)}` : ''}</span>` : '';
@@ -576,6 +581,31 @@
         `<td class="n">${x.rms != null ? fmt(x.rms, 1) : ''}</td><td>${esc(x.law)}</td><td>${x.used ? 'used' : esc(x.why)}</td></tr>`).join('') +
       '</table></div>';
   }
+  const res3 = (p) => (p === true ? 'pass' : p === false ? 'fail' : 'untestable');
+  const cls3 = (p) => (p === true ? 'ok' : p === false ? 'bad' : 'muted');
+  // the focal length each prior or pendulum implies against the scene camera (rule C3a focal.consistent)
+  function consistentTable(cam) {
+    if (!cam || !cam.consistent.length) return '';
+    return '<div class="scroll-x"><table class="fcons"><tr><th><code>focal.consistent</code></th><th class="n">Implied f (px)</th>' +
+      '<th class="n">Scene f (px)</th><th class="n">|Δ| vs 3σ</th><th></th><th></th></tr>' +
+      cam.consistent.map((c) => `<tr class="${cls3(c.pass)}"><td>${esc(c.source)}</td>` +
+        `<td class="n">${c.f_obj != null ? plusMinus(c.f_obj, c.sigma_obj) : '—'}</td>` +
+        `<td class="n">${c.f != null ? plusMinus(c.f, c.sigma) : '—'}</td>` +
+        `<td class="n">${c.diff != null ? `${fmtNum(c.diff)} ${c.pass ? '≤' : '>'} ${fmtNum(c.bound)}` : '—'}</td>` +
+        `<td>${res3(c.pass)}</td><td>${c.pass === null ? esc(c.reason.replace(/^untestable:\s*/, '')) : esc(c.how)}` +
+        (c.class_size ? `<div class="${c.class_size.pass ? 'ok' : 'bad'}"><code>focal.class_size</code> ${esc(c.class_size.reason)}</div>` : '') +
+        '</td></tr>').join('') + '</table></div>';
+  }
+  // the support plane's acceptance with its sub-tests (rule D9 support.plane); a recorded sub-test has no verdict
+  function supportPlaneTable(sp) {
+    if (!sp) return '';
+    if (!sp.tests.length) return `<p class="facts"><code>support.plane</code> <span class="muted">${esc(sp.reason)}</span></p>`;
+    const v = (t) => (t.pass === null && !/^untestable/.test(t.reason) ? 'recorded' : res3(t.pass));
+    return '<div class="scroll-x"><table class="checks splane">' +
+      `<tr class="${cls3(sp.pass)}"><th><code>support.plane</code></th><th>${res3(sp.pass)}</th><th></th></tr>` +
+      sp.tests.map((t) => `<tr class="${cls3(t.pass)}"><td>${esc(t.name)}</td><td>${v(t)}</td><td>${esc(t.reason.replace(/^untestable:\s*/, ''))}</td></tr>`).join('') +
+      '</table></div>';
+  }
   // the support plane's pitch source and its horizon check (rule support.horizon)
   function horizonLines(h) {
     if (!h) return '';
@@ -636,10 +666,11 @@
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
         segfitTable(s) + eventsTable(s) + pendulumTable(s) +
-        `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}` +
+        (s.camera ? `<p class="facts"><span title="${esc(s.camera.how)}">f ${plusMinus(s.camera.f, s.camera.sigma)} px${s.camera.source ? ` (${esc(s.camera.source)})` : ''}</span>`
+          : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + focalTable(s.focal) + horizonLines(s.horizon) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + consistentTable(s.camera) + focalTable(s.focal) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') : '') +
         gravityBlock(s.gravity) +
@@ -730,7 +761,7 @@
   function measurementRow(m, chosen) {
     const val = m.value == null ? '<span class="muted">—</span>'
       : `<span>${plusMinus(m.value, m.sigma)} ${esc(m.unit)}</span>${sigmaSub(m)}`;
-    const inp = [m.window && `window ${span(m.window[0], m.window[1])}`, m.n != null && `n ${m.n}`,
+    const inp = [!m.wstate && m.window && `window ${span(m.window[0], m.window[1])}`, m.n != null && `n ${m.n}`,
       m.piece && `piece ${span(m.piece[0], m.piece[1])}`, m.state, m.law && `ballistic g ${fmtNum(m.law.g)} (${m.law.source})`].filter(Boolean).join(' · ');
     const failed = m.failed.map((c) => `<div><code>${esc(c.which || c.name)}</code> ${esc(c.reason)}</div>`).join('');
     const prof = m.profile ? m.profile.map((p) => `<div class="${p.pass ? 'ok' : 'bad'}"><code>at_bound.profile</code> ${esc(p.param)} ` +
@@ -738,7 +769,28 @@
     return `<tr class="${m.name === chosen ? 'chosen' : ''}${m.admissible ? '' : ' inadm'}"><td><code>${esc(m.name)}</code></td>` +
       `<td><code>${esc(m.method)}</code></td><td class="n mval">${val}</td>` +
       `<td class="${m.admissible ? 'ok' : 'bad'}">${m.admissible ? 'admissible' : esc(m.why)}</td>` +
-      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${prof}</td></tr>`;
+      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${directLines(m)}${prof}</td></tr>`;
+  }
+  // the direct path's state span (rule window.state) and its support-plane depth with the silhouette cross-check (C12)
+  function directLines(m) {
+    let h = '';
+    const w = m.wstate;
+    if (w) {
+      const s3 = (a, b) => `${a == null ? '…' : fmt(a, 3)}–${b == null ? '…' : fmt(b, 3)} s`;
+      h += `<div><code>window.state</code> ${esc(w.state || '—')} · span ${s3(w.t0, w.t1)} · clipped by ${esc(w.start || '—')} / ${esc(w.end || '—')}` +
+        (w.used ? ` · window ${s3(w.used[0], w.used[1])}` : '') + '</div>';
+      if (/^window\.short/.test(m.why)) h += `<div class="bad"><code>window.short</code> ${esc(m.why.replace(/^window\.short:\s*/, ''))}</div>`;
+    }
+    const d = m.support_depth;
+    if (d) {
+      h += d.applies ? `<div><code>support_depth</code> ${fmtNum(d.z)} m · ${d.n} frames · plane σ ${fmtNum(d.sigma_plane)} m · row σ ${fmtNum(d.sigma_row)} m</div>`
+        : `<div class="muted"><code>support_depth</code> ${esc(d.reason)}</div>`;
+    }
+    const a = m.depth_agree;
+    if (a) {
+      h += `<div class="${a.pass ? 'ok' : 'bad'}"><code>direct.depth_agree</code> ${a.pass ? 'pass' : 'fail'} · silhouette ${fmtNum(a.z_mask)} m vs plane ${fmtNum(a.z_plane)} m · |Δ| ${fmtNum(a.diff)} ${a.pass ? '≤' : '>'} ${fmtNum(a.bound)}</div>`;
+    }
+    return h;
   }
   function measurementBlock(q) {
     let h = '<div class="scroll-x"><table class="meas"><tr><th>Measurement</th><th>Method</th><th class="n">Value</th><th>Admissible</th><th>Failed</th><th>Inputs</th></tr>' +

@@ -108,6 +108,14 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            phi_horizon_deg, sigma_deg, z, row_plane, row_horizon, horizon {...}, repaired} (rule support.horizon);
 #            camera.support_plane has "pitch_source" / "depth_plane"; the answer record has "stop" {reason, round, why,
 #            tried} and each agent round "newly_failed" {check: reason}
+#   camera   the scene camera has "f_sigma" / "f_sigma_how" (rule C3a, the scene's "f_source" names its source) and
+#            "focal"."consistent" [{source, f_obj, sigma_obj, f, sigma, bound, pass, reason, how, class_size?}]; the scene
+#            has "support_plane" {pass, failed, reason, tests {name: {pass, reason, ..}}} (pass null, no tests: no
+#            support plane; rule D9); a direct
+#            measurement with a state span has "window" {t0, t1, state, clipped_by {start, end}, window} (rule
+#            window.state), a direct size "support_depth" {applies, ..} and, when it applies, "cross_checks"
+#            {"direct.depth_agree"} (rule C12); each agent round past the accept test has "checks_fixed" /
+#            "checks_broken" (rule accept.full_checks) and a rebuilding round "rebuilt" {steps, failed, self_test}
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -119,7 +127,7 @@ VERSION_FORMAT = {
            "steps": STEPS_V4},
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
-           "pendulum": True, "selftest": True, "horizon": True},
+           "pendulum": True, "selftest": True, "horizon": True, "camera": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -488,7 +496,41 @@ def measurement_row(m: dict) -> dict:
             "piece": [num(max(x, 0.0), 4) if x > -1e8 else None for x in inputs["piece"]] if inputs.get("piece") else None,
             "n": inputs.get("n"), "state": text(inputs.get("state")) or None,
             "law": law_view(inputs["law"], what) if FMT.get("gravity") and inputs.get("law") else None,
-            "profile": [profile_view(x, what) for x in inputs["at_bound.profile"]] if inputs.get("at_bound.profile") else None}
+            "profile": [profile_view(x, what) for x in inputs["at_bound.profile"]] if inputs.get("at_bound.profile") else None} \
+        | (direct_view(m, what) if FMT.get("camera") else {})
+
+
+def direct_view(m: dict, what: str) -> dict:
+    """A direct measurement's state span (rule window.state), support-plane depth and its silhouette cross-check
+    (rule C12); each None when the measurement does not carry it."""
+    w = m.get("window")
+    win = None
+    if w is not None:
+        cb = req(w, "clipped_by", f"{what} window")
+        win = {"t0": num(req(w, "t0", f"{what} window"), 4), "t1": num(req(w, "t1", f"{what} window"), 4),
+               "state": text(req(w, "state", f"{what} window")) or None,
+               "start": text(req(cb, "start", f"{what} window clipped_by")) or None,
+               "end": text(req(cb, "end", f"{what} window clipped_by")) or None,
+               "used": [num(x, 4) for x in w["window"]] if req(w, "window", f"{what} window") else None}
+    sd = m.get("support_depth")
+    sdv = None
+    if sd is not None:
+        if req(sd, "applies", f"{what} support_depth"):
+            z = float(req(sd, "z_plane", f"{what} support_depth"))
+            sdv = {"applies": True, "z": num(z, 3), "n": int(req(sd, "n", f"{what} support_depth")),
+                   "sigma_plane": num(req(sd, "sigma_plane", f"{what} support_depth"), 3),
+                   "sigma_row": num(z * float(req(sd, "rel_noise", f"{what} support_depth")), 3)}
+        else:
+            sdv = {"applies": False, "reason": text(req(sd, "reason", f"{what} support_depth"))}
+    da = (m.get("cross_checks") or {}).get("direct.depth_agree")
+    if sdv and sdv["applies"] and da is None:
+        raise ValueError(f"{AT['where']}: {what} has a support-plane depth without direct.depth_agree")
+    dav = None if da is None else {
+        "pass": req(da, "pass", f"{what} direct.depth_agree"), "z_mask": num(req(da, "z_mask", f"{what} direct.depth_agree"), 3),
+        "z_plane": num(req(da, "z_plane", f"{what} direct.depth_agree"), 3),
+        "diff": num(abs(float(da["z_mask"]) - float(da["z_plane"])), 3),
+        "bound": num(req(da, "bound", f"{what} direct.depth_agree"), 3)}
+    return {"wstate": win, "support_depth": sdv, "depth_agree": dav}
 
 
 def profile_view(x: dict, what: str) -> dict:
@@ -574,6 +616,17 @@ def rounds_view(rec: dict) -> dict | None:
                "rejected": rej, "accepted": bool(acc), "why": text(req(it, "why", w))}
         if FMT.get("horizon"):
             row["newly_failed"] = [[text(k), text(v)] for k, v in (it.get("newly_failed") or {}).items()]
+        if FMT.get("camera"):
+            # a round stopped before its accept test (loop.no_repair) has no fixed / broken record
+            fx, br = it.get("checks_fixed"), it.get("checks_broken")
+            if (fx is None) != (br is None):
+                raise ValueError(f"{AT['where']}: {w} has only one of checks_fixed / checks_broken")
+            row["swap"] = None if fx is None else [[text(x) for x in fx], [text(x) for x in br]]
+            rb = it.get("rebuilt")
+            row["rebuilt"] = None if rb is None else {
+                "steps": [text(x) for x in req(rb, "steps", f"{w} rebuilt")], "failed": text(req(rb, "failed", f"{w} rebuilt")) or None,
+                "self_test": {k: v for k, v in (req(rb, "self_test", f"{w} rebuilt") or {}).items()
+                              if isinstance(v, (int, float, str, bool))} or None}
         rows.append(row)
     out = {"kept": kept, "rounds": rows}
     if FMT.get("horizon"):
@@ -821,7 +874,43 @@ def scene_view(state: dict, source_path: Path) -> dict:
             "focal_votes": [{"source": text(req(x, "source", "focal vote")), "value": num(req(x, "value", "focal vote"), 4),
                              "weight": num(req(x, "weight", "focal vote"), 3)}
                             for x in req(j, "focal_votes", "scene")] or None} | \
-        ({"focal": focal_view(j), "horizon": horizon_view(j)} if FMT.get("horizon") else {})
+        ({"focal": focal_view(j), "horizon": horizon_view(j)} if FMT.get("horizon") else {}) | \
+        ({"camera": camera_view(j), "support_plane": support_plane_view(j)} if FMT.get("camera") else {})
+
+
+def camera_view(state: dict) -> dict:
+    """The scene's one camera (rule C3a): f +- sigma, how sigma was found, its source, and each focal.consistent
+    cross-check of a focal length one prior or one pendulum implies."""
+    cam = req(state, "camera", "scene")
+    rows = []
+    for x in req(req(state, "focal", "scene"), "consistent", "focal"):
+        w = "focal.consistent"
+        fo, f = req(x, "f_obj", w), req(x, "f", w)
+        cs = x.get("class_size")
+        rows.append({"source": text(req(x, "source", w)), "f_obj": num(fo, 4), "sigma_obj": num(req(x, "sigma_obj", w), 3),
+                     "f": num(f, 4), "sigma": num(req(x, "sigma", w), 3), "bound": num(x.get("bound"), 3),
+                     "diff": num(abs(float(fo) - float(f)), 3) if fo is not None and f is not None else None,
+                     "pass": req(x, "pass", w), "reason": text(req(x, "reason", w)), "how": text(req(x, "how", w)),
+                     "class_size": {"pass": bool(req(cs, "pass", w)), "reason": text(req(cs, "reason", w))} if cs else None})
+    return {"f": num(req(cam, "f", "camera"), 4), "sigma": num(req(cam, "f_sigma", "camera"), 3),
+            "how": text(req(cam, "f_sigma_how", "camera")), "source": text(req(state, "f_source", "scene")) or None,
+            "consistent": rows}
+
+
+def support_plane_view(state: dict):
+    """The named check support.plane (rule D9) with its sub-tests in the scene's order; pass None with the reason and
+    no sub-test when the scene has no support plane."""
+    sp = req(state, "support_plane", "scene")
+    if req(sp, "pass", "support_plane") is None:
+        if req(sp, "tests", "support_plane"):
+            raise ValueError(f"{AT['where']}: support_plane without a result has sub-tests")
+        return {"pass": None, "reason": text(req(sp, "reason", "support_plane")), "tests": []}
+    tests = [{"name": k, "pass": req(t, "pass", f"support.plane {k}"), "reason": text(req(t, "reason", f"support.plane {k}"))}
+             for k, t in req(sp, "tests", "support_plane").items()]
+    failed = list(req(sp, "failed", "support_plane"))
+    if failed != [t["name"] for t in tests if t["pass"] is False] or bool(req(sp, "pass", "support_plane")) == bool(failed):
+        raise ValueError(f"{AT['where']}: support_plane pass / failed {failed} differ from its sub-tests")
+    return {"pass": bool(sp["pass"]), "reason": None, "tests": tests}
 
 
 def pendulum_view(p: dict | None, what: str):

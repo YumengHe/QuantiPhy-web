@@ -191,7 +191,7 @@
   <dd><ul>
     <li>Names to track: the question's object and reference, the prior's object, objects named only in depth_info, and the inventory's extra objects</li>
     <li>Hints per object: location hint, grounding phrase, size class, count, role, part_of, question / prior / depth_info text</li>
-    <li>Motion window for speed / acceleration / displacement questions; supports from the grid graph's "on" edges; the agent's note → <code>track</code></li>
+    <li>Motion window for speed / acceleration / displacement questions; supports from the grid graph's "on" edges (the track step reads only the grid graph, <code>track.grid_graph_only</code>); the agent's note → <code>track</code></li>
     <li>All frames (SAM 2)</li>
   </ul></dd>
   <dt>Does</dt>
@@ -343,7 +343,7 @@
   </ul></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_source, scale_source, support_plane, s, metric}</code>, <code>scale{s, source, object, extent, checks, failed}</code>, <code>gravity{g, sigma, source, rule, up, up_source, evidence[], checks, failed}</code>, <code>plane_ok</code>, <code>main_support</code>, <code>scene_graph</code> (the graph as fitted; rewritten edges with <code>was</code>, <code>rule</code>)</li>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/&lt;unit&gt;.json</code>: <code>camera{f, f_sigma, f_sigma_how, f_source, scale_source, support_plane, s, metric}</code>, <code>focal{votes, f, source, consistent[]}</code>, <code>support_plane{pass, failed, reason, tests}</code>, <code>scale{s, source, object, extent, checks, failed}</code>, <code>gravity{g, sigma, source, rule, up, up_source, evidence[], checks, failed}</code>, <code>plane_ok</code> (= <code>support_plane.pass</code>), <code>main_support</code>, <code>scene_graph</code> (the graph as fitted; rewritten edges with <code>was</code>, <code>rule</code>)</li>
     <li><code>objects[name]</code>: dims, <code>dim_source</code> (observed / prior / bound), <code>dim_bounds{dim: [lo, hi | null]}</code>, p0, v0, a, segments, mode, <code>motion_law{model, phases | rotation{rel, target, pieces, circle_candidate}}</code>, <code>physics</code>, <code>pendulum{L, period_s, period_sigma_s, periods, f_free{f, f_start, bounds, at_bound, D, D_prior, rel, converged}}</code>, support</li>
     <li><code>f_first_clamp{from, to, band}</code>: the first focal estimate moved into the person-height band, reported</li>
     <li><code>results[0]</code>: <code>measurements[]</code>, <code>chosen</code>, <code>selection</code>, <code>pred</code>, <code>method</code>, <code>source</code>, <code>checks</code>, <code>failed</code>, <code>quality.align_tq</code>, <code>quality.measurement.constraint_residuals[]</code></li>
@@ -362,15 +362,25 @@
   <li>Depth Pro on 12 evenly spaced frames at its own (nominal) scale; f from its per-frame focal lengths, <code>f_source: depth_model</code></li>
 </ol></div>
 </div>
+<p>One camera per scene: <code>camera.f</code> ± <code>f_sigma</code> (<code>f_sigma_how</code>), used by the fit, the direct path, end points and refmeasure. σ is the votes' inverse-variance σ when f comes from the gravity votes, else the delta method of stage A's least squares over log f, calibrated by its reduced χ²; the depth model's f carries none. A stage-A f with σ ≥ f is undetermined: no scene focal, and the direct path is inadmissible ("no scene focal"), never with a focal length of its own. A focal length that one prior or one pendulum implies (a size f = px Z / size, a 3D speed or acceleration, a pendulum's joint f) is the cross-check <code>focal.consistent</code>: |f<sub>obj</sub> − f| ≤ 3√(σ² + σ<sub>obj</sub>²), untestable without an implied f, a scene focal or a σ. Recorded, not a gate: <code>focal.consistent[]{source, f_obj, sigma_obj, f, sigma, bound, pass, reason, how, class_size}</code>.</p>
 
 <h3>8.2 Support plane</h3>
 <ol>
   <li>A plane fitted to the floor mask on each depth frame; frames far from the median normal dropped</li>
   <li>Normals spread &gt; 10° → <code>support_rejected</code>: no plane, objects fitted free in 3D</li>
-  <li>With depth_info the plane is fitted in stage A; <code>plane_ok</code> needs a plausible camera height and roll</li>
+  <li>With depth_info the plane is fitted in stage A</li>
   <li>Visible horizon (<code>support.horizon</code>, depth-model planes): on the graph's 16 frames, the topmost straight, full-width, near-horizontal strong edge (not a letterbox bar, not curved), found on ≥ 75 % of frames within 3 % of the height; the depth model must put the band below it at ≥ 2 × the support points' p95 depth (<code>horizon.far</code>). Its row gives the pitch atan((y<sub>h</sub> − c<sub>y</sub>) / f); |φ<sub>plane</sub> − φ<sub>h</sub>| &gt; 3σ → the horizon's pitch replaces the plane's (roll kept) and the distance is refitted through the same support points (<code>camera.support_plane.pitch_source: horizon</code>, <code>depth_plane</code> kept). Record: <code>support_horizon{pass, phi_plane_deg, phi_horizon_deg, sigma_deg, z, row_plane, row_horizon, horizon, repaired}</code></li>
 </ol>
-<p class="fl"><b>Checks</b> <code>plane_ok: false</code> with objects on it → <b>plausible</b> (support_plane).</p>
+<div class="scroll-x"><table>
+  <tr><th><code>support.plane</code></th><th>Scene</th><th>Fails when</th></tr>
+  <tr><td>source</td><td>Prior-scaled</td><td>The plane is not fitted to the support mask (only to the objects' contact points)</td></tr>
+  <tr><td>spread</td><td>Prior-scaled</td><td>The per-frame planes spread more than 10°</td></tr>
+  <tr><td>points</td><td>Prior-scaled</td><td>Recorded: the mask points' robust residual and the share within 3 × it (the plane's own points)</td></tr>
+  <tr><td>pose</td><td>depth_info</td><td>Camera height at the optimiser's bound or ≥ 59 m, |roll| &gt; 10°, |pitch| ≥ 0.59 rad</td></tr>
+  <tr><td>points</td><td>depth_info</td><td>The depth model's ground-contact points of the objects on the support, aligned to the depth statements, sit off the plane: median |r<sub>i</sub>| / σ<sub>i</sub> &gt; 3, σ<sub>i</sub> = |n·ray<sub>i</sub>| Z<sub>i</sub> × the alignment's leave-one-out error</td></tr>
+  <tr><td>contacts</td><td>Both</td><td>An object fitted standing on the plane lifts its tracked box bottom off the fitted contact by more than 0.25 × its projected height</td></tr>
+</table></div>
+<p class="fl"><b>Checks</b> <code>plane_ok</code> = <code>support.plane</code> passes; <code>plane_ok: false</code> with objects on it → <b>plausible</b> (support_plane), whose reason quotes the failed sub-tests.</p>
 
 <h3>8.3 Scale</h3>
 <div class="two">
@@ -426,11 +436,11 @@
 <div class="scroll-x"><table>
   <tr><th>Measurement</th><th>Value</th><th>σ</th></tr>
   <tr><td><code>fit</code></td><td>Read from the fitted state (speed at t inside a piece that passes segfit; a size from an observed, free dimension)</td><td>Delta method over the least-squares parameters, scaled by the fit's reduced χ² when above 1 (<code>sigma_parts.scale</code>, <code>dof</code>)</td></tr>
-  <tr><td><code>direct</code></td><td>Depth + image motion in the minimal window around t: symmetric, n ≥ deg + 2 frames, grown while every signal's rms ≤ max(3σ, q_b). With timed depth statements, depth from the size series Z = c / (size − b) through the anchors (two: exact; more: least squares; b the box bias)</td><td>Local polynomial covariance, calibrated by the window's own rms; <code>q</code> the box quantization step. The anchors' alignment σ carried through (c, b) and the window's Z polynomial (<code>align</code>); f from a motion prior adds |∂v/∂f| σ_f (<code>focal</code>)</td></tr>
+  <tr><td><code>direct</code></td><td>Depth + image motion in the minimal window around t: symmetric, n ≥ deg + 2 frames, grown while every signal's rms ≤ max(3σ, q_b). The window stays inside the asked object's state span (<code>window.state</code>): the fit's piece cut at the object's scene-graph events (release, landing, support change, the ends of an unknown span), an event's own frame in neither state; a symmetric window that does not fit takes the deg + 2 frames at that end; fewer than deg + 2 frames in the span → inadmissible <code>window.short</code>. Record: <code>window{t0, t1, state, clipped_by{start, end}, window}</code>. With timed depth statements, depth from the size series Z = c / (size − b) through the anchors (two: exact; more: least squares; b the box bias). A size of an object the graph puts "on" the main support of a prior-scaled scene: the plane's depth at the box bottom centre, Z = dist / (n·ray), median over those frames (<code>support_depth{z_plane, n, sigma_plane, rel_noise}</code>); the silhouette depth is the cross-check <code>direct.depth_agree</code>, |Z<sub>mask</sub> − Z<sub>plane</sub>| ≤ 3√(σ<sub>plane</sub>² + σ<sub>mask</sub>²), recorded in <code>cross_checks</code>, not a gate</td><td>Local polynomial covariance, calibrated by the window's own rms; <code>q</code> the box quantization step. The anchors' alignment σ carried through (c, b) and the window's Z polynomial (<code>align</code>); the scene camera's σ<sub>f</sub> through |∂v/∂f| (<code>focal</code>); a plane depth: the plane's covariance at the median contact and the contact row's noise per frame</td></tr>
   <tr><td><code>prior</code></td><td>The prior names the same quantity of the same object in the same state</td><td>Half a unit of the stated last digit</td></tr>
   <tr><td><code>endpoints</code>, <code>refmeasure</code></td><td>A structure's extent from marked end points (step 5.1)</td><td></td></tr>
 </table></div>
-<p>A measurement with σ ≥ |value| is inadmissible (not distinguishable from zero). A fit parameter at a numerical bound (focal range, log scales, the common-sense range of e) makes the fit inadmissible; no parameter is clipped after a fit. A parameter at a physical bound (pendulum damping ≥ 0, rolling / sliding deceleration ≥ 0, bounce tangential share ≤ 1, incline tilt ≥ 0) is profiled (<code>at_bound.profile</code>): the fit is redone with it pinned at the bound and at the bound + 1σ inward, every other parameter free; the answer must change by less than its own σ, else the fit is inadmissible with the two values; with f from a motion prior, <code>focal.class_size</code> makes the direct measurement inadmissible when a tracked sphere-class object with timed depth statements implies a size (box side − b) · Z / f outside its class range widened by 1.25. Each admissible measurement runs its own checks:</p>
+<p>A measurement with σ ≥ |value| is inadmissible (not distinguishable from zero). A fit parameter at a numerical bound (focal range, log scales, the common-sense range of e) makes the fit inadmissible; no parameter is clipped after a fit. A parameter at a physical bound (pendulum damping ≥ 0, rolling / sliding deceleration ≥ 0, bounce tangential share ≤ 1, incline tilt ≥ 0) is profiled (<code>at_bound.profile</code>): the fit is redone with it pinned at the bound and at the bound + 1σ inward, every other parameter free; the answer must change by less than its own σ, else the fit is inadmissible with the two values; without a scene focal (8.1) the direct measurement is inadmissible. Each admissible measurement runs its own checks:</p>
 <div class="scroll-x"><table>
   <tr><th>Check</th><th>Fails when</th></tr>
   <tr><td>tracked</td><td>The asked or reference object has no track over the asked times, or a rejected one; direct: no minimal window, or verify-rejected / identity-switch frames inside it</td></tr>
@@ -469,19 +479,19 @@
     <li>Repair candidates from the failed checks, each dry-run first: only a candidate the tool does not reject, not tried before and not equivalent to a tried call (same tool, same parameters, windows within one graph step, same outcome class) is offered (<code>repair.applicable</code>); a relation target must be a node of the unit's graph (<code>graph_edit.known_target</code>). Candidates: relation windows at the asked time, split at the graph's motion onset (an onset moves only through a re-tested graph edit); for a failed <b>state</b>, each other state (on a support, airborne, held) over the unknown span; re-tracking an asked object failing <b>tracked</b> or an untracked scale object, <code>refit_free</code>, <code>limit_accel</code> for a self-propelled body beyond 1.5 g</li>
     <li>Observe tools (≤ 6 per round): frames, crop, overlay, tracks_summary, depth_at, scene_json, self_check, question_values, visible_count, reference_measure, model options</li>
     <li>Act tools (≤ 3 per round): re-track (<code>objects_set_count, objects_set_track, track_reselect, track_split_instance</code>) or refit (<code>scenegraph_set_relation, set_main_support, scene_mark_absent, scene_swap_axes, scene_set_support, scene_refit_free, scene_set_plane, scene3d_try_fit_policy</code>)</li>
-    <li>Back up the caches, rebuild the affected steps, accept on frozen evidence or restore; a rejected round records the checks it newly failed (<code>newly_failed{check: reason}</code>)</li>
+    <li>Back up the caches (tracks, graph, refmeasure, ground, support masks) and rebuild through <code>harness.rebuild_from</code>, the harness's own step commands: a re-track or a box edit rebuilds every track-derived cache in harness order — measure, the per-frame graph with its self-test (the kept rounds' and this round's graph edits replayed and re-tested), ground — then the scene (<code>rebuild.track_derived</code>); a graph edit that changes what ground reads rebuilds ground only. The round records <code>ran</code> and <code>rebuilt{steps, failed, self_test, hooks}</code></li>
+    <li>Accept on frozen evidence or restore. The checks compared are the question's full set: the scene's failed checks, the answer's (incl. <b>replay</b>) and <b>plausible</b> (<code>accept.full_checks</code>); a round that newly fails any of them is rejected before the other metrics. Each round records <code>checks_fixed</code> → <code>checks_broken</code>; a rejected round the newly failed checks' reasons (<code>newly_failed{check: reason}</code>)</li>
     <li>Stop with a named reason, <code>stop{reason, round, why, tried}</code>: <code>checks_passed</code>, <code>accepted</code>; <code>loop.exhausted</code> (every proposed call repeats a tried one, or two rounds without improvement, and no live candidate is left); <code>loop.no_repair</code> (the planner reports done while a check fails and no candidate is left); <code>loop.cap</code> (10 rounds)</li>
     <li>The kept state (the last accepted round, else the initial fit) is saved with the graph and tracks that produced it; the answer reads that scene, and the answer record names it (<code>kept_state{iter, scenegraph, tracks}</code>)</li>
     <li>Model calls are memoized by request content, with option ids taken from the option text, so a rerun replays every unchanged call across code edits</li>
   </ol></dd>
   <dt>Output</dt>
   <dd><ul>
-    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/agent/&lt;unit&gt;.json</code>: final scene, <code>critique.iterations[]</code> (<code>diagnosis, layer, observations, tool_calls, repair_candidates, repair_candidates_dropped, accepted, why, newly_failed, rerun_from</code>; each tool call's <code>result</code>), <code>agent_status.stop</code></li>
+    <li><code>outputs/scene_fit_eval/h_&lt;tag&gt;/agent/&lt;unit&gt;.json</code>: final scene, <code>critique.iterations[]</code> (<code>diagnosis, layer, observations, tool_calls, repair_candidates, repair_candidates_dropped, accepted, why, checks_fixed, checks_broken, newly_failed, rerun_from, ran, rebuilt</code>; each tool call's <code>result</code>), <code>agent_status.stop</code></li>
   </ul></dd>
   <dt>Checks</dt>
   <dd><ul>
     <li>No rescale, focal or extent tool: a <b>scale</b> failure has no direct repair</li>
-    <li>A re-track does not re-run measure / ground, so tracked-support masks can be stale</li>
   </ul></dd>
 </dl>
 <h3>plausible</h3>

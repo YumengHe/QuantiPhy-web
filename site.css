@@ -177,3 +177,15 @@ table.focal { width: auto; margin: 4px 0 8px; font-size: 13px; }
 table.focal tr.muted td { color: var(--muted); }
 h4 .stop { font-weight: 400; font-size: 13px; color: var(--muted); margin-left: 6px; }
 table.rounds .tclass { font-size: 12px; color: var(--muted); }
+/* scene camera cross-checks (focal.consistent), support.plane sub-tests, the direct path's span and plane depth */
+table.fcons, table.splane { font-size: 13px; }
+table.fcons { width: auto; min-width: 60%; margin-bottom: 10px; }
+table.fcons > tbody > tr > td:nth-child(5), table.checks.splane > tbody > tr > td:nth-child(2) { white-space: nowrap; }
+table.fcons > tbody > tr.bad > td:nth-child(5) { color: var(--m1t, #8a1c12); font-weight: 600; }
+table.fcons > tbody > tr:not(.bad) > td:nth-child(5) { color: var(--muted); }
+table.fcons td div, table.meas td div.bad, table.meas td div.ok { font-size: 12px; margin-top: 2px; }
+table.checks.splane > tbody > tr:first-child th:nth-child(2) { font-weight: 600; }
+table.checks.splane > tbody > tr.bad:first-child th:nth-child(2) { color: var(--m1t, #8a1c12); }
+table.checks.splane > tbody > tr > td:first-child { padding-left: 1.2em; }
+table.meas td div.bad, table.fcons td div.bad { color: var(--m1t, #8a1c12); }
+table.meas td div.ok, table.meas td div.muted { color: var(--muted); }
