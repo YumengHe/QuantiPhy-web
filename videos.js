@@ -80,7 +80,7 @@
         view = { ...v, scene: a.scene };
         const body = document.createElement('div');
         body.className = 'qbody';
-        body.innerHTML = priorBlock(q) + mediaBlock(view, q) + overlayBlock(q, view) + trackBlock(a.tracks, view, q) +
+        body.innerHTML = priorBlock(q) + depthBindings(q.depth_bindings) + mediaBlock(view, q) + overlayBlock(q, view) + trackBlock(a.tracks, view, q) +
           sceneGraphTree(a.sgraph) + refmeasureBlock(q.refmeasure) + fitBlock(q, view) + roundsBlock(q.rounds) + timeBlock(q);
         d.appendChild(body);
         video = body.querySelector('video');
@@ -112,6 +112,18 @@
   function priorBlock(q) {
     const lines = [q.prior, q.depth].filter(Boolean).flatMap((s) => String(s).split('\n')).map((s) => s.trim()).filter(Boolean);
     return `<div class="qfull">${esc(q.q)}<span class="qver">${esc(q.version)}</span></div>` + (lines.length ? `<h4>prior</h4><ul class="prior">${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '');
+  }
+
+  // the depth statements of the prior (rule C14): each bound one's node and what the scene used it for, each
+  // unbound one with its reason; a statement the scene did not use is muted
+  function depthBindings(db) {
+    if (!db) return '';
+    const used = db.bound.filter((b) => b.by).length;
+    return `<div class="scroll-x"><table class="depthb"><tr><th><code>depth_bindings</code></th><th colspan="3">${db.given} given · ${db.bound.length} bound · ${used} used</th></tr>` +
+      db.bound.map((b) => `<tr class="${b.by ? '' : 'muted'}"><td>${esc(b.name)}</td><td>${esc(b.node)}${b.end ? ` <span class="muted">${esc(b.end)}</span>` : ''}</td>` +
+        `<td>${esc(b.as)}</td><td>${b.by ? `<code>${esc(b.by)}</code> · ` : ''}${esc(b.why)}</td></tr>`).join('') +
+      db.unbound.map((b) => `<tr class="bad"><td>${esc(b.name)}</td><td>—</td><td>unbound</td><td>${esc(b.reason)}</td></tr>`).join('') +
+      '</table></div>';
   }
 
   // ---------- question time t_q ----------
@@ -210,19 +222,34 @@
     return `<h4>Tracks</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>` +
       identityBlock(q.identity) + extentsBlock(q.extents);
   }
-  // per-frame mask extents of every tracked frame (extents2d, rule extent.overlay): one row per object, the extent
-  // range on static frames against the largest extent on moving frames
+  // frames and set-of-frames as compact ranges: [27, 28, 29, 30] -> 27–30
+  function frameRuns(fs) {
+    const out = [];
+    fs.forEach((f) => {
+      const r = out[out.length - 1];
+      if (r && f === r[1] + 1) r[1] = f; else out.push([f, f]);
+    });
+    return out.map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(', ');
+  }
+  // per tracked object its frames and overlay-ring frames (extents2d, rule extent.overlay), and per dimension and
+  // anchor the blur-free extent the scene used (rule extent.static): value ± σ, frames used, frames rejected with why
   function extentsBlock(e) {
     if (!e) return '';
-    const r2 = (a) => (a[0] === a[1] ? fmtNum(a[0]) : `${fmtNum(a[0])}–${fmtNum(a[1])}`);
+    const anchor = (a) => `<td>${esc(a.dim)}</td><td>${esc(a.label)}</td>` +
+      `<td class="n" title="${esc(a.how)}">${plusMinus(a.value, a.sigma)} px</td>` +
+      `<td class="n" title="${esc(a.sigma_mask_how)}">${fmtNum(a.sigma_mask)} px</td><td class="n">${frameRuns(a.used)}</td>` +
+      `<td>${a.rejected.map((r) => `<div class="bad">f${r.frame} · ${fmtNum(r.extent)} px · ${fmtNum(r.speed)} px/frame · ${esc(r.why)}</div>`).join('')}</td>`;
+    const rows = e.rows.map((x) => {
+      const n = Math.max(x.at.length, 1);
+      const head = `<td rowspan="${n}">${esc(x.obj)}${x.kind ? ` <span class="muted">${esc(x.kind)}</span>` : ''}</td>` +
+        `<td class="n" rowspan="${n}">${x.n != null ? `${x.n} <span class="muted">(${x.frames[0]}–${x.frames[1]})</span>` : ''}</td>` +
+        `<td class="n${x.overlay ? ' bad' : ''}" rowspan="${n}">${x.overlay != null ? `${x.overlay}${x.ring != null ? ` · ring ${fmtNum(x.ring)} px` : ''}` : ''}</td>`;
+      if (!x.at.length) return `<tr>${head}<td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+      return x.at.map((a, i) => `<tr${i ? '' : ' class="xfirst"'}>${i ? '' : head}${anchor(a)}</tr>`).join('');
+    }).join('');
     return `<div class="scroll-x"><table class="extents"><tr><th>Object</th><th class="n">Frames</th><th class="n">Overlay</th>` +
-      `<th class="n">Static &lt; ${fmtNum(e.static_px)} px/frame</th><th class="n">Largest moving</th></tr>` +
-      e.rows.map((x) => `<tr><td>${esc(x.obj)}${x.kind ? ` <span class="muted">${esc(x.kind)}</span>` : ''}</td>` +
-        `<td class="n">${x.n} <span class="muted">(${x.frames[0]}–${x.frames[1]})</span></td>` +
-        `<td class="n${x.overlay ? ' bad' : ''}">${x.overlay}${x.ring != null ? ` · ring ${fmtNum(x.ring)} px` : ''}</td>` +
-        `<td class="n">${x.static ? `${r2(x.static.major)} × ${r2(x.static.minor)} px <span class="muted">(${x.static.n})</span>` : '—'}</td>` +
-        `<td class="n">${x.moving ? `${fmtNum(x.moving.extent[0])} × ${fmtNum(x.moving.extent[1])} px · f${x.moving.frame} · ${fmtNum(x.moving.speed)} px/frame <span class="muted">(${x.moving.n})</span>` : '—'}</td></tr>`).join('') +
-      '</table></div>';
+      '<th>Dim</th><th>At</th><th class="n"><code>extent.static</code></th><th class="n">σ mask</th><th class="n">Frames used</th><th>Rejected</th></tr>' +
+      rows + '</table></div>';
   }
   // the track identity judge per object: every candidate in the order judged (static / verify / class_size /
   // presence / border), the accepted one carrying the accent bar; an untracked object spans the row with its reason
@@ -603,15 +630,28 @@
   // the focal length each prior or pendulum implies against the scene camera (rule C3a focal.consistent)
   function consistentTable(cam) {
     if (!cam || !cam.consistent.length) return '';
-    return '<div class="scroll-x"><table class="fcons"><tr><th><code>focal.consistent</code></th><th class="n">Implied f (px)</th>' +
+    const ind = cam.consistent.some((c) => c.independent != null);
+    const indCell = (c) => (!ind ? '' : `<td class="${c.independent ? '' : 'bad'}">${c.independent ? 'yes' : 'no'}</td>`);
+    const why = (c) => c.reason.replace(/^untestable:\s*/, '').replace(/^.*?: not independent:\s*/, '');
+    return '<div class="scroll-x"><table class="fcons"><tr><th><code>focal.consistent</code></th>' +
+      (ind ? '<th><code>focal.independent</code></th>' : '') + '<th class="n">Implied f (px)</th>' +
       '<th class="n">Scene f (px)</th><th class="n">|Δ| vs 3σ</th><th></th><th></th></tr>' +
-      cam.consistent.map((c) => `<tr class="${cls3(c.pass)}"><td>${esc(c.source)}</td>` +
-        `<td class="n">${c.f_obj != null ? plusMinus(c.f_obj, c.sigma_obj) : '—'}</td>` +
+      cam.consistent.map((c) => `<tr class="${cls3(c.pass)}"><td>${esc(c.source)}</td>${indCell(c)}` +
+        `<td class="n">${c.f_obj != null ? plusMinus(c.f_obj, c.sigma_obj) : '—'}` +
+        (c.extent ? `<div class="muted">${plusMinus(c.extent.value, c.extent.sigma)} px · f${frameRuns(c.extent.used)}</div>` : '') + '</td>' +
         `<td class="n">${c.f != null ? plusMinus(c.f, c.sigma) : '—'}</td>` +
-        `<td class="n">${c.diff != null ? `${fmtNum(c.diff)} ${c.pass ? '≤' : '>'} ${fmtNum(c.bound)}` : '—'}</td>` +
-        `<td>${res3(c.pass)}</td><td>${c.pass === null ? esc(c.reason.replace(/^untestable:\s*/, '')) : esc(c.how)}` +
+        `<td class="n">${c.diff != null && c.bound != null ? `${fmtNum(c.diff)} ${c.pass ? '≤' : '>'} ${fmtNum(c.bound)}` : '—'}</td>` +
+        `<td>${res3(c.pass)}</td><td>${c.pass === null ? esc(why(c)) : esc(c.how)}` +
         (c.class_size ? `<div class="${c.class_size.pass ? 'ok' : 'bad'}"><code>focal.class_size</code> ${esc(c.class_size.reason)}</div>` : '') +
         '</td></tr>').join('') + '</table></div>';
+  }
+  // the scene camera fused from stage A and every pendulum's joint f (rule camera.one); an unused vote is muted
+  function cameraOneTable(co) {
+    if (!co) return '';
+    return '<div class="scroll-x"><table class="focal camone"><tr><th><code>camera.one</code></th><th>Object</th><th class="n">f (px)</th><th></th></tr>' +
+      co.votes.map((x) => `<tr class="${x.used ? '' : 'muted'}"><td>${esc(x.source)}</td><td>${esc(x.object)}</td>` +
+        `<td class="n">${plusMinus(x.f, x.sigma)}</td><td>${x.used ? 'used' : esc(x.why)}</td></tr>`).join('') +
+      `<tr class="camf"><td colspan="2" title="${esc(co.how)}">camera.f</td><td class="n">${plusMinus(co.f, co.sigma)}</td><td></td></tr></table></div>`;
   }
   // the support plane's acceptance with its sub-tests (rule D9 support.plane); a recorded sub-test has no verdict
   function supportPlaneTable(sp) {
@@ -703,7 +743,7 @@
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + consistentTable(s.camera) + focalTable(s.focal) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + consistentTable(s.camera) + focalTable(s.focal) + supportPlaneTable(s.support_plane) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') : '') +
         gravityBlock(s.gravity) +
@@ -812,6 +852,9 @@
       const s3 = (a, b) => `${a == null ? '…' : fmt(a, 3)}–${b == null ? '…' : fmt(b, 3)} s`;
       h += `<div><code>window.state</code> ${esc(w.state || '—')} · span ${s3(w.t0, w.t1)} · clipped by ${esc(w.start || '—')} / ${esc(w.end || '—')}` +
         (w.used ? ` · window ${s3(w.used[0], w.used[1])}` : '') + (w.check ? ` · ${w.law ? esc(w.law) : 'no law'} · <code>${esc(w.check)}</code>` : '') + '</div>';
+      if (m.centred) {
+        h += `<div><code>window.centred</code> from ${s3(m.centred.from[0], m.centred.from[1])} · extremum ${esc(m.centred.extremum)} · stop ${esc(m.centred.stop)}</div>`;
+      }
       if (w.driven) {
         h += `<div><code>window.driven</code> ${esc(w.driven.state)} · <span title="${esc(w.driven.how)}">noise ${w.driven.noise.map((x) => fmtNum(x)).join(' / ')} px</span></div>`;
       }

@@ -123,6 +123,13 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            "repair_candidates_dropped" [{call, why}] (rule repair.window_checks); the unit's extents record
 #            outputs/extents2d_<tag>/<unit>.json, when it exists, has "format" 3 with per-frame "extent" /
 #            "speed_px" / "overlay" (rule extent.overlay)
+#   static   the scene has "extents" {object: {dim: {sigma_mask, sigma_mask_how, at: {label: {value, sigma, frames_used,
+#            frames_rejected [{frame, speed_px, extent, why}], how}}}}} with "objects"[name]."extent" the same record or
+#            null (rule extent.static), "camera_sources" [{object, frames, t, rule}], every focal.consistent row
+#            "independent" (rule focal.independent), "camera_one" {f, sigma, how, votes [{source, object, f, sigma,
+#            used, why}]} or null (rule camera.one) and "depth_bindings" {given, bound [{name, node, as, used {by,
+#            why}}], unbound [{name, reason}]} (rule C14); a direct speed measurement may have "inputs"."centred"
+#            {from, extremum, stop} (rule window.centred); the harness CSV has "unit_set"
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -134,9 +141,9 @@ VERSION_FORMAT = {
            "steps": STEPS_V4},
     "v5": {"motion": "physics", "paths": ("physics", "segments"), "unit": "question", "decide": "agree",
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
-           "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True},
+           "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
+           "static": True},
 }
-STATIC_PX = 1.0   # extents table: a frame is static below this image speed (px / frame)
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
 FMT: dict = {}     # VERSION_FORMAT entry of the version being built
@@ -547,7 +554,11 @@ def direct_view(m: dict, what: str) -> dict:
         "z_plane": num(req(da, "z_plane", f"{what} direct.depth_agree"), 3),
         "diff": num(abs(float(da["z_mask"]) - float(da["z_plane"])), 3),
         "bound": num(req(da, "bound", f"{what} direct.depth_agree"), 3)}
-    return {"wstate": win, "support_depth": sdv, "depth_agree": dav}
+    ce = (m.get("inputs") or {}).get("centred") if FMT.get("static") else None
+    cev = None if ce is None else {
+        "from": [num(x, 4) for x in req(ce, "from", f"{what} centred")],
+        "extremum": text(req(ce, "extremum", f"{what} centred")), "stop": text(req(ce, "stop", f"{what} centred"))}
+    return {"wstate": win, "support_depth": sdv, "depth_agree": dav, "centred": cev}
 
 
 def profile_view(x: dict, what: str) -> dict:
@@ -890,38 +901,83 @@ def camera_roll_view(state: dict) -> dict:
     return out
 
 
-def extents_view(tag: str, unit: str):
-    """The unit's per-frame mask extents (pipeline.extents2d format 3, rule extent.overlay), one row per tracked
-    object: tracked frames, frames with an overlay ring (median ring width), the extent range on static frames
-    (speed < STATIC_PX px / frame) and the largest extent on moving frames; None when the unit has no record."""
+def extents_view(tag: str, unit: str, state: dict | None):
+    """The unit's mask extents: per tracked object the frames and overlay-ring frames of pipeline.extents2d format 3
+    (rule extent.overlay), and per object, dimension and anchor the blur-free extent the scene used (scene json
+    "extents", rule extent.static): value +- sigma, frames used, frames rejected with why. None without either."""
     p = ROOT / "outputs" / f"extents2d_{tag}" / f"{unit}.json"
-    if not p.exists():
-        return None
-    j = read_json(p, "extents2d record")
-    if req(j, "format", "extents2d record") != 3 or req(j, "unit", "extents2d record") != unit:
-        raise ValueError(f"{AT['where']}: extents2d record format {j.get('format')} / unit {j.get('unit')!r}")
-    kinds = req(j, "tracks", "extents2d record")
     rows = []
-    for kind, objs in kinds.items():
-        for name, frames in objs.items():
-            w = f"extents2d {kind} {name!r}"
-            fs = sorted((int(k), v) for k, v in frames.items())
-            if not fs:
-                continue
-            ext = {k: [float(x) for x in req(v, "extent", w)] for k, v in fs}
-            sp = {k: req(v, "speed_px", w) for k, v in fs}
-            ov = [k for k, v in fs if req(v, "overlay", w)]
-            rings = [float(req(v, "ring_px", w)) for k, v in fs if v["overlay"]]
-            static = [k for k in ext if sp[k] is not None and sp[k] < STATIC_PX]
-            moving = [k for k in ext if sp[k] is not None and sp[k] >= STATIC_PX]
-            rng = lambda ks, i: [num(min(ext[k][i] for k in ks), 3), num(max(ext[k][i] for k in ks), 3)]
-            top = max(moving, key=lambda k: ext[k][0]) if moving else None
-            rows.append({"obj": name, "kind": kind if len(kinds) > 1 else None, "n": len(fs), "frames": [fs[0][0], fs[-1][0]],
-                         "overlay": len(ov), "ring": num(float(np.median(rings)), 3) if rings else None,
-                         "static": {"n": len(static), "major": rng(static, 0), "minor": rng(static, 1)} if static else None,
-                         "moving": {"n": len(moving), "frame": top, "extent": [num(x, 3) for x in ext[top]],
-                                    "speed": num(sp[top], 3)} if moving else None})
-    return {"static_px": STATIC_PX, "rows": rows} if rows else None
+    if p.exists():
+        j = read_json(p, "extents2d record")
+        if req(j, "format", "extents2d record") != 3 or req(j, "unit", "extents2d record") != unit:
+            raise ValueError(f"{AT['where']}: extents2d record format {j.get('format')} / unit {j.get('unit')!r}")
+        kinds = req(j, "tracks", "extents2d record")
+        for kind, objs in kinds.items():
+            for name, frames in objs.items():
+                w = f"extents2d {kind} {name!r}"
+                fs = sorted((int(k), v) for k, v in frames.items())
+                if not fs:
+                    continue
+                rings = [float(req(v, "ring_px", w)) for k, v in fs if req(v, "overlay", w)]
+                rows.append({"obj": name, "kind": kind if len(kinds) > 1 else None, "n": len(fs), "frames": [fs[0][0], fs[-1][0]],
+                             "overlay": len(rings), "ring": num(float(np.median(rings)), 3) if rings else None, "at": []})
+    if FMT.get("static") and state is not None:
+        ex = req(state, "extents", "scene")
+        for name, o in req(state, "objects", "scene").items():
+            oe = req(o, "extent", f"scene object {name!r}")
+            if (oe or {}) != (ex.get(name) or {}):
+                raise ValueError(f"{AT['where']}: object {name!r} extent differs from the scene's extents record")
+        for name, dims in ex.items():
+            row = next((r for r in rows if r["obj"] == name), None)
+            if row is None:
+                row = {"obj": name, "kind": None, "n": None, "frames": None, "overlay": None, "ring": None, "at": []}
+                rows.append(row)
+            for dim, d in dims.items():
+                w = f"extents {name!r} {dim}"
+                sm = num(req(d, "sigma_mask", w), 3)
+                for label, x in req(d, "at", w).items():
+                    row["at"].append({"dim": text(dim), "label": text(label), "value": num(req(x, "value", w), 4),
+                                      "sigma": num(req(x, "sigma", w), 3), "sigma_mask": sm,
+                                      "sigma_mask_how": text(req(d, "sigma_mask_how", w)),
+                                      "used": [int(f) for f in req(x, "frames_used", w)],
+                                      "rejected": [{"frame": int(req(r, "frame", w)), "speed": num(req(r, "speed_px", w), 3),
+                                                    "extent": num(req(r, "extent", w), 3), "why": text(req(r, "why", w))}
+                                                   for r in req(x, "frames_rejected", w)],
+                                      "how": text(req(x, "how", w))})
+    return {"rows": rows} if rows else None
+
+
+def depth_bindings_view(state: dict):
+    """The scene's depth statements (rule C14): how many were given, each bound one with its node, role and what the
+    scene used it for (by null: not used, with why), each unbound one with its reason; None when none was given."""
+    db = req(state, "depth_bindings", "scene")
+    given = req(db, "given", "depth_bindings")
+    bound = [{"name": text(req(b, "name", "depth binding")), "node": text(req(b, "node", "depth binding")),
+              "as": text(req(b, "as", "depth binding")), "end": text(b.get("end")) or None,
+              "by": text(req(req(b, "used", "depth binding"), "by", "depth binding used")) or None,
+              "why": text(req(b["used"], "why", "depth binding used"))} for b in req(db, "bound", "depth_bindings")]
+    unbound = [{"name": text(req(b, "name", "unbound depth statement")), "reason": text(req(b, "reason", "unbound depth statement"))}
+               for b in req(db, "unbound", "depth_bindings")]
+    if not given:
+        if bound or unbound:
+            raise ValueError(f"{AT['where']}: depth_bindings bound / unbound without a given statement")
+        return None
+    return {"given": len(given), "names": len({text(g.get("name")) for g in given}), "bound": bound, "unbound": unbound}
+
+
+def camera_one_view(state: dict):
+    """The scene camera fused from stage A and the pendulums' joint f (rule camera.one); None when no pendulum votes."""
+    co = req(state, "camera_one", "scene")
+    if co is None:
+        return None
+    votes = [{"source": text(req(v, "source", "camera_one vote")), "object": text(req(v, "object", "camera_one vote")),
+              "f": num(req(v, "f", "camera_one vote"), 4), "sigma": num(req(v, "sigma", "camera_one vote"), 3),
+              "used": bool(req(v, "used", "camera_one vote")), "why": text(req(v, "why", "camera_one vote"))}
+             for v in req(co, "votes", "camera_one")]
+    if text(req(state, "f_source", "scene")) != "camera.one":
+        raise ValueError(f"{AT['where']}: camera_one record with f_source {state.get('f_source')!r}")
+    return {"f": num(req(co, "f", "camera_one"), 4), "sigma": num(req(co, "sigma", "camera_one"), 3),
+            "how": text(req(co, "how", "camera_one")), "votes": votes}
 
 
 def scene_view(state: dict, source_path: Path) -> dict:
@@ -965,7 +1021,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                             for x in req(j, "focal_votes", "scene")] or None} | \
         ({"focal": focal_view(j), "horizon": horizon_view(j)} if FMT.get("horizon") else {}) | \
         ({"camera": camera_view(j), "support_plane": support_plane_view(j)} if FMT.get("camera") else {}) | \
-        ({"camera_roll": camera_roll_view(j)} if FMT.get("roll") else {})
+        ({"camera_roll": camera_roll_view(j)} if FMT.get("roll") else {}) | \
+        ({"camera_one": camera_one_view(j)} if FMT.get("static") else {})
 
 
 def camera_view(state: dict) -> dict:
@@ -977,7 +1034,16 @@ def camera_view(state: dict) -> dict:
         w = "focal.consistent"
         fo, f = req(x, "f_obj", w), req(x, "f", w)
         cs = x.get("class_size")
-        rows.append({"source": text(req(x, "source", w)), "f_obj": num(fo, 4), "sigma_obj": num(req(x, "sigma_obj", w), 3),
+        ind = req(x, "independent", w) if FMT.get("static") else None
+        if FMT.get("static") and not isinstance(ind, bool):
+            raise ValueError(f"{AT['where']}: focal.consistent independent = {ind!r}")
+        if ind is False and x.get("pass") is not None:
+            raise ValueError(f"{AT['where']}: a vote that is not independent has a verdict")
+        xe = x.get("extent") if FMT.get("static") else None
+        ext = None if xe is None else {"value": num(req(xe, "value", w), 4), "sigma": num(req(xe, "sigma", w), 3),
+                                       "used": [int(f) for f in req(xe, "frames_used", w)],
+                                       "rejected": len(req(xe, "frames_rejected", w))}
+        rows.append({"independent": ind, "extent": ext} | {"source": text(req(x, "source", w)), "f_obj": num(fo, 4), "sigma_obj": num(req(x, "sigma_obj", w), 3),
                      "f": num(f, 4), "sigma": num(req(x, "sigma", w), 3), "bound": num(x.get("bound"), 3),
                      "diff": num(abs(float(fo) - float(f)), 3) if fo is not None and f is not None else None,
                      "pass": req(x, "pass", w), "reason": text(req(x, "reason", w)), "how": text(req(x, "how", w)),
@@ -1415,7 +1481,9 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
             if unit_kind == "question":
                 query["refmeasure"] = refmeasure_view(tag, unit)
                 if FMT.get("roll"):
-                    query["extents"] = extents_view(tag, unit)
+                    query["extents"] = extents_view(tag, unit, state)
+                if FMT.get("static"):
+                    query["depth_bindings"] = depth_bindings_view(state) if state is not None else None
                 query |= {"scene": scene_view(state, DIRS["scenes"] / f"{unit}.json") if state is not None else None,
                           "sgraph": sgraph(unit, rec, state), "tracks": track_intervals(unit)}
                 if FMT.get("kept"):
@@ -1456,8 +1524,20 @@ def build_harness_val(runs: list[tuple[str, Path]], make_thumb: bool = False) ->
     questions.sort(key=lambda q: q["row"])
     print(f"val: {len(questions)} questions ({len(dev)} DEV10), {len(videos)} videos")
     return {"runs": [{"version": t, "unit": version_format(t)["unit"], "decide": version_format(t)["decide"],
-                      "csv": str(p.relative_to(ROOT))} for t, p in runs],
+                      "csv": str(p.relative_to(ROOT)), "unit_set": unit_set(t, frames[t], p)} for t, p in runs],
             "dev": dev, "videos": [videos[v] for v in sorted(videos)], "questions": questions}
+
+
+def unit_set(tag: str, frame: pd.DataFrame, csv_path: Path):
+    """The unit set a run's CSV names (the harness names its CSV by the set: "_dev10"; the full split has no suffix);
+    None for formats without it. One value per CSV, and the file name must carry it."""
+    if not version_format(tag).get("static"):
+        return None
+    vals = sorted({text(x) for x in req(frame, "unit_set", f"{csv_path.name}")})
+    if len(vals) != 1 or not vals[0] or \
+            not csv_path.stem.endswith("_answers" if vals[0] == "full" else f"_answers_{vals[0]}"):
+        raise ValueError(f"{csv_path.name}: unit_set {vals} does not name this CSV")
+    return vals[0]
 
 
 def parse_run(spec: str) -> tuple[str, Path]:

@@ -195,3 +195,9 @@ table.rounds td .cand .bad { font-size: 12px; }
 table.extents { width: auto; min-width: 60%; margin: 6px 0 10px; font-size: 13px; }
 table.extents td.n { white-space: nowrap; }
 table.extents td.bad { color: var(--m1t, #8a1c12); }
+table.extents td { vertical-align: top; }
+table.extents td div.bad { font-size: 12px; color: var(--m1t, #8a1c12); }
+table.depthb { width: auto; min-width: 50%; margin: 4px 0 10px; font-size: 13px; }
+table.depthb tr.muted td, table.camone tr.muted td { color: var(--muted); }
+table.depthb tr.bad td { color: var(--m1t, #8a1c12); }
+table.camone tr.camf td { font-weight: 600; }
