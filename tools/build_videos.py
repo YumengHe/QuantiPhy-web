@@ -38,6 +38,8 @@ names its group. With unit "question" each question carries its own scene / scen
 
 The page plays the original videos from media/val (git-ignored symlinks, see video_info).
 
+Also regenerates the class-size table of pipeline.html (step 8.3) from pipeline/class_sizes.py (write_class_table).
+
 Note: the "v0" keys below (and o.v0 / p.v0 in videos.js) are the initial-velocity field of the scene json written by
 the pipeline, not a version label; do not rename or remove them.
 """
@@ -209,6 +211,21 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            with "impulse_span" {name, onset, verdict, ramp_end, first_frame, t_stop, n_driven_frames, speeds, how,
 #            untestable, applied, free_piece} (its motion law's copy without applied / free_piece) and the onset event
 #            of events_graph its "impulse_span" {onset, ramp_end, n_driven_frames, how} (rule law.impulse_span)
+#   classref the object inventory has format 7 (rule C15 scale.class_reference, part 1): "class_table" (pipeline.class_sizes
+#            TABLE_VERSION), "rendered", "references" {status}, "reference_rejected" [{name, class, reason, why}], every
+#            object "size_class", "size_reference" (pipeline.class_sizes.size_reference of its class, or null) and
+#            "self_reference", a reference object "extra" {role "reference", reason}; the scene has
+#            "scale.class_reference" {name, mode s / f, votes [..], used, skipped [{name, reason, why}], carries_scale,
+#            stated, value, sigma, pass, reason} (mirrored in "scale"."class_reference" of a prior-scaled scene, its
+#            class-reference rows in focal.fusion.sources with verdict "cross-check" for a depth-stated one), every
+#            object "role" and "size_reference" (role reference: dim_source class for every dim), camera["scale.source"]
+#            and results[i]["scale.source"] (prior / depth_info / class / none), camera keys f_source / focal_spread /
+#            support_plane / support_rejected / s / metric / plane_fusion always present (null with depth statements),
+#            depth_rows[obj] n_matched / odd / ground / plane_sigma_added always present (rule record.one_shape), a
+#            physics chain's "gate" {name physics.gate, pass, rms_chain, rms_kinematic, frames, bound, rms_chain_law,
+#            frames_law, rms_kinematic_all, frames_kinematic_all, reason} (rule physics.gate_frames), a result's
+#            window_impulse "measurement" "direct" (rule window_impulse.measurement) and a prior scale's "full_extent"
+#            {agent: {variant, depth, pass, frames_used, frames_excluded}} (rule size.full_extent_nominal)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -222,7 +239,7 @@ VERSION_FORMAT = {
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
            "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
-           "span": True, "launch": True},
+           "span": True, "launch": True, "classref": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -626,6 +643,9 @@ def impulse_window_view(x: dict, what: str, result: bool = False) -> dict:
     out = {"pass": ok, "reason": text(req(x, "reason", w)), "onset": num(req(x, "onset", w), 5),
            "ramp_end": num(req(x, "ramp_end", w), 5), "piece": t4(req(x, "piece", w)), "window": t4(req(x, "window", w))}
     if result:
+        # rule window_impulse.measurement: the result-level record is the direct measurement's verdict
+        if FMT.get("classref") and req(x, "measurement", w) != "direct":
+            raise ValueError(f"{AT['where']}: {w} measurement {x['measurement']!r}, expected 'direct'")
         out |= {"agent": text(req(x, "agent", w)) or None, "verdict": text(req(x, "verdict", w)),
                 "first_frame": num(req(x, "first_frame", w), 5),
                 "speeds": [[num(t, 5), num(v, 4)] for t, v in req(x, "speeds", w)]}
@@ -675,10 +695,14 @@ def motion_law(name: str, o: dict):
         rf, wr = law["release_fit"], f"object {name!r} motion_law release_fit"
         if req(rf, "name", wr) != "release.fit":
             raise ValueError(f"{AT['where']}: {wr} name {rf['name']!r}")
+        # scene_fit.release_fit: an untestable record (too few test frames) stops before the noise and the trials
+        untestable = text(req(rf, "why", wr)).startswith("untestable:")
+        if untestable and (req(rf, "t", wr) is not None or "sigma_px" in rf or "tried" in rf):
+            raise ValueError(f"{AT['where']}: {wr} untestable with t / sigma_px / tried")
         out["release_fit"] = {"t": num(req(rf, "t", wr), 4), "lo": num(req(rf, "lo", wr), 4), "hi": num(req(rf, "hi", wr), 4),
                               "t_stop": num(req(rf, "t_stop", wr), 4),
-                              "sigma_px": [num(x, 3) for x in req(rf, "sigma_px", wr)],
-                              "tried": [[num(a, 4), bool(b), int(c)] for a, b, c in req(rf, "tried", wr)],
+                              "sigma_px": None if untestable else [num(x, 3) for x in req(rf, "sigma_px", wr)],
+                              "tried": None if untestable else [[num(a, 4), bool(b), int(c)] for a, b, c in req(rf, "tried", wr)],
                               "why": text(req(rf, "why", wr))}
     if FMT.get("selftest") and rot is None:
         out["unknown"] = [[num(a, 4), None if b >= OPEN_END else num(b, 4)]
@@ -1162,7 +1186,142 @@ def scale_view(state: dict):
            "prior": text(req(sc, "prior", "scale")), "how": text(req(sc, "how", "scale")), "extent": text(ext) or None}
     if FMT.get("gravity"):
         out["checks"] = named_checks(req(sc, "checks", "scale"), list(req(sc, "failed", "scale")), "scale")
+    if FMT.get("classref"):
+        if req(sc, "class_reference", "scale") != req(state, "scale.class_reference", "scene"):
+            raise ValueError(f"{AT['where']}: scale.class_reference differs from the scene's scale.class_reference")
+        out["full_extent"] = scale_full_extent_view(req(sc, "full_extent", "scale"))
     return out
+
+
+CLASS_SKIP_REASONS = ("self_reference", "observe.line_spacing", "prior.stated", "part.unmeasured", "track.none",
+                      "presence.absent", "support.plane", "dims.agent_lateral", "dims.agent_height", "size.full_extent",
+                      "fit.none", "fit.object", "dim.unobserved", "extent.frames")   # pipeline.scene_fit (rule C15)
+CLASS_VOTE_KEYS = ("source", "object", "class", "dim", "key", "value", "sigma", "role", "px", "extent", "extent_rel",
+                   "n_frames", "frames", "z_how", "pass", "reason", "z")
+CLASS_REFERENCE_KEYS = ("name", "mode", "votes", "used", "skipped", "carries_scale", "stated", "value", "sigma", "pass",
+                        "reason")
+
+
+def class_reference_view(state: dict, scale_source: str) -> dict:
+    """The class votes for the scene's scale (rule C15 scale.class_reference): mode "s" (a prior-scaled scene: s = class
+    value / nominal extent) or "f" (a depth-stated scene: f x extent / class value); per vote the object, class, dim,
+    class value +- sigma, the observed extent, s or f +- sigma, z against the stated source and pass; the skipped
+    objects with their reason; the stated source; whether the votes carry the scale. A depth-stated scene's votes are
+    its focal.fusion cross-check rows; votes that carry the scale make camera scale.source "class"."""
+    cr = req(state, "scale.class_reference", "scene")
+    w = "scale.class_reference"
+    if set(cr) != set(CLASS_REFERENCE_KEYS) or cr["name"] != w or cr["mode"] not in ("s", "f"):
+        raise ValueError(f"{AT['where']}: {w} keys {sorted(cr)} name {cr.get('name')!r} mode {cr.get('mode')!r}")
+    mode = cr["mode"]
+    if (mode == "f") != (scale_source == "depth_info") or bool(cr["carries_scale"]) != (scale_source == "class"):
+        raise ValueError(f"{AT['where']}: {w} mode {mode!r} carries_scale {cr['carries_scale']!r} with scale.source {scale_source!r}")
+    votes = []
+    for v in cr["votes"]:
+        wv = f"{w} vote {v.get('object')!r}"
+        if set(v) != set(CLASS_VOTE_KEYS) | {mode, f"sigma_{mode}"} or v["source"] != f"class:{v['object']}" \
+                or v["pass"] not in (True, False, None):
+            raise ValueError(f"{AT['where']}: {wv} keys {sorted(v)} source {v.get('source')!r} pass {v.get('pass')!r}")
+        votes.append({"object": text(v["object"]), "class": text(v["class"]), "dim": text(v["dim"]), "key": text(v["key"]),
+                      "role": text(v["role"]), "value": num(v["value"], 4), "sigma": num(v["sigma"], 3),
+                      "px": num(v["px"], 4), "extent": num(v["extent"], 4), "extent_rel": num(v["extent_rel"], 3),
+                      "n_frames": int(v["n_frames"]), "frames": text(v["frames"]), "z_how": text(v["z_how"]),
+                      "x": num(v[mode], 4), "sigma_x": num(v[f"sigma_{mode}"], 3), "z": num(v["z"], 3),
+                      "pass": v["pass"], "reason": text(v["reason"])})
+    skipped = []
+    for x in cr["skipped"]:
+        ws = f"{w} skipped {x.get('name')!r}"
+        r = text(req(x, "reason", ws))
+        if r not in CLASS_SKIP_REASONS:
+            raise ValueError(f"{AT['where']}: {ws} reason {r!r}")
+        skipped.append({"object": text(req(x, "name", ws)), "class": text(req(x, "class", ws)), "reason": r,
+                        "why": text(req(x, "why", ws))})
+    names = [v["object"] for v in votes]
+    if not set(cr["used"]) <= set(names):
+        raise ValueError(f"{AT['where']}: {w} used {cr['used']} not among the votes {names}")
+    if mode == "f":
+        fu = req(req(state, "focal", "scene"), "fusion", "focal")
+        # the fusion's copy leaves out the votes: they are its "class reference" source rows
+        if req(fu, "class_reference", "focal.fusion") != {k: v for k, v in cr.items() if k != "votes"}:
+            raise ValueError(f"{AT['where']}: focal.fusion.class_reference differs from {w} (without its votes)")
+        rows = {text(x["object"]): x for x in req(fu, "sources", "focal.fusion") if x.get("kind") == "class reference"}
+        if set(rows) != set(names) or any(num(rows[v["object"]]["f"], 4) != v["x"] or rows[v["object"]]["pass"] != v["pass"]
+                                          or rows[v["object"]]["verdict"] != "cross-check" for v in votes):
+            raise ValueError(f"{AT['where']}: focal.fusion class-reference rows {sorted(rows)} differ from {w} votes {names}")
+    st = cr["stated"]
+    stated = None if st is None else {"value": num(req(st, "value", f"{w} stated"), 4),
+                                      "sigma": num(req(st, "sigma", f"{w} stated"), 3),
+                                      "source": text(req(st, "source", f"{w} stated"))}
+    if cr["pass"] not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {w} pass {cr['pass']!r}")
+    return {"mode": mode, "votes": votes, "used": [text(x) for x in cr["used"]], "skipped": skipped,
+            "carries": bool(cr["carries_scale"]), "stated": stated, "value": num(cr["value"], 4),
+            "sigma": num(cr["sigma"], 3), "pass": cr["pass"], "reason": text(cr["reason"])}
+
+
+REJECT_REASONS = ("class.unknown", "class.not_answered", "name.listed", "name.ground", "name.duplicate", "references.max",
+                  "scene.rendered")   # pipeline.objects (rule C15 part 1)
+OBJECT_ROLES = ("object", "structure", "reference")
+
+
+def inventory_view(unit: str) -> dict:
+    """The inventory's class references (format 7, rule C15 part 1): whether the video is a rendering, the class of
+    every listed object (self: the question asks its own size), the reference objects the texts do not name with the
+    model's reason, and the rejected ones with their reason. Every size_reference is pipeline.class_sizes'."""
+    from pipeline.class_sizes import TABLE_VERSION, size_reference
+    inv = unit_json("objects", unit, "object inventory")
+    w = "object inventory"
+    if req(inv, "version", w) != 7 or req(inv, "class_table", w) != TABLE_VERSION:
+        raise ValueError(f"{AT['where']}: {w} version {inv.get('version')!r} class_table {inv.get('class_table')!r}")
+    rendered, refs = req(inv, "rendered", w), req(inv, "references", w)
+    if rendered not in (True, False, None) or req(refs, "status", f"{w} references") not in ("ok", "unresolved"):
+        raise ValueError(f"{AT['where']}: {w} rendered {rendered!r} references {refs!r}")
+    objs, references = [], []
+    for o in req(inv, "objects", w):
+        wo = f"{w} object {o.get('name')!r}"
+        key, sr, self_ref = req(o, "size_class", wo), req(o, "size_reference", wo), req(o, "self_reference", wo)
+        if not isinstance(self_ref, bool) or (sr is not None and (key is None or sr != size_reference(key))):
+            raise ValueError(f"{AT['where']}: {wo} size_class {key!r} self_reference {self_ref!r} size_reference "
+                             f"differs from pipeline.class_sizes")
+        ex = o.get("extra") or {}
+        if ex.get("role") == "reference":
+            if sr is None:
+                raise ValueError(f"{AT['where']}: {wo} reference object without a size_reference")
+            references.append({"name": text(o["name"]), "class": text(key), "reason": text(req(ex, "reason", f"{wo} extra"))})
+        elif key is not None:
+            objs.append({"name": text(o["name"]), "class": text(key), "self": self_ref, "accepted": sr is not None})
+    rejected = []
+    for x in req(inv, "reference_rejected", w):
+        wr = f"{w} reference_rejected {x.get('name')!r}"
+        r = text(req(x, "reason", wr))
+        if r not in REJECT_REASONS:
+            raise ValueError(f"{AT['where']}: {wr} reason {r!r}")
+        rejected.append({"name": text(req(x, "name", wr)), "class": text(req(x, "class", wr)) or None, "reason": r,
+                         "why": text(req(x, "why", wr))})
+    if refs["status"] == "unresolved" and (req(refs, "reason", f"{w} references") != "objects.references_invalid"
+                                           or not text(req(refs, "why", f"{w} references"))):
+        raise ValueError(f"{AT['where']}: {w} unresolved references {refs!r}")
+    return {"rendered": rendered, "status": text(refs["status"]), "why": text(refs.get("why")) or None,
+            "objects": objs, "references": references, "rejected": rejected}
+
+
+FULL_EXTENT_VARIANTS = ("nominal plane", "depth-model samples", "no depth")
+FULL_EXTENT_EXCLUDED = ("overlap", "shrink", "no_depth", "border")
+
+
+def scale_full_extent_view(fe: dict):
+    """The articulated agents' size.full_extent re-run at the nominal scene's depth before the prior scale is measured
+    (rule size.full_extent_nominal): [{agent, variant, depth, pass, used (frame count), excluded {kind: frames text}}]
+    | None (no agent)."""
+    out = []
+    for name, x in fe.items():
+        w = f"scale.full_extent {name!r}"
+        v, ok, ex = text(req(x, "variant", w)), req(x, "pass", w), req(x, "frames_excluded", w)
+        if v not in FULL_EXTENT_VARIANTS or ok not in (True, False, None) or set(ex) != set(FULL_EXTENT_EXCLUDED):
+            raise ValueError(f"{AT['where']}: {w} variant {v!r} pass {ok!r} excluded {sorted(ex)}")
+        out.append({"agent": text(name), "variant": v, "depth": text(req(x, "depth", w)), "pass": ok,
+                    "used": int(req(x, "frames_used", w)),
+                    "excluded": {k: text(ex[k]) for k in FULL_EXTENT_EXCLUDED if text(ex[k]) not in ("", "[]")}})
+    return out or None
 
 
 def named_checks(checks: dict, failed: list, what: str) -> list[dict]:
@@ -1199,6 +1358,12 @@ def gravity_view(state: dict):
                        "admissible": {"pass": bool(req(adm, "pass", f"{w} admissible")),
                                       "reason": text(req(adm, "reason", f"{w} admissible"))},
                        "use": bool(req(e, "use", w)), "why": text(e.get("why")) or None})
+        elif kind == "physics_probe" and FMT.get("contact") and "excluded" in e:
+            # rule fit.object (scene_fit.gravity_pass): the probe of a failed object fit is listed, excluded
+            if set(e) != {"object", "kind", "g", "excluded"}:
+                raise ValueError(f"{AT['where']}: {w} excluded probe keys {sorted(e)}")
+            ev.append({"obj": text(e["object"]), "kind": kind, "g": num(e["g"]), "rho": None, "agree": None,
+                       "excluded": text(e["excluded"])})
         elif kind == "physics_probe":
             ev.append({"obj": text(req(e, "object", w)), "kind": kind, "g": num(req(e, "g", w)),
                        "rho": num(req(e, "rho", w), 3), "agree": bool(req(e, "agree", w))})
@@ -1476,7 +1641,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                     | (impulse_view(name, o) if FMT.get("impulse") else {})
                     | ({"fit_object": fit_object_view(name, o)} if FMT.get("contact") else {})
                     | ({"size.full_extent": full_extent_view(req(o, "size.full_extent", what), what)} if FMT.get("span") else {})
-                    | (agent_dims_view(name, o) | chain_view(name, o) if FMT.get("launch") else {}))
+                    | (agent_dims_view(name, o) | chain_view(name, o) if FMT.get("launch") else {})
+                    | ({"role": object_role(name, o)} if FMT.get("classref") else {}))
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
             "scale": scale_view(j), "gravity": gravity_view(j),
             "main_support": req(j, "main_support", "scene"),
@@ -1494,7 +1660,21 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"incline": incline_view(j)} if FMT.get("impulse") else {}) | \
         ({"scale_contact": scale_contact_view(j), "main_plane": main_plane_view(j)} if FMT.get("contact") else {}) | \
         ({"depth_rows": depth_rows_view(j)} if FMT.get("interval") else {}) | \
-        ({"plane_fusion": plane_fusion_view(j), "plane_sigma": plane_sigma_view(j)} if FMT.get("launch") else {})
+        ({"plane_fusion": plane_fusion_view(j), "plane_sigma": plane_sigma_view(j)} if FMT.get("launch") else {}) | \
+        ({"class_reference": class_reference_view(j, camera_scale_source(req(j, "camera", "scene")))}
+         if FMT.get("classref") else {})
+
+
+def object_role(name: str, o: dict) -> str:
+    """A scene object's role (rule C15): object / structure / reference; a reference object (a class reference the
+    texts do not name) has its class's body dimensions, dim_source "class" for every dim, and a size_reference."""
+    w = f"scene object {name!r}"
+    role, sr = text(req(o, "role", w)), req(o, "size_reference", w)
+    if role not in OBJECT_ROLES:
+        raise ValueError(f"{AT['where']}: {w} role {role!r}")
+    if role == "reference" and (sr is None or any(v != "class" for v in req(o, "dim_source", w).values())):
+        raise ValueError(f"{AT['where']}: reference {w} dim_source {o['dim_source']} size_reference {sr is not None}")
+    return role
 
 
 IMPULSE_VERDICTS = ("kick", "agent.unobserved", "chain ends", "no_law")   # or "rejected: <why>"
@@ -1546,8 +1726,9 @@ def chain_view(name: str, o: dict) -> dict:
     applied, free_piece} (None without one; the motion law's copy and the onset event's must agree with it)."""
     ph = req(o, "physics", f"scene object {name!r}")
     if ph is None:
-        return {"chain": None, "impulse_span": None}
+        return {"chain": None, "impulse_span": None} | ({"gate": None} if FMT.get("classref") else {})
     w = f"object {name!r} physics"
+    gate = {"gate": gate_view(req(ph, "gate", w), f"{w} gate")} if FMT.get("classref") else {}
     phases = []
     for t, k, kick in req(ph, "phases", w):
         if k not in CHAIN_KINDS or not isinstance(kick, bool):
@@ -1558,13 +1739,18 @@ def chain_view(name: str, o: dict) -> dict:
     if sp is None:
         if driven or "impulse_span" in ph:
             raise ValueError(f"{AT['where']}: {w} has a driven phase without impulse_span")
-        return {"chain": phases, "impulse_span": None}
+        return {"chain": phases, "impulse_span": None} | gate
     ws = f"{w} impulse_span"
-    if req(sp, "name", ws) != "law.impulse_span" or set(sp) != set(IMPULSE_SPAN_KEYS) | {"applied", "free_piece"}:
+    # rule record.one_shape (classref): the record always has "why" (null when applied) and is the motion law's own
+    extra = {"applied", "free_piece"} | ({"why"} if FMT.get("classref") else set())
+    if req(sp, "name", ws) != "law.impulse_span" or set(sp) != set(IMPULSE_SPAN_KEYS) | extra:
         raise ValueError(f"{AT['where']}: {ws} name {sp.get('name')!r} keys {sorted(sp)}")
     ml = (req(o, "motion_law", f"scene object {name!r}") or {}).get("impulse_span")
-    if ml is None or any(ml.get(k) != sp[k] for k in IMPULSE_SPAN_KEYS) or set(ml) - set(sp):
+    if ml is None or any(ml.get(k) != sp[k] for k in IMPULSE_SPAN_KEYS) or set(ml) - set(sp) \
+            or (FMT.get("classref") and ml != sp):
         raise ValueError(f"{AT['where']}: {ws} differs from its motion law's")
+    if FMT.get("classref") and (sp["why"] is None) != bool(sp["applied"]):
+        raise ValueError(f"{AT['where']}: {ws} applied {sp['applied']!r} with why {sp['why']!r}")
     if bool(sp["applied"]) != driven:
         raise ValueError(f"{AT['where']}: {ws} applied {sp['applied']!r} with chain phases {[k for _, k, _ in phases]}")
     ev = [e for e in req(ph, "events_graph", w) if "impulse_span" in e]
@@ -1579,7 +1765,24 @@ def chain_view(name: str, o: dict) -> dict:
                              "first_frame": num(sp["first_frame"], 5), "t_stop": num(sp["t_stop"], 5),
                              "n_driven": int(sp["n_driven_frames"]), "speeds": [[num(t, 5), num(v, 4)] for t, v in sp["speeds"]],
                              "how": text(sp["how"]), "untestable": sp["untestable"], "applied": bool(sp["applied"]),
-                             "free_piece": bool(sp["free_piece"])}}
+                             "free_piece": bool(sp["free_piece"]), "why": text(sp.get("why")) or None}} | gate
+
+
+GATE_KEYS = ("name", "pass", "rms_chain", "rms_kinematic", "frames", "bound", "rms_chain_law", "frames_law",
+             "rms_kinematic_all", "frames_kinematic_all", "reason")
+
+
+def gate_view(g: dict, w: str) -> dict:
+    """The chain-vs-kinematics gate on the same frames (rule physics.gate_frames): chain rms <= 1.5 x kinematic + 2 px
+    on the chain's law frames where the kinematic fit projects a box; each fit's own rms over its own frames beside."""
+    if set(g) != set(GATE_KEYS) or g["name"] != "physics.gate" or g["pass"] not in (True, False):
+        raise ValueError(f"{AT['where']}: {w} keys {sorted(g)} name {g.get('name')!r} pass {g.get('pass')!r}")
+    if (float(g["rms_chain"]) <= float(g["bound"])) != g["pass"]:
+        raise ValueError(f"{AT['where']}: {w} pass {g['pass']} with rms {g['rms_chain']} vs bound {g['bound']}")
+    return {"pass": g["pass"], "rms_chain": num(g["rms_chain"], 3), "rms_kinematic": num(g["rms_kinematic"], 3),
+            "frames": int(g["frames"]), "bound": num(g["bound"], 3), "rms_chain_law": num(g["rms_chain_law"], 3),
+            "frames_law": int(g["frames_law"]), "rms_kinematic_all": num(g["rms_kinematic_all"], 3),
+            "frames_kinematic_all": int(g["frames_kinematic_all"]), "reason": text(g["reason"])}
 
 
 def impulse_view(name: str, o: dict) -> dict:
@@ -1675,16 +1878,21 @@ def fusion_view(state: dict) -> dict:
     rows = []
     for x in req(fu, "sources", w):
         v = text(req(x, "verdict", f"{w} source"))
-        if v not in FUSION_VERDICTS:
+        # rule scale.class_reference: a class vote cross-checks the stated camera, never part of the fused f
+        cross = FMT.get("classref") and v == "cross-check"
+        if v not in FUSION_VERDICTS and not cross:
             raise ValueError(f"{AT['where']}: {w} verdict {v!r}")
+        if cross and (text(req(x, "kind", f"{w} source")) != "class reference" or req(x, "pass", f"{w} source") not in (True, False)):
+            raise ValueError(f"{AT['where']}: {w} cross-check kind {x.get('kind')!r} pass {x.get('pass')!r}")
         b = x.get("bounded")
         rows.append({"object": text(req(x, "object", f"{w} source")), "kind": text(req(x, "kind", f"{w} source")),
                      "f": num(req(x, "f", f"{w} source"), 4), "sigma": num(req(x, "sigma", f"{w} source"), 3),
                      "n": int(req(x, "n_votes", f"{w} source")), "camera": bool(req(x, "camera", f"{w} source")),
                      "how": text(req(x, "how", f"{w} source")), "verdict": v, "why": text(req(x, "why", f"{w} source")) or None,
-                     "bounded": [num(a, 4) for a in b] if b else None})
+                     "bounded": [num(a, 4) for a in b] if b else None}
+                    | ({"pass": bool(x["pass"])} if cross else {}))
     n = int(req(fu, "n_sources", w))
-    if n != len([r for r in rows if r["verdict"] not in ("no sigma", "excluded")]):   # listed, not fused
+    if n != len([r for r in rows if r["verdict"] not in ("no sigma", "excluded", "cross-check")]):   # listed, not fused
         raise ValueError(f"{AT['where']}: {w} n_sources {n} with {len(rows)} sources")
     ok = req(fu, "pass", w)
     if ok not in (True, False, None):
@@ -1720,9 +1928,29 @@ def camera_view(state: dict) -> dict:
     out = {"f": num(req(cam, "f", "camera"), 4), "sigma": num(req(cam, "f_sigma", "camera"), 3),
            "how": text(req(cam, "f_sigma_how", "camera")), "source": text(req(state, "f_source", "scene")) or None,
            "consistent": rows}
+    if FMT.get("classref"):
+        out["scale_source"] = camera_scale_source(cam)
     if FMT.get("fused"):
         out |= {"fused": fused_view(state, out), "agency_unknown": agency_unknown_view(state)}
     return out
+
+
+SCALE_SOURCES = ("prior", "depth_info", "class", "none")   # camera["scale.source"], results[i]["scale.source"]
+PRIOR_CAMERA_KEYS = ("f_source", "focal_spread", "support_plane", "support_rejected", "s", "metric", "plane_fusion")
+
+
+def camera_scale_source(cam: dict) -> str:
+    """camera["scale.source"]; the prior-scale camera keys are always present (rule record.one_shape) and all null in a
+    scene whose camera comes from its depth statements -- null there is absent by design, not a missing value."""
+    for k in PRIOR_CAMERA_KEYS:
+        req(cam, k, "camera")
+    src = text(req(cam, "scale.source", "camera"))
+    if src not in SCALE_SOURCES:
+        raise ValueError(f"{AT['where']}: camera scale.source {src!r}")
+    if src == "depth_info" and any(cam[k] is not None for k in PRIOR_CAMERA_KEYS):
+        raise ValueError(f"{AT['where']}: depth-stated camera with prior-scale keys "
+                         f"{[k for k in PRIOR_CAMERA_KEYS if cam[k] is not None]}")
+    return src
 
 
 def fused_view(state: dict, cam: dict):
@@ -1968,14 +2196,19 @@ def depth_rows_view(state: dict):
                 or dropped is not (ok is False and odd != "plane"):
             raise ValueError(f"{AT['where']}: {w} pass {ok!r} odd {odd!r} with dropped {dropped!r}")
         gr = None
-        if FMT.get("launch") and "ground" in d:
+        if FMT.get("classref"):    # rule record.one_shape: every key present, null when D10b did not run
+            for k in ("n_matched", "odd", "ground", "plane_sigma_added"):
+                req(d, k, w)
+        if FMT.get("launch") and d.get("ground") is not None:
             g, wg = d["ground"], f"{w} ground"
             gr = {"z": num(req(g, "z_ground", wg), 4), "n": int(req(g, "n", wg)), "pass": req(g, "pass", wg),
                   "bound": num(req(g, "bound", wg), 3), "reason": text(req(g, "reason", wg))}
         out.append({"obj": text(name), "pass": ok, "z_mask": num(req(d, "z_mask", w), 4), "z_plane": num(req(d, "z_plane", w), 4),
                     "bound": num(req(d, "bound", w), 3), "n_rows": int(req(d, "n_rows", w)),
                     "n_matched": int(req(d, "n_matched", w)), "dropped": dropped, "reason": text(req(d, "reason", w))}
-                   | ({"odd": odd, "ground": gr, "sigma_added": num(d.get("plane_sigma_added"), 3)} if FMT.get("launch") else {}))
+                   | ({"odd": odd, "ground": gr,
+                       "sigma_added": num(d["plane_sigma_added"] if FMT.get("classref") else d.get("plane_sigma_added"), 3)}
+                      if FMT.get("launch") else {}))
     return out or None
 
 
@@ -2450,7 +2683,7 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                     query["tq"], query["tjump"] = question_times(query["q"], None)
                     questions.append(query)
                     continue
-                unit_json("objects", unit, "object inventory")
+                inventory = inventory_view(unit) if FMT.get("classref") else unit_json("objects", unit, "object inventory")
                 state = question_scene(unit, row, rec)
                 answer, error = req(rec, "answer", "answer record"), None
                 if req(answer, "row", "answer") != row["row"] or text(req(answer, "scene_id", "answer")) != text(row["scene_id"]):
@@ -2484,6 +2717,14 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                       "execution_status": exec_status}
             if unit_kind == "question":
                 query["refmeasure"] = refmeasure_view(tag, unit)
+                if FMT.get("classref"):
+                    query["inventory"] = inventory
+                    query["scale_source"] = None
+                    if result is not None:
+                        ss = text(req(result, "scale.source", "scene result"))
+                        if ss != camera_scale_source(req(state, "camera", "scene")):
+                            raise ValueError(f"{AT['where']}: result scale.source {ss!r} differs from the camera's")
+                        query["scale_source"] = ss
                 if FMT.get("roll"):
                     query["extents"] = extents_view(tag, unit, state)
                 if FMT.get("static"):
@@ -2562,6 +2803,41 @@ def unit_set(tag: str, frame: pd.DataFrame, csv_path: Path):
     return vals[0]
 
 
+PIPELINE_HTML = WEB / "pipeline.html"
+CLASS_TABLE_MARKS = ("<!-- class_sizes: generated by tools/build_videos.py from pipeline/class_sizes.py -->",
+                     "<!-- /class_sizes -->")
+
+
+def write_class_table() -> int:
+    """Regenerate the class-size table of pipeline.html (step 8.3, rule C15) from pipeline.class_sizes itself, between
+    CLASS_TABLE_MARKS: one row per class with what it is, every dim's range lo-hi (m) and sigma, the primary dim, role,
+    observe and source, under the module's TABLE_VERSION. Nothing is copied by hand; the marks must be there."""
+    from html import escape
+    from pipeline.class_sizes import CLASSES, PART_DIMS, TABLE_VERSION, size_reference
+    page = PIPELINE_HTML.read_text()
+    a, b = CLASS_TABLE_MARKS
+    if page.count(a) != 1 or page.count(b) != 1 or page.index(a) > page.index(b):
+        raise ValueError(f"{PIPELINE_HTML.name}: class-size table marks missing or out of order")
+    g = lambda x: f"{x:g}"
+    rows = []
+    for key, c in CLASSES.items():
+        ref = size_reference(key)
+        dims = "".join(f'<span class="dim">{escape(d["dim"].replace("_", " "))} {g(d["lo"])}–{g(d["hi"])}'
+                       f' <span class="muted">σ {g(round(d["sigma"], 6))}</span></span>' for d in ref["dims"])
+        rows.append(f'  <tr><td><code>{escape(key)}</code></td><td>{escape(c["what"])}</td><td class="dims">{dims}</td>'
+                    f'<td>{escape(c["primary"].replace("_", " "))}{" (part)" if c["primary"] in PART_DIMS else ""}</td>'
+                    f'<td>{escape(c["role"])}</td><td>{escape(c["observe"].replace("_", " "))}</td>'
+                    f'<td class="small">{escape(c["source"])}</td></tr>')
+    table = (f'\n<details class="classtable"><summary><code>pipeline/class_sizes.py</code> · {len(CLASSES)} classes · '
+             f'<code>TABLE_VERSION</code> {TABLE_VERSION}</summary>\n<div class="scroll-x"><table class="small classsizes">\n'
+             '  <tr><th>Class</th><th>What</th><th>Dims (m)</th><th>Primary</th><th>Role</th><th>Observe</th><th>Source</th></tr>\n'
+             + "\n".join(rows) + '\n</table></div>\n</details>\n')
+    new = page[:page.index(a) + len(a)] + table + page[page.index(b):]
+    if new != page:
+        PIPELINE_HTML.write_text(new)
+    return len(CLASSES)
+
+
 def parse_run(spec: str) -> tuple[str, Path]:
     """<tag> (CSV outputs/val_<tag>_answers.csv) or <tag>=<CSV path relative to the repo root>."""
     tag, _, csv = spec.partition("=")
@@ -2586,6 +2862,7 @@ def main():
         p.unlink()
     if stale:
         print(f"{len(stale)} unreferenced thumbs removed")
+    print(f"pipeline.html: class-size table, {write_class_table()} classes")
     sizes = [p.stat().st_size for p in THUMBS.glob("*.jpg")]
     print(f"wrote {OUT} ({OUT.stat().st_size / 1e6:.2f} MB); {len(sizes)} thumbs, {sum(sizes) / 1e6:.2f} MB, max {max(sizes, default=0)} B")
 

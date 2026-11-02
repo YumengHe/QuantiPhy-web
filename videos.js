@@ -700,14 +700,14 @@
   // marked, the last row is the fused f (camera.f is on the line above), then every measurement the fusion failed (check focal)
   function fusionTable(fu, q) {
     if (!fu) return '';
-    const vcls = (v) => (v === 'used' ? '' : v === 'excluded' || v === 'no sigma' ? 'muted' : 'bad');
+    const vcls = (v, x) => (v === 'used' ? '' : v === 'excluded' || v === 'no sigma' || (v === 'cross-check' && x.pass) ? 'muted' : 'bad');
     const why = fu.reason.replace(/^untestable:\s*/, '');
     const failed = ((q && q.measurements) || []).flatMap((m) => m.failed.filter((c) => c.name === 'focal').map((c) => [m.name, c]));
     return '<div class="scroll-x"><table class="focal fusion"><tr><th><code>focal.fusion</code></th><th>Object</th><th class="n">f (px)</th>' +
       '<th class="n">Votes</th><th>Camera</th><th></th><th></th></tr>' +
-      fu.sources.map((x) => `<tr class="${vcls(x.verdict)}"><td>${esc(x.kind)}</td><td>${esc(x.object)}</td>` +
+      fu.sources.map((x) => `<tr class="${vcls(x.verdict, x)}"><td>${esc(x.kind)}</td><td>${esc(x.object)}</td>` +
         `<td class="n" title="${esc(x.how)}">${plusMinus(x.f, x.sigma)}${x.bounded ? `<div class="muted">${fmtNum(x.bounded[0])}–${fmtNum(x.bounded[1])}</div>` : ''}</td>` +
-        `<td class="n">${x.n}</td><td>${x.camera ? 'yes' : 'no'}</td><td>${esc(x.verdict)}</td><td>${x.why ? esc(x.why) : ''}</td></tr>`).join('') +
+        `<td class="n">${x.n}</td><td>${x.camera ? 'yes' : 'no'}</td><td>${esc(x.verdict)}${x.verdict === 'cross-check' ? ` ${res3(x.pass)}` : ''}</td><td>${x.why ? esc(x.why) : ''}</td></tr>`).join('') +
       `<tr class="camf ${cls3(fu.pass)}"><td colspan="2">fused · ${fu.n} source${fu.n === 1 ? '' : 's'}</td><td class="n">${fu.f != null ? plusMinus(fu.f, fu.sigma) : '—'}</td>` +
       `<td></td><td></td><td>${res3(fu.pass)}</td><td>${fu.pass === true ? '' : esc(why)}</td></tr>` +
       failed.map(([n, c]) => `<tr class="bad"><td colspan="2"><code>${esc(n)}</code> <code>focal</code></td><td colspan="5">${esc(c.reason)}</td></tr>`).join('') +
@@ -817,9 +817,50 @@
           (i ? `<text class="t" x="${x0}" y="${H - 2}" text-anchor="${k === 'driven' ? 'end' : 'start'}">${fmt(t, 3)}</text>` : '');
       }).join('') + '</svg>';
     };
-    return '<div class="scroll-x"><table class="objs chain"><tr><th>Physics chain</th><th>Phases</th></tr>' +
-      os.map((o) => `<tr><td>${esc(o.name)}</td><td>${bar(o.chain)}</td></tr>`).join('') +
+    const hasGate = os.some((o) => o.gate);
+    const gate = (g) => (!g ? '<td></td><td></td>' : `<td class="n ${cls3(g.pass)}" title="${esc(g.reason)}">${fmtNum(g.rms_chain)} ${g.pass ? '≤' : '>'} ${fmtNum(g.bound)}` +
+      `<div class="muted">kinematic ${fmtNum(g.rms_kinematic)} · ${g.frames} frames</div></td>` +
+      `<td class="n muted">chain ${fmtNum(g.rms_chain_law)} / ${g.frames_law}<div>kinematic ${fmtNum(g.rms_kinematic_all)} / ${g.frames_kinematic_all}</div></td>`);
+    return '<div class="scroll-x"><table class="objs chain"><tr><th>Physics chain</th><th>Phases</th>' +
+      (hasGate ? '<th class="n"><code>physics.gate</code> rms (px)</th><th class="n">Own rms (px) / frames</th>' : '') + '</tr>' +
+      os.map((o) => `<tr><td>${esc(o.name)}</td><td>${bar(o.chain)}</td>${hasGate ? gate(o.gate) : ''}</tr>`).join('') +
       '</table></div>';
+  }
+  // the agents' upright extent re-run at the nominal scene's depth before the prior scale is read (rule
+  // size.full_extent_nominal): frames used, frames left out by kind
+  function scaleFullExtentTable(rows) {
+    if (!rows) return '';
+    return '<div class="scroll-x"><table class="objs fullext"><tr><th><code>scale.full_extent</code></th><th class="n">Used</th><th>Overlap</th><th>Shrink</th><th>No depth</th><th>Border</th><th>Depth</th><th></th></tr>' +
+      rows.map((r) => `<tr class="${cls3(r.pass)}"><td>${esc(r.agent)}</td><td class="n">${r.used}</td>` +
+        ['overlap', 'shrink', 'no_depth', 'border'].map((k) => `<td>${r.excluded[k] ? esc(r.excluded[k].replace(/^\[|\]$/g, '')) : ''}</td>`).join('') +
+        `<td title="${esc(r.depth)}">${esc(r.variant)}</td><td>${res3(r.pass)}</td></tr>`).join('') + '</table></div>';
+  }
+  // the class references (rule C15): the inventory's classes and reference objects, the rejected ones with their
+  // reason, then one row per class vote (s or f against the stated source) and per skipped object with its reason
+  function classReferenceBlock(inv, cr, ss) {
+    if (!inv && !cr) return '';
+    let h = '';
+    const rej = new Set(inv ? inv.rejected.map((o) => o.name) : []);
+    if (inv && (inv.objects.length || inv.references.length || inv.rejected.length)) {
+      h += '<div class="scroll-x"><table class="objs classref"><tr><th>Class reference</th><th>Class</th><th></th></tr>' +
+        inv.objects.filter((o) => !rej.has(o.name)).map((o) => `<tr class="${o.accepted ? '' : 'muted'}"><td>${esc(o.name)}</td><td><code>${esc(o.class)}</code></td><td>${o.self ? '<code>self_reference</code>' : ''}</td></tr>`).join('') +
+        inv.references.map((o) => `<tr><td>${esc(o.name)}</td><td><code>${esc(o.class)}</code></td><td>${esc(o.reason)}</td></tr>`).join('') +
+        inv.rejected.map((o) => `<tr class="bad"><td>${esc(o.name)}</td><td>${o.class ? `<code>${esc(o.class)}</code>` : ''}</td><td title="${esc(o.why)}"><code>${esc(o.reason)}</code></td></tr>`).join('') +
+        '</table></div>';
+    }
+    if (!cr || (!cr.votes.length && !cr.skipped.length)) return h;
+    const x = cr.mode === 's' ? 's' : 'f (px)';
+    h += `<div class="scroll-x"><table class="objs classvotes"><tr><th><code>scale.class_reference</code></th><th>Class</th><th>Dim</th><th class="n">Class (m)</th>` +
+      `<th class="n">Extent</th><th class="n">${x}</th><th class="n">z</th><th></th></tr>` +
+      cr.votes.map((v) => `<tr class="${cls3(v.pass)}"><td>${esc(v.object)}</td><td><code>${esc(v.class)}</code></td><td>${esc(v.dim)} <span class="muted">${esc(v.key)}</span></td>` +
+        `<td class="n">${plusMinus(v.value, v.sigma)}</td><td class="n" title="${esc(`${v.px} px · ${v.z_how} · frames ${v.frames}`)}">${fmtNum(v.extent)}<div class="muted">${v.n_frames} frames</div></td>` +
+        `<td class="n">${plusMinus(v.x, v.sigma_x)}</td><td class="n">${v.z == null ? '' : `${fmt(v.z, 2)} ${v.pass ? '≤' : '>'} 3`}</td>` +
+        `<td title="${esc(v.reason)}">${cr.used.includes(v.object) ? 'used' : res3(v.pass)}</td></tr>`).join('') +
+      cr.skipped.map((k) => `<tr class="muted"><td>${esc(k.object)}</td><td><code>${esc(k.class)}</code></td><td colspan="5"></td><td title="${esc(k.why)}"><code>${esc(k.reason)}</code></td></tr>`).join('') +
+      (cr.stated ? `<tr class="camf"><td colspan="5">${esc(cr.stated.source)}</td><td class="n">${plusMinus(cr.stated.value, cr.stated.sigma)}</td><td></td><td title="${esc(cr.reason)}">${cr.carries ? '' : res3(cr.pass)}</td></tr>` : '') +
+      (cr.carries ? `<tr class="camf"><td colspan="5"><code>class</code></td><td class="n">${plusMinus(cr.value, cr.sigma)}</td><td></td><td title="${esc(cr.reason)}">${res3(cr.pass)}</td></tr>` : '') +
+      '</table></div>';
+    return h;
   }
   // each object's silhouette depth against its support-plane depth before the fit (rule scale.contact_rescale): a
   // failing object's dense depth rows leave the fit
@@ -964,9 +1005,10 @@
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
-          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
+          (s.scale.checks ? checksTable(s.scale.checks) : '') + scaleFullExtentTable(s.scale.full_extent) : '') +
+        classReferenceBlock(q.inventory, s.class_reference, q.scale_source) + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
         gravityBlock(s.gravity) +
         focalVotes(s);
     }
@@ -1081,6 +1123,8 @@
         `<td class="n">${plusMinus(e.g, e.sigma)}</td><td class="${e.law.pass ? 'ok' : 'bad'}">${e.law.pass ? 'pass' : 'fail'} · run ${e.law.run} / ${e.law.n_test}</td>` +
         `<td class="${e.admissible.pass ? 'ok' : 'bad'}">${esc(e.admissible.reason)}</td>` +
         `<td>${e.use ? 'used' : esc(e.why && e.why !== e.admissible.reason ? e.why : 'not used')}</td></tr>`
+      : e.excluded ? `<tr class="inadm"><td>${esc(e.obj)}</td><td>physics probe</td><td class="n"></td><td class="n">${fmtNum(e.g)}</td><td></td><td></td>` +
+        `<td title="${esc(e.excluded)}"><code>fit.object</code> excluded</td></tr>`
       : `<tr><td>${esc(e.obj)}</td><td>physics probe</td><td class="n"></td><td class="n">${fmtNum(e.g)}</td><td>ρ ${fmtNum(e.rho)}</td><td></td>` +
         `<td class="${e.agree ? 'ok' : 'bad'}">${e.agree ? 'agrees with Earth' : 'disagrees with Earth'}</td></tr>`).join('');
     const et = g.earth_test ? `<tr class="et"><td><code>earth_test</code></td><td>${g.earth_test.pass ? 'pass' : 'fail'}</td><td>${esc(g.earth_test.reason)}</td></tr>` : '';

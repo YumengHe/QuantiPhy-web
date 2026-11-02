@@ -256,3 +256,13 @@ svg.chainbar rect.k-flight { fill: var(--accent-soft); }
 svg.chainbar rect.k-driven { fill: var(--accent); }
 svg.chainbar text { fill: var(--text); }
 svg.chainbar text.t { fill: var(--muted); font-variant-numeric: tabular-nums; }
+/* class references (rule scale.class_reference): the class-size table, the inventory's references, the votes */
+details.classtable { margin: 10px 0 14px; }
+details.classtable > summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+table.classsizes td.dims .dim { display: block; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.classsizes td:first-child { white-space: nowrap; }
+table.classref, table.classvotes { font-size: 13px; }
+table.classref tr.bad td:last-child, table.classvotes tr.bad td:last-child { color: var(--m1t, #8a1c12); font-weight: 600; }
+table.classref tr.muted td, table.classvotes tr.muted td { color: var(--muted); }
+table.classvotes tr.camf td { border-top: 1.5px solid var(--text); font-weight: 600; }
+table.chain td.n .muted, table.chain td.muted div { font-size: 12px; }
