@@ -30,17 +30,24 @@
     const vals = CATS.map((c) => mean(qs.filter((q) => q.cat === c).map((q) => q.mra))).filter((v) => isFinite(v));
     return mean(vals);
   }
-  // questions of the selected set : DEV10 = docs/DEV10.md in its order, All = every question of the run
+  // questions of the selected set : DEV20 = docs/DEV20.md in its order, All = every question of the run
   function setQuestions() {
     if ($('v-set').value !== 'dev') return DATA.val.questions;
     const byId = Object.fromEntries(DATA.val.questions.map((q) => [q.id, q]));
     return DATA.val.dev.map((id) => byId[id]);
   }
-  // ---------- summary of the selected set: DEV10 mean MRA, All the benchmark's overall (macro) MRA ----------
+  // the first questions of DEV20 are the earlier 10-question set (docs/DEV20.md): their mean continues its record
+  const FIRST = 10;
+  // ---------- summary of the selected set: DEV20 mean MRA and the mean of its first 10, All the benchmark's overall (macro) MRA ----------
   function valSummary() {
     const all = setQuestions(), dev = $('v-set').value === 'dev';
     $('val-label').textContent = dev ? 'Mean MRA' : 'Overall MRA';
-    $('val-head').textContent = dev ? fmt(mean(all.map((q) => q.mra)), 2) : fmt(macro(all), 4);
+    $('val-head').textContent = dev ? fmt(mean(all.map((q) => q.mra)), 3) : fmt(macro(all), 4);
+    $('val-first').hidden = !dev;
+    if (dev) {
+      $('val-first-label').textContent = `First ${FIRST}`;
+      $('val-first-head').textContent = fmt(mean(all.slice(0, FIRST).map((q) => q.mra)), 3);
+    }
     const counts = DATA.val.runs.map((r) => [r.version, all.filter((q) => q.version === r.version).length]).filter(([, n]) => n);
     const vers = counts.length > 1 ? counts.map(([t, n]) => `${t} ${n}`) : counts.map(([t]) => t);
     $('val-n').textContent = [`${all.length} questions`, `${new Set(all.map((q) => q.video)).size} videos`, ...vers].join(' · ');
@@ -235,10 +242,11 @@
   function trackEndsTable(te) {
     if (!te) return '';
     const end = (e) => `<td class="n">${e.frame}</td><td title="${esc(e.why)}"><code>${esc(e.reason)}</code></td>`;
+    const hasSet = Object.values(te.tracks).some((t) => t.frame_set);
     return '<div class="scroll-x"><table class="sgrel trkends"><tr><th><code>track.visible_span</code></th><th class="n">Start</th><th></th><th class="n">End</th><th></th>' +
-      '<th><code>overlap_same_class</code></th></tr>' +
+      `<th><code>overlap_same_class</code></th>${hasSet ? '<th><code>frame_set</code></th>' : ''}</tr>` +
       Object.entries(te.tracks).map(([name, t]) => `<tr><td>${esc(name)}</td>${end(t.ends.start)}${end(t.ends.end)}` +
-        `<td>${t.overlap_same_class.length ? frameRuns(t.overlap_same_class) : ''}</td></tr>`).join('') + '</table></div>';
+        `<td>${t.overlap_same_class.length ? frameRuns(t.overlap_same_class) : ''}</td>${hasSet ? `<td>${t.frame_set ? esc(t.frame_set) : ''}</td>` : ''}</tr>`).join('') + '</table></div>';
   }
   // the inventory's presence verdict per object (rules decisions.no_conf, presence.split_vote): the grid votes, the
   // zoom re-check's votes (an unknown vote is a third state, not "not visible"), the rule, its reason, recorded errors
@@ -403,7 +411,10 @@
     const unk = sg.unknown ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Unknown span</th><th>Removed edge</th><th>Reason</th></tr>' +
       sg.unknown.map((u) => `<tr><td>${esc(u.obj)}</td><td class="bad">${span(u.t0, u.t1)}</td><td>${esc(u.rel)}${u.to ? ` ${esc(u.to)}` : ''}${u.event ? ` <code>${esc(u.event)}</code>` : ''} <code>${esc(u.test.name)}</code></td>` +
         `<td>${esc(u.reason)}</td></tr>`).join('') + '</table></div>' : '';
-    return tree || rel || lau || unt || rw || ts || unk || cf ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${cf}${unk}${rel}${lau}${rw}${unt}` : '';
+    // reference objects (rule reference.size_only): no state or edge, only the frames their size is read on
+    const refs = sg.references ? '<div class="scroll-x"><table class="sgrel"><tr><th>Reference</th><th>Class</th><th>Frames</th></tr>' +
+      sg.references.map((r) => `<tr><td>${esc(r.name)}</td><td><code>${esc(r.class)}</code></td><td>${esc(r.frames)}</td></tr>`).join('') + '</table></div>' : '';
+    return tree || rel || lau || unt || rw || ts || unk || cf || refs ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${cf}${unk}${rel}${lau}${rw}${unt}${refs}` : '';
   }
   // the geometric test of an agent state edit (rule graph_edit.retest): result and its reason
   function testCells(t) {
@@ -427,10 +438,12 @@
       }).join('');
       const res = x.calls.map((c) => `<div class="${/^rejected\b/.test(c.result) ? 'bad' : ''}">${esc(c.result)}</div>` +
         (c.test ? `<div class="${c.test.result === 'pass' ? 'ok' : c.test.result === 'fail' ? 'bad' : 'muted'}"><code>${esc(c.test.name)}</code> ${esc(c.test.result)}</div>` : '')).join('') +
-        x.rejected.map((w) => `<div class="bad">${esc(w)}</div>`).join('');
+        x.rejected.map((w) => `<div class="bad">${esc(w)}</div>`).join('') +
+        (x.rejected_calls || []).map((c) => `<div class="bad"><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span> <code>${esc(c.reason)}</code> ${esc(c.why)}</div>`).join('');
       const cand = (x.candidates || []).map((c) => `<div class="cand"><code>${esc(c.for)}</code> ← <code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span></div>`).join('') +
         (x.dropped || []).map((c) => `<div class="cand drop"><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span>` +
           `<div class="bad">${c.rule ? `<code>${esc(c.rule)}</code> ` : ''}${esc(c.why)}</div></div>`).join('');
+      if (x.planning_failed) return `<tr><td class="n">${x.iter}</td><td colspan="3"></td><td class="bad">${esc(x.why)}</td></tr>`;
       return `<tr class="${x.iter === r.kept ? 'chosen' : ''}"><td class="n">${x.iter}</td><td>${cand}</td><td>${calls}</td><td>${res}</td>` +
         `<td class="${x.accepted ? 'ok' : ''}">${esc(x.swap ? x.why.replace(/;?\s*checks fixed \[[^\]]*\] -> broken \[[^\]]*\]\s*$/, '') : x.why)}` +
         (x.swap ? `<div class="swap">fixed ${list(x.swap[0])} → broken ${list(x.swap[1])}</div>` : '') +
@@ -799,8 +812,9 @@
         return `<tr><td>${esc(o.name)}</td><td>${Object.entries(a.sources).map(([k, v]) => `<span class="dim">${k} ${esc(v)} ${fmtNum(o.dims[k])}</span>`).join('')}</td>` +
           `<td class="n">${fmtNum(a.box_px)} px = ${fmtNum(a.box_m)} m${a.fits_box ? '' : ' <span class="bad">narrower than the body</span>'}</td>` +
           `<td class="${cls3(a.pass)}" title="${esc(a.reason)}">${res3(a.pass)}</td>` +
-          `<td class="n">ray ${fmt(b.ray, 1)}° ${b.pass === false ? '>' : '≤'} ${fmt(b.threshold, 1)}°</td><td class="n">${fmt(b.pitch, 1)}°</td>` +
-          `<td>${esc(b.H_source)} ${fmtNum(o.dims.H)}</td><td class="${cls3(b.pass)}" title="${esc(b.reason)}">${res3(b.pass)}</td></tr>`;
+          (b ? `<td class="n">ray ${fmt(b.ray, 1)}° ${b.pass === false ? '>' : '≤'} ${fmt(b.threshold, 1)}°</td><td class="n">${fmt(b.pitch, 1)}°</td>` +
+            `<td>${esc(b.H_source)} ${fmtNum(o.dims.H)}</td><td class="${cls3(b.pass)}" title="${esc(b.reason)}">${res3(b.pass)}</td></tr>`
+            : '<td colspan="4" class="muted">no support plane</td></tr>');
       }).join('') + '</table></div>';
   }
   // each physics chain's phases over the clip; a driven span (rule law.impulse_span) has no law, a straight segment
@@ -850,17 +864,40 @@
     }
     if (!cr || (!cr.votes.length && !cr.skipped.length)) return h;
     const x = cr.mode === 's' ? 's' : 'f (px)';
-    h += `<div class="scroll-x"><table class="objs classvotes"><tr><th><code>scale.class_reference</code></th><th>Class</th><th>Dim</th><th class="n">Class (m)</th>` +
+    h += `<div class="scroll-x"><table class="objs classvotes"><tr><th><code>scale.class_reference</code>${cr.role ? ` · ${esc(cr.role)}` : ''}</th><th>Class</th><th>Dim</th><th class="n">Class (m)</th>` +
       `<th class="n">Extent</th><th class="n">${x}</th><th class="n">z</th><th></th></tr>` +
       cr.votes.map((v) => `<tr class="${cls3(v.pass)}"><td>${esc(v.object)}</td><td><code>${esc(v.class)}</code></td><td>${esc(v.dim)} <span class="muted">${esc(v.key)}</span></td>` +
-        `<td class="n">${plusMinus(v.value, v.sigma)}</td><td class="n" title="${esc(`${v.px} px · ${v.z_how} · frames ${v.frames}`)}">${fmtNum(v.extent)}<div class="muted">${v.n_frames} frames</div></td>` +
+        `<td class="n">${plusMinus(v.value, v.sigma)}</td><td class="n" title="${esc(`${v.px} px · ${v.z_how} · frames ${v.frames}${v.frame_set ? ` of ${v.frame_set}` : ''}`)}">${fmtNum(v.extent)}<div class="muted">${v.n_frames} frames${v.size_only ? ' · size read' : ''}</div></td>` +
         `<td class="n">${plusMinus(v.x, v.sigma_x)}</td><td class="n">${v.z == null ? '' : `${fmt(v.z, 2)} ${v.pass ? '≤' : '>'} 3`}</td>` +
-        `<td title="${esc(v.reason)}">${cr.used.includes(v.object) ? 'used' : res3(v.pass)}</td></tr>`).join('') +
+        `<td title="${esc(v.reason)}">${cr.used.includes(v.object) ? 'used' : cr.role === 'vote' && v.pass === false ? 'outlier' : res3(v.pass)}</td></tr>`).join('') +
       cr.skipped.map((k) => `<tr class="muted"><td>${esc(k.object)}</td><td><code>${esc(k.class)}</code></td><td colspan="5"></td><td title="${esc(k.why)}"><code>${esc(k.reason)}</code></td></tr>`).join('') +
       (cr.stated ? `<tr class="camf"><td colspan="5">${esc(cr.stated.source)}</td><td class="n">${plusMinus(cr.stated.value, cr.stated.sigma)}</td><td></td><td title="${esc(cr.reason)}">${cr.carries ? '' : res3(cr.pass)}</td></tr>` : '') +
       (cr.carries ? `<tr class="camf"><td colspan="5"><code>class</code></td><td class="n">${plusMinus(cr.value, cr.sigma)}</td><td></td><td title="${esc(cr.reason)}">${res3(cr.pass)}</td></tr>` : '') +
       '</table></div>';
     return h;
+  }
+  // the reference objects' size reads (rule reference.size_only): frames read of the track's frame set and those left
+  // out, depth samples, headings from its own path or one shared yaw, box rms, metric dims by source; no read: its reason
+  function referencesTable(refs) {
+    if (!refs || !refs.length) return '';
+    const dims = (r) => Object.entries(r.read.dims).map(([k, v]) => `<span class="dim dims-${esc(r.read.dim_source[k])}" title="${esc(r.read.dim_source[k])}">${k} ${fmtNum(v)}</span>`).join('');
+    const ex = (r) => Object.entries(r.read.excluded).map(([k, v]) => `<div class="muted"><code>${esc(k)}</code> ${esc(v)}</div>`).join('');
+    return '<div class="scroll-x"><table class="objs refreads"><tr><th><code>reference.size_only</code></th><th>Class</th><th class="n">Frames</th><th>Left out</th>' +
+      '<th class="n">Depth</th><th class="n">Path / yaw</th><th class="n">rms (px)</th><th>Dims (m)</th></tr>' +
+      refs.map((r) => (r.read
+        ? `<tr><td>${esc(r.name)}</td><td><code>${esc(r.class)}</code></td><td class="n" title="${esc(`${r.read.frames} of ${r.read.frame_set}`)}">${r.read.n}</td>` +
+          `<td>${ex(r)}</td><td class="n">${r.read.n_depth}</td><td class="n">${r.read.path} / ${r.read.shared_yaw}</td><td class="n">${fmt(r.read.rms, 1)}</td><td class="dims">${dims(r)}</td></tr>`
+        : `<tr class="muted"><td>${esc(r.name)}</td><td><code>${esc(r.class)}</code></td><td colspan="5" title="${esc(r.why)}"><code>${esc(r.reason)}</code> ${esc(r.why)}</td><td></td></tr>`)).join('') +
+      '</table></div>' + fullExtentRefs(refs);
+  }
+  function fullExtentRefs(refs) {
+    const rs = refs.filter((r) => r.full_extent || r.agent_height);
+    if (!rs.length) return '';
+    return '<div class="scroll-x"><table class="objs fullext"><tr><th>Reference</th><th><code>size.full_extent</code></th><th class="n">Frames used</th><th><code>dims.agent_height</code></th><th>H</th></tr>' +
+      rs.map((r) => `<tr><td>${esc(r.name)}</td>` +
+        (r.full_extent ? `<td class="${cls3(r.full_extent.pass)}" title="${esc(r.full_extent.reason)}">${res3(r.full_extent.pass)}</td><td class="n">${r.full_extent.used.length ? frameRuns(r.full_extent.used) : '—'}</td>` : '<td></td><td></td>') +
+        (r.agent_height ? `<td class="${cls3(r.agent_height.pass)}" title="${esc(r.agent_height.reason)}">ray ${fmt(r.agent_height.ray, 1)}° ${r.agent_height.pass === false ? '>' : '≤'} ${fmt(r.agent_height.threshold, 1)}°</td><td>${esc(r.agent_height.H_source)}</td>` : '<td></td><td></td>') +
+        '</tr>').join('') + '</table></div>';
   }
   // each object's silhouette depth against its support-plane depth before the fit (rule scale.contact_rescale): a
   // failing object's dense depth rows leave the fit
@@ -968,6 +1005,7 @@
     let h = '<h4>Reconstruction</h4>';
     if (q.binding_error) h += `<p class="fwarn">${esc(q.binding_error)}</p>`;
     if (q.error) return h + `<p class="fwarn">${esc(q.error)}</p>`;
+    if (q.partial) h += `<p class="fwarn"><code>planning_failed</code> round ${q.partial.round} · ${esc(q.partial.why)}</p>`;
     if (q.measurements) {
       h += measurementBlock(q);
     } else if ((f || q.method || q.status) && q.checks) {
@@ -1008,7 +1046,7 @@
         (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') + scaleFullExtentTable(s.scale.full_extent) : '') +
-        classReferenceBlock(q.inventory, s.class_reference, q.scale_source) + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
+        classReferenceBlock(q.inventory, s.class_reference, q.scale_source) + referencesTable(s.references) + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
         gravityBlock(s.gravity) +
         focalVotes(s);
     }
@@ -1284,8 +1322,13 @@
     }
     h += `<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>` +
       q.checks.map((c) => `<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.which || c.name)}</code></td>` +
-        `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}${c.name === 'plausible' ? dimsCheck(q.dims_check) + partsUntestable(q.plausible_untestable) : ''}</td></tr>`).join('') + '</table></div>';
+        `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}${c.name === 'plausible' ? dimsCheck(q.dims_check) + partsUntestable(q.plausible_untestable) + excludedRefs(q.plausible_excluded) : ''}</td></tr>`).join('') + '</table></div>';
     return h;
+  }
+  // the reference objects every plausible part leaves out (rule reference.size_only)
+  function excludedRefs(names) {
+    if (!names || !names.length) return '';
+    return `<div class="muted"><code>reference.size_only</code> excluded · ${names.map(esc).join(' · ')}</div>`;
   }
   // plausible parts that could not judge an object (critic.agency_unknown)
   function partsUntestable(rows) {
@@ -1446,6 +1489,28 @@
       scene.add(line);
       meshes.push({ o, grp, mat, edges });
     });
+    // reference objects (rule reference.size_only): one static pose per read frame, shown at the read frame nearest t
+    // within the read span; drawn as outlines in the muted colour
+    const refMeshes = (s.references || []).filter((r) => r.poses && r.poses.length).map((r) => {
+      const d = r.dims, col = new THREE.Color(getComputedStyle(document.body).getPropertyValue('--muted').trim() || '#888');
+      const geo = r.shape === 'sphere' ? new THREE.SphereGeometry(d.D / 2, 16, 12)
+        : r.shape === 'cylinder' ? new THREE.CylinderGeometry(d.D / 2, d.D / 2, d.H, 16) : new THREE.BoxGeometry(d.L, d.W, d.H);
+      const grp = new THREE.Group();
+      grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: col })));
+      grp.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, transparent: true, opacity: 0.18 })));
+      scene.add(grp);
+      return { r, grp, cyl: r.shape === 'cylinder' };
+    });
+    const placeRef = ({ r, grp, cyl }, t) => {
+      const P = r.poses, half = 0.5 / v.fps;
+      grp.visible = t >= P[0][0] - half && t <= P[P.length - 1][0] + half;
+      if (!grp.visible) return;
+      const q = P.reduce((a, b) => (Math.abs(b[0] - t) < Math.abs(a[0] - t) ? b : a));
+      const h = q.slice(4, 7), n = q.slice(7, 10), e2 = cross(n, h);
+      const axes = cyl ? [h, n, e2.map((x) => -x)] : [h, e2, n];
+      grp.position.copy(toW(q.slice(1, 4)));
+      grp.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(toW(axes[0]), toW(axes[1]), toW(axes[2])));
+    };
     const counter = document.createElement('div');
     counter.className = 'vcount';
     counter.title = 'visible: objects with a track box in this frame; in view: objects whose fitted position projects into the camera image, in front of the camera';
@@ -1504,6 +1569,7 @@
         nVis += vis;
         if (p[2] > 0 && Math.abs((f * p[0]) / p[2]) <= iw / 2 && Math.abs((f * p[1]) / p[2]) <= ih / 2) nIn++;
       });
+      refMeshes.forEach((m) => placeRef(m, t));
       counter.textContent = `visible ${nVis} / in view ${nIn}`;
       counter.classList.toggle('bad', nVis !== nIn);
       render();
@@ -1572,7 +1638,7 @@
     const src = $('v-src').value, vsrc = $('v-vsrc').value, mf = $('v-mra').value, sort = $('v-sort').value;
     const needle = $('v-q').value.trim().toLowerCase(), vids = DATA.val.vmap;
     const okM = (m) => !mf || (mf === 'lt0.2' ? m < 0.2 : mf === 'lt0.5' ? m < 0.5 : m >= 0.8);
-    // setQuestions() is already in set order (DEV10 order, or video then k)
+    // setQuestions() is already in set order (DEV20 order, or video then k)
     const items = setQuestions().filter((q) => (!src || q.src === src) &&
       (!vsrc || vids[q.video].source === vsrc) && okM(q.mra) && matchText(q, needle)).map((q) => ({ q, v: vids[q.video] }));
     const nanLast = (f) => (a, b) => (isNaN(a.q.mra) ? 1 : 0) - (isNaN(b.q.mra) ? 1 : 0) || f(a, b);
@@ -1593,7 +1659,7 @@
     ['v-src', 'v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
     $('v-q').addEventListener('input', debounce(renderVal, 200));
     renderAll();
-    // deep link: #val/<video_id>_q<k> opens that question (switching to All when it is not a DEV10 question)
+    // deep link: #val/<video_id>_q<k> opens that question (switching to All when it is not a DEV20 question)
     function openFromHash() {
       const m = decodeURIComponent(location.hash.slice(1)).match(/^val\/(.+)$/);
       if (!m || !DATA.val.questions.some((q) => q.id === m[1])) return;

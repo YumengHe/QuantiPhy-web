@@ -4,8 +4,7 @@ Reads only the runs' outputs; never runs the pipeline. The page lists one row pe
 unit <video_id>_q<k> (k = its 1-based order among the video's rows of the split table, docs/PER_QUESTION.md).
 
   python -B web/tools/build_videos.py --val-runs v1
-  python -B web/tools/build_videos.py --val-runs v4=outputs/val_v4_answers_dev10.csv v1
-  python -B web/tools/build_videos.py --val-runs v5gpt=outputs/val_v5gpt_answers_dev10.csv v1
+  python -B web/tools/build_videos.py --val-runs v5gpt=outputs/val_v5gpt_answers_dev20.csv v1
 
 Runs are listed in order of preference: each question is shown from the first run whose CSV has its row, and every
 value of that question (pred, MRA, source, scene, overlays, tracks, scene graph) comes from that run alone. The page
@@ -25,7 +24,7 @@ Inputs of a run <tag> (relative to the repo root):
 A run tag is a version, optionally with the model backend ("v5gpt": v5 run with --model-backend gpt) and "_control";
 its format is the version's. <key> is the video for unit "video" and the question's unit <video_id>_q<k> for unit "question"; a unit-question file
 whose "unit" (or video) is not that question's raises. Answer records of unit "question" have schema "unit-1", with
-the question's timing. Also docs/DEV10.md, the development question set -> val "dev"; each of its units must be in some run.
+the question's timing. Also docs/DEV20.md, the development question set -> val "dev"; each of its units must be in some run.
 
 Overlays: the record web/data/runtime/<tag>/overlays.json lists every overlay of the version. Only the current version
 (pipeline/VERSION) may render the ones it lacks, with the current code; building an older version needs every overlay
@@ -239,7 +238,7 @@ VERSION_FORMAT = {
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
            "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
-           "span": True, "launch": True, "classref": True},
+           "span": True, "launch": True, "classref": True, "sizeonly": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -328,6 +327,34 @@ def unit_json(kind: str, key: str, what: str):
     return j
 
 
+def graph_references(g: dict) -> list:
+    """The scene graph's references (format 3, rule reference.size_only): [{"name", "class", "frames"}], no state, edge
+    or event; a reference named by a node, an edge, an unknown span or a per-frame phase raises."""
+    refs = []
+    for r in req(g, "references", "scene graph cache"):
+        w = f"scene graph reference {r.get('name')!r}"
+        if set(r) != {"name", "class", "role", "frames"} or r["role"] != "reference":
+            raise ValueError(f"{AT['where']}: {w} keys {sorted(r)} role {r.get('role')!r}")
+        refs.append({"name": text(r["name"]), "class": text(r["class"]), "frames": frame_runs([int(f) for f in r["frames"]])})
+    names = {r["name"] for r in refs}
+    used = {text(n.get("id")) for n in req(g, "nodes", "scene graph cache")} | set(map(text, req(g, "objects", "scene graph cache"))) \
+        | {text(e.get(k)) for e in req(g, "edges", "scene graph cache") + req(g, "unknown", "scene graph cache") for k in ("from", "to")}
+    if names & used:
+        raise ValueError(f"{AT['where']}: scene graph references {sorted(names & used)} also in its nodes / objects / edges")
+    return refs
+
+
+def frame_runs(fs: list[int]) -> str:
+    """Sorted frames as runs: [0, 1, 2, 5] -> "0-2, 5"."""
+    runs, fs = [], sorted(fs)
+    for f in fs:
+        if runs and f == runs[-1][1] + 1:
+            runs[-1][1] = f
+        else:
+            runs.append([f, f])
+    return ", ".join(f"{a}-{b}" if b > a else f"{a}" for a, b in runs)
+
+
 def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
     """The run's scene graph cache outputs/scenegraph_<tag>/<key>.json as written (with FMT "kept": the graph the
     answer used, the answer record's kept_state.scenegraph, and "kept" its agent round), for the tree on the page:
@@ -343,8 +370,9 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
     else:
         g = unit_json("sgraph", key, "scene graph")
     if FMT.get("impulse"):
-        if req(g, "format", "scene graph") != 2:
-            raise ValueError(f"{AT['where']}: scene graph format {g['format']!r}, expected 2")
+        fmt = 3 if FMT.get("sizeonly") else 2
+        if req(g, "format", "scene graph") != fmt:
+            raise ValueError(f"{AT['where']}: scene graph format {g['format']!r}, expected {fmt}")
         for e in req(g, "edges", "scene graph cache"):
             if "conf" in e or req(e, "source", "edge") not in EDGE_SOURCES:
                 raise ValueError(f"{AT['where']}: edge {e.get('from')!r} {e.get('rel')!r} source {e.get('source')!r}"
@@ -360,6 +388,10 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
     nodes = [{"id": text(req(n, "id", "scene graph node")), "type": text(req(n, "type", "scene graph node"))}
              for n in req(g, "nodes", "scene graph cache")]
     out = {"nodes": nodes, "edges": edges} if edges else {}
+    if FMT.get("sizeonly"):
+        refs = graph_references(g)
+        if refs:
+            out["references"] = refs
     if FMT.get("release"):
         rel = {}     # (object, t_release) -> {"obj", "t", "rule", "why"}: the held_by and the airborne edge of one release
         for e in req(g, "edges", "scene graph cache"):
@@ -598,6 +630,13 @@ def track_ends(key: str):
                 raise ValueError(f"{AT['where']}: {w} {side} frame {e.get('frame')} reason {r!r}; boxed frames {fr[0]}-{fr[-1]}")
             row.setdefault("ends", {})[side] = {"frame": f, "reason": r, "why": text(req(e, "why", f"{w} ends {side}"))}
         row["overlap_same_class"] = sorted(int(x) for x in ov)
+        if FMT.get("sizeonly"):
+            # rule reference.size_only: a reference track has role "reference" and its frame_set, boxes only inside it
+            role, fs = req(tr, "role", w), req(tr, "frame_set", w)
+            if (role is None) != (fs is None) or role not in (None, "reference") or \
+                    (fs is not None and not set(fr) <= {int(x) for x in fs}):
+                raise ValueError(f"{AT['where']}: {w} role {role!r} frame_set {'set' if fs else fs!r} boxes outside it")
+            row["frame_set"] = frame_runs([int(x) for x in fs]) if fs is not None else None
         out[name] = row
     return {"fps": num(j["info"]["fps"], 6), "tracks": out} if out else None
 
@@ -1108,6 +1147,39 @@ def dropped_view(c: dict, what: str) -> dict:
             "rule": m.group(1) if m else None, "why": m.group(2) if m else why}
 
 
+PLANNING_FAILED_KEYS = {"iter", "why", "accepted", "execution_status", "tool_calls"}
+REJECTED_CALL_REASONS = ("reference.not_repairable",)
+
+
+def rejected_call_view(c: dict, w: str) -> dict:
+    """A call the agent loop rejected before running it: {name, params, reason, why}."""
+    reason = text(req(c, "reason", f"{w} rejected call"))
+    if reason not in REJECTED_CALL_REASONS:
+        raise ValueError(f"{AT['where']}: {w} rejected call reason {reason!r}")
+    call = req(c, "call", f"{w} rejected call")
+    return {"name": text(req(call, "name", f"{w} rejected call")),
+            "params": {k: v for k, v in (call.get("params") or {}).items() if v is not None},
+            "reason": reason, "why": text(req(c, "why", f"{w} rejected call"))}
+
+
+def partial_view(rec: dict):
+    """Why an answer record is "partial" (FMT sizeonly): the agent loop stopped on a round whose plan never came back
+    (stop reason planning_failed); {"round", "why"} from that round. None for a complete record; any other shape raises."""
+    es = text(req(rec, "execution_status", "answer record"))
+    st = req(rec, "stop", "answer record")
+    if es == "complete":
+        if st["reason"] == "planning_failed":
+            raise ValueError(f"{AT['where']}: complete record with stop planning_failed")
+        return None
+    if es != "partial":
+        raise ValueError(f"{AT['where']}: answer record execution_status {es!r}")
+    its = req(rec, "iterations", "answer record")
+    last = its[-1] if its else {}
+    if st["reason"] != "planning_failed" or set(last) != PLANNING_FAILED_KEYS or int(last["iter"]) != int(st["round"]):
+        raise ValueError(f"{AT['where']}: partial record with stop {st!r}, last round keys {sorted(last)}")
+    return {"round": int(st["round"]), "why": text(last["why"])}
+
+
 def rounds_view(rec: dict) -> dict | None:
     """The agent rounds of an answer record ("iterations"): per round its tool calls with their results (a rejected
     edit's result starts "rejected: "), the plan's rejected issues, whether it was accepted and why; "kept" = the
@@ -1119,6 +1191,14 @@ def rounds_view(rec: dict) -> dict | None:
     rows = []
     for it in its:
         w = f"agent round {it.get('iter')!r}"
+        if FMT.get("sizeonly") and set(it) == PLANNING_FAILED_KEYS:
+            # a round whose plan never came back (the model call failed): no call, no accept test; the record is partial
+            if it["execution_status"] != "failed" or it["accepted"] is not False or it["tool_calls"] or not text(it["why"]):
+                raise ValueError(f"{AT['where']}: {w} planning round {it!r}")
+            rows.append({"iter": int(it["iter"]), "layer": None, "calls": [], "rejected": [], "accepted": False,
+                         "why": text(it["why"]), "planning_failed": True, "newly_failed": [], "swap": None,
+                         "rebuilt": None, "candidates": [], "dropped": [], "rejected_calls": []})
+            continue
         calls = [{"name": text(req(r, "name", w)), "params": {k: v for k, v in (r.get("params") or {}).items() if v is not None},
                   "result": text(req(r, "result", w))}
                  | ({"test": test_view(r["test"], w)} if FMT.get("pendulum") and r.get("test") else {})
@@ -1145,6 +1225,9 @@ def rounds_view(rec: dict) -> dict | None:
                                   "params": {k: v for k, v in (c["call"].get("params") or {}).items() if v is not None},
                                   "class": text(c.get("class")) or None} for c in (it.get("repair_candidates") or [])]
             row["dropped"] = [dropped_view(c, w) for c in (it.get("repair_candidates_dropped") or [])]
+        if FMT.get("sizeonly"):
+            # rule reference.size_only: a call that names a reference is rejected (reference.not_repairable)
+            row["rejected_calls"] = [rejected_call_view(c, w) for c in req(it, "rejected_calls", w)]
         rows.append(row)
     out = {"kept": kept, "rounds": rows}
     if FMT.get("horizon"):
@@ -1195,7 +1278,9 @@ def scale_view(state: dict):
 
 CLASS_SKIP_REASONS = ("self_reference", "observe.line_spacing", "prior.stated", "part.unmeasured", "track.none",
                       "presence.absent", "support.plane", "dims.agent_lateral", "dims.agent_height", "size.full_extent",
-                      "fit.none", "fit.object", "dim.unobserved", "extent.frames")   # pipeline.scene_fit (rule C15)
+                      "fit.none", "fit.object", "dim.unobserved", "extent.frames",
+                      "read.frames", "support.none")   # pipeline.scene_fit (rules C15, reference.size_only)
+CLASS_ROLES = ("cross-check", "carries", "vote")   # scale.class_reference.role (rules C15, class_vote.regular)
 CLASS_VOTE_KEYS = ("source", "object", "class", "dim", "key", "value", "sigma", "role", "px", "extent", "extent_rel",
                    "n_frames", "frames", "z_how", "pass", "reason", "z")
 CLASS_REFERENCE_KEYS = ("name", "mode", "votes", "used", "skipped", "carries_scale", "stated", "value", "sigma", "pass",
@@ -1210,23 +1295,41 @@ def class_reference_view(state: dict, scale_source: str) -> dict:
     its focal.fusion cross-check rows; votes that carry the scale make camera scale.source "class"."""
     cr = req(state, "scale.class_reference", "scene")
     w = "scale.class_reference"
-    if set(cr) != set(CLASS_REFERENCE_KEYS) or cr["name"] != w or cr["mode"] not in ("s", "f"):
+    so = FMT.get("sizeonly")
+    if set(cr) != set(CLASS_REFERENCE_KEYS) | ({"role"} if so else set()) or cr["name"] != w or cr["mode"] not in ("s", "f"):
         raise ValueError(f"{AT['where']}: {w} keys {sorted(cr)} name {cr.get('name')!r} mode {cr.get('mode')!r}")
     mode = cr["mode"]
     if (mode == "f") != (scale_source == "depth_info") or bool(cr["carries_scale"]) != (scale_source == "class"):
         raise ValueError(f"{AT['where']}: {w} mode {mode!r} carries_scale {cr['carries_scale']!r} with scale.source {scale_source!r}")
+    # rule class_vote.regular (sizeonly): a stated source -> the votes cross-check it; none in a depth-stated scene ->
+    # regular focal.fusion votes; none in a prior-scaled scene -> the votes carry s (scale.source "class", or "none"
+    # when they do not agree)
+    role = text(req(cr, "role", w)) if so else None
+    if so and (role not in CLASS_ROLES or (role == "cross-check") != (cr["stated"] is not None)
+               or (role == "vote") != (mode == "f" and cr["stated"] is None)
+               or (role == "carries" and scale_source not in ("class", "none"))):
+        raise ValueError(f"{AT['where']}: {w} role {role!r} mode {mode!r} stated {cr['stated']!r} scale.source {scale_source!r}")
+    refs = set(req(state, "references", "scene")) if so else set()
     votes = []
     for v in cr["votes"]:
         wv = f"{w} vote {v.get('object')!r}"
-        if set(v) != set(CLASS_VOTE_KEYS) | {mode, f"sigma_{mode}"} or v["source"] != f"class:{v['object']}" \
-                or v["pass"] not in (True, False, None):
+        # a carrying vote has no z: there is no stated source to test it against (its verdict is the carry's, "reason")
+        keys = set(CLASS_VOTE_KEYS) - ({"z"} if role == "carries" else set()) | {mode, f"sigma_{mode}"} \
+            | ({"size_only", "frame_set"} if so else set())
+        if set(v) != keys or v["source"] != f"class:{v['object']}" or v["pass"] not in (True, False, None):
             raise ValueError(f"{AT['where']}: {wv} keys {sorted(v)} source {v.get('source')!r} pass {v.get('pass')!r}")
+        # rule reference.size_only: a reference's vote is its size read, on its track's frame set
+        if so and (v["size_only"] is not (v["object"] in refs) or (v["frame_set"] is None) == v["size_only"]
+                   or (v["role"] == "reference") != v["size_only"]):
+            raise ValueError(f"{AT['where']}: {wv} size_only {v['size_only']!r} frame_set {v['frame_set']!r} role "
+                             f"{v['role']!r}, references {sorted(refs)}")
         votes.append({"object": text(v["object"]), "class": text(v["class"]), "dim": text(v["dim"]), "key": text(v["key"]),
                       "role": text(v["role"]), "value": num(v["value"], 4), "sigma": num(v["sigma"], 3),
                       "px": num(v["px"], 4), "extent": num(v["extent"], 4), "extent_rel": num(v["extent_rel"], 3),
                       "n_frames": int(v["n_frames"]), "frames": text(v["frames"]), "z_how": text(v["z_how"]),
-                      "x": num(v[mode], 4), "sigma_x": num(v[f"sigma_{mode}"], 3), "z": num(v["z"], 3),
-                      "pass": v["pass"], "reason": text(v["reason"])})
+                      "x": num(v[mode], 4), "sigma_x": num(v[f"sigma_{mode}"], 3), "z": num(v.get("z"), 3),
+                      "pass": v["pass"], "reason": text(v["reason"])}
+                     | ({"size_only": v["size_only"], "frame_set": text(v["frame_set"]) or None} if so else {}))
     skipped = []
     for x in cr["skipped"]:
         ws = f"{w} skipped {x.get('name')!r}"
@@ -1236,16 +1339,21 @@ def class_reference_view(state: dict, scale_source: str) -> dict:
         skipped.append({"object": text(req(x, "name", ws)), "class": text(req(x, "class", ws)), "reason": r,
                         "why": text(req(x, "why", ws))})
     names = [v["object"] for v in votes]
-    if not set(cr["used"]) <= set(names):
-        raise ValueError(f"{AT['where']}: {w} used {cr['used']} not among the votes {names}")
+    # "used" names the votes by source ("class:<object>")
+    by_source = {f"class:{n}": n for n in names}
+    if not set(cr["used"]) <= set(by_source):
+        raise ValueError(f"{AT['where']}: {w} used {cr['used']} not among the votes' sources {sorted(by_source)}")
     if mode == "f":
         fu = req(req(state, "focal", "scene"), "fusion", "focal")
         # the fusion's copy leaves out the votes: they are its "class reference" source rows
         if req(fu, "class_reference", "focal.fusion") != {k: v for k, v in cr.items() if k != "votes"}:
             raise ValueError(f"{AT['where']}: focal.fusion.class_reference differs from {w} (without its votes)")
         rows = {text(x["object"]): x for x in req(fu, "sources", "focal.fusion") if x.get("kind") == "class reference"}
-        if set(rows) != set(names) or any(num(rows[v["object"]]["f"], 4) != v["x"] or rows[v["object"]]["pass"] != v["pass"]
-                                          or rows[v["object"]]["verdict"] != "cross-check" for v in votes):
+        # cross-check rows carry the vote's pass; regular votes (role "vote") are used / outlier, pass = used
+        same = (lambda x, v: x["verdict"] == "cross-check" and x["pass"] == v["pass"]) if role != "vote" else \
+            (lambda x, v: x["verdict"] in ("used", "outlier") and "pass" not in x and (x["verdict"] == "used") == v["pass"])
+        if set(rows) != set(names) or any(num(rows[v["object"]]["f"], 4) != v["x"] or not same(rows[v["object"]], v)
+                                          for v in votes):
             raise ValueError(f"{AT['where']}: focal.fusion class-reference rows {sorted(rows)} differ from {w} votes {names}")
     st = cr["stated"]
     stated = None if st is None else {"value": num(req(st, "value", f"{w} stated"), 4),
@@ -1253,7 +1361,7 @@ def class_reference_view(state: dict, scale_source: str) -> dict:
                                       "source": text(req(st, "source", f"{w} stated"))}
     if cr["pass"] not in (True, False, None):
         raise ValueError(f"{AT['where']}: {w} pass {cr['pass']!r}")
-    return {"mode": mode, "votes": votes, "used": [text(x) for x in cr["used"]], "skipped": skipped,
+    return {"mode": mode, "role": role, "votes": votes, "used": [by_source[x] for x in cr["used"]], "skipped": skipped,
             "carries": bool(cr["carries_scale"]), "stated": stated, "value": num(cr["value"], 4),
             "sigma": num(cr["sigma"], 3), "pass": cr["pass"], "reason": text(cr["reason"])}
 
@@ -1270,7 +1378,7 @@ def inventory_view(unit: str) -> dict:
     from pipeline.class_sizes import TABLE_VERSION, size_reference
     inv = unit_json("objects", unit, "object inventory")
     w = "object inventory"
-    if req(inv, "version", w) != 7 or req(inv, "class_table", w) != TABLE_VERSION:
+    if req(inv, "version", w) != (8 if FMT.get("sizeonly") else 7) or req(inv, "class_table", w) != TABLE_VERSION:
         raise ValueError(f"{AT['where']}: {w} version {inv.get('version')!r} class_table {inv.get('class_table')!r}")
     rendered, refs = req(inv, "rendered", w), req(inv, "references", w)
     if rendered not in (True, False, None) or req(refs, "status", f"{w} references") not in ("ok", "unresolved"):
@@ -1283,6 +1391,9 @@ def inventory_view(unit: str) -> dict:
             raise ValueError(f"{AT['where']}: {wo} size_class {key!r} self_reference {self_ref!r} size_reference "
                              f"differs from pipeline.class_sizes")
         ex = o.get("extra") or {}
+        # rule reference.size_only (format 8): one role, "reference" at the top level and in extra, or neither
+        if FMT.get("sizeonly") and (req(o, "role", wo) == "reference") != (ex.get("role") == "reference"):
+            raise ValueError(f"{AT['where']}: {wo} role {o.get('role')!r} extra.role {ex.get('role')!r}")
         if ex.get("role") == "reference":
             if sr is None:
                 raise ValueError(f"{AT['where']}: {wo} reference object without a size_reference")
@@ -1336,6 +1447,19 @@ def named_checks(checks: dict, failed: list, what: str) -> list[dict]:
 GRAVITY_SOURCES = ("earth", "inferred", "prior", "unknown")
 
 
+def up_source(state: dict, g: dict):
+    """The gravity record's up direction source; a prior-scaled scene without a metric scale (camera scale.source
+    "none", camera metric false: scene_fit does not measure g) has none -- its record is exactly
+    {g, source, sigma null, rule, evidence [], checks {}, failed []}."""
+    cam = req(state, "camera", "scene")
+    if FMT.get("sizeonly") and cam.get("scale.source") == "none":
+        if cam.get("metric") is not False or set(g) != {"g", "source", "sigma", "rule", "evidence", "checks", "failed"} \
+                or g["sigma"] is not None or g["evidence"] or g["checks"] or g["failed"]:
+            raise ValueError(f"{AT['where']}: gravity {sorted(g)} in a scene without a metric scale")
+        return None
+    return text(req(g, "up_source", "gravity"))
+
+
 def gravity_view(state: dict):
     """The scene's gravity (scene_fit.gravity_pass, rule B2): g, sigma, source, rule, up source, every evidence entry
     (a ballistic piece with its free-g fit and residual test, or a physics-chain probe) and the gravity checks."""
@@ -1375,7 +1499,7 @@ def gravity_view(state: dict):
     return {"g": num(req(g, "g", "gravity")), "sigma": num(req(g, "sigma", "gravity"), 3), "source": src,
             "earth_test": {"pass": bool(req(et, "pass", "earth_test")), "reason": text(req(et, "reason", "earth_test"))}
             if et is not None else None,
-            "rule": text(req(g, "rule", "gravity")), "up_source": text(req(g, "up_source", "gravity")), "evidence": ev,
+            "rule": text(req(g, "rule", "gravity")), "up_source": up_source(state, g), "evidence": ev,
             "checks": named_checks(req(g, "checks", "gravity"), list(req(g, "failed", "gravity")), "gravity")}
 
 
@@ -1662,19 +1786,91 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"depth_rows": depth_rows_view(j)} if FMT.get("interval") else {}) | \
         ({"plane_fusion": plane_fusion_view(j), "plane_sigma": plane_sigma_view(j)} if FMT.get("launch") else {}) | \
         ({"class_reference": class_reference_view(j, camera_scale_source(req(j, "camera", "scene")))}
-         if FMT.get("classref") else {})
+         if FMT.get("classref") else {}) | \
+        ({"references": references_view(j)} if FMT.get("sizeonly") else {})
 
 
 def object_role(name: str, o: dict) -> str:
     """A scene object's role (rule C15): object / structure / reference; a reference object (a class reference the
-    texts do not name) has its class's body dimensions, dim_source "class" for every dim, and a size_reference."""
+    texts do not name) has its class's body dimensions, dim_source "class" for every dim, and a size_reference.
+    With FMT "sizeonly" (rule reference.size_only) a reference is never a scene object: it is in scene["references"]."""
     w = f"scene object {name!r}"
     role, sr = text(req(o, "role", w)), req(o, "size_reference", w)
-    if role not in OBJECT_ROLES:
+    if role not in OBJECT_ROLES or (FMT.get("sizeonly") and role == "reference"):
         raise ValueError(f"{AT['where']}: {w} role {role!r}")
     if role == "reference" and (sr is None or any(v != "class" for v in req(o, "dim_source", w).values())):
         raise ValueError(f"{AT['where']}: reference {w} dim_source {o['dim_source']} size_reference {sr is not None}")
     return role
+
+
+REFERENCE_KEYS = ("role", "size_only", "size_reference", "read", "state", "why", "reason", "size.full_extent",
+                  "dims.agent_height")
+REFERENCE_READ_KEYS = ("frames", "n_frames", "frame_set", "excluded", "n_depth", "headings", "rms_box_px", "dims",
+                       "dim_source", "shape", "scale")
+REFERENCE_EXCLUDED = ("size.full_extent", "border", "extent.static")
+REFERENCE_SKIPS = ("read.frames", "support.none")
+
+
+def references_view(state: dict) -> list:
+    """The scene's reference objects (rule reference.size_only): each one's class, its size read -- the frames read of
+    its track's frame set and the ones left out by size.full_extent / border / extent.static, depth samples, headings
+    (own path / shared yaw), box rms, metric dims with their source -- or, without a read, the skip reason; its posed
+    state as one static pose per read frame: "poses" [[t, x, y, z, hx, hy, hz, nx, ny, nz]] (centre, heading, up;
+    pipeline.scene_state3d.position / orientation); its agent extent and height checks when it is an agent."""
+    from pipeline.scene_state3d import orientation, position
+    out = []
+    for name, r in req(state, "references", "scene").items():
+        w = f"reference {name!r}"
+        if set(r) != set(REFERENCE_KEYS) or r["role"] != "reference" or r["size_only"] is not True \
+                or not isinstance(r["size_reference"], dict):
+            raise ValueError(f"{AT['where']}: {w} keys {sorted(r)} role {r.get('role')!r} size_only {r.get('size_only')!r}")
+        sr = r["size_reference"]
+        row = {"name": text(name), "class": text(req(sr, "class", f"{w} size_reference")),
+               "dim": text(req(sr, "dim", f"{w} size_reference")), "value": num(req(sr, "value", f"{w} size_reference"), 4),
+               "sigma": num(req(sr, "sigma", f"{w} size_reference"), 4)}
+        rd, st = r["read"], r["state"]
+        if rd is None:
+            if text(r["reason"]) not in REFERENCE_SKIPS or not text(r["why"]) or st is not None:
+                raise ValueError(f"{AT['where']}: {w} without a read: reason {r['reason']!r} why {r['why']!r} state {st is not None}")
+            out.append(row | {"read": None, "reason": text(r["reason"]), "why": text(r["why"]), "poses": None,
+                              "full_extent": None, "agent_height": None})
+            continue
+        if r["reason"] is not None or r["why"] is not None or set(rd) != set(REFERENCE_READ_KEYS) or not isinstance(st, dict):
+            raise ValueError(f"{AT['where']}: {w} read keys {sorted(rd)} reason {r['reason']!r} state {st is not None}")
+        ex = rd["excluded"]
+        if not set(ex) <= set(REFERENCE_EXCLUDED):
+            raise ValueError(f"{AT['where']}: {w} read excluded {sorted(ex)}")
+        hd = rd["headings"]
+        if set(hd) != {"path", "shared_yaw"} or int(hd["path"]) + int(hd["shared_yaw"]) != int(rd["n_frames"]):
+            raise ValueError(f"{AT['where']}: {w} headings {hd} for {rd['n_frames']} frames")
+        ds = rd["dim_source"]
+        if set(ds) != set(rd["dims"]) or any(v not in DIM_SOURCES for v in ds.values()):
+            raise ValueError(f"{AT['where']}: {w} dim_source {ds} dims {sorted(rd['dims'])}")
+        times = req(req(st, "fit_model", f"{w} state"), "times", f"{w} state fit_model")
+        if len(times) != int(rd["n_frames"]) or text(req(st, "mode", f"{w} state")) != "size_read":
+            raise ValueError(f"{AT['where']}: {w} state {len(times)} times, mode {st.get('mode')!r}, read {rd['n_frames']} frames")
+        poses = []
+        for t in times:
+            R = orientation(st, float(t))
+            poses.append([num(t, 4)] + [num(float(x), 5) for x in position(st, float(t))]
+                         + [num(float(x), 5) for x in R[0]] + [num(float(x), 5) for x in R[2]])
+        ah = r["dims.agent_height"]
+        if ah is not None and req(ah, "name", f"{w} dims.agent_height") != "dims.agent_height":
+            raise ValueError(f"{AT['where']}: {w} dims.agent_height name {ah.get('name')!r}")
+        out.append(row | {
+            "read": {"frames": text(rd["frames"]), "n": int(rd["n_frames"]), "frame_set": text(rd["frame_set"]),
+                     "excluded": {k: text(v) for k, v in ex.items()}, "n_depth": int(rd["n_depth"]),
+                     "path": int(hd["path"]), "shared_yaw": int(hd["shared_yaw"]), "rms": num(rd["rms_box_px"], 3),
+                     "dims": {k: num(v, 4) for k, v in rd["dims"].items()}, "dim_source": dict(ds),
+                     "shape": text(rd["shape"]), "scale": num(rd["scale"], 5)},
+            "reason": None, "why": None, "shape": text(req(st, "shape", f"{w} state")),
+            "dims": {k: num(v, 5) for k, v in req(st, "dims", f"{w} state").items()}, "poses": poses,
+            "full_extent": full_extent_view(r["size.full_extent"], w),
+            "agent_height": None if ah is None else {
+                "pass": req(ah, "pass", w), "ray": num(req(ah, "ray_angle_deg", w), 3),
+                "threshold": num(req(ah, "threshold_deg", w), 3), "pitch": num(req(ah, "pitch_deg", w), 3),
+                "H_source": text(req(ah, "H_source", w)), "reason": text(req(ah, "reason", w))}})
+    return out
 
 
 IMPULSE_VERDICTS = ("kick", "agent.unobserved", "chain ends", "no_law")   # or "rejected: <why>"
@@ -1692,7 +1888,9 @@ def agent_dims_view(name: str, o: dict) -> dict:
     if any(v not in DIM_SOURCES for v in ds.values()):
         raise ValueError(f"{AT['where']}: {what} dim_source {ds}")
     la, ah = req(o, "dims.agent_lateral", what), req(o, "dims.agent_height", what)
-    if (la is None) != (ah is None):
+    # an agent fitted on no support plane (scene_fit.set_agent_height: plane None) has no height decision
+    no_plane = la is not None and ah is None and req(o, "plane", what) is None
+    if (la is None) != (ah is None) and not no_plane:
         raise ValueError(f"{AT['where']}: {what} has only one of dims.agent_lateral / dims.agent_height")
     if la is None:
         return {"agent_lateral": None, "agent_height": None}
@@ -1702,15 +1900,17 @@ def agent_dims_view(name: str, o: dict) -> dict:
     src = {k[:-len("_source")]: text(v) for k, v in la.items() if k.endswith("_source")}
     if not src or any(ds.get(k) != v or v not in ("class", "bound", "prior") for k, v in src.items()):
         raise ValueError(f"{AT['where']}: {w} sources {src} differ from dim_source {ds}")
+    lat = {"pass": la["pass"], "sources": src, "box_px": num(req(la, "box_w_px_median", w), 4),
+           "box_m": num(req(la, "box_w_m", w), 4), "fits_box": req(la, "fits_box", w), "reason": text(req(la, "reason", w))}
     wh = f"{what} dims.agent_height"
+    if no_plane:
+        return {"agent_lateral": lat, "agent_height": None}
     if req(ah, "name", wh) != "dims.agent_height" or req(ah, "pass", wh) not in (True, False, None):
         raise ValueError(f"{AT['where']}: {wh} name {ah.get('name')!r} pass {ah.get('pass')!r}")
     hs = text(req(ah, "H_source", wh))
     if hs not in DIM_SOURCES or (ah["pass"] is False and hs != ds.get("H")):
         raise ValueError(f"{AT['where']}: {wh} H_source {hs!r} with pass {ah['pass']!r}, dim_source H {ds.get('H')!r}")
-    return {"agent_lateral": {"pass": la["pass"], "sources": src, "box_px": num(req(la, "box_w_px_median", w), 4),
-                              "box_m": num(req(la, "box_w_m", w), 4), "fits_box": req(la, "fits_box", w),
-                              "reason": text(req(la, "reason", w))},
+    return {"agent_lateral": lat,
             "agent_height": {"pass": ah["pass"], "pitch": num(req(ah, "pitch_deg", wh), 3),
                              "ray": num(req(ah, "ray_angle_deg", wh), 3), "threshold": num(req(ah, "threshold_deg", wh), 3),
                              "H_source": hs, "reason": text(req(ah, "reason", wh))}}
@@ -1867,6 +2067,7 @@ def presence_view(tag: str, unit: str):
 
 
 FUSION_VERDICTS = ("used", "outlier", "disagree", "no sigma", "excluded")   # excluded: rule fit.object
+KEPT_OUTLIERS = "outlier(s) of the scene's own sources kept:"   # pipeline.scene_fit focal_fusion_class
 
 
 def fusion_view(state: dict) -> dict:
@@ -1892,7 +2093,15 @@ def fusion_view(state: dict) -> dict:
                      "bounded": [num(a, 4) for a in b] if b else None}
                     | ({"pass": bool(x["pass"])} if cross else {}))
     n = int(req(fu, "n_sources", w))
-    if n != len([r for r in rows if r["verdict"] not in ("no sigma", "excluded", "cross-check")]):   # listed, not fused
+    # rule class_vote.regular: an outlier of the scene's own fusion stays an outlier and is not one of the sources the
+    # class votes join; the record names those only in its reason ("outlier(s) of the scene's own sources kept: ...")
+    reason = text(req(fu, "reason", w))
+    kept_txt = reason.split(KEPT_OUTLIERS, 1)[1] if FMT.get("sizeonly") and KEPT_OUTLIERS in reason else ""
+    for r in rows:
+        r["kept"] = r["verdict"] == "outlier" and r["camera"] and f"{r['kind']} of '{r['object']}'" in kept_txt
+    if kept_txt and not any(r["kept"] for r in rows):
+        raise ValueError(f"{AT['where']}: {w} reason names kept outliers, no outlier row matches: {kept_txt!r}")
+    if n != len([r for r in rows if r["verdict"] not in ("no sigma", "excluded", "cross-check") and not r["kept"]]):
         raise ValueError(f"{AT['where']}: {w} n_sources {n} with {len(rows)} sources")
     ok = req(fu, "pass", w)
     if ok not in (True, False, None):
@@ -2203,9 +2412,16 @@ def depth_rows_view(state: dict):
             g, wg = d["ground"], f"{w} ground"
             gr = {"z": num(req(g, "z_ground", wg), 4), "n": int(req(g, "n", wg)), "pass": req(g, "pass", wg),
                   "bound": num(req(g, "bound", wg), 3), "reason": text(req(g, "reason", wg))}
-        out.append({"obj": text(name), "pass": ok, "z_mask": num(req(d, "z_mask", w), 4), "z_plane": num(req(d, "z_plane", w), 4),
-                    "bound": num(req(d, "bound", w), 3), "n_rows": int(req(d, "n_rows", w)),
-                    "n_matched": int(req(d, "n_matched", w)), "dropped": dropped, "reason": text(req(d, "reason", w))}
+        # an untestable record (pass null: no tracked frame on the main support) has no depths, bound or match count
+        untestable = ok is None and FMT.get("sizeonly")
+        if untestable and (any(k in d for k in ("z_mask", "z_plane", "bound")) or d["n_matched"] is not None
+                           or not text(d["reason"]).startswith("untestable")):
+            raise ValueError(f"{AT['where']}: {w} untestable with keys {sorted(d)}")
+        g3 = (lambda k: None) if untestable else (lambda k: req(d, k, w))
+        nm = req(d, "n_matched", w)
+        out.append({"obj": text(name), "pass": ok, "z_mask": num(g3("z_mask"), 4), "z_plane": num(g3("z_plane"), 4),
+                    "bound": num(g3("bound"), 3), "n_rows": int(req(d, "n_rows", w)),
+                    "n_matched": None if untestable else int(nm), "dropped": dropped, "reason": text(req(d, "reason", w))}
                    | ({"odd": odd, "ground": gr,
                        "sigma_added": num(d["plane_sigma_added"] if FMT.get("classref") else d.get("plane_sigma_added"), 3)}
                       if FMT.get("launch") else {}))
@@ -2518,10 +2734,10 @@ def unit_id(vid: str, k: int) -> str:
 
 
 def dev_units() -> list[str]:
-    """The development question set: the unit ids in the first column of the table in docs/DEV10.md."""
-    units = re.findall(r"^\|\s*(\S+_q\d+)\s*\|", (ROOT / "docs" / "DEV10.md").read_text(), re.M)
+    """The development question set: the unit ids in the first column of the table in docs/DEV20.md."""
+    units = re.findall(r"^\|\s*(\S+_q\d+)\s*\|", (ROOT / "docs" / "DEV20.md").read_text(), re.M)
     if not units or len(set(units)) != len(units):
-        raise ValueError(f"docs/DEV10.md: no or duplicated unit ids: {units}")
+        raise ValueError(f"docs/DEV20.md: no or duplicated unit ids: {units}")
     return units
 
 
@@ -2742,6 +2958,16 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                               "dims_check": dims_check(state) if state is not None else None}
                 if FMT.get("fused"):
                     query["plausible_untestable"] = plausible_untestable(state) if state is not None else None
+                if FMT.get("sizeonly"):
+                    # rule reference.size_only: plausible excludes exactly the scene's references (always present)
+                    ex = req(req(req(rec, "checks", "answer record"), "plausible", "answer record checks"), "excluded", "plausible")
+                    if set(ex) != {"reference.size_only"}:
+                        raise ValueError(f"{AT['where']}: plausible.excluded keys {sorted(ex)}")
+                    refs = sorted(req(state, "references", "scene")) if state is not None else []
+                    if sorted(ex["reference.size_only"]) != refs:
+                        raise ValueError(f"{AT['where']}: plausible.excluded {ex['reference.size_only']} differs from the scene's references {refs}")
+                    query["plausible_excluded"] = [text(x) for x in ex["reference.size_only"]]
+                    query["partial"] = partial_view(rec)
                 if FMT.get("impulse"):
                     query["presence"] = presence_view(tag, unit)
             query["tq"], query["tjump"] = question_times(query["q"], alignment)
@@ -2764,7 +2990,7 @@ def same_depth_rows(state: dict, ms: list[dict]):
 def build_harness_val(runs: list[tuple[str, Path]], make_thumb: bool = False) -> dict:
     """Display completed harness runs without re-running anything. `runs` is ordered: each question of the
     validation table is shown from the first run whose CSV has its row, and every value of that question comes from
-    that run alone (labelled with its version on the page). Every DEV10 question must be in some run."""
+    that run alone (labelled with its version on the page). Every DEV20 question must be in some run."""
     if len({t for t, _ in runs}) != len(runs):
         raise ValueError(f"a run is listed twice: {[t for t, _ in runs]}")
     manifest, dev = manifest_units(), dev_units()
@@ -2777,7 +3003,7 @@ def build_harness_val(runs: list[tuple[str, Path]], make_thumb: bool = False) ->
     by_unit = {u: i for i, u in enumerate(manifest["unit"])}
     missing = [u for u in dev if by_unit[u] not in claimed]
     if missing:
-        raise ValueError(f"docs/DEV10.md units in none of the runs: {missing}")
+        raise ValueError(f"docs/DEV20.md units in none of the runs: {missing}")
     videos, questions = {}, []
     for tag, _ in runs:
         units = [u for i, u in enumerate(manifest["unit"]) if claimed.get(i) == tag]
@@ -2785,14 +3011,14 @@ def build_harness_val(runs: list[tuple[str, Path]], make_thumb: bool = False) ->
             raise ValueError(f"{tag}: every question of this run is taken by an earlier run")
         questions += build_run(tag, frames[tag], manifest, units, videos, make_thumb)
     questions.sort(key=lambda q: q["row"])
-    print(f"val: {len(questions)} questions ({len(dev)} DEV10), {len(videos)} videos")
+    print(f"val: {len(questions)} questions ({len(dev)} DEV20), {len(videos)} videos")
     return {"runs": [{"version": t, "unit": version_format(t)["unit"], "decide": version_format(t)["decide"],
                       "csv": str(p.relative_to(ROOT)), "unit_set": unit_set(t, frames[t], p)} for t, p in runs],
             "dev": dev, "videos": [videos[v] for v in sorted(videos)], "questions": questions}
 
 
 def unit_set(tag: str, frame: pd.DataFrame, csv_path: Path):
-    """The unit set a run's CSV names (the harness names its CSV by the set: "_dev10"; the full split has no suffix);
+    """The unit set a run's CSV names (the harness names its CSV by the set: "_dev20"; the full split has no suffix);
     None for formats without it. One value per CSV, and the file name must carry it."""
     if not version_format(tag).get("static"):
         return None
@@ -2838,6 +3064,43 @@ def write_class_table() -> int:
     return len(CLASSES)
 
 
+TIME_TABLE_MARKS = ("<!-- step_times: generated by tools/build_videos.py from the answer records of the current run -->",
+                    "<!-- /step_times -->")
+STEP_LABELS = {"objects": "1 Objects", "scenegraph_grid": "2 Scene graph (grid)", "observe": "3 Observe", "track": "4 Track",
+               "measure": "5 Measure", "scenegraph_pf": "6 Scene graph (per frame)", "ground": "7 Ground",
+               "scene": "8 Physics-guided Fitting", "agent": "9 Agent loop", "answer": "10 Answer"}
+
+
+def write_time_table(questions: list[dict], tag: str) -> int:
+    """Regenerate the time-per-step table of pipeline.html between TIME_TABLE_MARKS from the answer records' timing of
+    run `tag` (the questions' "time"): median / min / max seconds per step and of the total, over the questions that
+    ran every step (a failed chain's prefix is left out). Returns the number of questions."""
+    page = PIPELINE_HTML.read_text()
+    a, b = TIME_TABLE_MARKS
+    if page.count(a) != 1 or page.count(b) != 1 or page.index(a) > page.index(b):
+        raise ValueError(f"{PIPELINE_HTML.name}: step-time table marks missing or out of order")
+    qs = [q for q in questions if q["version"] == tag and q.get("execution_status") != "failed"]
+    if not qs:
+        raise ValueError(f"{tag}: no question ran every step")
+    steps = [x["step"] for x in qs[0]["time"]["steps"]]
+    if list(STEP_LABELS) != steps or any([x["step"] for x in q["time"]["steps"]] != steps for q in qs):
+        raise ValueError(f"{tag}: timing steps {steps}, expected {list(STEP_LABELS)}")
+    cells = lambda v: "".join(f'<td class="n">{x:.1f}</td>' for x in (float(np.median(v)), min(v), max(v)))
+    rows = [f'  <tr><td>{STEP_LABELS[k]}</td><td><code>{k}</code></td>{cells([q["time"]["steps"][i]["s"] for q in qs])}</tr>'
+            for i, k in enumerate(steps)]
+    rows.append(f'  <tr><td><b>Total</b></td><td><code>total_seconds</code></td>{cells([q["time"]["total"] for q in qs])}</tr>')
+    n_all = len([q for q in questions if q["version"] == tag])
+    table = ('\n<div class="scroll-x"><table class="tt">\n'
+             '  <tr><th>Step</th><th>Timing key</th><th class="n">Median (s)</th><th class="n">Min</th><th class="n">Max</th></tr>\n'
+             + "\n".join(rows) + '\n</table></div>\n'
+             f'<p class="muted small">The {len(qs)} of the {n_all} questions of the {tag} run that ran every step '
+             f'(<code>outputs/harness/{tag}/answers</code>, <code>timing.steps</code>).</p>\n')
+    new = page[:page.index(a) + len(a)] + table + page[page.index(b):]
+    if new != page:
+        PIPELINE_HTML.write_text(new)
+    return len(qs)
+
+
 def parse_run(spec: str) -> tuple[str, Path]:
     """<tag> (CSV outputs/val_<tag>_answers.csv) or <tag>=<CSV path relative to the repo root>."""
     tag, _, csv = spec.partition("=")
@@ -2863,6 +3126,8 @@ def main():
     if stale:
         print(f"{len(stale)} unreferenced thumbs removed")
     print(f"pipeline.html: class-size table, {write_class_table()} classes")
+    first = data["val"]["runs"][0]["version"]
+    print(f"pipeline.html: step-time table, {write_time_table(data['val']['questions'], first)} {first} questions")
     sizes = [p.stat().st_size for p in THUMBS.glob("*.jpg")]
     print(f"wrote {OUT} ({OUT.stat().st_size / 1e6:.2f} MB); {len(sizes)} thumbs, {sum(sizes) / 1e6:.2f} MB, max {max(sizes, default=0)} B")
 
