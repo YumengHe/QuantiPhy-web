@@ -230,10 +230,13 @@
     // frames a track overlaps another instance of its class (rule track.visible_span), as runs under its bar
     const overlap = (name) => (te && te.tracks[name] ? runsOf(te.tracks[name].overlap_same_class) : []).map(([a, b]) =>
       `<span class="trk-ov" style="left:${pct(a / fps)};width:calc(${pct(b / fps)} - ${pct(a / fps)} + 2px)" title="${a === b ? a : `${a}–${b}`}"></span>`).join('');
+    // rule A12 state.occluded_not_airborne: a phase where the object is not fully seen holds no state
+    const unobs = (name) => ((sg && sg.unobserved) || []).filter((u) => u.obj === name).map((u) =>
+      `<span class="trk-uo" style="left:${pct(u.t0)};width:calc(${pct(u.t1)} - ${pct(u.t0)})" title="${esc(`unobserved ${span(u.t0, u.t1)} · ${u.why}`)}"></span>`).join('');
     const rows = Object.entries(tracks).map(([name, ivs]) => {
       const i = order.indexOf(name), col = i >= 0 ? PALETTE[i % PALETTE.length] : 'var(--muted)';
       const segs = (ivs || []).map(([a, b]) => `<span class="trk-seg" style="left:${pct(a)};width:calc(${pct(b)} - ${pct(a)} + 2px);background:${col}" title="${fmt(a, 2)}–${fmt(b, 2)} s"></span>`).join('');
-      return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${overlap(name)}${lines}${ticks(name)}</span></div>`;
+      return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${unobs(name)}${overlap(name)}${lines}${ticks(name)}</span></div>`;
     }).join('');
     return `<h4>Tracks</h4><div class="trk-wrap">${rows}<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>` +
       trackEndsTable(te) + presenceBlock(q.presence) + identityBlock(q.identity) + extentsBlock(q.extents);
@@ -318,17 +321,28 @@
     return '<div class="scroll-x"><table class="ident"><tr><th>Object</th><th class="n">#</th><th>Candidate</th><th class="n">Frames</th><th class="n">Moves (px)</th>' +
       `<th>Verify</th><th>Class size</th><th class="n">Present</th><th class="n">Border</th><th>Outcome</th></tr>${rows}</table></div>` + choiceTable(idt);
   }
-  // rule E15: the frame each object's box was chosen on, the scan's label of every probe frame (the chosen frame in
-  // bold), detector boxes dropped as the image itself, and a re-judged whole set ranked by motion
+  // rules E15 / E20 / E17: the frame each object's box was chosen on (choice.frame_stable: the shared probe frame
+  // unless the scan has it only partly there) with its rule, the scan's label of every probe frame (the chosen frame in
+  // bold), where the accepted track starts, the choose record's binding to that track (box IoU at the start) and the
+  // chooser's picks the identity judge did not take; detector boxes dropped as the image itself, a re-judged whole set
   function choiceTable(idt) {
     const es = Object.entries(idt).filter(([, v]) => v.choice);
     if (!es.length) return '';
     const scan = (c) => c.scan.map(([f, l]) => `<span class="scan scan-${esc(l)}${f === c.frame ? ' chosen' : ''}">${f} ${esc(l)}</span>`).join(' ');
-    return '<div class="scroll-x"><table class="ident choice"><tr><th>Object</th><th class="n">Choice frame</th><th class="n">Shared</th><th>Scan</th><th></th></tr>' +
-      es.map(([name, v]) => `<tr><td class="iobj">${esc(name)}</td><td class="n">${v.choice.frame}</td><td class="n">${v.choice.shared}</td><td>${scan(v.choice)}</td><td>${esc(v.choice.why)}` +
-        v.choice.dropped.map((d) => `<div class="bad"><code>candidate.full_frame</code> [${d.box.join(', ')}] ${esc(d.why)}</div>`).join('') +
-        (v.whole_set ? `<div><code>identity.whole_set</code> #${v.whole_set.chosen == null ? '—' : v.whole_set.chosen} · ${v.whole_set.terms.map((t) => `#${t.candidate} ${fmtNum(t.evidence)}`).join(' · ')} · ${esc(v.whole_set.why)}</div>` : '') +
-        '</td></tr>').join('') + '</table></div>';
+    const bind = (b) => (b ? `<span class="${b.pass ? 'ok' : 'bad'}" title="${esc(b.why)}">${fmtNum(b.iou)} ${b.pass ? '≥' : '<'} ${fmtNum(b.bound)}${b.start_kept ? '' : ' · start not kept'}</span>` : '');
+    return '<div class="scroll-x"><table class="ident choice"><tr><th>Object</th><th class="n">Choice frame</th><th class="n">Shared</th><th>Scan</th>' +
+      '<th class="n">Track start</th><th class="n"><code>choose.track_binding</code></th><th></th></tr>' +
+      es.map(([name, v]) => {
+        const c = v.choice;
+        return `<tr><td class="iobj">${esc(name)}</td><td class="n">${c.frame} <code>${esc(c.rule)}</code></td>` +
+          `<td class="n">${c.shared}${c.shared_status ? ` <span class="scan scan-${esc(c.shared_status)}">${esc(c.shared_status)}</span>` : ''}</td><td>${scan(c)}</td>` +
+          `<td class="n"${c.start ? ` title="${esc(c.start.why)}"` : ''}>${c.start ? `${c.start.frame} <span class="muted">${esc(c.source)}</span>` : '<span class="bad">untracked</span>'}</td>` +
+          `<td class="n">${bind(c.binding)}</td><td>${esc(c.why)}` +
+          c.rejected.map((r) => `<div class="bad">f${r.frame}${r.box ? ` [${r.box.join(', ')}]` : ''} ${esc(r.source)} · ${esc(r.why)}</div>`).join('') +
+          c.dropped.map((d) => `<div class="bad"><code>candidate.full_frame</code> [${d.box.join(', ')}] ${esc(d.why)}</div>`).join('') +
+          (v.whole_set ? `<div><code>identity.whole_set</code> #${v.whole_set.chosen == null ? '—' : v.whole_set.chosen} · ${v.whole_set.terms.map((t) => `#${t.candidate} ${fmtNum(t.evidence)}`).join(' · ')} · ${esc(v.whole_set.why)}</div>` : '') +
+          '</td></tr>';
+      }).join('') + '</table></div>';
   }
 
   // ---------- time axis of the 3D viewer ----------
@@ -423,9 +437,12 @@
         (c.corrected ? `<div class="sub">${esc(c.corrected.from_rel)} → ${esc(e.rel)} · ${esc(c.corrected.source)}</div>` : '') + '</td>';
     };
     const listed = sg.edges.filter((e) => e.test || e.source || e.event);
+    // rule A14 graph_edit.launch_pair: the launch pair re-timed with its airborne start, or cleared with it
+    const launchEdit = (e) => (e.launch_moved ? `<div class="sub" title="${esc(e.launch_moved.why)}"><code>graph_edit.launch_pair</code> t_launch ${fmt(e.launch_moved.from[0], 3)}–${fmt(e.launch_moved.from[1], 3)} → ${fmt(e.launch_moved.to[0], 3)}–${fmt(e.launch_moved.to[1], 3)} s · ${esc(e.launch_moved.by)}${e.launch_moved.round != null ? ` round ${e.launch_moved.round}` : ''}</div>` : '') +
+      (e.launch_removed ? `<div class="sub bad" title="${esc(e.launch_removed.why)}"><code>graph_edit.launch_pair</code> launch ${fmt(e.launch_removed.t_launch[0], 3)}–${fmt(e.launch_removed.t_launch[1], 3)} s off ${esc(e.launch_removed.support)} removed · ${esc(e.launch_removed.by)}${e.launch_removed.round != null ? ` round ${e.launch_removed.round}` : ''}</div>` : '');
     const ctBlank = hasCt ? '<td></td>' : '';
     const ts = listed.length ? `<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th>${hasSrc ? '<th>Source</th>' : ''}${hasEv ? '<th>Event</th>' : ''}${hasCt ? '<th>Containment</th>' : ''}<th>Test</th><th></th><th></th></tr>` +
-      listed.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}</td>${hasSrc ? `<td>${esc(e.source || '')}</td>` : ''}${evCell(e)}${ctCell(e)}` +
+      listed.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}${launchEdit(e)}</td>${hasSrc ? `<td>${esc(e.source || '')}</td>` : ''}${evCell(e)}${ctCell(e)}` +
         (e.test ? `<td><code>${esc(e.test.name)}</code></td>${testCells(e.test)}` : '<td></td><td></td><td></td>') + '</tr>' +
         (e.test && e.test.label ? e.test.label.map((x) => `<tr class="absorbed"><td></td><td></td>${hasSrc ? '<td></td>' : ''}${hasEv ? '<td></td>' : ''}${ctBlank}<td><code>${esc(x.name)}</code></td>${testCells(x)}</tr>`).join('') : '') +
         (e.absorbed || []).map((x) => `<tr class="absorbed"><td></td><td>↳ ${edgeText(x)}</td>${hasSrc ? '<td></td>' : ''}${hasEv ? '<td></td>' : ''}${ctBlank}<td><code>${esc(x.test.name)}</code></td>${testCells(x.test)}</tr>`).join('')).join('') +
@@ -437,10 +454,15 @@
     const unk = sg.unknown ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Unknown span</th><th>Removed edge</th><th>Reason</th></tr>' +
       sg.unknown.map((u) => `<tr><td>${esc(u.obj)}</td><td class="bad">${span(u.t0, u.t1)}</td><td>${esc(u.rel)}${u.to ? ` ${esc(u.to)}` : ''}${u.event ? ` <code>${esc(u.event)}</code>` : ''} <code>${esc(u.test.name)}</code></td>` +
         `<td>${esc(u.reason)}</td></tr>`).join('') + '</table></div>' : '';
+    const uo = sg.unobserved ? '<div class="scroll-x"><table class="sgrel unobs"><tr><th>Object</th><th><code>state.occluded_not_airborne</code></th><th class="n">Frames</th><th></th><th>Cut</th></tr>' +
+      sg.unobserved.map((u) => `<tr><td>${esc(u.obj)}</td><td class="uo">${span(u.t0, u.t1)}</td><td class="n">${u.frames[0]}–${u.frames[1]} <span class="muted">(${u.n})</span></td>` +
+        `<td>${Object.entries(u.runs).map(([k, r]) => `<code>${esc(k)}</code> ${r.map(([a, b]) => (a === b ? a : `${a}–${b}`)).join(', ')}`).join(' · ')}` +
+        `${u.detail.length ? `<div class="muted">${u.detail.map(esc).join(' · ')}</div>` : ''}</td>` +
+        `<td>${u.cut.map((c) => `${esc(c.rel)}${c.to ? ` ${esc(c.to)}` : ''} ${span(c.t0, c.t1)}`).join('<br>')}</td></tr>`).join('') + '</table></div>' : '';
     // reference objects (rule reference.size_only): no state or edge, only the frames their size is read on
     const refs = sg.references ? '<div class="scroll-x"><table class="sgrel"><tr><th>Reference</th><th>Class</th><th>Frames</th></tr>' +
       sg.references.map((r) => `<tr><td>${esc(r.name)}</td><td><code>${esc(r.class)}</code></td><td>${esc(r.frames)}</td></tr>`).join('') + '</table></div>' : '';
-    return tree || rel || lau || unt || rw || ts || unk || cf || refs ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${cf}${unk}${rel}${lau}${rw}${unt}${refs}` : '';
+    return tree || rel || lau || unt || rw || ts || unk || uo || cf || refs ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${cf}${unk}${uo}${rel}${lau}${rw}${unt}${refs}` : '';
   }
   // the geometric test of an agent state edit (rule graph_edit.retest): result and its reason
   function testCells(t) {
@@ -451,6 +473,27 @@
   // (the state the answer used) carries the accent bar
   // with the loop's stop record: its reason on the heading, each tried call's outcome class, each rejected round's
   // newly failed checks
+  // rule A16 graph_edit.unobserved_kept: an edit over an unobserved phase, kept on its observed parts or rejected
+  function keptLine(k) {
+    if (!k) return '';
+    const sp = (v) => v.map(([a, b]) => span(a, b)).join(', ');
+    return `<div class="${k.kept ? 'muted' : 'bad'}"><code>graph_edit.unobserved_kept</code> ${esc(k.object)} · requested ${span(k.requested[0], k.requested[1])} · unobserved ${sp(k.unobserved)} · ` +
+      `kept ${k.kept ? sp(k.kept) : 'none'}${k.dropped.length ? ` · dropped ${sp(k.dropped)}` : ''}</div>`;
+  }
+  // rule D30: the frozen constraint contract replayed before and after the round, one row per key (standardized
+  // residual), the untestable ones with their reason
+  function contractTable(c) {
+    if (!c || (!c.before && !c.after)) return '';
+    const ids = [...new Set([...(c.before ? c.before.rows : []), ...(c.after ? c.after.rows : [])].map((r) => r.id))];
+    if (!ids.length) return '';
+    const get = (x, id) => (x ? x.rows.find((r) => r.id === id) : null);
+    const z = (r) => (!r ? '' : r.untestable ? `<span class="muted" title="${esc(r.untestable.reason)}">untestable</span>` : fmtNum(r.standardized));
+    return '<table class="contract"><tr><th>Contract</th><th class="n">Observed</th><th class="n">z before</th><th class="n">z after</th></tr>' +
+      ids.map((id) => {
+        const b = get(c.before, id), a = get(c.after, id), r = a || b;
+        return `<tr><td><code>${esc(id)}</code></td><td class="n">${r.observed.kind === 'fitted' ? `${esc(r.observed.object)} ${fmtNum(r.observed.value)}` : fmtNum(r.observed.value)}</td><td class="n">${z(b)}</td><td class="n">${z(a)}</td></tr>`;
+      }).join('') + '</table>';
+  }
   function roundsBlock(r) {
     if (!r) return '';
     const par = (p) => Object.entries(p).map(([k, v]) => `${k} ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · ');
@@ -462,10 +505,11 @@
         const k = cls.get(key(x.iter, c));
         return `<div><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span>${k ? ` <span class="tclass">${esc(k)}</span>` : ''}</div>`;
       }).join('');
-      const res = x.calls.map((c) => `<div class="${/^rejected\b/.test(c.result) ? 'bad' : ''}">${esc(c.result)}</div>` +
+      const res = x.calls.map((c) => `<div class="${/^rejected\b/.test(c.result) ? 'bad' : ''}">${esc(c.result)}</div>` + keptLine(c.unobserved_kept) +
         (c.test ? `<div class="${c.test.result === 'pass' ? 'ok' : c.test.result === 'fail' ? 'bad' : 'muted'}"><code>${esc(c.test.name)}</code> ${esc(c.test.result)}</div>` : '')).join('') +
         x.rejected.map((w) => `<div class="bad">${esc(w)}</div>`).join('') +
-        (x.rejected_calls || []).map((c) => `<div class="bad"><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span> <code>${esc(c.reason)}</code> ${esc(c.why)}</div>`).join('');
+        (x.rejected_calls || []).map((c) => `<div class="bad"><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span> <code>${esc(c.reason)}</code> ${esc(c.why)}</div>` + keptLine(c.unobserved_kept)).join('') +
+        contractTable(x.contract);
       const cand = (x.candidates || []).map((c) => `<div class="cand"><code>${esc(c.for)}</code> ← <code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span></div>`).join('') +
         (x.dropped || []).map((c) => `<div class="cand drop"><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span>` +
           `<div class="bad">${c.rule ? `<code>${esc(c.rule)}</code> ` : ''}${esc(c.why)}</div></div>`).join('');
@@ -1114,7 +1158,7 @@
         x.measurements.map((m) => measurementRow(m, q)).join('') + '</table></div>' + floorTable(q.floor);
     }
     if (q.measurements) {
-      h += measurementBlock(q);
+      h += measurementBlock(q, v);
     } else if ((f || q.method || q.status) && q.checks) {
       // decided by named checks: an unresolved question shows the scene value its record kept, never as the answer
       const unres = q.status === 'unresolved';
@@ -1203,8 +1247,16 @@
         `<td class="${cls(x.verdict)}">${esc(x.verdict)}</td><td>${esc(x.why)}</td></tr>`).join('') +
         (o.impulse_span ? `<tr class="absorbed"><td></td><td class="n">${fmt(o.impulse_span.onset, 3)}</td><td><code>law.impulse_span</code></td>` +
           `<td colspan="2">driven ${o.impulse_span.ramp_end == null ? 'to the next phase' : `${fmt(o.impulse_span.onset, 3)}–${fmt(o.impulse_span.ramp_end, 3)} s`} · ${o.impulse_span.n_driven} driven frames · first frame ${fmt(o.impulse_span.first_frame, 3)} s</td>` +
-          `<td>${o.impulse_span.applied ? 'applied' : '<span class="muted">not applied</span>'}${o.impulse_span.free_piece ? ' · free piece' : ''}</td><td>${esc(o.impulse_span.how)}</td></tr>` : '')).join('') +
+          `<td>${o.impulse_span.applied ? 'applied' : '<span class="muted">not applied</span>'}${o.impulse_span.free_piece ? ' · free piece' : ''}</td><td>${esc(o.impulse_span.how)}</td></tr>` +
+          (o.impulse_span.kick_ramp ? kickRampRow(o.impulse_span.kick_ramp) : '') : '')).join('') +
       '</table></div>';
+  }
+  // rule B29 kick_ramp.significant under a driven span: the frame-pair speeds ± σ and the pair that ends the ramp
+  function kickRampRow(k) {
+    const e = k.end;
+    return `<tr class="absorbed"><td></td><td class="n">${e.pass ? fmt(e.t, 3) : ''}</td><td><code>kick_ramp.significant</code></td>` +
+      `<td colspan="2">${k.pairs.map((p) => `<span class="${e.pass && p.frames[0] === e.frames[0] ? 'kend' : ''}">${p.frames[0]}–${p.frames[1]} ${plusMinus(p.v, p.sigma)}</span>`).join(' · ')} m/s</td>` +
+      `<td class="${e.pass ? '' : 'bad'}">${e.pass ? `margin ${fmtNum(e.margin)} &gt; 3 × ${fmtNum(e.sigma)} = ${fmtNum(e.bound)} over ${e.against[0]}–${e.against[1]}` : 'untestable'}</td><td>${esc(k.why)}</td></tr>`;
   }
   // the measured slope of each inclined support and the rolling law it gives (rule support.incline), with the
   // refined onset of each start from rest (rule kinematic.onset)
@@ -1242,11 +1294,23 @@
       '<th class="n">f start → f (px)</th><th class="n">f bounds (px)</th><th class="n">D / D stated (m)</th><th>Converged</th></tr>' +
       ps.map((o) => {
         const p = o.pendulum, ff = p.f_free;
-        return `<tr><td>${esc(o.name)}</td><td class="n">${fmtNum(p.L)}</td><td class="n">${plusMinus(p.period, p.period_sigma)} <span class="muted">(${p.periods}, ${esc(p.period_from)})</span></td>` +
+        return `<tr><td>${esc(o.name)}</td><td class="n">${fmtNum(p.L)}</td><td class="n">${p.period != null ? `${plusMinus(p.period, p.period_sigma)} <span class="muted">(${p.periods}, ${esc(p.period_from)})</span>` : '<span class="muted">—</span>'}</td>` +
           (ff ? `<td class="n">${fmtNum(ff.f_start)} → ${fmtNum(ff.f)}</td><td class="n${ff.at_bound ? ' bad' : ''}">${fmtNum(ff.bounds[0])}–${fmtNum(ff.bounds[1])}${ff.at_bound ? ` · ${esc(ff.at_bound)}` : ''}</td>` +
             `<td class="n">${fmtNum(ff.D)} / ${fmtNum(ff.D_prior)} <span class="muted">(${fmt(100 * ff.rel, 1)}%)</span></td><td class="${ff.converged ? 'ok' : 'bad'}">${ff.converged ? 'yes' : 'no'}</td>`
             : `<td class="n">${fmtNum(p.f)}</td><td></td><td></td><td></td>`) + '</tr>';
-      }).join('') + '</table></div>';
+      }).join('') + '</table></div>' + ps.filter((o) => o.pendulum.swing).map((o) => swingTable(o.name, o.pendulum.swing)).join('');
+  }
+  // rule B30 swing_period.agree: troughs of each series (d diameter, u column) above 3σ of its own noise, the period
+  // each gives, and the read both agree on (their inverse-variance mean), or none
+  function swingTable(name, sw) {
+    const tr = (t) => `<span title="bottom f${t.bottom[0]}–${t.bottom[1]} · depth ${fmtNum(t.depth)}">f${t.frame} ${plusMinus(t.t, t.sigma_t)} s</span>`;
+    const rows = sw.series.map((x) => `<tr><td><code>${esc(x.name)}</code></td><td class="n">${fmtNum(x.noise)}</td><td>${x.troughs.map(tr).join(' · ')}` +
+      x.rejected.map((r) => `<div class="muted">f${r.frame} ${fmtNum(r.depth)} · ${esc(r.why)}</div>`).join('') + '</td>' +
+      `<td class="n">${x.period != null ? plusMinus(x.period, x.sigma) : '—'}</td><td class="n">${x.n_periods != null ? x.n_periods : ''}</td><td>${esc(x.basis || '')}</td></tr>`).join('');
+    const ch = sw.chosen;
+    return `<div class="scroll-x"><table class="sgrel swing"><tr><th><code>swing_period</code> ${esc(name)}</th><th class="n">Noise</th><th>Troughs</th><th class="n">Period (s)</th><th class="n">n</th><th>Basis</th></tr>${rows}` +
+      `<tr class="${ch ? 'chosen' : 'bad'}"><td><code>swing_period.agree</code></td><td class="n">z ${fmtNum(sw.agree.z)}</td><td>${esc(sw.why)}</td>` +
+      `<td class="n">${ch ? plusMinus(ch.period, ch.sigma) : '—'}</td><td class="n">${ch ? ch.n_periods : ''}</td><td>${ch ? esc(ch.from.join('+')) : res3(sw.agree.pass)}</td></tr></table></div>`;
   }
   function checksTable(cs, extra = '') {
     return '<div class="scroll-x"><table class="checks"><tr><th>Check</th><th></th><th>Reason</th></tr>' +
@@ -1280,6 +1344,8 @@
   // ---------- v5: every measurement of the asked quantity, the checks agree / constraints ----------
   const span = (a, b) => (a != null && a === b ? `${fmt(a, 2)} s` : `${a == null ? '…' : fmt(a, 2)}–${b == null ? '…' : fmt(b, 2)} s`);
   const span3 = ([a, b]) => `${fmt(a, 3)}–${fmt(b, 3)} s`;
+  // rule D31 time.one_grid: the frame indices a window or piece is compared on, beside its seconds
+  const frs = (f) => (f ? ` <span class="frs">f${f[0] == null ? '…' : f[0]}–${f[1] == null ? '…' : f[1]}</span>` : '');
   const plusMinus = (v, sg) => `${fmtNum(v)}${sg != null ? ` ± ${fmtNum(sg)}` : ''}`;
   function sigmaSub(m) {
     const j = (a) => a.map((x) => fmtNum(x)).join(' / ');
@@ -1291,7 +1357,7 @@
     const chosen = q.chosen;
     const val = m.value == null ? '<span class="muted">—</span>'
       : `<span>${plusMinus(m.value, m.sigma)} ${esc(m.unit)}</span>${sigmaSub(m)}`;
-    const inp = [!m.wstate && m.window && `window ${span(m.window[0], m.window[1])}`, m.n != null && `n ${m.n}`,
+    const inp = [!m.wstate && m.window && `window ${span(m.window[0], m.window[1])}${m.window_frames ? ` f${m.window_frames[0]}–${m.window_frames[1]}` : ''}`, m.n != null && `n ${m.n}`,
       !m.chain && m.piece && `piece ${span(m.piece[0], m.piece[1])}`, m.state, m.law && `ballistic g ${fmtNum(m.law.g)} (${m.law.source})`].filter(Boolean).join(' · ');
     const failed = m.failed.map((c) => `<div><code>${esc(c.which || c.name)}</code> ${esc(c.reason)}</div>`).join('');
     const prof = m.profile ? m.profile.map((p) => `<div class="${p.pass ? 'ok' : 'bad'}"><code>at_bound.profile</code> ${esc(p.param)} ` +
@@ -1309,7 +1375,7 @@
   // the window this measurement reads inside the piece after a kick's ramp (rule window.impulse)
   function impulseLine(w) {
     if (!w) return '';
-    return `<div class="${cls3(w.pass)}" title="${esc(w.reason)}"><code>window.impulse</code> ${res3(w.pass)} · window ${span3(w.window)} · piece ${span3(w.piece)}</div>`;
+    return `<div class="${cls3(w.pass)}" title="${esc(w.reason)}"><code>window.impulse</code> ${res3(w.pass)} · window ${w.window ? span3(w.window) : '—'}${frs(w.window_frames)} · piece ${w.piece ? span3(w.piece) : '—'}${frs(w.piece_frames)}</div>`;
   }
   // a law-driven start from rest bounds the speed (rule kinematic.onset): |v| <= ∫|a| dt + 3σ
   function onsetLine(k) {
@@ -1322,13 +1388,13 @@
     let h = '';
     const c = m.chain;
     if (c && c.chain === false) {
-      h += `<div>piece ${fmt(c.piece[0], 3)}–${fmt(c.piece[1], 3)} s · motion piece, no physics chain</div>`;
+      h += `<div>piece ${fmt(c.piece[0], 3)}–${fmt(c.piece[1], 3)} s${frs(m.piece_frames)} · motion piece, no physics chain</div>`;
     } else if (c) {
       const s3 = (x) => fmt(x, 3);
       const ev = c.events.map(([t, k]) => `${esc(k)} ${s3(t)} s`).join(' · ');
       const more = [c.window_short.length && `<code>window_short</code> ${esc(JSON.stringify(c.window_short))}`,
         c.events_near_t.length && `events near t ${esc(JSON.stringify(c.events_near_t))}`].filter(Boolean);
-      h += `<div><code>fit.sigma_chain</code> piece ${s3(c.piece[0])}–${s3(c.piece[1])} s · ${ev}${more.length ? ' · ' + more.join(' · ') : ''}</div>`;
+      h += `<div><code>fit.sigma_chain</code> piece ${s3(c.piece[0])}–${s3(c.piece[1])} s${frs(m.piece_frames)} · ${ev}${more.length ? ' · ' + more.join(' · ') : ''}</div>`;
     }
     if (m.sigma_how) h += `<div class="muted">${esc(m.sigma_how)}</div>`;
     if (m.sigma_flags) h += Object.entries(m.sigma_flags).map(([k, v]) => `<div class="bad"><code>${esc(k)}</code> ${esc(JSON.stringify(v))}</div>`).join('');
@@ -1340,10 +1406,10 @@
     const w = m.wstate;
     if (w) {
       const s3 = (a, b) => `${a == null ? '…' : fmt(a, 3)}–${b == null ? '…' : fmt(b, 3)} s`;
-      h += `<div><code>window.state</code> ${esc(w.state || '—')} · span ${s3(w.t0, w.t1)} · clipped by ${esc(w.start || '—')} / ${esc(w.end || '—')}` +
-        (w.used ? ` · window ${s3(w.used[0], w.used[1])}` : '') + (w.check ? ` · ${w.law ? esc(w.law) : 'no law'} · <code>${esc(w.check)}</code>` : '') + '</div>';
+      h += `<div><code>window.state</code> ${esc(w.state || '—')} · span ${s3(w.t0, w.t1)}${frs(w.frames)} · clipped by ${esc(w.start || '—')} / ${esc(w.end || '—')}` +
+        (w.used ? ` · window ${s3(w.used[0], w.used[1])}${frs(w.used_frames)}` : '') + (w.check ? ` · ${w.law ? esc(w.law) : 'no law'} · <code>${esc(w.check)}</code>` : '') + '</div>';
       if (m.centred) {
-        h += `<div><code>window.centred</code> from ${s3(m.centred.from[0], m.centred.from[1])} · extremum ${esc(m.centred.extremum)} · stop ${esc(m.centred.stop)}</div>`;
+        h += `<div><code>window.centred</code> from ${s3(m.centred.from[0], m.centred.from[1])}${frs(m.centred.from_frames)} · extremum ${esc(m.centred.extremum)} · stop ${esc(m.centred.stop)}</div>`;
       }
       if (w.driven) {
         h += `<div><code>window.driven</code> ${esc(w.driven.state)} · <span title="${esc(w.driven.how)}">noise ${w.driven.noise.map((x) => fmtNum(x)).join(' / ')} px</span></div>`;
@@ -1371,34 +1437,49 @@
   }
   // the kick's ramp and the piece after it (rule window.impulse): frame-pair 3D speeds after the onset, the ramp's end
   // at their first maximum, the piece from there, and the direct measurement's minimal window, whose verdict this is
-  function impulseBlock(w) {
+  function impulseBlock(w, fps) {
     if (!w) return '';
-    const W = 600, H = 150, L = 44, R = 12, T = 12, B = 26;
-    const ts = w.speeds.map((p) => p[0]), vs = w.speeds.map((p) => p[1]);
-    const t0 = Math.min(w.onset, ...ts, w.window[0]), t1 = Math.max(...ts, w.window[1]);
-    const pad = (t1 - t0) * 0.04, x0 = t0 - pad, x1 = t1 + pad, vmax = Math.max(...vs) * 1.15;
-    const X = (t) => L + (W - L - R) * (Math.min(Math.max(t, x0), x1) - x0) / (x1 - x0), Y = (v) => T + (H - T - B) * (1 - v / vmax);
+    const W = 600, H = 170, L = 44, R = 12, T = 12, B = 26;
+    // rule B29 kick_ramp.significant: every frame-pair speed with its σ (at the pair's midpoint), the ramp end the pair
+    // that beats a later one by more than 3σ; without the record, the frame-pair speeds as recorded
+    const kr = w.kick_ramp;
+    const pts = kr ? kr.pairs.map((p) => ({ t: (p.frames[0] + p.frames[1]) / 2 / fps, v: p.v, s: p.sigma, f: p.frames }))
+      : w.speeds.map(([t, v]) => ({ t, v, s: null, f: null }));
+    const end = kr && kr.end.pass ? kr.end : null;
+    const ts = pts.map((p) => p.t), vs = pts.map((p) => p.v + (p.s || 0));
+    const t0 = Math.min(w.onset, ...ts, ...(w.window ? [w.window[0]] : [])), t1 = Math.max(...ts, ...(w.window ? [w.window[1]] : []));
+    const pad = (t1 - t0) * 0.04, x0 = t0 - pad, x1 = t1 + pad, vmax = Math.max(...vs) * 1.12;
+    const X = (t) => L + (W - L - R) * (Math.min(Math.max(t, x0), x1) - x0) / (x1 - x0), Y = (v) => T + (H - T - B) * (1 - Math.max(v, 0) / vmax);
     const band = (a, b, cls) => `<rect class="${cls}" x="${X(a)}" y="${T}" width="${Math.max(X(b) - X(a), 1)}" height="${H - T - B}"></rect>`;
     const vline = (t, cls) => `<line class="${cls}" x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H - B}"></line>`;
-    const xt = [w.onset, w.ramp_end].map((t) => `<text x="${X(t)}" y="${H - 8}" text-anchor="middle">${fmt(t, 3)}</text>`).join('');
-    const yt = [0, vmax / 1.15].map((v) => `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${fmt(v, 2)}</text>`).join('');
+    const xt = [w.onset, w.ramp_end].filter((t) => t != null).map((t) => `<text x="${X(t)}" y="${H - 8}" text-anchor="middle">${fmt(t, 3)}</text>`).join('');
+    const yt = [0, vmax / 1.12].map((v) => `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${fmt(v, 2)}</text>`).join('');
+    const isEnd = (p) => end && p.f && p.f[0] === end.frames[0], isAgainst = (p) => end && p.f && end.against && p.f[0] === end.against[0];
     const svg = `<svg class="impchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="frame-pair speeds after the onset">` +
-      band(w.piece[0], w.piece[1], 'piece') + band(w.window[0], w.window[1], `win ${cls3(w.pass)}`) + vline(w.onset, 'onset') + vline(w.ramp_end, 'ramp') +
+      (w.piece ? band(w.piece[0], w.piece[1], 'piece') : '') + (w.window ? band(w.window[0], w.window[1], `win ${cls3(w.pass)}`) : '') +
+      vline(w.onset, 'onset') + (w.ramp_end != null ? vline(w.ramp_end, 'ramp') : '') +
       `<line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"></line>` +
-      `<polyline points="${w.speeds.map(([t, v]) => `${X(t)},${Y(v)}`).join(' ')}"></polyline>` +
-      w.speeds.map(([t, v]) => `<circle cx="${X(t)}" cy="${Y(v)}" r="4"><title>${fmt(t, 3)} s · ${fmt(v, 3)} m/s</title></circle>`).join('') + xt + yt + '</svg>';
+      `<polyline points="${pts.map((p) => `${X(p.t)},${Y(p.v)}`).join(' ')}"></polyline>` +
+      pts.map((p) => (p.s != null ? `<line class="err" x1="${X(p.t)}" x2="${X(p.t)}" y1="${Y(p.v - p.s)}" y2="${Y(p.v + p.s)}"></line>` : '') +
+        `<circle class="${isEnd(p) ? 'kend' : isAgainst(p) ? 'kvs' : ''}" cx="${X(p.t)}" cy="${Y(p.v)}" r="4"><title>${p.f ? `frames ${p.f[0]}–${p.f[1]} · ` : ''}${fmt(p.t, 3)} s · ${plusMinus(p.v, p.s)} m/s</title></circle>`).join('') +
+      xt + yt + '</svg>';
+    const pairs = kr ? '<div class="scroll-x"><table class="sgrel kramp"><tr><th>Frames</th><th class="n">v (m/s)</th></tr>' +
+      kr.pairs.map((p) => `<tr class="${isEnd({ f: p.frames }) ? 'chosen' : ''}"><td>${p.frames[0]}–${p.frames[1]}</td><td class="n">${plusMinus(p.v, p.sigma)}</td></tr>`).join('') + '</table></div>' : '';
+    const kline = kr ? `<p class="facts ${kr.end.pass ? '' : 'bad'}" title="${esc(kr.why)}"><code>kick_ramp.significant</code> ` +
+      (kr.end.pass ? `frames ${kr.end.frames[0]}–${kr.end.frames[1]} · ${fmtNum(kr.end.v)} m/s · margin ${fmtNum(kr.end.margin)} &gt; 3 × ${fmtNum(kr.end.sigma)} = ${fmtNum(kr.end.bound)} m/s over frames ${kr.end.against[0]}–${kr.end.against[1]}`
+        : `untestable · ${esc(kr.why)}`) + '</p>' : '';
     return `<div class="impulse-win"><p class="facts"><code>window.impulse</code> ${esc(w.verdict)}${w.agent ? ` by ${esc(w.agent)}` : ''} · onset ${fmt(w.onset, 3)} s · ` +
-      `<span class="ramp">ramp end ${fmt(w.ramp_end, 3)} s</span> · <span class="piece">piece ${span3(w.piece)}</span> · first frame ${fmt(w.first_frame, 3)} s · ` +
-      `<span class="win ${cls3(w.pass)}" title="${esc(w.reason)}">direct window ${span3(w.window)} ${res3(w.pass)}</span></p>${svg}</div>`;
+      `<span class="ramp">ramp end ${w.ramp_end != null ? `${fmt(w.ramp_end, 3)} s` : '—'}</span> · <span class="piece">piece ${w.piece ? span3(w.piece) : '—'}${frs(w.piece_frames)}</span> · first frame ${fmt(w.first_frame, 3)} s · ` +
+      `<span class="win ${cls3(w.pass)}" title="${esc(w.reason)}">direct window ${w.window ? span3(w.window) : '—'}${frs(w.window_frames)} ${res3(w.pass)}</span></p>${kline}${svg}${pairs}</div>`;
   }
-  function measurementBlock(q) {
+  function measurementBlock(q, v) {
     let h = '<div class="scroll-x"><table class="meas"><tr><th>Measurement</th><th>Method</th><th class="n">Value</th><th>Admissible</th><th>Failed</th><th>Inputs</th></tr>' +
-      q.measurements.map((m) => measurementRow(m, q)).join('') + '</table></div>' + impulseBlock(q.window_impulse);
+      q.measurements.map((m) => measurementRow(m, q)).join('') + '</table></div>' + impulseBlock(q.window_impulse, v.fps);
     const other = q.measurements.filter((m) => m.name !== q.chosen && m.checks.length);
     if (other.length) {
       h += '<div class="scroll-x"><table class="checks mchecks"><tr><th>Check</th><th></th><th>Reason</th></tr>' +
         other.map((m) => m.checks.map((c, i) => `<tr class="${c.pass ? 'ok' : 'bad'}${i ? '' : ' mfirst'}"><td><code>${esc(m.name)}</code> <code>${esc(c.name)}</code></td>` +
-          `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}</td></tr>`).join('')).join('') + '</table></div>';
+          `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}${c.frames ? `<div class="frs">${Object.entries(c.frames).filter(([, f]) => f).map(([k, f]) => `${esc(k.replace('_frames', ''))} f${f[0]}–${f[1]}`).join(' · ')}</div>` : ''}</td></tr>`).join('')).join('') + '</table></div>';
     }
     const a = q.agree;
     if (a.values.length) {

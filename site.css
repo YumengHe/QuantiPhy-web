@@ -298,3 +298,16 @@ table.choice td div { font-size: 12px; margin-top: 2px; }
 table.choice .scan { white-space: nowrap; color: var(--muted); }
 table.choice .scan-full { color: var(--text); }
 table.choice .scan.chosen { font-weight: 600; color: var(--accent); }
+/* batch 26: unobserved phases on the track timeline, frame indices beside seconds, kick ramp pair speeds, contract */
+.trk-uo { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 6px); opacity: .55; border-left: 1px solid var(--muted); border-right: 1px solid var(--muted); }
+table.unobs td.uo { background: repeating-linear-gradient(135deg, var(--sh-soft) 0 3px, transparent 3px 8px); white-space: nowrap; }
+.frs { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+div.frs { font-size: 12px; }
+svg.impchart line.err { stroke: var(--muted); stroke-width: 1.5; }
+svg.impchart circle.kend { fill: var(--accent); }
+svg.impchart circle.kvs { fill: var(--panel); stroke: var(--text); stroke-width: 1.5; }
+.kend { font-weight: 600; color: var(--accent); }
+table.kramp { width: auto; font-size: 13px; }
+table.swing { font-size: 13px; }
+table.contract { width: auto; margin: 4px 0 0; font-size: 12px; }
+table.contract th, table.contract td { padding: 1px 8px 1px 0; }

@@ -240,6 +240,15 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            reason}] and each "floor" entry coverage_raw / coverage_minus_objects (rule C19 support.full_frame); a
 #            direct-only scene (pipeline.state.direct_only: stage A failed, objects {}, no camera) is read as an
 #            unresolved question whose results fail "fit" (rule D24 scene.direct_only)
+#   unobserved (batch 26) the graph has "unobserved" phases [{from, state, t_start, t_end, rule, visibility, cut}]
+#            (rule A12 state.occluded_not_airborne) and edges may carry launch_moved / launch_removed (rule A14
+#            graph_edit.launch_pair); choose records carry choice_frame {frame, why, shared, shared_status, rule} (E20),
+#            rule / rejected / accepted_frame / binding (E17 choose.track_binding, = identity binding); a driven span and
+#            a result's window_impulse have "kick_ramp" {pair_speeds, ramp_end, why} (B29); a pendulum has
+#            "swing_period" and may have no period (B30); windows and pieces carry frame indices beside their seconds
+#            (D31 time.one_grid); agent rounds carry the replayed constraint contract residuals and untestable ids (D30),
+#            graph_edit.unobserved_kept on results / rejected calls (A16); a measurement's constraint_residuals hold the
+#            contained rows (D30)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -254,7 +263,7 @@ VERSION_FORMAT = {
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
            "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
            "span": True, "launch": True, "classref": True, "sizeonly": True,
-           "undetermined": True, "contained": True},
+           "undetermined": True, "contained": True, "unobserved": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -399,6 +408,8 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
              | ({"event": edge_event(e, f"edge {e.get('from')!r} {e.get('rel')!r}")} if FMT.get("contact") and "event" in e else {})
              | ({"test": test_view(e["test"], f"edge {e.get('from')!r} {e.get('rel')!r}")} if "test" in e else {})
              | ({"containment": containment_view(e)} if FMT.get("contained") and "containment" in e else {})
+             | ({k: launch_edit_view(e, k) for k in ("launch_moved", "launch_removed") if k in e}
+                if FMT.get("unobserved") else {})
              | ({"absorbed": [span_edge(x, f"edge {e.get('from')!r} {e.get('rel')!r} absorbed") for x in e["absorbed"]]}
                 if FMT.get("selftest") and e.get("absorbed") else {})
              for e in req(g, "edges", "scene graph cache") if req(e, "rel", "edge") in SUPPORT_RELS]
@@ -462,6 +473,10 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
                for x in req(g, "unknown", "scene graph cache")]
         if unk:
             out["unknown"] = unk
+    if FMT.get("unobserved"):
+        uo = [unobserved_view(x) for x in req(g, "unobserved", "scene graph cache")]
+        if uo:
+            out["unobserved"] = uo
     if FMT.get("impulse"):
         cf = [conflict_view(x) for x in req(g, "conflicts", "scene graph cache")]
         if cf:
@@ -484,6 +499,50 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
     if out and FMT.get("kept"):
         out["kept"] = int(req(rec["kept_state"], "iter", "kept_state"))
     return out or None
+
+
+UNOBSERVED_WHYS = ("outside_track", "track_gap", "border", "sliver", "occluded", "island")   # scenegraph.UNOBSERVED_WHY
+
+
+def unobserved_view(x: dict) -> dict:
+    """Rule A12 state.occluded_not_airborne: a phase where the object is not fully seen holds no state (not an edge):
+    {"obj", "t0", "t1", "frames" [f0, f1], "n", "why", "runs" {why: [[a, b]]}, "detail", "cut" [{rel, to, t0, t1}]}."""
+    w = "scene graph unobserved"
+    if set(x) != {"from", "state", "t_start", "t_end", "rule", "visibility", "cut"} or x["state"] != "unobserved" \
+            or x["rule"] != "state.occluded_not_airborne":
+        raise ValueError(f"{AT['where']}: {w} {sorted(x)} state {x.get('state')!r} rule {x.get('rule')!r}")
+    v = x["visibility"]
+    if set(v) != {"frames_unobserved", "n", "why", "frames", "detail"} or len(v["frames_unobserved"]) != 2 \
+            or any(k not in UNOBSERVED_WHYS for k in v["frames"]):
+        raise ValueError(f"{AT['where']}: {w} visibility {v!r}")
+    cut = []
+    for c in x["cut"]:
+        if set(c) != {"rel", "to", "t_start", "t_end"}:
+            raise ValueError(f"{AT['where']}: {w} cut {c!r}")
+        cut.append({"rel": text(c["rel"]), "to": text(c["to"]) or None, "t0": num(c["t_start"], 4), "t1": num(c["t_end"], 4)})
+    return {"obj": text(x["from"]), "t0": num(x["t_start"], 4), "t1": num(x["t_end"], 4),
+            "frames": [int(f) for f in v["frames_unobserved"]], "n": int(v["n"]), "why": text(v["why"]),
+            "runs": {k: [[int(a), int(b)] for a, b in r] for k, r in v["frames"].items()},
+            "detail": [text(d) for d in v["detail"]], "cut": cut}
+
+
+LAUNCH_EDIT_KEYS = {"launch_moved": {"rule", "by", "round", "why", "from", "to"},
+                    "launch_removed": {"rule", "by", "round", "why", "t_launch", "support"}}
+LAUNCH_EDIT_BY = ("agent", "builder.self_test", "state.occluded_not_airborne")
+
+
+def launch_edit_view(e: dict, k: str) -> dict:
+    """Rule A14 graph_edit.launch_pair: a launch pair re-timed with its airborne start (launch_moved) or cleared from
+    the surviving halves when the airborne half went (launch_removed)."""
+    x, w = e[k], f"edge {e.get('from')!r} {e.get('rel')!r} {k}"
+    if set(x) != LAUNCH_EDIT_KEYS[k] or x["rule"] != "graph_edit.launch_pair" or (k == "launch_removed" and x["by"] not in LAUNCH_EDIT_BY):
+        raise ValueError(f"{AT['where']}: {w} {x!r}")
+    if k == "launch_removed" and any(f in e for f in ("t_launch", "launch_rule", "launch_why")):
+        raise ValueError(f"{AT['where']}: {w} on an edge that keeps its launch fields")
+    out = {"by": text(x["by"]), "round": x["round"], "why": text(x["why"])}
+    if k == "launch_moved":
+        return out | {"from": [num(t, 4) for t in x["from"]], "to": [num(t, 4) for t in x["to"]]}
+    return out | {"t_launch": [num(t, 4) for t in x["t_launch"]], "support": text(x["support"])}
 
 
 CONTAINMENT_KEYS = {"rule", "verdict", "inside_frac", "bound", "frames", "level", "r_px", "why"}
@@ -735,6 +794,45 @@ def full_extent_view(fe: dict | None, what: str):
             "depth": text(req(fe, "depth", w))}
 
 
+KICK_RAMP_END_KEYS = {"frame", "frames", "t", "v", "margin", "sigma", "bound", "against", "pass"}
+
+
+def kick_ramp_view(x: dict, what: str) -> dict:
+    """Rule B29 kick_ramp.significant: every frame-pair speed with its propagated sigma, and the ramp end -- the first
+    pair speed maximum that exceeds a following pair by more than 3 sigma (margin vs bound, the pair it beats);
+    untestable when no maximum is significant (ramp_end pass false)."""
+    w = f"{what} kick_ramp"
+    if set(x) != {"pair_speeds", "ramp_end", "why"}:
+        raise ValueError(f"{AT['where']}: {w} keys {sorted(x)}")
+    pairs = []
+    for p in x["pair_speeds"]:
+        if set(p) != {"frames", "v", "sigma"} or len(p["frames"]) != 2:
+            raise ValueError(f"{AT['where']}: {w} pair {p!r}")
+        pairs.append({"frames": [int(f) for f in p["frames"]], "v": num(p["v"], 4), "sigma": num(p["sigma"], 3)})
+    re_ = x["ramp_end"]
+    if set(re_) != KICK_RAMP_END_KEYS or not isinstance(re_["pass"], bool):
+        raise ValueError(f"{AT['where']}: {w} ramp_end {re_!r}")
+    if re_["pass"]:
+        if re_["frames"] not in [p["frames"] for p in pairs] or re_["frame"] != re_["frames"][1] \
+                or not float(re_["margin"]) > float(re_["bound"]):
+            raise ValueError(f"{AT['where']}: {w} ramp_end {re_!r} is not a significant pair of its pair speeds")
+    ints = lambda v: [int(f) for f in v] if v is not None else None
+    return {"pairs": pairs, "why": text(x["why"]),
+            "end": {"pass": re_["pass"], "frame": re_["frame"], "frames": ints(re_["frames"]), "t": num(re_["t"], 5),
+                    "v": num(re_["v"], 4), "margin": num(re_["margin"], 4), "sigma": num(re_["sigma"], 3),
+                    "bound": num(re_["bound"], 4), "against": ints(re_["against"])}}
+
+
+def frames_pair(x: dict, k: str, w: str, n: int = 2):
+    """A frame-index field beside a seconds field (rule D31 time.one_grid): [first, last] (an end may be null)."""
+    v = req(x, k, w)
+    if v is None:
+        return None
+    if len(v) != n or any(f is not None and not isinstance(f, int) for f in v):
+        raise ValueError(f"{AT['where']}: {w} {k} {v!r}")
+    return list(v)
+
+
 def impulse_window_view(x: dict, what: str, result: bool = False) -> dict:
     """Rule window.impulse: the kick's ramp end, the piece after it, and the window read inside it; a result's record
     (result=True) also has the agent, the verdict, the first observed frame and the frame-pair speeds [[t, m/s]]."""
@@ -747,6 +845,8 @@ def impulse_window_view(x: dict, what: str, result: bool = False) -> dict:
     t4 = lambda v: [num(a, 5) for a in v] if v is not None else None
     out = {"pass": ok, "reason": text(req(x, "reason", w)), "onset": num(req(x, "onset", w), 5),
            "ramp_end": num(req(x, "ramp_end", w), 5), "piece": t4(req(x, "piece", w)), "window": t4(req(x, "window", w))}
+    if FMT.get("unobserved"):
+        out |= {"piece_frames": frames_pair(x, "piece_frames", w), "window_frames": frames_pair(x, "window_frames", w)}
     if result:
         # rule window_impulse.measurement: the result-level record is the direct measurement's verdict
         if FMT.get("classref") and req(x, "measurement", w) != "direct":
@@ -754,6 +854,8 @@ def impulse_window_view(x: dict, what: str, result: bool = False) -> dict:
         out |= {"agent": text(req(x, "agent", w)) or None, "verdict": text(req(x, "verdict", w)),
                 "first_frame": num(req(x, "first_frame", w), 5),
                 "speeds": [[num(t, 5), num(v, 4)] for t, v in req(x, "speeds", w)]}
+        if FMT.get("unobserved"):
+            out["kick_ramp"] = kick_ramp_view(req(x, "kick_ramp", w), w) if x.get("kick_ramp") is not None else None
     return out
 
 
@@ -809,6 +911,11 @@ def motion_law(name: str, o: dict):
                               "sigma_px": None if untestable else [num(x, 3) for x in req(rf, "sigma_px", wr)],
                               "tried": None if untestable else [[num(a, 4), bool(b), int(c)] for a, b, c in req(rf, "tried", wr)],
                               "why": text(req(rf, "why", wr))}
+        if FMT.get("unobserved"):
+            # rule D31 time.one_grid: the release frame beside its time (no frame when no frame holds)
+            if (rf.get("t") is None) != ("frame" not in rf):
+                raise ValueError(f"{AT['where']}: {wr} t {rf.get('t')!r} with frame {rf.get('frame', 'absent')!r}")
+            out["release_fit"]["frame"] = rf.get("frame")
     if FMT.get("contained") and out["model"] == "pendulum":
         # a held, hanging object's pendulum law (scene_fit.motion_law, plan held): no phases, no unknown span
         if set(law) != {"model", "why"}:
@@ -933,6 +1040,9 @@ def answer_checks(answer: dict, row: dict) -> dict:
     return res
 
 
+CHECK_FRAMES = {"window.impulse": ("window_frames", "piece_frames"), "window.release": ("window_frames", "flight_frames")}
+
+
 def measurement_row(m: dict) -> dict:
     """One measurement of the asked quantity (scene result "measurements", docs/ANSWER_AGREEMENT.md section 5)."""
     what = f"measurement {m.get('name')!r}"
@@ -952,6 +1062,18 @@ def measurement_row(m: dict) -> dict:
     lst = lambda v: [num(x, 3) for x in v] if isinstance(v, list) else ([num(v, 3)] if v is not None else None)
     dof = parts.get("dof")
     inputs = req(m, "inputs", what) or {}
+    frames = {}
+    if FMT.get("unobserved"):
+        # rule D31 time.one_grid: frame indices beside the seconds of the window and the piece
+        if bool(inputs.get("window")) != ("frames" in inputs) or ("piece" in inputs) != ("piece_frames" in inputs):
+            raise ValueError(f"{AT['where']}: {what} inputs window / frames, piece / piece_frames {sorted(inputs)}")
+        cp = inputs.get("chain_piece")
+        if cp is not None and req(cp, "piece_frames", f"{what} chain_piece") != inputs.get("piece_frames"):
+            raise ValueError(f"{AT['where']}: {what} chain_piece piece_frames {cp['piece_frames']} vs {inputs.get('piece_frames')}")
+        if (inputs.get("piece") is None) != (inputs.get("piece_frames") is None):
+            raise ValueError(f"{AT['where']}: {what} piece {inputs.get('piece')} with piece_frames {inputs.get('piece_frames')}")
+        frames = {"window_frames": frames_pair(inputs, "frames", what) if inputs.get("window") else None,
+                  "piece_frames": frames_pair(inputs, "piece_frames", what) if inputs.get("piece_frames") is not None else None}
     if FMT.get("fused") and inputs.get("piece") is not None:
         cp = req(inputs, "chain_piece", what)
         if [num(x, 4) for x in inputs["piece"]] != [num(x, 4) for x in req(cp, "piece", f"{what} chain_piece")]:
@@ -964,7 +1086,9 @@ def measurement_row(m: dict) -> dict:
             "failed": [{"name": k, "reason": text(req(checks[k], "reason", f"{what} check {k!r}"))}
                        | ({"which": text(checks[k]["which"])} if checks[k].get("which") else {}) for k in failed],
             "checks": [{"name": k, "pass": check_pass(c, f"{what} check {k!r}"),
-                        "reason": text(req(c, "reason", f"{what} check {k!r}"))} for k, c in checks.items()],
+                        "reason": text(req(c, "reason", f"{what} check {k!r}"))}
+                       | ({"frames": {f: frames_pair(c, f, f"{what} check {k!r}") for f in CHECK_FRAMES[k]}}
+                          if FMT.get("unobserved") and k in CHECK_FRAMES else {}) for k, c in checks.items()],
             "window": [num(x, 4) for x in inputs["window"]] if inputs.get("window") else None,
             "piece": [num(max(x, 0.0), 4) if x > -1e8 else None for x in inputs["piece"]]
             if inputs.get("piece") and not FMT.get("fused") else None,
@@ -974,7 +1098,7 @@ def measurement_row(m: dict) -> dict:
         | (direct_view(m, what) if FMT.get("camera") else {}) | (sigma_view(inputs, what) if FMT.get("fusion") else {}) \
         | (onset_check_view(m, what) if FMT.get("impulse") and "kinematic_onset" in m else {}) \
         | (span_view(m, what) if FMT.get("span") else {}) \
-        | ({"bounds": bounds_view(m, what)} if FMT.get("undetermined") else {})
+        | ({"bounds": bounds_view(m, what)} if FMT.get("undetermined") else {}) | frames
 
 
 def bounds_view(m: dict, what: str):
@@ -1076,6 +1200,9 @@ def direct_view(m: dict, what: str) -> dict:
                "start": text(req(cb, "start", f"{what} window clipped_by")) or None,
                "end": text(req(cb, "end", f"{what} window clipped_by")) or None,
                "used": [num(x, 4) for x in w["window"]] if req(w, "window", f"{what} window") else None}
+        if FMT.get("unobserved"):
+            win |= {"frames": frames_pair(w, "frames", f"{what} window"),
+                    "used_frames": frames_pair(w, "window_frames", f"{what} window") if w.get("window") else None}
         if FMT.get("roll"):
             inputs = req(m, "inputs", what) or {}
             win |= {"law": text(req(w, "law", f"{what} window")) or None, "check": text(req(w, "check", f"{what} window"))}
@@ -1122,7 +1249,8 @@ def direct_view(m: dict, what: str) -> dict:
     ce = (m.get("inputs") or {}).get("centred") if FMT.get("static") else None
     cev = None if ce is None else {
         "from": [num(x, 4) for x in req(ce, "from", f"{what} centred")],
-        "extremum": text(req(ce, "extremum", f"{what} centred")), "stop": text(req(ce, "stop", f"{what} centred"))}
+        "extremum": text(req(ce, "extremum", f"{what} centred")), "stop": text(req(ce, "stop", f"{what} centred"))} \
+        | ({"from_frames": frames_pair(ce, "from_frames", f"{what} centred")} if FMT.get("unobserved") and ce is not None else {})
     return {"wstate": win, "support_depth": sdv, "depth_agree": dav, "centred": cev}
 
 
@@ -1163,7 +1291,13 @@ def agreement_view(result: dict, answer: dict, status: str, state: dict | None =
              "bound": num(req(ag, "bound", "agree"), 4),
              "values": [[k, num(v[0]), num(v[1], 3)] for k, v in req(ag, "values", "agree").items()]}
     res = list(req(req(answer, "measurement", "answer"), "constraint_residuals", "answer measurement"))
-    if FMT.get("contained"):
+    if FMT.get("unobserved"):
+        # rule D30 contract.contained: the measurement's residuals carry the scene's contained rows too (same ids)
+        sc = req(state, "constraints", "scene")
+        rid = [text(c.get("id")) for c in res]
+        if len(set(rid)) != len(rid) or {text(c.get("id")) for c in sc} != set(rid):
+            raise ValueError(f"{AT['where']}: scene constraints {[c.get('id') for c in sc]} differ from the answer's residuals {sorted(rid)}")
+    elif FMT.get("contained"):
         # rule A13 contained.same_depth: the container-depth rows are judged in "constraints" but are no stated
         # constraint, so they are only in the scene's own "constraints" list (kind "contained"), never in the residuals
         sc = req(state, "constraints", "scene")
@@ -1273,7 +1407,53 @@ def dropped_view(c: dict, what: str) -> dict:
 
 PLANNING_FAILED_KEYS = {"iter", "why", "accepted", "execution_status", "tool_calls"}
 NO_REPEAT = "repair.no_repeat"   # rule D27 (pipeline.scene_agent.REPAIR_NO_REPEAT)
-REJECTED_CALL_REASONS = ("reference.not_repairable", NO_REPEAT)
+UNOBSERVED_KEPT = "graph_edit.unobserved_kept"   # rule A16 (pipeline.scenegraph.UNOBSERVED_KEPT)
+REJECTED_CALL_REASONS = ("reference.not_repairable", NO_REPEAT, UNOBSERVED_KEPT)
+
+
+def unobserved_kept_view(x: dict, what: str) -> dict:
+    """Rule A16 graph_edit.unobserved_kept: an agent state edit over an unobserved phase, clipped to its observed parts
+    (kept), or rejected when none of at least one frame step is left (kept null): {object, requested, unobserved, kept,
+    dropped, why}."""
+    if set(x) != {"rule", "object", "requested", "unobserved", "kept", "dropped", "why"} or x["rule"] != UNOBSERVED_KEPT:
+        raise ValueError(f"{AT['where']}: {what} {UNOBSERVED_KEPT} record {x!r}")
+    sp = lambda v: [num(t, 4) if t is not None else None for t in v]   # noqa: E731
+    return {"object": text(x["object"]), "requested": sp(x["requested"]), "unobserved": [sp(v) for v in x["unobserved"]],
+            "kept": [sp(v) for v in x["kept"]] if x["kept"] is not None else None, "dropped": [sp(v) for v in x["dropped"]],
+            "why": text(x["why"])}
+
+
+CONTRACT_ROW_KEYS = {"id", "kind", "object", "container", "time", "observed", "predicted", "residual", "units", "sigma",
+                     "sigma_abs", "standardized", "testable", "untestable"}
+CONTRACT_KINDS = ("depth", "prior", "contained")   # pipeline.evidence.CONSTRAINT_KINDS (rule D30 contract.contained)
+
+
+def contract_view(m: dict | None, what: str):
+    """Rule D30: the agent's frozen constraint contract replayed on a round's scene -- one row per replayed key
+    {id, kind, object, container, time, observed {kind stated | fitted, object, value}, predicted, residual, units,
+    sigma, standardized, untestable reason} and the untestable ids. None without metrics."""
+    if m is None:
+        return None
+    cc, w = req(m, "constraint_contract", what), f"{what} constraint_contract"
+    rows = []
+    for r in req(cc, "residuals", w):
+        ob = r.get("observed") or {}
+        if set(r) != CONTRACT_ROW_KEYS or r["kind"] not in CONTRACT_KINDS or set(ob) != {"kind", "object", "value"} \
+                or ob["kind"] not in ("stated", "fitted") or (r["kind"] == "contained") != (ob["kind"] == "fitted") \
+                or r["testable"] != (r["untestable"] is None):
+            raise ValueError(f"{AT['where']}: {w} residual row {r!r}")
+        un = r["untestable"]
+        if un is not None and set(un) != {"rule", "reason"}:
+            raise ValueError(f"{AT['where']}: {w} residual untestable {un!r}")
+        rows.append({"id": text(r["id"]), "kind": r["kind"], "object": text(r["object"]), "container": text(r["container"]) or None,
+                     "time": num(r["time"], 4), "observed": {"kind": ob["kind"], "object": text(ob["object"]) or None, "value": num(ob["value"], 4)},
+                     "predicted": num(r["predicted"], 4), "residual": num(r["residual"], 3), "units": text(r["units"]),
+                     "sigma": num(r["sigma"], 3), "standardized": num(r["standardized"], 3),
+                     "untestable": {"rule": text(un["rule"]), "reason": text(un["reason"])} if un else None})
+    ut = [text(x) for x in req(cc, "untestable_ids", w)]
+    if sorted(ut) != sorted(r["id"] for r in rows if r["untestable"]):
+        raise ValueError(f"{AT['where']}: {w} untestable_ids {ut} differ from its untestable rows")
+    return {"rows": rows, "untestable_ids": ut}
 
 
 def no_repeat_view(x: dict, what: str) -> dict:
@@ -1292,9 +1472,14 @@ def rejected_call_view(c: dict, w: str) -> dict:
     call = req(c, "call", f"{w} rejected call")
     if reason == NO_REPEAT:
         no_repeat_view(req(c, NO_REPEAT, f"{w} rejected call"), f"{w} rejected call")
+    uk = None
+    if reason == UNOBSERVED_KEPT:
+        uk = unobserved_kept_view(req(c, UNOBSERVED_KEPT, f"{w} rejected call"), f"{w} rejected call")
+        if uk["kept"] is not None:
+            raise ValueError(f"{AT['where']}: {w} rejected call {UNOBSERVED_KEPT} with kept parts {uk['kept']}")
     return {"name": text(req(call, "name", f"{w} rejected call")),
             "params": {k: v for k, v in (call.get("params") or {}).items() if v is not None},
-            "reason": reason, "why": text(req(c, "why", f"{w} rejected call"))}
+            "reason": reason, "why": text(req(c, "why", f"{w} rejected call"))} | ({"unobserved_kept": uk} if uk else {})
 
 
 def partial_view(rec: dict):
@@ -1337,6 +1522,8 @@ def rounds_view(rec: dict) -> dict | None:
         calls = [{"name": text(req(r, "name", w)), "params": {k: v for k, v in (r.get("params") or {}).items() if v is not None},
                   "result": text(req(r, "result", w))}
                  | ({"test": test_view(r["test"], w)} if FMT.get("pendulum") and r.get("test") else {})
+                 | ({"unobserved_kept": unobserved_kept_view(r[UNOBSERVED_KEPT], w)}
+                    if FMT.get("unobserved") and UNOBSERVED_KEPT in r else {})
                  for r in req(it, "results", w)]
         rej = [text(req(x, "why", f"{w} rejected")) for x in (it.get("rejected") or [])]
         acc = req(it, "accepted", w)
@@ -1370,6 +1557,9 @@ def rounds_view(rec: dict) -> dict | None:
             row["not_planned"] = ds == "not_planned"
             if row["not_planned"] and (calls or it.get("execution_status") != "unchanged" or acc):
                 raise ValueError(f"{AT['where']}: {w} not_planned with calls / execution_status {it.get('execution_status')!r}")
+        if FMT.get("unobserved"):
+            row["contract"] = {"before": contract_view(it.get("metrics_before"), f"{w} metrics_before"),
+                               "after": contract_view(it.get("metrics_after"), f"{w} metrics_after")}
         rows.append(row)
     out = {"kept": kept, "rounds": rows}
     if FMT.get("horizon"):
@@ -1781,7 +1971,7 @@ def identity_view(key: str) -> dict:
                 raise ValueError(f"{AT['where']}: {w} candidate outcome {c['outcome']!r}")
             rows.append({"source": text(req(c, "source", w)), "frame": req(c, "frame", w),
                          "box": [round(float(x)) for x in c["box"]] if req(c, "box", w) else None,
-                         "n": req(c, "n_frames", w), "px": num(mv["px"], 3) if mv else None,
+                         "n": c.get("n_frames") if text(c.get("outcome")).startswith("dropped") else req(c, "n_frames", w), "px": num(mv["px"], 3) if mv else None,
                          "moves": bool(mv["moves"]) if mv else None,
                          "votes": list(c["votes"]) if c.get("votes") else None,
                          "size": [{"ref": text(x["ref"]), "ratio": num(x["ratio"], 3),
@@ -1804,6 +1994,12 @@ def identity_view(key: str) -> dict:
             if name not in out:
                 raise ValueError(f"{AT['where']}: track meta choose names {name!r} without an identity record")
             out[name]["choice"] = choice_view(c, f"choose of {name!r}")
+            ib = j["meta"]["identity"][name].get("binding")
+            cb = c.get("binding")
+            if (ib is None) != (cb is None) or (ib is not None and binding_view(ib, f"identity of {name!r}") != out[name]["choice"]["binding"]):
+                raise ValueError(f"{AT['where']}: identity binding {ib!r} differs from the choose record's {cb!r}")
+            if cb is not None and cb["pass"] != (out[name]["chosen"] is not None):
+                raise ValueError(f"{AT['where']}: binding pass {cb['pass']} vs chosen {out[name]['chosen']!r}")
     return out
 
 
@@ -1822,21 +2018,66 @@ def whole_set_view(x: dict, n: int, w: str) -> dict:
                        "evidence": num(req(t, "evidence", w), 3)} for t in x["motion_terms"]]}
 
 
+CHOICE_RULES = ("shared.full", "own.best_full", "own.nearest_full", "own.best_partial", "own.nearest_partial",
+                "shared.no_scan", "shared.absent_everywhere", "own.present_interval")   # rule E20 choice.frame_stable
+CHOOSE_RULES = ("choice", "choice.runs", "choice.whole_set", "recheck", "motion_check", "alternative",
+                "alternative.runs", "alternative.whole_set", "untracked")   # rule E17 choose.track_binding
+BINDING_KEYS = {"name", "pass", "choice_frame", "accepted_frame", "box_iou_at_start", "bound", "start_kept", "why"}
+REJECTED_CHOICE_KEYS = {"frame", "box", "source", "why", "choice", "choices", "reason"}
+
+
+def binding_view(b: dict, w: str) -> dict:
+    """Rule E17 choose.track_binding: the choose record's box against the propagation's own box on its frame."""
+    if set(b) != BINDING_KEYS or b["name"] != "choose.track_binding" or not isinstance(b["pass"], bool):
+        raise ValueError(f"{AT['where']}: {w} binding {b!r}")
+    return {"pass": b["pass"], "choice_frame": b["choice_frame"], "accepted_frame": b["accepted_frame"],
+            "iou": num(b["box_iou_at_start"], 3), "bound": num(b["bound"], 3), "start_kept": bool(b["start_kept"]),
+            "why": text(b["why"])}
+
+
 def choice_view(c: dict, w: str) -> dict:
-    """Rule E15 choice_frame: the frame each object's box was chosen on (its most complete, largest appearance by one
-    scan of the probe frames) with why, the scan's labels per probe frame, and the detector boxes dropped as the
-    image itself (candidate.full_frame)."""
+    """Rules E15 / E20 / E17: the frame each object's box was chosen on (choice.frame_stable: the shared probe frame
+    unless the scan has the object only partly there) with the rule and why, the scan's labels per probe frame, the
+    detector boxes dropped as the image itself (candidate.full_frame), and the record's binding to the accepted track
+    (choose.track_binding): where the track starts, the chooser's picks it did not take, the box IoU at the start."""
     cf, sc = req(c, "choice_frame", w), req(c, "scan", w)
-    if set(cf) != {"frame", "why"} or set(sc) != {"labels", "best"} or any(v not in ("full", "partial", "absent") for v in sc["labels"].values()):
+    if set(cf) != {"frame", "why", "shared", "shared_status", "rule"} or cf["rule"] not in CHOICE_RULES or \
+            cf["shared_status"] not in ("full", "partial", "absent", None) or cf["shared"] != req(c, "shared_frame", w) or \
+            set(sc) != {"labels", "best"} or any(v not in ("full", "partial", "absent") for v in sc["labels"].values()):
         raise ValueError(f"{AT['where']}: {w} choice_frame {cf!r} scan {sc!r}")
     dropped = []
     for d in c.get("dropped") or []:
         if set(d) != {"box", "why", "outcome"}:
             raise ValueError(f"{AT['where']}: {w} dropped keys {sorted(d)}")
         dropped.append({"box": [round(float(x)) for x in d["box"]], "why": text(d["why"]), "outcome": text(d["outcome"])})
-    return {"frame": cf["frame"], "why": text(cf["why"]), "shared": req(c, "shared_frame", w),
+    rule, untracked = req(c, "rule", w), c.get("untracked")
+    if rule not in CHOOSE_RULES or (rule == "untracked") != (untracked is not None):
+        raise ValueError(f"{AT['where']}: {w} rule {rule!r} untracked {untracked!r}")
+    rejected = []
+    for r in req(c, "rejected", w):
+        if set(r) != REJECTED_CHOICE_KEYS:
+            raise ValueError(f"{AT['where']}: {w} rejected keys {sorted(r)}")
+        rejected.append({"frame": r["frame"], "box": [round(float(x)) for x in r["box"]] if r["box"] else None,
+                         "source": text(r["source"]), "why": text(r["why"])})
+    af = req(c, "accepted_frame", w)
+    if untracked is not None:
+        if af is not None or c["box"] is not None or c["source"] != "none":
+            raise ValueError(f"{AT['where']}: {w} untracked record names a box / start")
+        binding = binding_view(c["binding"], w) if "binding" in c else None    # a failed binding untracks it
+        if binding is not None and binding["pass"]:
+            raise ValueError(f"{AT['where']}: {w} untracked with a passing binding")
+    else:
+        if set(af) != {"frame", "why"} or af["frame"] != c["frame"]:
+            raise ValueError(f"{AT['where']}: {w} accepted_frame {af!r} vs record frame {c['frame']!r}")
+        binding = binding_view(req(c, "binding", w), w)
+        if binding["choice_frame"] != cf["frame"] or binding["accepted_frame"] != af["frame"]:
+            raise ValueError(f"{AT['where']}: {w} binding frames {binding} vs choice {cf['frame']} / start {af['frame']}")
+    return {"frame": cf["frame"], "why": text(cf["why"]), "rule": cf["rule"], "shared": cf["shared"],
+            "shared_status": cf["shared_status"],
             "scan": [[int(k), v] for k, v in sorted(sc["labels"].items(), key=lambda kv: int(kv[0]))], "best": sc["best"],
-            "dropped": dropped}
+            "dropped": dropped, "record_rule": rule, "source": text(c["source"]),
+            "start": {"frame": af["frame"], "why": text(af["why"])} if af else None,
+            "rejected": rejected, "binding": binding}
 
 
 def focal_view(state: dict):
@@ -2280,7 +2521,7 @@ def chain_view(name: str, o: dict) -> dict:
         return {"chain": phases, "impulse_span": None} | gate
     ws = f"{w} impulse_span"
     # rule record.one_shape (classref): the record always has "why" (null when applied) and is the motion law's own
-    extra = {"applied", "free_piece"} | ({"why"} if FMT.get("classref") else set())
+    extra = {"applied", "free_piece"} | ({"why"} if FMT.get("classref") else set()) | ({"kick_ramp"} if FMT.get("unobserved") else set())
     if req(sp, "name", ws) != "law.impulse_span" or set(sp) != set(IMPULSE_SPAN_KEYS) | extra:
         raise ValueError(f"{AT['where']}: {ws} name {sp.get('name')!r} keys {sorted(sp)}")
     ml = (req(o, "motion_law", f"scene object {name!r}") or {}).get("impulse_span")
@@ -2303,7 +2544,9 @@ def chain_view(name: str, o: dict) -> dict:
                              "first_frame": num(sp["first_frame"], 5), "t_stop": num(sp["t_stop"], 5),
                              "n_driven": int(sp["n_driven_frames"]), "speeds": [[num(t, 5), num(v, 4)] for t, v in sp["speeds"]],
                              "how": text(sp["how"]), "untestable": sp["untestable"], "applied": bool(sp["applied"]),
-                             "free_piece": bool(sp["free_piece"]), "why": text(sp.get("why")) or None}} | gate
+                             "free_piece": bool(sp["free_piece"]), "why": text(sp.get("why")) or None}
+                       | ({"kick_ramp": kick_ramp_view(sp["kick_ramp"], ws) if sp["kick_ramp"] is not None else None}
+                          if FMT.get("unobserved") else {})} | gate
 
 
 GATE_KEYS = ("name", "pass", "rms_chain", "rms_kinematic", "frames", "bound", "rms_chain_law", "frames_law",
@@ -2964,6 +3207,47 @@ def fit_object_facts(fo: dict, w: str) -> dict:
 BOX_SIDES = (["x1", "y1", "x2", "y2"], ["u", "v", "d"])   # box sides, or a pendulum's centre u, v and diameter d
 
 
+SWING_SERIES_KEYS = {"name", "noise", "troughs", "rejected", "period", "sigma", "n_periods", "basis", "why"}
+
+
+def swing_period_view(sw: dict, p: dict, w: str) -> dict:
+    """Rule B30 swing_period.agree: the period read from both series (d: the ball's diameter, u: its column) -- each
+    series' troughs above 3 sigma of its own noise, its period; both agree -> their inverse-variance mean (chosen),
+    else none (pendulum.period untestable)."""
+    w = f"{w} swing_period"
+    if set(sw) != {"series", "chosen", "agree", "gates", "start", "why"} or set(sw["agree"]) != {"pass", "z"} \
+            or sw["agree"]["pass"] not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {w} keys {sorted(sw)} agree {sw.get('agree')!r}")
+    series = []
+    for x in sw["series"]:
+        if set(x) != SWING_SERIES_KEYS or x["name"] not in ("d", "u") or x["basis"] not in ("noise", "quantization", None):
+            raise ValueError(f"{AT['where']}: {w} series {sorted(x)} name {x.get('name')!r} basis {x.get('basis')!r}")
+        tr = []
+        for t in x["troughs"]:
+            if set(t) != {"frame", "t", "depth", "sigma_t", "bottom"} or len(t["bottom"]) != 2:
+                raise ValueError(f"{AT['where']}: {w} trough {t!r}")
+            tr.append({"frame": int(t["frame"]), "t": num(t["t"], 4), "depth": num(t["depth"], 3), "sigma_t": num(t["sigma_t"], 3),
+                       "bottom": [int(b) for b in t["bottom"]]})
+        rj = []
+        for r in x["rejected"]:
+            if set(r) != {"frame", "depth", "why"}:
+                raise ValueError(f"{AT['where']}: {w} rejected trough {r!r}")
+            rj.append({"frame": int(r["frame"]), "depth": num(r["depth"], 3), "why": text(r["why"])})
+        series.append({"name": x["name"], "noise": num(x["noise"], 3), "troughs": tr, "rejected": rj, "period": num(x["period"], 4),
+                       "sigma": num(x["sigma"], 3), "n_periods": x["n_periods"], "basis": x["basis"], "why": text(x["why"])})
+    ch = sw["chosen"]
+    if ch is not None:
+        if set(ch) != {"period", "sigma", "n_periods", "from"} or num(ch["period"], 4) != num(p["period_s"], 4) \
+                or "+".join(ch["from"]) != p["period_from"]:
+            raise ValueError(f"{AT['where']}: {w} chosen {ch!r} vs period_s {p['period_s']!r} from {p['period_from']!r}")
+    elif p["period_s"] is not None or p["period_from"] is not None:
+        raise ValueError(f"{AT['where']}: {w} chosen null with period_s {p['period_s']!r} from {p['period_from']!r}")
+    return {"series": series, "chosen": None if ch is None else {"period": num(ch["period"], 4), "sigma": num(ch["sigma"], 3),
+                                                                 "n_periods": ch["n_periods"], "from": list(ch["from"])},
+            "agree": {"pass": sw["agree"]["pass"], "z": num(sw["agree"]["z"], 3)}, "gates": sw["gates"],
+            "start": num(sw["start"], 4), "why": text(sw["why"])}
+
+
 def pendulum_view(p: dict | None, what: str):
     """A pendulum object's record (rules scale.converged / pendulum.period): fitted L, the swing period and its sigma,
     and the focal length solved jointly with the swing under the stated size (f_free). None for a non-pendulum."""
@@ -2972,8 +3256,10 @@ def pendulum_view(p: dict | None, what: str):
     w = f"{what} pendulum"
     ff = req(p, "f_free", w)
     out = {"L": num(req(p, "L", w), 4), "period": num(req(p, "period_s", w), 4), "period_sigma": num(req(p, "period_sigma_s", w), 3),
-           "periods": req(p, "periods", w), "period_from": text(req(p, "period_from", w)), "f": num(req(p, "f", w), 4),
+           "periods": req(p, "periods", w), "period_from": text(req(p, "period_from", w)) or None, "f": num(req(p, "f", w), 4),
            "f_free": None}
+    if FMT.get("unobserved"):
+        out["swing"] = swing_period_view(req(p, "swing_period", w), p, w)
     if ff is not None:
         wf = f"{w} f_free"
         ab = req(ff, "at_bound", wf)
