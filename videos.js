@@ -376,6 +376,10 @@
       sg.releases.map((r) => `<tr><td>${esc(r.obj)}</td><td class="n">${r.t[0] === r.t[1] ? fmt(r.t[0], 3) : `${fmt(r.t[0], 3)}–${fmt(r.t[1], 3)}`}</td>` +
         `<td><code>${esc(r.rule.rule)}</code> lo ${esc(r.rule.lo)} · hi ${esc(r.rule.hi)}</td>` +
         `<td>${esc(r.why || '')}</td></tr>`).join('') + '</table></div>' : '';
+    const lau = sg.launches ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th class="n">Launch (s)</th><th>Rule</th><th></th></tr>' +
+      sg.launches.map((r) => `<tr><td>${esc(r.obj)}</td><td class="n">${fmt(r.t[0], 3)}–${fmt(r.t[1], 3)}</td>` +
+        `<td><code>state.launch</code> off ${esc(r.support)} · frames ${r.last_contact[0]} → ${r.first_no_contact[0]}${r.inserted ? ' · inserted' : ''}</td>` +
+        `<td>${esc(r.why)}${r.testable ? '' : `<div class="muted">untestable · ${esc(r.untestable_why)}</div>`}</td></tr>`).join('') + '</table></div>' : '';
     const unt = sg.untracked ? '<div class="scroll-x"><table class="sgrel"><tr><th>Untracked</th><th></th></tr>' +
       sg.untracked.map(([n, why]) => `<tr><td>${esc(n)}</td><td class="bad">${esc(why)}</td></tr>`).join('') + '</table></div>' : '';
     const rw = sg.rewritten ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th><th>Was</th><th>Rule</th></tr>' +
@@ -389,6 +393,7 @@
     const ts = listed.length ? `<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th>${hasSrc ? '<th>Source</th>' : ''}${hasEv ? '<th>Event</th>' : ''}<th>Test</th><th></th><th></th></tr>` +
       listed.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}</td>${hasSrc ? `<td>${esc(e.source || '')}</td>` : ''}${evCell(e)}` +
         (e.test ? `<td><code>${esc(e.test.name)}</code></td>${testCells(e.test)}` : '<td></td><td></td><td></td>') + '</tr>' +
+        (e.test && e.test.label ? e.test.label.map((x) => `<tr class="absorbed"><td></td><td></td>${hasSrc ? '<td></td>' : ''}${hasEv ? '<td></td>' : ''}<td><code>${esc(x.name)}</code></td>${testCells(x)}</tr>`).join('') : '') +
         (e.absorbed || []).map((x) => `<tr class="absorbed"><td></td><td>↳ ${edgeText(x)}</td>${hasSrc ? '<td></td>' : ''}${hasEv ? '<td></td>' : ''}<td><code>${esc(x.test.name)}</code></td>${testCells(x.test)}</tr>`).join('')).join('') +
       '</table></div>' : '';
     const cf = sg.conflicts ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th><code>scenegraph.overlap</code></th><th>Edges</th><th>Source</th><th></th></tr>' +
@@ -398,7 +403,7 @@
     const unk = sg.unknown ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Unknown span</th><th>Removed edge</th><th>Reason</th></tr>' +
       sg.unknown.map((u) => `<tr><td>${esc(u.obj)}</td><td class="bad">${span(u.t0, u.t1)}</td><td>${esc(u.rel)}${u.to ? ` ${esc(u.to)}` : ''}${u.event ? ` <code>${esc(u.event)}</code>` : ''} <code>${esc(u.test.name)}</code></td>` +
         `<td>${esc(u.reason)}</td></tr>`).join('') + '</table></div>' : '';
-    return tree || rel || unt || rw || ts || unk || cf ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${cf}${unk}${rel}${rw}${unt}` : '';
+    return tree || rel || lau || unt || rw || ts || unk || cf ? `<h4>Scene graph${sg.kept ? ` · round ${sg.kept}` : ''}</h4>${tree}${st}${ts}${cf}${unk}${rel}${lau}${rw}${unt}` : '';
   }
   // the geometric test of an agent state edit (rule graph_edit.retest): result and its reason
   function testCells(t) {
@@ -607,13 +612,14 @@
   }
 
   // ---------- reconstruction: the question's own scene value, the fitted objects ----------
-  // an object's dimensions in three columns by source (scene_fit dim_source): observed, prior, bound; a bound
-  // dimension is the interval its observations allow (dim_bounds), never a value
-  const DIM_SOURCES = ['observed', 'prior', 'bound'];
+  // an object's dimensions in columns by source (scene_fit dim_source): observed, prior, class, bound; a bound
+  // dimension is the interval its observations allow (dim_bounds), never a value; a class one is the class's
+  // proportion of the height (rule dims.agent_lateral), not observed
+  const DIM_SOURCES = ['observed', 'prior', 'class', 'bound'];
   const interval = (lo, hi) => `[${fmtNum(lo)}, ${hi == null ? '∞)' : fmtNum(hi) + ']'}`;
   function dimsBySource(o) {
     const keys = { sphere: ['D'], cylinder: ['D', 'H'], rope: ['L'] }[o.shape] || ['L', 'W', 'H'];
-    const out = { observed: [], prior: [], bound: [] };
+    const out = { observed: [], prior: [], class: [], bound: [] };
     keys.forEach((k) => {
       const src = o.dim_source[k], b = o.dim_bounds && o.dim_bounds[k];
       if (!(src in out)) throw new Error(`${o.name}: dim_source ${k} = ${src}`);
@@ -742,8 +748,8 @@
     }
     return h;
   }
-  // the scale object's contacts as depth equations (rule scale.contact); on a fail the plane's distance is rescaled by
-  // the contacts (rule scale.contact_refit) and the equations re-checked
+  // the scale object's contacts as depth equations (rule scale.contact), re-tested at the fused plane when the plane's
+  // distance was fused with them (rule plane.fusion)
   function scaleContactBlock(sc) {
     if (!sc) return '';
     const hasReach = sc.events.some((e) => e.reach);
@@ -753,17 +759,67 @@
     const table = (evs, p) => '<div class="scroll-x"><table class="sgrel contact"><tr>' +
       `<th><code>scale.contact</code> ${esc(sc.object)}</th><th class="n">t (s)</th><th>Other</th><th class="n">Z scale (m)</th><th class="n">Z other (m)</th>${hasReach ? '<th class="n">Reach σ (m)</th>' : ''}<th class="n">z</th><th>${res3(p)}</th></tr>` +
       evs.map((e) => `<tr class="${cls3(e.pass)}"><td title="${esc(e.source)}">${esc(e.kind)}</td><td class="n">${fmt(e.t, 3)}</td><td>${esc(e.other)}</td>` +
-        `<td class="n">${plusMinus(e.z_scale, e.s_scale)}</td><td class="n" title="${esc((e.n != null ? `${e.n} frames, nearest ${fmt(e.gap, 3)} s` : '') + (e.s_plane != null ? ` · plane σ ${fmtNum(e.s_plane)} m` : ''))}">${plusMinus(e.z_other, e.s_other)}</td>` +
+        `<td class="n">${plusMinus(e.z_scale, e.s_scale)}</td><td class="n" title="${esc((e.n != null ? `${e.n} frames, nearest ${fmt(e.gap, 3)} s` : '') + (e.s_plane != null ? ` · plane σ ${fmtNum(e.s_plane)} m` : '') + (e.s_line != null ? ` · line σ ${fmtNum(e.s_line)} m · orientation σ ${fmtNum(e.s_angles)} m · extrapolation ${fmt(100 * e.extrap, 1)} %` : ''))}">${plusMinus(e.z_other, e.s_other)}</td>` +
         `${reachCell(e)}<td class="n">${fmt(e.z, 1)}</td><td title="${esc(e.why)}">${res3(e.pass)}</td></tr>`).join('') + '</table></div>';
-    let h = table(sc.events, sc.pass);
-    const r = sc.refit;
-    if (r) {
-      h += `<p class="facts"><code>scale.contact_refit</code> k ${fmtNum(r.k)} <span class="muted">(σ log k ${fmtNum(r.sigma_log_k)})</span>` +
-        ` · camera height ${fmtNum(r.height[0])} → ${fmtNum(r.height[1])} ± ${fmtNum(r.dist_sigma)} m · <span class="muted">${esc(r.cross_check)}</span></p>` +
-        (r.rescaled ? `<p class="facts"><code>${esc(r.rescaled.rule)}</code> k ${fmtNum(r.rescaled.k)} · ${r.rescaled.n_dense} dense rows · ${r.rescaled.n_plane_anchors} plane anchors · ${r.rescaled.n_depth_contacts} ground contacts · ${r.rescaled.n_extents} extents</p>` : '') +
-        table(sc.after.events, sc.after.pass);
-    }
-    return h;
+    return table(sc.events, sc.pass) + (sc.after ? table(sc.after.events, sc.after.pass).replace('<code>scale.contact</code>', '<code>scale.contact</code> at the fused plane') : '');
+  }
+  // the camera height fused by inverse variance from the depth model's plane and every scale.contact depth equation
+  // (rule plane.fusion): one row per source, then the fused height and its largest pull against 3
+  function planeFusionTable(pf) {
+    if (!pf) return '';
+    const rows = pf.sources.map((x) => `<tr><td title="${esc(x.how)}"><code>${esc(x.source)}</code>${x.other ? ` ${esc(x.other)}` : ''}</td>` +
+      `<td class="n">${x.t ? x.t.map((t) => fmt(t, 3)).join(', ') : ''}</td><td class="n">${plusMinus(x.h, x.sigma)}</td><td></td></tr>`).join('');
+    const pull = pf.pass == null ? '' : `${fmt(pf.z, 2)} ${pf.pass ? '≤' : '>'} 3`;
+    return '<div class="scroll-x"><table class="sgrel contact pfuse"><tr><th><code>plane.fusion</code></th><th class="n">t (s)</th><th class="n">h (m)</th><th class="n">Pull</th></tr>' +
+      rows + `<tr class="fused ${cls3(pf.pass)}"><td title="${esc(pf.reason)}">fused${pf.k !== 1 ? ` · k ${fmtNum(pf.k)}` : ''}</td><td></td>` +
+      `<td class="n">${plusMinus(pf.h, pf.sigma)}</td><td class="n" title="${esc(pf.reason)}">${pull || res3(pf.pass)}</td></tr></table></div>` +
+      (pf.rescaled ? `<p class="facts"><code>${esc(pf.rescaled.rule)}</code> k ${fmtNum(pf.rescaled.k)} · ${pf.rescaled.n_dense} dense rows · ${pf.rescaled.n_plane_anchors} plane anchors · ${pf.rescaled.n_depth_contacts} ground contacts · ${pf.rescaled.n_extents} extents</p>` : '');
+  }
+  // the plane's distance sigma at each object's foot row: the row's depth beyond the support mask's depths and the
+  // pitch lever there (rule plane.fusion), the odd-plane share (rule depth_rows.odd)
+  function planeSigmaTable(ps) {
+    if (!ps || !ps.extrapolation.length) return '';
+    const odd = new Map(ps.odd);
+    return '<div class="scroll-x"><table class="sgrel contact"><tr><th>Extrapolation</th><th class="n">Row (px)</th><th class="n">Row depth (m)</th><th class="n">Mask depth (m)</th>' +
+      '<th class="n">Lever (m)</th><th class="n">Pitch σ</th><th class="n">σ rel</th><th class="n">Plane σ rel</th></tr>' +
+      ps.extrapolation.map((x) => `<tr><td title="${esc(x.how)}">${esc(x.obj)}</td><td class="n">${fmtNum(x.row)}</td>` +
+        `<td class="n${x.beyond ? ' bad' : ''}">${fmtNum(x.z_row)}</td><td class="n">${fmtNum(x.mask_depth[0])}–${fmtNum(x.mask_depth[1])}</td>` +
+        `<td class="n">${fmtNum(x.lever)}</td><td class="n">${fmt(x.phi, 2)}°</td><td class="n">${fmt(100 * x.rel, 1)} %</td>` +
+        `<td class="n">${fmt(100 * x.plane_rel, 1)} %${odd.has(x.obj) ? ` <span class="muted">odd ${fmt(100 * odd.get(x.obj), 1)} %</span>` : ''}</td></tr>`).join('') + '</table></div>';
+  }
+  // an articulated agent's dims: lateral ones from its class, never its box (rule dims.agent_lateral); its height
+  // observed only when the ray meets the support plane within the threshold angle (rule dims.agent_height)
+  function agentDimsTable(s) {
+    const os = s.objects.filter((o) => o.agent_lateral);
+    if (!os.length) return '';
+    return '<div class="scroll-x"><table class="objs fullext"><tr><th><code>dims.agent_lateral</code></th><th>Lateral</th><th class="n">Box width</th><th></th>' +
+      '<th><code>dims.agent_height</code></th><th class="n">Pitch</th><th>H</th><th></th></tr>' +
+      os.map((o) => {
+        const a = o.agent_lateral, b = o.agent_height;
+        return `<tr><td>${esc(o.name)}</td><td>${Object.entries(a.sources).map(([k, v]) => `<span class="dim">${k} ${esc(v)} ${fmtNum(o.dims[k])}</span>`).join('')}</td>` +
+          `<td class="n">${fmtNum(a.box_px)} px = ${fmtNum(a.box_m)} m${a.fits_box ? '' : ' <span class="bad">narrower than the body</span>'}</td>` +
+          `<td class="${cls3(a.pass)}" title="${esc(a.reason)}">${res3(a.pass)}</td>` +
+          `<td class="n">ray ${fmt(b.ray, 1)}° ${b.pass === false ? '>' : '≤'} ${fmt(b.threshold, 1)}°</td><td class="n">${fmt(b.pitch, 1)}°</td>` +
+          `<td>${esc(b.H_source)} ${fmtNum(o.dims.H)}</td><td class="${cls3(b.pass)}" title="${esc(b.reason)}">${res3(b.pass)}</td></tr>`;
+      }).join('') + '</table></div>';
+  }
+  // each physics chain's phases over the clip; a driven span (rule law.impulse_span) has no law, a straight segment
+  function chainTable(s, T) {
+    const os = s.objects.filter((o) => o.chain && o.chain.length);
+    if (!os.length) return '';
+    const W = 600, H = 34, B = 14;
+    const bar = (ph) => {
+      const end = Math.max(T || 0, ph[ph.length - 1][0] + 1e-3), X = (t) => W * Math.min(Math.max(t, 0), end) / end;
+      return `<svg class="chainbar" viewBox="0 0 ${W} ${H}" role="img" aria-label="physics chain">` + ph.map(([t, k, kick], i) => {
+        const x0 = X(t), x1 = i + 1 < ph.length ? X(ph[i + 1][0]) : W, w = Math.max(x1 - x0, 1.5);
+        return `<rect class="k-${k}" x="${x0}" y="0" width="${w}" height="${H - B}"><title>${k}${kick ? ' (kick)' : ''} ${fmt(t, 3)} s</title></rect>` +
+          (w > 8 * k.length ? `<text x="${x0 + w / 2}" y="${(H - B) / 2 + 4}" text-anchor="middle">${k}</text>` : '') +
+          (i ? `<text class="t" x="${x0}" y="${H - 2}" text-anchor="${k === 'driven' ? 'end' : 'start'}">${fmt(t, 3)}</text>` : '');
+      }).join('') + '</svg>';
+    };
+    return '<div class="scroll-x"><table class="objs chain"><tr><th>Physics chain</th><th>Phases</th></tr>' +
+      os.map((o) => `<tr><td>${esc(o.name)}</td><td>${bar(o.chain)}</td></tr>`).join('') +
+      '</table></div>';
   }
   // each object's silhouette depth against its support-plane depth before the fit (rule scale.contact_rescale): a
   // failing object's dense depth rows leave the fit
@@ -773,7 +829,10 @@
       '<th class="n">|Δ| (m)</th><th class="n">Rows</th><th></th></tr>' +
       rows.map((d, i) => `<tr class="${cls3(d.pass)}" id="${esc(depthRowId(qid, i))}"><td>${esc(d.obj)}</td><td class="n">${fmtNum(d.z_mask)}</td><td class="n">${fmtNum(d.z_plane)}</td>` +
         `<td class="n">${d.pass == null ? '' : `${fmtNum(Math.abs(d.z_mask - d.z_plane))} ${d.pass ? '≤' : '>'} ${fmtNum(d.bound)}`}</td>` +
-        `<td class="n">${d.dropped ? `${d.n_rows} dropped` : d.n_rows}</td><td title="${esc(d.reason)}">${res3(d.pass)}</td></tr>`).join('') + '</table></div>';
+        `<td class="n">${d.dropped ? `${d.n_rows} dropped` : d.n_rows}</td><td title="${esc(d.reason)}">${res3(d.pass)}${d.odd ? ` · <code>depth_rows.odd</code> ${esc(d.odd)}` : ''}</td></tr>` +
+        (d.ground ? `<tr class="${cls3(d.ground.pass)}"><td>↳ ground beside the feet</td><td class="n">${fmtNum(d.ground.z)}</td><td></td>` +
+          `<td class="n">${d.ground.pass == null ? '' : `${fmtNum(Math.abs(d.z_mask - d.ground.z))} ${d.ground.pass ? '≤' : '>'} ${fmtNum(d.ground.bound)}`}</td><td class="n">${d.ground.n}</td>` +
+          `<td title="${esc(d.ground.reason)}">${res3(d.ground.pass)}${d.sigma_added != null ? ` · plane σ +${fmt(100 * d.sigma_added, 1)} %` : ''}</td></tr>` : '')).join('') + '</table></div>';
   }
   const depthRowId = (qid, i) => `depth-rows-${qid}-${i}`;
   // each articulated agent's upright, unmerged extent (rule size.full_extent): frames used, frames excluded by kind,
@@ -781,14 +840,15 @@
   function fullExtentTable(s) {
     const os = s.objects.filter((o) => o['size.full_extent']);
     if (!os.length) return '';
+    const kinds = ['overlap', 'shrink', 'border', 'no_depth'].concat(os.some((o) => o['size.full_extent'].excluded.height) ? ['height'] : []);
     return '<div class="scroll-x"><table class="objs fullext"><tr><th><code>size.full_extent</code></th><th class="n">Used</th>' +
-      '<th>Overlap</th><th>Shrink</th><th>Border</th><th>No depth</th><th class="n">Extent (px)</th><th class="n">h z (px m)</th><th>Depth</th><th></th></tr>' +
-      os.map((o) => fullExtentRow(o.name, o['size.full_extent'])).join('') + '</table></div>';
+      `<th>Overlap</th><th>Shrink</th><th>Border</th><th>No depth</th>${kinds.length > 4 ? '<th>Height</th>' : ''}<th class="n">Extent (px)</th><th class="n">h z (px m)</th><th>Depth</th><th></th></tr>` +
+      os.map((o) => fullExtentRow(o.name, o['size.full_extent'], kinds)).join('') + '</table></div>';
   }
-  function fullExtentRow(name, e) {
+  function fullExtentRow(name, e, kinds) {
     const x = e.excluded;
     return `<tr class="${cls3(e.pass)}"><td>${esc(name)}</td><td class="n">${e.used.length}</td>` +
-      ['overlap', 'shrink', 'border', 'no_depth'].map((k) => `<td>${x[k].length ? frameRuns(x[k]) : ''}</td>`).join('') +
+      kinds.map((k) => `<td>${x[k] && x[k].length ? frameRuns(x[k]) : ''}</td>`).join('') +
       `<td class="n">${fmtNum(e.extent_px)} <span class="muted">/ ${fmtNum(e.extent_px_all)}</span></td>` +
       `<td class="n">${fmtNum(e.extent_norm)} <span class="muted">/ ${fmtNum(e.ref_norm)}</span></td><td>${esc(e.depth)}</td>` +
       `<td class="${cls3(e.pass)}" title="${esc(e.reason)}">${res3(e.pass)}</td></tr>`;
@@ -899,14 +959,14 @@
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
-        fullExtentTable(s) + fitObjectTable(s) + segfitTable(s) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) +
+        agentDimsTable(s) + fullExtentTable(s) + fitObjectTable(s) + segfitTable(s) + chainTable(s, v.duration) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) +
         (s.camera ? `<p class="facts"><span title="${esc(s.camera.how)}">f ${plusMinus(s.camera.f, s.camera.sigma)} px${s.camera.source ? ` (${esc(s.camera.source)}${wasText(s.camera.fused)})` : ''}</span>`
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
         (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
-          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) +
+          (s.scale.checks ? checksTable(s.scale.checks) : '') : '') + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
         gravityBlock(s.gravity) +
         focalVotes(s);
     }
@@ -953,7 +1013,10 @@
       os.map((o) => o.impulse.map((x, i) => `<tr><td>${i ? '' : esc(o.name)}</td><td class="n">${fmt(x.t, 3)}</td><td>${esc(x.event)}</td>` +
         `<td>${x.agent ? `${esc(x.agent)}${x.source ? ` <span class="muted">${esc(x.source)}</span>` : ''}` : '<span class="muted">none</span>'}</td>` +
         `<td class="n"${x.jump_how ? ` title="${esc(x.jump_how)}"` : ''}>${x.jump != null ? plusMinus(x.jump, x.sigma) : ''}</td>` +
-        `<td class="${cls(x.verdict)}">${esc(x.verdict)}</td><td>${esc(x.why)}</td></tr>`).join('')).join('') +
+        `<td class="${cls(x.verdict)}">${esc(x.verdict)}</td><td>${esc(x.why)}</td></tr>`).join('') +
+        (o.impulse_span ? `<tr class="absorbed"><td></td><td class="n">${fmt(o.impulse_span.onset, 3)}</td><td><code>law.impulse_span</code></td>` +
+          `<td colspan="2">driven ${o.impulse_span.ramp_end == null ? 'to the next phase' : `${fmt(o.impulse_span.onset, 3)}–${fmt(o.impulse_span.ramp_end, 3)} s`} · ${o.impulse_span.n_driven} driven frames · first frame ${fmt(o.impulse_span.first_frame, 3)} s</td>` +
+          `<td>${o.impulse_span.applied ? 'applied' : '<span class="muted">not applied</span>'}${o.impulse_span.free_piece ? ' · free piece' : ''}</td><td>${esc(o.impulse_span.how)}</td></tr>` : '')).join('') +
       '</table></div>';
   }
   // the measured slope of each inclined support and the rolling law it gives (rule support.incline), with the

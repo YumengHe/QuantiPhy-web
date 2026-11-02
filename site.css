@@ -247,3 +247,12 @@ svg.impchart line.onset { stroke: var(--muted); stroke-dasharray: 2 3; }
 svg.impchart line.ramp { stroke: var(--accent); stroke-width: 2; }
 svg.impchart polyline { fill: none; stroke: var(--text); stroke-width: 2; }
 svg.impchart circle { fill: var(--text); stroke: var(--panel); stroke-width: 2; }
+table.pfuse tr.fused td { border-top: 1.5px solid var(--text); font-weight: 600; }
+table.pfuse tr.fused.bad td { color: var(--m1t, #8a1c12); }
+svg.chainbar { display: block; width: 100%; max-width: 600px; height: auto; font: 11px var(--sans); }
+svg.chainbar rect { fill: var(--sh-soft); stroke: var(--panel); stroke-width: 1; }
+svg.chainbar rect.k-rest { fill: var(--code-bg); }
+svg.chainbar rect.k-flight { fill: var(--accent-soft); }
+svg.chainbar rect.k-driven { fill: var(--accent); }
+svg.chainbar text { fill: var(--text); }
+svg.chainbar text.t { fill: var(--muted); font-variant-numeric: tabular-nums; }

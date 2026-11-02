@@ -156,7 +156,7 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            confidence (rule decisions.no_conf)
 #   contact  the scene has "scale_contact" ({} without a prior scale; {name, object, pass, reason, events [{t, other,
 #            kind, source, Z_scale, sigma_scale, Z_other, sigma_other, n_frames, gap_s, z, pass, why}], refit?, after?},
-#            rule scale.contact / scale.contact_refit, the refit mirrored in camera.support_plane.contact_refit),
+#            rule scale.contact; with "launch" no refit, see there),
 #            "main_plane" ({} unless the plane is the main support's own, rule support.main; refit {was, now} by rule
 #            support.level_refit) and support_plane.tests.level {angle_deg, sigma_deg (inf allowed), sigma_parts_deg};
 #            every scene object has "fit_object" {name, pass, s2, dof, bound, chi2, n_fits, rows, reason} (rule
@@ -188,6 +188,27 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            pendulum's [u, v, d]), "box_noise_test" may be untestable {pass null, dof, why}, "state_mismatch" is
 #            never null; a direct "direct.depth_agree" copied from the scene's depth_rows has "see" "depth_rows" with
 #            n_rows / n_matched / dropped (rule fit.object.record); the scene has no "caches"."objects_mode"
+#   launch   an "on S" -> airborne boundary may carry "t_launch" [lo, hi] and "launch_rule" {rule "state.launch",
+#            support} on both edges, the airborne edge "launch_why" {why, last_contact [frame, t], first_no_contact
+#            [frame, t], n_off, n_frames, testable, untestable_why, bound_px, frames}, an inserted edge "event" "launch"
+#            (rule state.launch); a label-only edge test may be the failed check "state.grounded" / "held_by.agent_box"
+#            (in "absorbed" / "unknown") and a tested edge carries it under "values" (rule state.label_only); the scene
+#            camera has "plane_fusion" {name, pass, z, h, sigma, k, h_depth_model, sources [{source, h, sigma, how,
+#            other?, n_events?, t?}], rescaled?, reason} (null in a scene without one; mirrored in
+#            camera.support_plane.plane_fusion), "plane_sigma" {extrapolation {obj: {row, Z_row, mask_depth, lever_m,
+#            ratio, phi_frame_deg, rel, beyond, odd_rel, plane_rel, how}}, odd {obj: rel}} or null, a measurement's
+#            sigma_parts "plane.fusion" (rule plane.fusion; no "scale.contact_refit", no scale_contact "refit", no
+#            camera.support_plane.contact_refit; scale_contact "after" exactly when the fusion rescaled, every event
+#            "sigma_line" / "sigma_plane_angles" / "extrapolation"); a depth_rows record has "odd" (null unless it
+#            fails: "plane" keeps the rows, "silhouette" drops them) and, when the ground was sampled, "ground" {z_ground,
+#            n, pass, bound, reason} (rule depth_rows.odd); dim_source may be "class"; every scene object has
+#            "dims.agent_lateral" {name, pass, <dim>_source, box_w_px_median, box_w_m, fits_box, reason} and
+#            "dims.agent_height" {name, pass, pitch_deg, ray_angle_deg, threshold_deg, H_source, plane, reason}, both
+#            null unless the object is an articulated agent (rules dims.agent_lateral / dims.agent_height), and a
+#            size.full_extent may exclude every frame by "height"; a physics chain's phases may be "driven" (no law),
+#            with "impulse_span" {name, onset, verdict, ramp_end, first_frame, t_stop, n_driven_frames, speeds, how,
+#            untestable, applied, free_piece} (its motion law's copy without applied / free_piece) and the onset event
+#            of events_graph its "impulse_span" {onset, ramp_end, n_driven_frames, how} (rule law.impulse_span)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -201,7 +222,7 @@ VERSION_FORMAT = {
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
            "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
-           "span": True},
+           "span": True, "launch": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -357,6 +378,10 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
                     r["why"] = text(req(e, "release_why", w))
         if FMT.get("interval") and any(r["why"] is None for r in rel.values()):
             raise ValueError(f"{AT['where']}: a release interval without its airborne edge's release_why")
+        if FMT.get("launch"):
+            la = launch_view(g)
+            if la:
+                out["launches"] = la
         unt = req(g, "untracked", "scene graph cache")
         if rel:
             out["releases"] = list(rel.values())
@@ -400,11 +425,67 @@ EDGE_EVENTS = ("flight_end",)   # pipeline.scenegraph: an edge that is an event,
 
 
 def edge_event(e: dict, what: str) -> str:
-    """The event an edge of the graph stands for (rule scenegraph.flight_end): its "event" field, a known name."""
+    """The event an edge of the graph stands for (rule scenegraph.flight_end; with FMT "launch" also "launch", an
+    airborne edge inserted by rule state.launch, which then carries t_launch): its "event" field, a known name."""
     ev = text(e["event"])
+    if ev == "launch" and FMT.get("launch"):
+        if e.get("rel") != "airborne" or "t_launch" not in e:
+            raise ValueError(f"{AT['where']}: {what} event 'launch' on a {e.get('rel')!r} edge without t_launch")
+        return ev
     if ev not in EDGE_EVENTS:
         raise ValueError(f"{AT['where']}: {what} event {ev!r}")
     return ev
+
+
+def launch_view(g: dict) -> list[dict]:
+    """Every launch off a support's end (rule state.launch): the "on S" edge and the airborne edge after it share
+    t_launch [lo, hi] and launch_rule {rule "state.launch", support S}; the airborne edge's launch_why gives the last
+    contact and first no-contact frames (= [lo, hi]), the off-support frames and whether the flight is testable:
+    [{"obj", "t", "support", "why", "last_contact", "first_no_contact", "n_off", "n_frames", "testable",
+    "untestable_why", "bound_px", "inserted"}]."""
+    la = {}
+    for e in req(g, "edges", "scene graph cache"):
+        if "t_launch" not in e and "launch_rule" not in e and "launch_why" not in e:
+            continue
+        w = f"edge {e.get('from')!r} {e.get('rel')!r}"
+        t = [num(x, 4) for x in req(e, "t_launch", w)]
+        lr = req(e, "launch_rule", w)
+        if len(t) != 2 or None in t or t[0] > t[1] or not isinstance(lr, dict) or set(lr) != {"rule", "support"} \
+                or lr["rule"] != "state.launch":
+            raise ValueError(f"{AT['where']}: {w} t_launch {t} launch_rule {lr!r}")
+        rel = text(req(e, "rel", w))
+        if (rel == "on") != (text(e.get("to")) == text(lr["support"])) or rel not in ("on", "airborne") \
+                or (rel == "airborne") != ("launch_why" in e):
+            raise ValueError(f"{AT['where']}: {w} launch_rule support {lr['support']!r} on a {rel!r} edge "
+                             f"{'with' if 'launch_why' in e else 'without'} launch_why")
+        r = la.setdefault((text(e["from"]), tuple(t)), {"obj": text(e["from"]), "t": t, "support": text(lr["support"]),
+                                                       "edges": set(), "why": None})
+        if r["support"] != text(lr["support"]) or rel in r["edges"]:
+            raise ValueError(f"{AT['where']}: {w} launch {t} support {lr['support']!r} differs from its other edge's")
+        r["edges"].add(rel)
+        if rel == "airborne":
+            lw, ww = req(e, "launch_why", w), f"{w} launch_why"
+            lc, fn = req(lw, "last_contact", ww), req(lw, "first_no_contact", ww)
+            if [num(lc[1], 4), num(fn[1], 4)] != t:
+                raise ValueError(f"{AT['where']}: {ww} last_contact {lc} / first_no_contact {fn} differ from t_launch {t}")
+            tb = req(lw, "testable", ww)
+            if not isinstance(tb, bool) or (tb == bool(req(lw, "untestable_why", ww))):
+                raise ValueError(f"{AT['where']}: {ww} testable {tb!r} with untestable_why {lw.get('untestable_why')!r}")
+            for f in req(lw, "frames", ww):
+                if len(f) != 3 or not isinstance(f[2], bool):
+                    raise ValueError(f"{AT['where']}: {ww} frame {f!r}")
+            r |= {"why": text(req(lw, "why", ww)), "last_contact": [int(lc[0]), num(lc[1], 4)],
+                  "first_no_contact": [int(fn[0]), num(fn[1], 4)], "n_off": int(req(lw, "n_off", ww)),
+                  "n_frames": int(req(lw, "n_frames", ww)), "testable": tb,
+                  "untestable_why": text(lw["untestable_why"]) or None, "bound_px": num(req(lw, "bound_px", ww), 3),
+                  "inserted": e.get("event") == "launch"}
+    out = []
+    for r in la.values():
+        if r["why"] is None or (r["edges"] != {"on", "airborne"} and not r["inserted"]):
+            raise ValueError(f"{AT['where']}: launch of {r['obj']!r} at {r['t']} on edges {sorted(r['edges'])}")
+        del r["edges"]
+        out.append(r)
+    return out
 EDGE_SOURCES = ("agent", "per-frame", "grid")   # pipeline.scenegraph.EDGE_SOURCES
 
 
@@ -429,12 +510,34 @@ def span_edge(x: dict, what: str) -> dict:
             "t1": num(req(x, "t_end", what), 4), "test": test_view(req(x, "test", what), what)}
 
 
+LABEL_ONLY = ("state.grounded", "held_by.agent_box")   # rule state.label_only (pipeline.scenegraph)
+
+
 def test_view(t: dict, what: str) -> dict:
-    """The geometric test of an agent state edit (rule graph_edit.retest): {"name", "result", "why"}."""
+    """The geometric test of an agent state edit (rule graph_edit.retest): {"name", "result", "why"}; with FMT
+    "launch" a label-only check that did not fail is kept under the test's values (rule state.label_only): "label"
+    [{"name", "result", "why"}]; a failed one is the test itself, its old test under its values."""
     r = text(req(t, "result", f"{what} test"))
     if r not in TEST_RESULTS:
         raise ValueError(f"{AT['where']}: {what} test result {r!r}")
-    return {"name": text(req(t, "name", f"{what} test")), "result": r, "why": text(req(t, "why", f"{what} test"))}
+    out = {"name": text(req(t, "name", f"{what} test")), "result": r, "why": text(req(t, "why", f"{what} test"))}
+    if FMT.get("launch"):
+        vals = t.get("values") or {}
+        if out["name"] in LABEL_ONLY and r != "fail":
+            raise ValueError(f"{AT['where']}: {what} test {out['name']} result {r!r} is not the edge's test")
+        lab = []
+        for k in LABEL_ONLY:
+            if k not in vals:
+                continue
+            x, wx = vals[k], f"{what} test values {k}"
+            if req(x, "name", wx) != k or req(x, "result", wx) not in TEST_RESULTS or out["name"] in LABEL_ONLY:
+                raise ValueError(f"{AT['where']}: {wx} name {x.get('name')!r} result {x.get('result')!r}")
+            if x["result"] == "fail":
+                raise ValueError(f"{AT['where']}: {wx} failed but is not the edge's test")
+            lab.append({"name": k, "result": x["result"], "why": text(req(x, "why", wx))})
+        if lab:
+            out["label"] = lab
+    return out
 
 
 def track_intervals(key: str):
@@ -495,10 +598,16 @@ def full_extent_view(fe: dict | None, what: str):
     if ok not in (True, False, None):
         raise ValueError(f"{AT['where']}: {w} pass {ok!r}")
     ex = req(fe, "frames_excluded", w)
-    if set(ex) != {"overlap", "shrink", "border", "no_depth"}:
-        raise ValueError(f"{AT['where']}: {w} frames_excluded keys {sorted(ex)}")
+    keys = ("overlap", "shrink", "border", "no_depth")
+    # rule dims.agent_height: a height not observed excludes every frame by "height", untestable, no frame used
+    height = FMT.get("launch") and "height" in ex
+    if set(ex) != set(keys) | ({"height"} if height else set()) or \
+            (height and (ok is not None or req(fe, "frames_used", w) or not ex["height"])):
+        raise ValueError(f"{AT['where']}: {w} frames_excluded keys {sorted(ex)} with pass {ok!r}")
+    if height:
+        keys += ("height",)
     return {"pass": ok, "reason": text(req(fe, "reason", w)), "used": [int(x) for x in req(fe, "frames_used", w)],
-            "excluded": {k: [int(x) for x in ex[k]] for k in ("overlap", "shrink", "border", "no_depth")},
+            "excluded": {k: [int(x) for x in ex[k]] for k in keys},
             "extent_px": num(req(fe, "extent_px", w), 4), "extent_px_all": num(req(fe, "extent_px_all", w), 4),
             "extent_norm": num(req(fe, "extent_norm", w), 5), "ref_norm": num(req(fe, "ref_norm", w), 5),
             "depth": text(req(fe, "depth", w))}
@@ -703,7 +812,9 @@ def measurement_row(m: dict) -> dict:
         if k not in checks or checks[k]["pass"] is not False:
             raise ValueError(f"{AT['where']}: {what} lists {k!r} as failed, its checks do not")
     parts = req(m, "sigma_parts", what) or {}
-    terms = {k: num(v, 3) for k, v in parts.items() if k in ("track", "depth", "align", "focal", "gravity", "fit_se", "stated", "scale.contact_refit")}
+    if FMT.get("launch") and "scale.contact_refit" in parts:
+        raise ValueError(f"{AT['where']}: {what} sigma_parts has scale.contact_refit (rule plane.fusion replaced it)")
+    terms = {k: num(v, 3) for k, v in parts.items() if k in ("track", "depth", "align", "focal", "gravity", "fit_se", "stated", "plane.fusion")}
     lst = lambda v: [num(x, 3) for x in v] if isinstance(v, list) else ([num(v, 3)] if v is not None else None)
     dof = parts.get("dof")
     inputs = req(m, "inputs", what) or {}
@@ -1364,7 +1475,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                     | ({"segfit": segfit_view(name, o), "events_graph": events_view(name, o)} if FMT.get("selftest") else {})
                     | (impulse_view(name, o) if FMT.get("impulse") else {})
                     | ({"fit_object": fit_object_view(name, o)} if FMT.get("contact") else {})
-                    | ({"size.full_extent": full_extent_view(req(o, "size.full_extent", what), what)} if FMT.get("span") else {}))
+                    | ({"size.full_extent": full_extent_view(req(o, "size.full_extent", what), what)} if FMT.get("span") else {})
+                    | (agent_dims_view(name, o) | chain_view(name, o) if FMT.get("launch") else {}))
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
             "scale": scale_view(j), "gravity": gravity_view(j),
             "main_support": req(j, "main_support", "scene"),
@@ -1381,10 +1493,93 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"fusion": fusion_view(j)} if FMT.get("fusion") else {}) | \
         ({"incline": incline_view(j)} if FMT.get("impulse") else {}) | \
         ({"scale_contact": scale_contact_view(j), "main_plane": main_plane_view(j)} if FMT.get("contact") else {}) | \
-        ({"depth_rows": depth_rows_view(j)} if FMT.get("interval") else {})
+        ({"depth_rows": depth_rows_view(j)} if FMT.get("interval") else {}) | \
+        ({"plane_fusion": plane_fusion_view(j), "plane_sigma": plane_sigma_view(j)} if FMT.get("launch") else {})
 
 
 IMPULSE_VERDICTS = ("kick", "agent.unobserved", "chain ends", "no_law")   # or "rejected: <why>"
+DIM_SOURCES = ("observed", "prior", "bound", "class")   # pipeline.critic.DIM_SOURCES (rule dims.source_display)
+CHAIN_KINDS = ("rest", "bounded", "flight", "incline", "uniform", "driven")   # pipeline.fit3d.physics_states
+
+
+def agent_dims_view(name: str, o: dict) -> dict:
+    """An articulated agent's dimension checks: its lateral dims never observed from the box (rule dims.agent_lateral:
+    {"pass", "sources" {dim: source}, "box_px", "box_m", "fits_box", "reason"}) and its height observed only when the
+    ray meets the support plane at most at the threshold angle (rule dims.agent_height: {"pass", "pitch", "ray",
+    "threshold", "H_source", "reason"}); both None for any other object. Every dim_source is a known source."""
+    what = f"scene object {name!r}"
+    ds = req(o, "dim_source", what)
+    if any(v not in DIM_SOURCES for v in ds.values()):
+        raise ValueError(f"{AT['where']}: {what} dim_source {ds}")
+    la, ah = req(o, "dims.agent_lateral", what), req(o, "dims.agent_height", what)
+    if (la is None) != (ah is None):
+        raise ValueError(f"{AT['where']}: {what} has only one of dims.agent_lateral / dims.agent_height")
+    if la is None:
+        return {"agent_lateral": None, "agent_height": None}
+    w = f"{what} dims.agent_lateral"
+    if req(la, "name", w) != "dims.agent_lateral" or req(la, "pass", w) not in (True, None):
+        raise ValueError(f"{AT['where']}: {w} name {la.get('name')!r} pass {la.get('pass')!r}")
+    src = {k[:-len("_source")]: text(v) for k, v in la.items() if k.endswith("_source")}
+    if not src or any(ds.get(k) != v or v not in ("class", "bound", "prior") for k, v in src.items()):
+        raise ValueError(f"{AT['where']}: {w} sources {src} differ from dim_source {ds}")
+    wh = f"{what} dims.agent_height"
+    if req(ah, "name", wh) != "dims.agent_height" or req(ah, "pass", wh) not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {wh} name {ah.get('name')!r} pass {ah.get('pass')!r}")
+    hs = text(req(ah, "H_source", wh))
+    if hs not in DIM_SOURCES or (ah["pass"] is False and hs != ds.get("H")):
+        raise ValueError(f"{AT['where']}: {wh} H_source {hs!r} with pass {ah['pass']!r}, dim_source H {ds.get('H')!r}")
+    return {"agent_lateral": {"pass": la["pass"], "sources": src, "box_px": num(req(la, "box_w_px_median", w), 4),
+                              "box_m": num(req(la, "box_w_m", w), 4), "fits_box": req(la, "fits_box", w),
+                              "reason": text(req(la, "reason", w))},
+            "agent_height": {"pass": ah["pass"], "pitch": num(req(ah, "pitch_deg", wh), 3),
+                             "ray": num(req(ah, "ray_angle_deg", wh), 3), "threshold": num(req(ah, "threshold_deg", wh), 3),
+                             "H_source": hs, "reason": text(req(ah, "reason", wh))}}
+
+
+IMPULSE_SPAN_KEYS = ("name", "onset", "verdict", "ramp_end", "first_frame", "t_stop", "n_driven_frames", "speeds", "how",
+                     "untestable")
+
+
+def chain_view(name: str, o: dict) -> dict:
+    """The physics chain's phases [[t start, kind, kick]] (kind "driven": no law, rule law.impulse_span) and its driven
+    span record "impulse_span" {onset, verdict, ramp_end, first_frame, t_stop, n_driven, speeds, how, untestable,
+    applied, free_piece} (None without one; the motion law's copy and the onset event's must agree with it)."""
+    ph = req(o, "physics", f"scene object {name!r}")
+    if ph is None:
+        return {"chain": None, "impulse_span": None}
+    w = f"object {name!r} physics"
+    phases = []
+    for t, k, kick in req(ph, "phases", w):
+        if k not in CHAIN_KINDS or not isinstance(kick, bool):
+            raise ValueError(f"{AT['where']}: {w} phase {k!r} kick {kick!r}")
+        phases.append([num(t, 4), k, kick])
+    sp = ph.get("impulse_span")
+    driven = any(k == "driven" for _, k, _ in phases)
+    if sp is None:
+        if driven or "impulse_span" in ph:
+            raise ValueError(f"{AT['where']}: {w} has a driven phase without impulse_span")
+        return {"chain": phases, "impulse_span": None}
+    ws = f"{w} impulse_span"
+    if req(sp, "name", ws) != "law.impulse_span" or set(sp) != set(IMPULSE_SPAN_KEYS) | {"applied", "free_piece"}:
+        raise ValueError(f"{AT['where']}: {ws} name {sp.get('name')!r} keys {sorted(sp)}")
+    ml = (req(o, "motion_law", f"scene object {name!r}") or {}).get("impulse_span")
+    if ml is None or any(ml.get(k) != sp[k] for k in IMPULSE_SPAN_KEYS) or set(ml) - set(sp):
+        raise ValueError(f"{AT['where']}: {ws} differs from its motion law's")
+    if bool(sp["applied"]) != driven:
+        raise ValueError(f"{AT['where']}: {ws} applied {sp['applied']!r} with chain phases {[k for _, k, _ in phases]}")
+    ev = [e for e in req(ph, "events_graph", w) if "impulse_span" in e]
+    for e in ev:
+        x = e["impulse_span"]
+        if any(x.get(k) != sp[k] for k in ("onset", "ramp_end", "n_driven_frames", "how")):
+            raise ValueError(f"{AT['where']}: {w} events_graph {e.get('event')!r} impulse_span differs from impulse_span")
+    if sp["applied"] and len(ev) != 1:
+        raise ValueError(f"{AT['where']}: {w} an applied driven span on {len(ev)} onset events")
+    return {"chain": phases,
+            "impulse_span": {"onset": num(sp["onset"], 5), "verdict": text(sp["verdict"]), "ramp_end": num(sp["ramp_end"], 5),
+                             "first_frame": num(sp["first_frame"], 5), "t_stop": num(sp["t_stop"], 5),
+                             "n_driven": int(sp["n_driven_frames"]), "speeds": [[num(t, 5), num(v, 4)] for t, v in sp["speeds"]],
+                             "how": text(sp["how"]), "untestable": sp["untestable"], "applied": bool(sp["applied"]),
+                             "free_piece": bool(sp["free_piece"])}}
 
 
 def impulse_view(name: str, o: dict) -> dict:
@@ -1633,7 +1828,10 @@ def contact_event_view(e: dict, what: str) -> dict:
             "s_scale": num(req(e, "sigma_scale", what), 3), "z_other": num(req(e, "Z_other", what), 4),
             "s_other": num(req(e, "sigma_other", what), 3), "n": e.get("n_frames"), "gap": num(e.get("gap_s"), 3),
             "z": num(req(e, "z", what), 3), "pass": ok, "why": text(req(e, "why", what))} \
-        | (reach_view(e, what) if FMT.get("interval") else {})
+        | (reach_view(e, what) if FMT.get("interval") else {}) \
+        | ({"s_line": num(req(e, "sigma_line", what), 3), "s_angles": num(req(e, "sigma_plane_angles", what), 3),
+            "extrap": num(req(req(e, "extrapolation", what), "rel", f"{what} extrapolation"), 3)}
+           if FMT.get("launch") else {})
 
 
 REACH_POINTS = ("support", "hand")
@@ -1655,39 +1853,103 @@ def reach_view(e: dict, what: str) -> dict:
 
 def scale_contact_view(state: dict):
     """The scale object's contacts as depth equations (rule scale.contact): every event, pass (None: untestable) and
-    reason; on a fail the plane's distance rescaled by the contacts (rule scale.contact_refit) with the camera height
-    was -> now and the re-check after it. None when the scene has no prior scale (an empty record)."""
+    reason; with FMT "launch" (rule plane.fusion) nothing is refitted on its verdict: "after" is the record re-tested
+    at the fused plane, present exactly when the fusion rescaled the depths. None when the scene has no prior scale
+    (an empty record)."""
     sc = req(state, "scale_contact", "scene")
     if not sc:
         return None
     w = "scale_contact"
     if req(sc, "name", w) != "scale.contact":
         raise ValueError(f"{AT['where']}: {w} name {sc['name']!r}")
+    sp = (req(state, "camera", "scene") or {}).get("support_plane") or {}
+    if "refit" in sc or "contact_refit" in sp:
+        raise ValueError(f"{AT['where']}: {w} refit / camera.support_plane.contact_refit (rule plane.fusion removed them)")
     ok = req(sc, "pass", w)
     out = {"object": text(req(sc, "object", w)), "pass": ok, "reason": text(req(sc, "reason", w)),
-           "events": [contact_event_view(e, f"{w} event") for e in req(sc, "events", w)], "refit": None, "after": None}
-    rf = sc.get("refit")
-    cr = ((req(state, "camera", "scene") or {}).get("support_plane") or {}).get("contact_refit")
-    if rf is None:
-        if cr is not None:
-            raise ValueError(f"{AT['where']}: camera.support_plane.contact_refit without a {w} refit")
-        return out
-    wr = f"{w} refit"
-    if ok is not False or text(req(rf, "rule", wr)) != "scale.contact_refit":
-        raise ValueError(f"{AT['where']}: {wr} rule {rf.get('rule')!r} with pass {ok!r}")
-    if cr is None or num(cr.get("k"), 6) != num(req(rf, "k", wr), 6):
-        raise ValueError(f"{AT['where']}: {wr} k differs from camera.support_plane.contact_refit")
-    out["refit"] = {"k": num(rf["k"], 4), "sigma_log_k": num(req(rf, "sigma_log_k", wr), 3),
-                    "height": [num(req(rf, "camera_height_was", wr), 4), num(req(rf, "camera_height", wr), 4)],
-                    "dist_sigma": num(req(rf, "dist_sigma", wr), 3), "cross_check": text(req(rf, "depth_model_plane", wr))}
-    if FMT.get("interval"):
-        rs, wrs = req(rf, "rescaled", wr), f"{wr} rescaled"
-        out["refit"]["rescaled"] = {"rule": text(req(rs, "rule", wrs)), "k": num(req(rs, "k", wrs), 4)} | \
-            {k: int(req(rs, k, wrs)) for k in ("n_dense", "n_plane_anchors", "n_depth_contacts", "n_extents")}
-    af = req(sc, "after", w)
-    out["after"] = {"pass": req(af, "pass", f"{w} after"), "reason": text(req(af, "reason", f"{w} after")),
-                    "events": [contact_event_view(e, f"{w} after event") for e in req(af, "events", f"{w} after")]}
+           "events": [contact_event_view(e, f"{w} event") for e in req(sc, "events", w)], "after": None}
+    pf = req(state, "camera", "scene").get("plane_fusion")    # absent in a depth-stated scene (plane_fusion_view)
+    rescaled = pf is not None and pf.get("rescaled") is not None
+    if ("after" in sc) != rescaled:
+        raise ValueError(f"{AT['where']}: {w} after {'present' if 'after' in sc else 'absent'} with the fusion "
+                         f"{'rescaled' if rescaled else 'not rescaled'}")
+    if rescaled:
+        af = sc["after"]
+        out["after"] = {"pass": req(af, "pass", f"{w} after"), "reason": text(req(af, "reason", f"{w} after")),
+                        "events": [contact_event_view(e, f"{w} after event") for e in req(af, "events", f"{w} after")]}
     return out
+
+
+PLANE_SOURCES = ("depth_model.plane", "scale.contact")   # pipeline.scene_fit.plane_fusion
+
+
+def plane_fusion_view(state: dict):
+    """The camera height fused by inverse variance from the depth model's plane and every scale.contact depth
+    equation (rule plane.fusion): {"pass" (None: one source), "z" (the largest pull, vs 3), "h", "sigma", "k",
+    "h_dm", "sources" [{source, other, h, sigma, n_events, t, how}], "rescaled" {rule, k, n_dense, n_plane_anchors,
+    n_depth_contacts, n_extents} | None, "reason"}; None in a scene without one."""
+    cam = req(state, "camera", "scene")
+    # a depth-stated scene's camera has neither a support_plane nor a plane_fusion record; any other has both (null:
+    # no support plane)
+    if ("plane_fusion" in cam) != ("support_plane" in cam):
+        raise ValueError(f"{AT['where']}: scene camera has {'only plane_fusion' if 'plane_fusion' in cam else 'no plane_fusion'}")
+    pf, sp = cam.get("plane_fusion"), cam.get("support_plane")
+    if pf is None:
+        if sp and sp.get("plane_fusion") is not None:
+            raise ValueError(f"{AT['where']}: camera.support_plane.plane_fusion without camera.plane_fusion")
+        return None
+    w = "camera.plane_fusion"
+    if req(pf, "name", w) != "plane.fusion" or not sp or req(sp, "plane_fusion", "camera.support_plane") != pf:
+        raise ValueError(f"{AT['where']}: {w} name {pf.get('name')!r} / not mirrored in camera.support_plane")
+    ok = req(pf, "pass", w)
+    src = []
+    for x in req(pf, "sources", w):
+        ws = f"{w} source"
+        k = req(x, "source", ws)
+        if k not in PLANE_SOURCES:
+            raise ValueError(f"{AT['where']}: {ws} {k!r}")
+        row = {"source": k, "h": num(req(x, "h", ws), 4), "sigma": num(req(x, "sigma", ws), 3), "how": text(req(x, "how", ws))}
+        if k == "scale.contact":
+            row |= {"other": text(req(x, "other", ws)), "n_events": int(req(x, "n_events", ws)),
+                    "t": [num(t, 4) for t in req(x, "t", ws)]}
+        src.append(row)
+    n = len(src)
+    if not n or src[0]["source"] != "depth_model.plane" or ok not in (True, False, None) or (ok is None) != (n == 1) \
+            or (req(pf, "z", w) is None) != (n == 1) or ("rescaled" in pf) != (n >= 2):
+        raise ValueError(f"{AT['where']}: {w} pass {ok!r} z {pf.get('z')!r} rescaled {'rescaled' in pf} over {n} source(s)")
+    rs = None
+    if n >= 2:
+        r, wr = pf["rescaled"], f"{w} rescaled"
+        rs = {"rule": text(req(r, "rule", wr)), "k": num(req(r, "k", wr), 4)} | \
+            {k: int(req(r, k, wr)) for k in ("n_dense", "n_plane_anchors", "n_depth_contacts", "n_extents")}
+    return {"pass": ok, "z": num(pf["z"], 4), "h": num(req(pf, "h", w), 4), "sigma": num(req(pf, "sigma", w), 3),
+            "k": num(req(pf, "k", w), 4), "h_dm": num(req(pf, "h_depth_model", w), 4), "sources": src, "rescaled": rs,
+            "reason": text(req(pf, "reason", w))}
+
+
+def plane_sigma_view(state: dict):
+    """The plane's distance sigma at each object's foot row (rule plane.fusion): the row's depth beyond the support
+    mask's depth range and the pitch lever there, and the odd-plane share (rule depth_rows.odd): {"extrapolation":
+    [{obj, row, z_row, mask_depth [p05, p95], lever, ratio, phi, rel, beyond, odd_rel, plane_rel, how}], "odd":
+    [[obj, rel]]} | None (none recorded)."""
+    ps = req(state, "plane_sigma", "scene")
+    if ps is None:
+        return None
+    if set(ps) != {"extrapolation", "odd"}:
+        raise ValueError(f"{AT['where']}: plane_sigma keys {sorted(ps)}")
+    ex = []
+    for name, x in ps["extrapolation"].items():
+        w = f"plane_sigma extrapolation {name!r}"
+        md, beyond = req(x, "mask_depth", w), req(x, "beyond", w)
+        if len(md) != 2 or not isinstance(beyond, bool):
+            raise ValueError(f"{AT['where']}: {w} mask_depth {md!r} beyond {beyond!r}")
+        ex.append({"obj": text(name), "row": num(req(x, "row", w), 4), "z_row": num(req(x, "Z_row", w), 4),
+                   "mask_depth": [num(md[0], 4), num(md[1], 4)], "lever": num(req(x, "lever_m", w), 3),
+                   "ratio": num(req(x, "ratio", w), 3), "phi": num(req(x, "phi_frame_deg", w), 3),
+                   "rel": num(req(x, "rel", w), 3), "beyond": beyond, "odd_rel": num(req(x, "odd_rel", w), 3),
+                   "plane_rel": num(req(x, "plane_rel", w), 3), "how": text(req(x, "how", w))})
+    odd = [[text(k), num(v, 3)] for k, v in ps["odd"].items()]
+    return {"extrapolation": ex, "odd": odd} if ex or odd else None
 
 
 def depth_rows_view(state: dict):
@@ -1700,11 +1962,20 @@ def depth_rows_view(state: dict):
         if req(d, "name", w) != "direct.depth_agree":
             raise ValueError(f"{AT['where']}: {w} name {d['name']!r}")
         ok, dropped = req(d, "pass", w), req(d, "dropped", w)
-        if ok not in (True, False, None) or dropped is not (ok is False):
-            raise ValueError(f"{AT['where']}: {w} pass {ok!r} with dropped {dropped!r}")
+        odd = req(d, "odd", w) if FMT.get("launch") else None
+        # rule depth_rows.odd: a failed test names the odd source; "plane" keeps the rows, "silhouette" drops them
+        if ok not in (True, False, None) or (odd is None) != (ok is not False) or odd not in (None, "plane", "silhouette") \
+                or dropped is not (ok is False and odd != "plane"):
+            raise ValueError(f"{AT['where']}: {w} pass {ok!r} odd {odd!r} with dropped {dropped!r}")
+        gr = None
+        if FMT.get("launch") and "ground" in d:
+            g, wg = d["ground"], f"{w} ground"
+            gr = {"z": num(req(g, "z_ground", wg), 4), "n": int(req(g, "n", wg)), "pass": req(g, "pass", wg),
+                  "bound": num(req(g, "bound", wg), 3), "reason": text(req(g, "reason", wg))}
         out.append({"obj": text(name), "pass": ok, "z_mask": num(req(d, "z_mask", w), 4), "z_plane": num(req(d, "z_plane", w), 4),
                     "bound": num(req(d, "bound", w), 3), "n_rows": int(req(d, "n_rows", w)),
-                    "n_matched": int(req(d, "n_matched", w)), "dropped": dropped, "reason": text(req(d, "reason", w))})
+                    "n_matched": int(req(d, "n_matched", w)), "dropped": dropped, "reason": text(req(d, "reason", w))}
+                   | ({"odd": odd, "ground": gr, "sigma_added": num(d.get("plane_sigma_added"), 3)} if FMT.get("launch") else {}))
     return out or None
 
 
