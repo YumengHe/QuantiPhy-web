@@ -849,6 +849,18 @@
         x.softened.map((r) => `<tr><td>${esc(r.object)}</td><td>${span(r.t0, r.t1)}</td><td>${esc(r.rel)}${r.to ? ` ${esc(r.to)}` : ''}</td><td title="${esc(r.events)}">${esc(r.was)} → ${esc(r.now)}</td></tr>`).join('') +
         '</table></div>' : '');
   }
+  // rule C23b gravity.up_not_from_soft_plane: the scene's up -- the support plane's normal unless the plane is soft,
+  // else roll and pitch each from the first source that observes it; the sources passed over are listed
+  function upBlock(u) {
+    if (!u) return '';
+    const v = `(${u.up.map((c) => fmt(c, 3)).join(', ')})`;
+    const same = u.roll.source === u.pitch.source;
+    const ang = (k, a) => `${k} ${fmt(a.deg, 2)}°${same ? '' : ` ${esc(a.source)}`}`;
+    return `<p class="facts" title="${esc(u.why)}"><code>gravity.up</code> ${v} · ${ang('roll', u.roll)} · ${ang('pitch', u.pitch)}` +
+      `${same ? ` · ${esc(u.roll.source)}` : ''}</p>` +
+      (u.skipped.length ? '<div class="scroll-x"><table class="sgrel"><tr><th>Passed over</th><th></th></tr>' +
+        u.skipped.map((r) => `<tr><td>${esc(r.source)}</td><td class="muted">${esc(r.why)}</td></tr>`).join('') + '</table></div>' : '');
+  }
   function supportPlaneTable(sp) {
     if (!sp) return '';
     if (!sp.tests.length) return `<p class="facts"><code>support.plane</code> <span class="muted">${esc(sp.reason)}</span></p>`;
@@ -1240,11 +1252,11 @@
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + undeterminedTable(s.camera && s.camera.undetermined) + refitTable(s.camera && s.camera.refit) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + softTable(s.soft) + floorTable(q.floor) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + undeterminedTable(s.camera && s.camera.undetermined) + refitTable(s.camera && s.camera.refit) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + softTable(s.soft) + upBlock(s.up) + floorTable(q.floor) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') + priorMotionBlock(s.scale.prior_motion, v.duration) + scaleFullExtentTable(s.scale.full_extent) : '') +
         classObjectBlock(s.class_object) + classReferenceBlock(q.inventory, s.class_reference, q.scale_source) + referencesTable(s.references) + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
-        gravityBlock(s.gravity) +
+        gravityBlock(s.gravity, !s.up) +
         focalVotes(s);
     }
     if (q.measurement || q.provenance || q.quality) {
@@ -1371,7 +1383,7 @@
       `${r.frame != null ? ` · frame ${r.frame}` : ''}${r.method ? ` · ${esc(r.method)}` : ''}</p>` + checksTable(r.checks)).join('');
   }
   // the scene's gravity (rule B2): g and its source, every ballistic piece / physics probe it was judged on, its checks
-  function gravityBlock(g) {
+  function gravityBlock(g, withUp) {
     if (!g) return '';
     const ev = g.evidence.map((e) => e.kind === 'ballistic_piece'
       ? `<tr class="${e.use ? '' : 'inadm'}"><td>${esc(e.obj)}</td><td>${span(e.t[0], e.t[1])}</td><td class="n">${e.n}</td>` +
@@ -1383,7 +1395,7 @@
       : `<tr><td>${esc(e.obj)}</td><td>physics probe</td><td class="n"></td><td class="n">${fmtNum(e.g)}</td><td>ρ ${fmtNum(e.rho)}</td><td></td>` +
         `<td class="${e.agree ? 'ok' : 'bad'}">${e.agree ? 'agrees with Earth' : 'disagrees with Earth'}</td></tr>`).join('');
     const et = g.earth_test ? `<tr class="et"><td><code>earth_test</code></td><td>${g.earth_test.pass ? 'pass' : 'fail'}</td><td>${esc(g.earth_test.reason)}</td></tr>` : '';
-    return `<p class="facts">g = ${plusMinus(g.g, g.sigma)} m/s² · ${esc(g.source)} · ${esc(g.rule)} · up: ${esc(g.up_source)}</p>` +
+    return `<p class="facts">g = ${plusMinus(g.g, g.sigma)} m/s² · ${esc(g.source)} · ${esc(g.rule)}${withUp && g.up_source ? ` · up: ${esc(g.up_source)}` : ''}</p>` +
       (ev ? '<div class="scroll-x"><table class="gev"><tr><th>Object</th><th>Piece</th><th class="n">n</th><th class="n">g (m/s²)</th><th>Law residual</th><th>Admissible</th><th></th></tr>' + ev + '</table></div>' : '') +
       checksTable(g.checks, et);
   }

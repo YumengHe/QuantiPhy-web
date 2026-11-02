@@ -255,6 +255,9 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            "focal.refit_fixed_point" (C22; class skip reason focal.undetermined); a result has "answer.span" (B31); a
 #            hanging object's law is pendulum / held_static with "pendulum.oscillates" (A15); a rejected physics record
 #            may hold only the plan; a round has "visibility.support_plane" (D32); forward.near is the fit's own depth
+#   up      (batch 28) the scene has "gravity.up" {name, up, up_source, roll {deg, source}, pitch {deg, source},
+#            skipped [{source, why}], why} (C23b gravity.up_not_from_soft_plane): a soft support plane never supplies
+#            the up; gravity.up_source carries the same string, also on a scene without a metric scale
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -269,7 +272,7 @@ VERSION_FORMAT = {
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
            "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
            "span": True, "launch": True, "classref": True, "sizeonly": True,
-           "undetermined": True, "contained": True, "unobserved": True, "rendered": True},
+           "undetermined": True, "contained": True, "unobserved": True, "rendered": True, "up": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -1951,11 +1954,63 @@ def up_source(state: dict, g: dict):
     {g, source, sigma null, rule, evidence [], checks {}, failed []}."""
     cam = req(state, "camera", "scene")
     if FMT.get("sizeonly") and cam.get("scale.source") == "none":
-        if cam.get("metric") is not False or set(g) != {"g", "source", "sigma", "rule", "evidence", "checks", "failed"} \
+        keys = {"g", "source", "sigma", "rule", "evidence", "checks", "failed"} | ({"up", "up_source"} if FMT.get("up") else set())
+        if cam.get("metric") is not False or set(g) != keys \
                 or g["sigma"] is not None or g["evidence"] or g["checks"] or g["failed"]:
             raise ValueError(f"{AT['where']}: gravity {sorted(g)} in a scene without a metric scale")
-        return None
+        if not FMT.get("up"):
+            return None
     return text(req(g, "up_source", "gravity"))
+
+
+UP_PLANE = "support plane normal"
+UP_CAMERA = ("camera -y (no support plane)", "camera -y (soft support plane)")
+UP_PRIOR = "the camera prior (level)"
+
+
+def gravity_up_view(state: dict) -> dict:
+    """Rule C23b gravity.up_not_from_soft_plane: the scene's up -- the support plane's normal when the plane is not
+    soft, else roll and pitch each from the first source that observes it (image verticals, ground-line horizon,
+    visible horizon, another determined plane, the camera prior). {up, up_source, roll {deg, source}, pitch {deg,
+    source}, skipped [{source, why}], why}; up_source agrees with the angles' sources and with gravity.up_source."""
+    w = "gravity.up"
+    x = req(state, w, "scene")
+    if set(x) != {"name", "up", "up_source", "roll", "pitch", "skipped", "why"} or x["name"] != w:
+        raise ValueError(f"{AT['where']}: scene {w} keys {sorted(x)}")
+    ang = {}
+    for k in ("roll", "pitch"):
+        a = x[k]
+        if not isinstance(a, dict) or set(a) != {"deg", "source"}:
+            raise ValueError(f"{AT['where']}: scene {w} {k} {a!r}")
+        ang[k] = {"deg": num(a["deg"], 4), "source": text(a["source"])}
+    src, rs, ps = text(x["up_source"]), ang["roll"]["source"], ang["pitch"]["source"]
+    if src == UP_PLANE:
+        ok = rs == ps == UP_PLANE
+    elif src in UP_CAMERA:
+        ok = rs == ps == UP_PRIOR
+    elif rs == ps:
+        ok = src == rs and rs not in (UP_PLANE, UP_PRIOR)
+    else:
+        ok = src == f"roll: {rs}; pitch: {ps}"
+    if not ok:
+        raise ValueError(f"{AT['where']}: scene {w} up_source {src!r} with roll {rs!r}, pitch {ps!r}")
+    up = x["up"]
+    if not isinstance(up, list) or len(up) != 3 or abs(sum(c * c for c in up) - 1.0) > 1e-6:
+        raise ValueError(f"{AT['where']}: scene {w} up {up!r}")
+    g = req(state, "gravity", "scene")
+    gu = g.get("up")
+    if g.get("up_source") != src or gu is None or len(gu) != 3 or max(abs(a - b) for a, b in zip(gu, up)) > 1e-4:
+        raise ValueError(f"{AT['where']}: gravity up {gu!r} / {g.get('up_source')!r} differs from scene {w}")
+    skipped = []
+    for r in x["skipped"]:
+        if not isinstance(r, dict) or set(r) != {"source", "why"}:
+            raise ValueError(f"{AT['where']}: scene {w} skipped {r!r}")
+        skipped.append({"source": text(r["source"]), "why": text(r["why"])})
+    if (src == UP_CAMERA[1] or src not in (UP_PLANE, *UP_CAMERA)) and not skipped and \
+            req(state, "support.undetermined_soft", "scene")["pass"] is False:
+        raise ValueError(f"{AT['where']}: scene {w} on a soft plane names no skipped source")
+    return {"up": [num(c, 4) for c in up], "up_source": src, "roll": ang["roll"], "pitch": ang["pitch"],
+            "skipped": skipped, "why": text(x["why"])}
 
 
 def gravity_view(state: dict):
@@ -2397,7 +2452,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"references": references_view(j)} if FMT.get("sizeonly") else {}) | \
         ({"class_object": class_object_view(j), "contained": contained_view(j)} if FMT.get("contained") else {}) | \
         ({"soft": soft_view(j), "no_new_law": [no_new_law_view(x) for x in req(j, "unobserved.no_new_law", "scene")] or None}
-         if FMT.get("rendered") else {})
+         if FMT.get("rendered") else {}) | \
+        ({"up": gravity_up_view(j)} if FMT.get("up") else {})
 
 
 SOFT_SOURCES = {"support_mask": set(), "main_support": {"n_mask_points", "n_contacts"},
