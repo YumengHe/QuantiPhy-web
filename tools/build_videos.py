@@ -225,6 +225,21 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            frames_law, rms_kinematic_all, frames_kinematic_all, reason} (rule physics.gate_frames), a result's
 #            window_impulse "measurement" "direct" (rule window_impulse.measurement) and a prior scale's "full_extent"
 #            {agent: {variant, depth, pass, frames_used, frames_excluded}} (rule size.full_extent_nominal)
+#   sizeonly a reference object is a size read: the scene's "references" and the answer record's plausible "excluded"
+#            (rule C15c reference.size_only); a partial record names its planning_failed round
+#   undetermined (batch 24) the camera has "focal.undetermined" (null, or {name, pass, reason, stage_a_f, stage_a_sigma,
+#            stage_a_how, kept false, f, sigma, sources_used, fusion_pass, sources [{object, kind, f, sigma, verdict,
+#            why}], depth_model {f, sigma, how, per_frame}, repair {class_skipped [{name, class, reason, why}],
+#            depth_model}, refit_fusion {pass, f, sigma, reason}}; a passing record sets the scene's "f_source"
+#            "focal.fusion", rule C17) and "prior.untracked" (reason | null; every result of the unit then fails the check
+#            "prior.untracked" with that reason and the agent offers track_reselect on the prior's object, rule D24);
+#            plausible "excluded" has exactly "reference.size_only" / "structure.static" / "buoyant", with an optional
+#            "excluded_why" (rules D25 critic.structure_static / critic.buoyant); a direct measurement with a value has
+#            "plausible_bounds" {lo, hi, prior_m, pass} (rule D25b); the ground record outputs/ground_<tag>/<unit>.json
+#            has "version" 4 with "floor_frames" [{frame, coverage_raw, coverage_minus_objects, objects_covered, kept,
+#            reason}] and each "floor" entry coverage_raw / coverage_minus_objects (rule C19 support.full_frame); a
+#            direct-only scene (pipeline.state.direct_only: stage A failed, objects {}, no camera) is read as an
+#            unresolved question whose results fail "fit" (rule D24 scene.direct_only)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -238,7 +253,8 @@ VERSION_FORMAT = {
            "steps": STEPS_V5, "identity": True, "gravity": True, "release": True, "refmeasure": True, "kept": True,
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
            "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
-           "span": True, "launch": True, "classref": True, "sizeonly": True},
+           "span": True, "launch": True, "classref": True, "sizeonly": True,
+           "undetermined": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -512,6 +528,8 @@ def launch_view(g: dict) -> list[dict]:
         if r["support"] != text(lr["support"]) or rel in r["edges"]:
             raise ValueError(f"{AT['where']}: {w} launch {t} support {lr['support']!r} differs from its other edge's")
         r["edges"].add(rel)
+        if rel == "on":
+            r["on_end"] = num(req(e, "t_end", w), 4)
         if rel == "airborne":
             lw, ww = req(e, "launch_why", w), f"{w} launch_why"
             lc, fn = req(lw, "last_contact", ww), req(lw, "first_no_contact", ww)
@@ -530,9 +548,23 @@ def launch_view(g: dict) -> list[dict]:
                   "inserted": e.get("event") == "launch"}
     out = []
     for r in la.values():
-        if r["why"] is None or (r["edges"] != {"on", "airborne"} and not r["inserted"]):
+        r["replaced"] = None
+        if r["edges"] == {"on"}:
+            # the airborne half was overwritten by an agent edit (scenegraph_set_relation): the agent's edge of the same
+            # object starts where the "on" half ends; the launch record then has no flight of its own
+            rep = [e for e in g["edges"] if text(e.get("from")) == r["obj"] and e.get("source") == "agent"
+                   and num(e.get("t_start"), 4) == r["on_end"] and "t_launch" not in e and "launch_rule" not in e]
+            if len(rep) != 1:
+                raise ValueError(f"{AT['where']}: launch of {r['obj']!r} at {r['t']} on edges ['on'] and no agent edge from {r['on_end']}")
+            e = rep[0]
+            r |= {"replaced": {"rel": text(e["rel"]), "to": text(e.get("to")) or None, "t0": num(e["t_start"], 4),
+                               "t1": num(req(e, "t_end", "edge"), 4)},
+                  "last_contact": None, "first_no_contact": None, "n_off": None, "n_frames": None, "testable": None,
+                  "untestable_why": None, "bound_px": None, "inserted": False}
+        elif r["why"] is None or (r["edges"] != {"on", "airborne"} and not r["inserted"]):
             raise ValueError(f"{AT['where']}: launch of {r['obj']!r} at {r['t']} on edges {sorted(r['edges'])}")
         del r["edges"]
+        r.pop("on_end", None)
         out.append(r)
     return out
 EDGE_SOURCES = ("agent", "per-frame", "grid")   # pipeline.scenegraph.EDGE_SOURCES
@@ -902,7 +934,23 @@ def measurement_row(m: dict) -> dict:
             "profile": [profile_view(x, what) for x in inputs["at_bound.profile"]] if inputs.get("at_bound.profile") else None} \
         | (direct_view(m, what) if FMT.get("camera") else {}) | (sigma_view(inputs, what) if FMT.get("fusion") else {}) \
         | (onset_check_view(m, what) if FMT.get("impulse") and "kinematic_onset" in m else {}) \
-        | (span_view(m, what) if FMT.get("span") else {})
+        | (span_view(m, what) if FMT.get("span") else {}) \
+        | ({"bounds": bounds_view(m, what)} if FMT.get("undetermined") else {})
+
+
+def bounds_view(m: dict, what: str):
+    """A direct measurement's plausible range (rule D25b plausible.prior_scaled): {lo, hi, prior_m, pass}; present
+    exactly on a direct measurement with a value, None otherwise."""
+    pb = m.get("plausible_bounds")
+    valued = m.get("name") == "direct" and m.get("value") is not None
+    if valued != (pb is not None):
+        raise ValueError(f"{AT['where']}: {what} with value {m.get('value')!r} {'without' if valued else 'with'} plausible_bounds")
+    if pb is None:
+        return None
+    w = f"{what} plausible_bounds"
+    if set(pb) != {"lo", "hi", "prior_m", "pass"} or not isinstance(pb["pass"], bool):
+        raise ValueError(f"{AT['where']}: {w} {pb!r}")
+    return {"lo": num(req(pb, "lo", w)), "hi": num(req(pb, "hi", w)), "prior_m": num(pb["prior_m"]), "pass": pb["pass"]}
 
 
 def span_view(m: dict, what: str) -> dict:
@@ -2141,7 +2189,126 @@ def camera_view(state: dict) -> dict:
         out["scale_source"] = camera_scale_source(cam)
     if FMT.get("fused"):
         out |= {"fused": fused_view(state, out), "agency_unknown": agency_unknown_view(state)}
+    if FMT.get("undetermined"):
+        out |= {"undetermined": undetermined_view(state, out), "prior_untracked": prior_untracked_view(state)}
     return out
+
+
+UNDETERMINED_KEYS = ("name", "pass", "reason", "stage_a_f", "stage_a_sigma", "stage_a_how", "kept", "f", "sigma",
+                     "sources_used", "fusion_pass", "sources", "depth_model", "repair")
+
+
+def undetermined_view(state: dict, cam: dict):
+    """Stage A's focal length undetermined (sigma >= f), never kept; the camera's f from the focal fusion and the scene
+    refitted at it (rule C17 focal.undetermined): {pass, reason, stage_a {f, sigma, how}, f, sigma, sources [..],
+    used [text], depth_model {f, sigma, how, n} | None, class_skipped [..], depth_model_vote, refit {pass, f, sigma,
+    reason} | None}. None when stage A's f is determined. A passing record is the scene's f (f_source focal.fusion)."""
+    w = "focal.undetermined"
+    fu = req(req(state, "camera", "scene"), w, "camera")
+    src = text(req(state, "f_source", "scene"))
+    if fu is None:
+        if src == "focal.fusion":
+            raise ValueError(f"{AT['where']}: f_source focal.fusion without a {w} record")
+        return None
+    for k in UNDETERMINED_KEYS:
+        req(fu, k, w)
+    ok = fu["pass"]
+    if req(fu, "name", w) != w or not isinstance(ok, bool) or fu["kept"] is not False:
+        raise ValueError(f"{AT['where']}: {w} name {fu['name']!r} pass {ok!r} kept {fu['kept']!r}")
+    fa, sa = float(fu["stage_a_f"]), float(fu["stage_a_sigma"])
+    if not sa >= fa:
+        raise ValueError(f"{AT['where']}: {w} stage A sigma {sa} < f {fa}")
+    if ok != (src == "focal.fusion"):
+        raise ValueError(f"{AT['where']}: {w} pass {ok} with f_source {src!r}")
+    if ok and num(fu["f"], 4) != cam["f"]:
+        raise ValueError(f"{AT['where']}: {w} f {fu['f']} is not camera.f {cam['f']}")
+    rows = []
+    for x in fu["sources"]:
+        ws = f"{w} source"
+        v = text(req(x, "verdict", ws))
+        if v not in FUSION_VERDICTS:
+            raise ValueError(f"{AT['where']}: {ws} verdict {v!r}")
+        rows.append({"object": text(req(x, "object", ws)), "kind": text(req(x, "kind", ws)), "f": num(req(x, "f", ws), 4),
+                     "sigma": num(req(x, "sigma", ws), 3), "verdict": v, "why": text(req(x, "why", ws)) or None})
+    used = [text(x) for x in fu["sources_used"]]
+    if ok and len(used) != len([r for r in rows if r["verdict"] == "used"]):
+        raise ValueError(f"{AT['where']}: {w} sources_used {used} differ from the used sources")
+    dm = fu["depth_model"]
+    dmv = None if dm is None else {"f": num(req(dm, "f", f"{w} depth_model"), 4), "sigma": num(req(dm, "sigma", f"{w} depth_model"), 3),
+                                   "how": text(req(dm, "how", f"{w} depth_model")),
+                                   "n": len(req(dm, "per_frame", f"{w} depth_model"))}
+    rp = fu["repair"]
+    skipped = [{"name": text(req(x, "name", f"{w} class_skipped")), "class": text(req(x, "class", f"{w} class_skipped")),
+                "reason": text(req(x, "reason", f"{w} class_skipped")), "why": text(req(x, "why", f"{w} class_skipped"))}
+               for x in req(rp, "class_skipped", f"{w} repair")]
+    rf = req(fu, "refit_fusion", w) if ok else fu.get("refit_fusion")
+    rfv = None if rf is None else {"pass": req(rf, "pass", f"{w} refit_fusion"), "f": num(req(rf, "f", f"{w} refit_fusion"), 4),
+                                   "sigma": num(req(rf, "sigma", f"{w} refit_fusion"), 3),
+                                   "reason": text(req(rf, "reason", f"{w} refit_fusion"))}
+    return {"pass": ok, "reason": text(req(fu, "reason", w)),
+            "stage_a": {"f": num(fa, 4), "sigma": num(sa, 3), "how": text(fu["stage_a_how"])},
+            "f": num(fu["f"], 4), "sigma": num(fu["sigma"], 3), "fusion_pass": fu["fusion_pass"], "sources": rows,
+            "used": used, "depth_model": dmv, "class_skipped": skipped,
+            "depth_model_vote": text(req(rp, "depth_model", f"{w} repair")), "refit": rfv}
+
+
+PRIOR_UNTRACKED = re.compile(r"^prior object '(.+?)' has no track: ")   # pipeline.scene_fit.prior_untracked reason
+
+
+def prior_untracked_view(state: dict):
+    """The prior's object without a track (rule D24 prior.untracked): {object, reason} or None. Every result of the
+    unit then fails the check prior.untracked with that reason, and no result has it otherwise."""
+    pu = text(req(req(state, "camera", "scene"), "prior.untracked", "camera")) or None
+    for r in req(state, "results", "scene"):
+        c = req(r, "checks", "scene result").get("prior.untracked")
+        if (pu is None) != (c is None) or (c is not None and (c.get("pass") is not False or text(c.get("reason")) != pu)):
+            raise ValueError(f"{AT['where']}: result check prior.untracked {c!r} with camera prior.untracked {pu!r}")
+    if pu is None:
+        return None
+    m = PRIOR_UNTRACKED.match(pu)
+    if not m:
+        raise ValueError(f"{AT['where']}: prior.untracked reason {pu!r}")
+    return {"object": m.group(1), "reason": pu}
+
+
+def prior_untracked_repairs(rounds: dict | None, obj: str):
+    """Rule D24 repair.prior_untracked: every agent round offers track_reselect on the untracked prior object."""
+    for r in (rounds or {}).get("rounds", []):
+        if r.get("planning_failed"):
+            continue
+        if not any(c["for"] == "prior.untracked" and c["name"] == "track_reselect" and c["params"].get("object") == obj
+                   for c in r["candidates"]):
+            raise ValueError(f"{AT['where']}: agent round {r['iter']} offers no track_reselect on {obj!r} for prior.untracked")
+
+
+GROUND_VERSION = 4   # pipeline.ground VERSION (rule C19 support.full_frame)
+FLOOR_DROP_REASONS = ("whole_frame", "under_1pct_after_cut", "empty", "under_1pct")
+
+
+def floor_view(tag: str, unit: str):
+    """The main support's coverage per sampled frame (rule C19 support.full_frame): raw, minus the tracked objects'
+    boxes, the objects' pixels it covers, kept or the drop reason; None when the unit's ground record samples no
+    frame. Each kept frame is one "floor" entry with the same coverages."""
+    g = read_json(ROOT / "outputs" / f"ground_{tag}" / f"{unit}.json", "ground record")
+    if req(g, "version", "ground record") != GROUND_VERSION or req(g, "unit", "ground record") != unit:
+        raise ValueError(f"{AT['where']}: ground record version {g.get('version')!r} unit {g.get('unit')!r}")
+    ff, fl = req(g, "floor_frames", "ground record"), req(g, "floor", "ground record")
+    rows = []
+    for x in ff:
+        w = "ground floor_frames"
+        kept, why = req(x, "kept", w), req(x, "reason", w)
+        if not isinstance(kept, bool) or kept != (why is None) or (why is not None and why not in FLOOR_DROP_REASONS):
+            raise ValueError(f"{AT['where']}: {w} frame {x.get('frame')} kept {kept!r} reason {why!r}")
+        rows.append({"frame": int(req(x, "frame", w)), "raw": num(req(x, "coverage_raw", w), 4),
+                     "minus": num(req(x, "coverage_minus_objects", w), 4), "objects": num(req(x, "objects_covered", w), 4),
+                     "kept": kept, "reason": why})
+    floor = {int(req(e, "frame", "ground floor")): (num(req(e, "coverage_raw", "ground floor"), 4),
+                                                   num(req(e, "coverage_minus_objects", "ground floor"), 4)) for e in fl}
+    if floor != {r["frame"]: (r["raw"], r["minus"]) for r in rows if r["kept"]}:
+        raise ValueError(f"{AT['where']}: ground floor entries differ from the kept floor_frames")
+    if not rows:
+        return None
+    return {"support": text(req(g, "support", "ground record")) or None, "frames": rows}
 
 
 SCALE_SOURCES = ("prior", "depth_info", "class", "none")   # camera["scale.source"], results[i]["scale.source"]
@@ -2412,16 +2579,18 @@ def depth_rows_view(state: dict):
             g, wg = d["ground"], f"{w} ground"
             gr = {"z": num(req(g, "z_ground", wg), 4), "n": int(req(g, "n", wg)), "pass": req(g, "pass", wg),
                   "bound": num(req(g, "bound", wg), 3), "reason": text(req(g, "reason", wg))}
-        # an untestable record (pass null: no tracked frame on the main support) has no depths, bound or match count
+        # an untestable record (pass null) has no depths or bound: no tracked frame on the main support (n_matched
+        # null), or fewer matched dense rows than the test needs (n_matched the count)
         untestable = ok is None and FMT.get("sizeonly")
-        if untestable and (any(k in d for k in ("z_mask", "z_plane", "bound")) or d["n_matched"] is not None
+        if untestable and (any(k in d for k in ("z_mask", "z_plane", "bound"))
+                           or not (d["n_matched"] is None or isinstance(d["n_matched"], int))
                            or not text(d["reason"]).startswith("untestable")):
             raise ValueError(f"{AT['where']}: {w} untestable with keys {sorted(d)}")
         g3 = (lambda k: None) if untestable else (lambda k: req(d, k, w))
         nm = req(d, "n_matched", w)
         out.append({"obj": text(name), "pass": ok, "z_mask": num(g3("z_mask"), 4), "z_plane": num(g3("z_plane"), 4),
                     "bound": num(g3("bound"), 3), "n_rows": int(req(d, "n_rows", w)),
-                    "n_matched": None if untestable else int(nm), "dropped": dropped, "reason": text(req(d, "reason", w))}
+                    "n_matched": None if nm is None and untestable else int(nm), "dropped": dropped, "reason": text(req(d, "reason", w))}
                    | ({"odd": odd, "ground": gr,
                        "sigma_added": num(d["plane_sigma_added"] if FMT.get("classref") else d.get("plane_sigma_added"), 3)}
                       if FMT.get("launch") else {}))
@@ -2887,6 +3056,7 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                      "method": row["method"], "scene_id": text(row["scene_id"]), "time": None}
             if FMT["decide"] == "conf":
                 req(row, "conf", "harness CSV row")    # read as the format's field, not shown (decisions.no_conf)
+            donly = False
             if unit_kind == "video":
                 answer, group, error = bind_harness_question(row, record["answers"], groups)
                 state = group["state"] if group else {}
@@ -2908,13 +3078,17 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                     raise ValueError(f"{unit}: scene_id of its scene differs from the CSV")
                 group = {"group": None, "state": state} if state is not None else None
                 result = own_result(state, row) if state is not None else None
+                donly = state is not None and FMT.get("undetermined") and direct_only_scene(state, answer)
                 exec_status = rec["execution_status"]
                 query["time"] = timing_view(req(rec, "timing", "answer record"), row.get("seconds"))
             if FMT["decide"] in ("checks", "agree"):
                 if unit_kind != "question":
                     raise ValueError(f"{tag}: named checks are read from per-question answer records only")
                 query |= answer_checks(answer, row)
-            if FMT["decide"] == "agree":
+            if FMT["decide"] == "agree" and unit_kind == "question" and donly:
+                # rule D24 scene.direct_only: no scene, no agree / constraints; the result's measurements as recorded
+                query["direct_only"] = direct_only_view(state, result)
+            elif FMT["decide"] == "agree":
                 if result is None:
                     raise ValueError(f"{unit}: the scene has no result for this question")
                 query |= agreement_view(result, answer, query["status"])
@@ -2929,52 +3103,117 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                       "provenance": req(answer, "provenance", "answer record") if answer else None, "quality": quality, "align": alignment,
                       "fit": fit_row(result) if result else None,
                       "overlays": overlays.get(vid, state, row["question"], float(first.fps), duration,
-                                               vid if unit_kind == "video" else unit) if group else [],
+                                               vid if unit_kind == "video" else unit) if group and not donly else [],
                       "execution_status": exec_status}
             if unit_kind == "question":
                 query["refmeasure"] = refmeasure_view(tag, unit)
                 if FMT.get("classref"):
                     query["inventory"] = inventory
                     query["scale_source"] = None
-                    if result is not None:
+                    if result is not None and not donly:
                         ss = text(req(result, "scale.source", "scene result"))
                         if ss != camera_scale_source(req(state, "camera", "scene")):
                             raise ValueError(f"{AT['where']}: result scale.source {ss!r} differs from the camera's")
                         query["scale_source"] = ss
+                sv = state if not donly else None     # a direct-only scene has no scene to show
                 if FMT.get("roll"):
-                    query["extents"] = extents_view(tag, unit, state)
+                    query["extents"] = extents_view(tag, unit, sv)
                 if FMT.get("static"):
-                    query["depth_bindings"] = depth_bindings_view(state) if state is not None else None
-                query |= {"scene": scene_view(state, DIRS["scenes"] / f"{unit}.json") if state is not None else None,
-                          "sgraph": sgraph(unit, rec, state), "tracks": track_intervals(unit)}
+                    query["depth_bindings"] = depth_bindings_view(sv) if sv is not None else None
+                query |= {"scene": scene_view(sv, DIRS["scenes"] / f"{unit}.json") if sv is not None else None,
+                          "sgraph": sgraph(unit, rec, sv), "tracks": track_intervals(unit)}
                 if FMT.get("span"):
                     query["track_ends"] = track_ends(unit)
-                    if state is not None and "measurements" in query:
+                    if sv is not None and "measurements" in query:
                         same_depth_rows(state, query["measurements"])
                 if FMT.get("kept"):
                     query["rounds"] = rounds_view(rec)
                 if FMT.get("identity"):
                     query |= {"identity": identity_view(unit),
-                              "dims_check": dims_check(state) if state is not None else None}
+                              "dims_check": dims_check(sv) if sv is not None else None}
                 if FMT.get("fused"):
-                    query["plausible_untestable"] = plausible_untestable(state) if state is not None else None
-                if FMT.get("sizeonly"):
+                    query["plausible_untestable"] = plausible_untestable(sv) if sv is not None else None
+                if FMT.get("sizeonly") and donly:
+                    query["plausible_excluded"] = None
+                    query["partial"] = partial_view(rec)
+                elif FMT.get("sizeonly"):
                     # rule reference.size_only: plausible excludes exactly the scene's references (always present)
-                    ex = req(req(req(rec, "checks", "answer record"), "plausible", "answer record checks"), "excluded", "plausible")
-                    if set(ex) != {"reference.size_only"}:
+                    pl = req(req(rec, "checks", "answer record"), "plausible", "answer record checks")
+                    ex = req(pl, "excluded", "plausible")
+                    if set(ex) != set(EXCLUDED_KEYS):
                         raise ValueError(f"{AT['where']}: plausible.excluded keys {sorted(ex)}")
                     refs = sorted(req(state, "references", "scene")) if state is not None else []
                     if sorted(ex["reference.size_only"]) != refs:
                         raise ValueError(f"{AT['where']}: plausible.excluded {ex['reference.size_only']} differs from the scene's references {refs}")
-                    query["plausible_excluded"] = [text(x) for x in ex["reference.size_only"]]
+                    query["plausible_excluded"] = excluded_view(pl)
                     query["partial"] = partial_view(rec)
                 if FMT.get("impulse"):
                     query["presence"] = presence_view(tag, unit)
+                if FMT.get("undetermined"):
+                    query["floor"] = floor_view(tag, unit)
+                    pu = prior_untracked_view(state) if state is not None and not donly else None
+                    if donly:
+                        c = (result or {}).get("checks", {}).get("prior.untracked")
+                        pu = None if c is None else {"object": PRIOR_UNTRACKED.match(text(c["reason"])).group(1),
+                                                     "reason": text(c["reason"])}
+                    if pu is not None:
+                        if "prior.untracked" not in req(answer, "failed", "answer"):
+                            raise ValueError(f"{AT['where']}: prior.untracked is not among the answer's failed checks")
+                        prior_untracked_repairs(query.get("rounds"), pu["object"])
+                    query["prior_untracked"] = pu
             query["tq"], query["tjump"] = question_times(query["q"], alignment)
             questions.append(query)
     overlays.save()
     print(f"{tag}: {len(questions)} questions, {overlays.added} overlays rendered")
     return questions
+
+
+def direct_only_scene(state: dict, answer: dict) -> bool:
+    """A direct-only scene (pipeline.state.direct_only: stage A failed, objects {}, no camera; rule D24
+    scene.direct_only): its results each fail "fit" and its answer is unresolved with "fit" among the failed checks."""
+    from pipeline.state import direct_only
+    if not direct_only(state):
+        return False
+    res = req(state, "results", "direct-only scene")
+    if req(state, "objects", "direct-only scene") or not res or \
+            any(req(req(r, "checks", "scene result"), "fit", "scene result checks")["pass"] is not False for r in res):
+        raise ValueError(f"{AT['where']}: direct-only scene with objects or a result without a failed fit check")
+    if req(answer, "status", "answer") != "unresolved" or "fit" not in req(answer, "failed", "answer") \
+            or req(answer, "method", "answer") != "scene-fit-failed":
+        raise ValueError(f"{AT['where']}: direct-only answer status {answer.get('status')!r} method {answer.get('method')!r} "
+                         f"failed {answer.get('failed')!r}")
+    return True
+
+
+def direct_only_view(state: dict, result: dict | None) -> dict:
+    """The stage-A failure of a direct-only scene and the measurements its result recorded: {error, fit, measurements}."""
+    if result is None:
+        raise ValueError(f"{AT['where']}: direct-only scene without this question's result")
+    return {"error": text(req(state, "error", "direct-only scene")),
+            "fit": text(req(req(result, "checks", "scene result")["fit"], "reason", "fit")),
+            "measurements": [measurement_row(m) for m in req(result, "measurements", "scene result")]}
+
+
+EXCLUDED_KEYS = ("reference.size_only", "structure.static", "buoyant")   # pipeline.critic plausible.excluded
+
+
+def excluded_view(pl: dict) -> list[dict]:
+    """The objects every plausible part leaves out, by rule (C15c reference.size_only, D25 critic.structure_static /
+    critic.buoyant): [{rule, names, why {name: text}}] for the rules that exclude any. The three keys are always present;
+    "excluded_why" may name a reason per object of a rule that excludes some, and only those."""
+    ex = req(pl, "excluded", "plausible")
+    why = pl.get("excluded_why") or {}
+    if set(why) - set(EXCLUDED_KEYS):
+        raise ValueError(f"{AT['where']}: plausible.excluded_why keys {sorted(why)}")
+    out = []
+    for k in EXCLUDED_KEYS:
+        names = [text(x) for x in ex[k]]
+        w = {text(n): text(t) for n, t in (why.get(k) or {}).items()}
+        if set(w) - set(names):
+            raise ValueError(f"{AT['where']}: plausible.excluded_why[{k!r}] names {sorted(set(w) - set(names))} not excluded")
+        if names:
+            out.append({"rule": k, "names": names, "why": w})
+    return out
 
 
 def same_depth_rows(state: dict, ms: list[dict]):

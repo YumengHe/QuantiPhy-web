@@ -386,8 +386,9 @@
         `<td>${esc(r.why || '')}</td></tr>`).join('') + '</table></div>' : '';
     const lau = sg.launches ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th class="n">Launch (s)</th><th>Rule</th><th></th></tr>' +
       sg.launches.map((r) => `<tr><td>${esc(r.obj)}</td><td class="n">${fmt(r.t[0], 3)}–${fmt(r.t[1], 3)}</td>` +
-        `<td><code>state.launch</code> off ${esc(r.support)} · frames ${r.last_contact[0]} → ${r.first_no_contact[0]}${r.inserted ? ' · inserted' : ''}</td>` +
-        `<td>${esc(r.why)}${r.testable ? '' : `<div class="muted">untestable · ${esc(r.untestable_why)}</div>`}</td></tr>`).join('') + '</table></div>' : '';
+        (r.replaced ? `<td><code>state.launch</code> off ${esc(r.support)}</td><td>agent ${esc(r.replaced.rel)}${r.replaced.to ? ` ${esc(r.replaced.to)}` : ''} ${span(r.replaced.t0, r.replaced.t1)}</td></tr>`
+          : `<td><code>state.launch</code> off ${esc(r.support)} · frames ${r.last_contact[0]} → ${r.first_no_contact[0]}${r.inserted ? ' · inserted' : ''}</td>` +
+          `<td>${esc(r.why)}${r.testable ? '' : `<div class="muted">untestable · ${esc(r.untestable_why)}</div>`}</td></tr>`)).join('') + '</table></div>' : '';
     const unt = sg.untracked ? '<div class="scroll-x"><table class="sgrel"><tr><th>Untracked</th><th></th></tr>' +
       sg.untracked.map(([n, why]) => `<tr><td>${esc(n)}</td><td class="bad">${esc(why)}</td></tr>`).join('') + '</table></div>' : '';
     const rw = sg.rewritten ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th><th>Was</th><th>Rule</th></tr>' +
@@ -709,6 +710,33 @@
         `<td class="n">${plusMinus(x.f, x.sigma)}</td><td>${x.used ? 'used' : esc(x.why)}</td></tr>`).join('') +
       `<tr class="camf"><td colspan="2" title="${esc(co.how)}">camera.f</td><td class="n">${plusMinus(co.f, co.sigma)}</td><td></td></tr></table></div>`;
   }
+  // stage A's f undetermined (σ ≥ f) and never kept; the focal fusion's sources set the camera's f and the scene is
+  // fitted again at it (rule focal.undetermined); class votes that could not join are listed muted
+  function undeterminedTable(u) {
+    if (!u) return '';
+    const vcls = (v) => (v === 'used' ? '' : v === 'excluded' || v === 'no sigma' ? 'muted' : 'bad');
+    const dm = u.depth_model;
+    return '<div class="scroll-x"><table class="focal undet"><tr><th><code>focal.undetermined</code></th><th>Object</th><th class="n">f (px)</th><th></th><th></th></tr>' +
+      `<tr class="muted"><td>stage A</td><td></td><td class="n" title="${esc(u.stage_a.how)}">${plusMinus(u.stage_a.f, u.stage_a.sigma)}</td><td>not kept</td><td></td></tr>` +
+      u.sources.map((x) => `<tr class="${vcls(x.verdict)}"><td>${esc(x.kind)}</td><td>${esc(x.object)}</td>` +
+        `<td class="n"${x.kind === 'depth model' && dm ? ` title="${esc(dm.how)}"` : ''}>${plusMinus(x.f, x.sigma)}</td><td>${esc(x.verdict)}</td><td>${x.why ? esc(x.why) : ''}</td></tr>`).join('') +
+      u.class_skipped.map((x) => `<tr class="muted"><td>class reference</td><td>${esc(x.name)}</td><td></td><td><code>${esc(x.reason)}</code></td><td>${esc(x.why)}</td></tr>`).join('') +
+      `<tr class="camf ${cls3(u.pass)}"><td colspan="2">fused · ${u.used.length} source${u.used.length === 1 ? '' : 's'}</td><td class="n">${u.f != null ? plusMinus(u.f, u.sigma) : '—'}</td>` +
+      `<td>${res3(u.pass)}</td><td>${u.pass ? '' : esc(u.reason)}</td></tr>` +
+      (u.refit ? `<tr class="${cls3(u.refit.pass)}"><td colspan="2">refit</td><td class="n">${plusMinus(u.refit.f, u.refit.sigma)}</td><td>${res3(u.refit.pass)}</td>` +
+        `<td>${u.refit.pass === true ? '' : esc(u.refit.reason.replace(/^untestable:\s*/, ''))}</td></tr>` : '') +
+      '</table></div>';
+  }
+  // the main support's coverage per sampled frame: raw, without the tracked objects' boxes, the objects' pixels it
+  // covers; a dropped frame names its reason (rule support.full_frame)
+  function floorTable(fl) {
+    if (!fl) return '';
+    const pc = (x) => fmt(100 * x, 1);
+    const row = (h, f) => `<tr><th>${h}</th>${fl.frames.map((x) => `<td class="n${x.kept ? '' : ' bad'}">${f(x)}</td>`).join('')}</tr>`;
+    return `<div class="scroll-x"><table class="floorcov"><tr><th><code>support.full_frame</code>${fl.support ? ` ${esc(fl.support)}` : ''}</th>${fl.frames.map((x) => `<th class="n">${x.frame}</th>`).join('')}</tr>` +
+      row('Coverage (%)', (x) => pc(x.raw)) + row('Without objects (%)', (x) => pc(x.minus)) + row('Objects covered (%)', (x) => pc(x.objects)) +
+      (fl.frames.some((x) => !x.kept) ? row('', (x) => (x.kept ? '' : `<code>${esc(x.reason)}</code>`)) : '') + '</table></div>';
+  }
   // the scene's focal votes fused by independent source (rule focal.fusion); an outlier or disagreeing source is
   // marked, the last row is the fused f (camera.f is on the line above), then every measurement the fusion failed (check focal)
   function fusionTable(fu, q) {
@@ -1006,6 +1034,12 @@
     if (q.binding_error) h += `<p class="fwarn">${esc(q.binding_error)}</p>`;
     if (q.error) return h + `<p class="fwarn">${esc(q.error)}</p>`;
     if (q.partial) h += `<p class="fwarn"><code>planning_failed</code> round ${q.partial.round} · ${esc(q.partial.why)}</p>`;
+    if (q.direct_only) {
+      const x = q.direct_only;
+      h += `<p class="fwarn"><code>fit</code> ${esc(x.fit)}</p>` +
+        '<div class="scroll-x"><table class="meas"><tr><th>Measurement</th><th>Method</th><th class="n">Value</th><th>Admissible</th><th>Failed</th><th>Inputs</th></tr>' +
+        x.measurements.map((m) => measurementRow(m, q)).join('') + '</table></div>' + floorTable(q.floor);
+    }
     if (q.measurements) {
       h += measurementBlock(q);
     } else if ((f || q.method || q.status) && q.checks) {
@@ -1043,7 +1077,7 @@
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + undeterminedTable(s.camera && s.camera.undetermined) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + floorTable(q.floor) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') + scaleFullExtentTable(s.scale.full_extent) : '') +
         classReferenceBlock(q.inventory, s.class_reference, q.scale_source) + referencesTable(s.references) + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
@@ -1192,7 +1226,12 @@
     return `<tr class="${m.name === chosen ? 'chosen' : ''}${m.admissible ? '' : ' inadm'}"><td><code>${esc(m.name)}</code></td>` +
       `<td><code>${esc(m.method)}</code></td><td class="n mval">${val}</td>` +
       `<td class="${m.admissible ? 'ok' : 'bad'}">${m.admissible ? 'admissible' : esc(m.why)}</td>` +
-      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${sigmaLines(m)}${directLines(m, q)}${impulseLine(m.window_impulse)}${onsetLine(m.kin_onset)}${prof}</td></tr>`;
+      `<td class="bad">${failed}</td><td><span class="muted">${esc(inp)}</span>${sigmaLines(m)}${directLines(m, q)}${impulseLine(m.window_impulse)}${onsetLine(m.kin_onset)}${prof}${boundsLine(m.bounds)}</td></tr>`;
+  }
+  // a direct value's plausible range, widened by the prior's magnitude (rule plausible.prior_scaled)
+  function boundsLine(b) {
+    if (!b) return '';
+    return `<div class="${b.pass ? 'ok' : 'bad'}"><code>plausible</code> ${fmtNum(b.lo)}–${fmtNum(b.hi)}${b.prior_m != null ? ` · prior ${fmtNum(b.prior_m)}` : ''}</div>`;
   }
   // the window this measurement reads inside the piece after a kick's ramp (rule window.impulse)
   function impulseLine(w) {
@@ -1325,10 +1364,10 @@
         `<td>${c.pass ? 'pass' : 'fail'}</td><td>${esc(c.reason)}${c.name === 'plausible' ? dimsCheck(q.dims_check) + partsUntestable(q.plausible_untestable) + excludedRefs(q.plausible_excluded) : ''}</td></tr>`).join('') + '</table></div>';
     return h;
   }
-  // the reference objects every plausible part leaves out (rule reference.size_only)
-  function excludedRefs(names) {
-    if (!names || !names.length) return '';
-    return `<div class="muted"><code>reference.size_only</code> excluded · ${names.map(esc).join(' · ')}</div>`;
+  // the objects every plausible part leaves out, by rule (reference.size_only, structure.static, buoyant)
+  function excludedRefs(rows) {
+    if (!rows) return '';
+    return rows.map((r) => `<div class="muted"><code>${esc(r.rule)}</code> excluded · ${r.names.map((n) => esc(n) + (r.why[n] ? ` (${esc(r.why[n])})` : '')).join(' · ')}</div>`).join('');
   }
   // plausible parts that could not judge an object (critic.agency_unknown)
   function partsUntestable(rows) {

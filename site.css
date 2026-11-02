@@ -266,3 +266,12 @@ table.classref tr.bad td:last-child, table.classvotes tr.bad td:last-child { col
 table.classref tr.muted td, table.classvotes tr.muted td { color: var(--muted); }
 table.classvotes tr.camf td { border-top: 1.5px solid var(--text); font-weight: 600; }
 table.chain td.n .muted, table.chain td.muted div { font-size: 12px; }
+/* stage A's undetermined f and the fusion that replaced it (rule focal.undetermined) */
+table.undet td { vertical-align: top; }
+table.undet td:last-child { max-width: 52ch; }
+table.undet tr.camf td { font-weight: 600; }
+table.undet tr.bad td { color: var(--m1t, #8a1c12); }
+/* main-support coverage per sampled frame (rule support.full_frame) */
+table.floorcov { width: auto; margin: 4px 0 8px; font-size: 13px; }
+table.floorcov th:first-child { text-align: left; white-space: nowrap; font-weight: 400; }
+table.floorcov td.bad { color: var(--m1t, #8a1c12); }
