@@ -275,3 +275,26 @@ table.undet tr.bad td { color: var(--m1t, #8a1c12); }
 table.floorcov { width: auto; margin: 4px 0 8px; font-size: 13px; }
 table.floorcov th:first-child { text-align: left; white-space: nowrap; font-weight: 400; }
 table.floorcov td.bad { color: var(--m1t, #8a1c12); }
+/* batch 25: scale.prior_motion pieces, prior.class_object, contained.same_depth, containment, choice frame */
+.pm-wrap { margin: 6px 0 4px; }
+.pm-bar { height: 20px; }
+.pm-seg { position: absolute; top: 0; bottom: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; line-height: 20px;
+  padding: 0 4px; border-right: 1px solid var(--bg, #fff); border-radius: 3px; color: var(--text); background: var(--accent-soft); box-sizing: border-box; }
+.pm-seg.pm-fit { background: var(--accent); color: var(--bg); }
+.pm-seg.unused { opacity: .4; }
+table.pmotion, table.classobj, table.contained, table.choice { font-size: 13px; }
+table.pmotion td.pmwhy { font-size: 12px; color: var(--muted); max-width: 60ch; }
+table.pmotion tr.muted td { color: var(--muted); }
+table.pmotion tr.camf td, table.classobj tr.camf td { font-weight: 600; border-top: 1px solid var(--border); }
+table.pmotion tr.camf.bad td { color: var(--m1t, #8a1c12); }
+table.classobj tr.chosen td { background: var(--accent-soft); }
+table.classobj tr.chosen td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+table.classobj td .bad { color: var(--m1t, #8a1c12); }
+table.contained tr.muted td:not(:first-child):not(:nth-child(2)) { color: var(--muted); }
+table.contained tr.bad td { color: var(--m1t, #8a1c12); }
+table.sgrel td div.sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+table.sgrel td.muted { color: var(--muted); }
+table.choice td div { font-size: 12px; margin-top: 2px; }
+table.choice .scan { white-space: nowrap; color: var(--muted); }
+table.choice .scan-full { color: var(--text); }
+table.choice .scan.chosen { font-weight: 600; color: var(--accent); }

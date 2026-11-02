@@ -308,7 +308,7 @@
         const bad = (k) => (check === k ? ' bad' : '');
         return `<tr class="${i === v.chosen ? 'chosen' : ''}${rej ? ' rej' : ''}">` + (i === 0 ? `<td rowspan="${n}" class="iobj">${esc(name)}</td>` : '') +
           `<td class="n">${i}</td><td>${esc(c.source)}${c.frame != null ? ` <span class="muted">f${c.frame}</span>` : ''}</td><td class="n">${c.n}</td>` +
-          `<td class="n${bad('static')}">${c.px != null ? fmtNum(c.px) : ''}</td><td class="${bad('verify')}">${c.votes ? esc(c.votes.join(' ')) : ''}</td><td class="isize">${sizeCell(c)}</td>` +
+          `<td class="n${bad('static')}"${c.terms ? ` title="${esc(`centre ${fmtNum(c.terms.centre)} · size ${fmtNum(c.terms.size)}${c.terms.window ? ` · window ${JSON.stringify(c.terms.window)}` : ''}`)}"` : ''}>${c.px != null ? fmtNum(c.px) : ''}${c.terms ? ` <span class="muted">${fmtNum(c.terms.evidence)}</span>` : ''}</td><td class="${bad('verify')}">${c.votes ? esc(c.votes.join(' ')) : ''}</td><td class="isize">${sizeCell(c)}</td>` +
           `<td class="n${bad('presence')}">${c.span ? `${c.span[0]}–${c.span[1]}` : ''}</td><td class="n${bad('border')}">${c.border != null ? fmt(c.border, 2) : ''}</td>` +
           `<td class="${rej ? 'bad' : 'ok'}">${esc(check || c.outcome)}${why}</td></tr>`;
       }).join('');
@@ -316,7 +316,19 @@
       return cand + un;
     }).join('');
     return '<div class="scroll-x"><table class="ident"><tr><th>Object</th><th class="n">#</th><th>Candidate</th><th class="n">Frames</th><th class="n">Moves (px)</th>' +
-      `<th>Verify</th><th>Class size</th><th class="n">Present</th><th class="n">Border</th><th>Outcome</th></tr>${rows}</table></div>`;
+      `<th>Verify</th><th>Class size</th><th class="n">Present</th><th class="n">Border</th><th>Outcome</th></tr>${rows}</table></div>` + choiceTable(idt);
+  }
+  // rule E15: the frame each object's box was chosen on, the scan's label of every probe frame (the chosen frame in
+  // bold), detector boxes dropped as the image itself, and a re-judged whole set ranked by motion
+  function choiceTable(idt) {
+    const es = Object.entries(idt).filter(([, v]) => v.choice);
+    if (!es.length) return '';
+    const scan = (c) => c.scan.map(([f, l]) => `<span class="scan scan-${esc(l)}${f === c.frame ? ' chosen' : ''}">${f} ${esc(l)}</span>`).join(' ');
+    return '<div class="scroll-x"><table class="ident choice"><tr><th>Object</th><th class="n">Choice frame</th><th class="n">Shared</th><th>Scan</th><th></th></tr>' +
+      es.map(([name, v]) => `<tr><td class="iobj">${esc(name)}</td><td class="n">${v.choice.frame}</td><td class="n">${v.choice.shared}</td><td>${scan(v.choice)}</td><td>${esc(v.choice.why)}` +
+        v.choice.dropped.map((d) => `<div class="bad"><code>candidate.full_frame</code> [${d.box.join(', ')}] ${esc(d.why)}</div>`).join('') +
+        (v.whole_set ? `<div><code>identity.whole_set</code> #${v.whole_set.chosen == null ? '—' : v.whole_set.chosen} · ${v.whole_set.terms.map((t) => `#${t.candidate} ${fmtNum(t.evidence)}`).join(' · ')} · ${esc(v.whole_set.why)}</div>` : '') +
+        '</td></tr>').join('') + '</table></div>';
   }
 
   // ---------- time axis of the 3D viewer ----------
@@ -398,12 +410,25 @@
     const edgeText = (e) => `${esc(e.rel)}${e.to ? ` ${esc(e.to)}` : ''} ${span(e.t0, e.t1)}`;
     const hasSrc = sg.edges.some((e) => e.source), hasEv = sg.edges.some((e) => e.event);
     const evCell = (e) => (hasEv ? `<td>${e.event ? `<code>${esc(e.event)}</code>` : ''}</td>` : '');
+    // rule A13: an on / in edge between two objects decided by their masks (verdict, level, inside fraction / bound,
+    // frames with evidence) and the label it corrected
+    const hasCt = sg.edges.some((e) => e.containment);
+    const ctCell = (e) => {
+      if (!hasCt) return '';
+      const c = e.containment;
+      if (!c) return '<td></td>';
+      const hull = c.hull ? `hull ${c.hull.verdict} ${fmt(c.hull.inside_frac, 2)} / ${fmt(c.hull.bound, 2)} · ${c.hull.frames} frames` : '';
+      return `<td class="${c.verdict === 'untestable' ? 'muted' : ''}" title="${esc([c.why, hull].filter(Boolean).join(' · '))}"><code>${esc(c.verdict)}</code> ${esc(c.level)}` +
+        (c.inside_frac != null ? ` · ${fmt(c.inside_frac, 2)} / ${fmt(c.bound, 2)}` : '') + ` · ${c.frames}` +
+        (c.corrected ? `<div class="sub">${esc(c.corrected.from_rel)} → ${esc(e.rel)} · ${esc(c.corrected.source)}</div>` : '') + '</td>';
+    };
     const listed = sg.edges.filter((e) => e.test || e.source || e.event);
-    const ts = listed.length ? `<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th>${hasSrc ? '<th>Source</th>' : ''}${hasEv ? '<th>Event</th>' : ''}<th>Test</th><th></th><th></th></tr>` +
-      listed.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}</td>${hasSrc ? `<td>${esc(e.source || '')}</td>` : ''}${evCell(e)}` +
+    const ctBlank = hasCt ? '<td></td>' : '';
+    const ts = listed.length ? `<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th>Edge</th>${hasSrc ? '<th>Source</th>' : ''}${hasEv ? '<th>Event</th>' : ''}${hasCt ? '<th>Containment</th>' : ''}<th>Test</th><th></th><th></th></tr>` +
+      listed.map((e) => `<tr><td>${esc(e.from)}</td><td>${edgeText(e)}</td>${hasSrc ? `<td>${esc(e.source || '')}</td>` : ''}${evCell(e)}${ctCell(e)}` +
         (e.test ? `<td><code>${esc(e.test.name)}</code></td>${testCells(e.test)}` : '<td></td><td></td><td></td>') + '</tr>' +
-        (e.test && e.test.label ? e.test.label.map((x) => `<tr class="absorbed"><td></td><td></td>${hasSrc ? '<td></td>' : ''}${hasEv ? '<td></td>' : ''}<td><code>${esc(x.name)}</code></td>${testCells(x)}</tr>`).join('') : '') +
-        (e.absorbed || []).map((x) => `<tr class="absorbed"><td></td><td>↳ ${edgeText(x)}</td>${hasSrc ? '<td></td>' : ''}${hasEv ? '<td></td>' : ''}<td><code>${esc(x.test.name)}</code></td>${testCells(x.test)}</tr>`).join('')).join('') +
+        (e.test && e.test.label ? e.test.label.map((x) => `<tr class="absorbed"><td></td><td></td>${hasSrc ? '<td></td>' : ''}${hasEv ? '<td></td>' : ''}${ctBlank}<td><code>${esc(x.name)}</code></td>${testCells(x)}</tr>`).join('') : '') +
+        (e.absorbed || []).map((x) => `<tr class="absorbed"><td></td><td>↳ ${edgeText(x)}</td>${hasSrc ? '<td></td>' : ''}${hasEv ? '<td></td>' : ''}${ctBlank}<td><code>${esc(x.test.name)}</code></td>${testCells(x.test)}</tr>`).join('')).join('') +
       '</table></div>' : '';
     const cf = sg.conflicts ? '<div class="scroll-x"><table class="sgrel"><tr><th>Object</th><th><code>scenegraph.overlap</code></th><th>Edges</th><th>Source</th><th></th></tr>' +
       sg.conflicts.map((c) => `<tr><td>${esc(c.obj)}</td><td class="bad">${span(c.t0, c.t1)}</td><td>${c.edges.map(edgeText).join('<br>')}</td>` +
@@ -451,7 +476,8 @@
         (x.rebuilt ? `<div>rebuilt ${x.rebuilt.steps.map((k) => `<code>${esc(k)}</code>`).join(' → ') || 'none'}` +
           (x.rebuilt.failed ? ` · <span class="bad">failed <code>${esc(x.rebuilt.failed)}</code></span>` : '') +
           (x.rebuilt.self_test ? ` · self-test ${Object.entries(x.rebuilt.self_test).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(', ')}` : '') + '</div>' : '') +
-        (x.newly_failed || []).map(([c, w]) => `<div class="bad"><code>${esc(c)}</code> ${esc(w)}</div>`).join('') + '</td></tr>';
+        (x.newly_failed || []).map(([c, w]) => `<div class="bad"><code>${esc(c)}</code> ${esc(w)}</div>`).join('') +
+        (x.no_repeat || []).map((n) => `<div class="bad"><code>repair.no_repeat</code> ${esc(n.tool)}${n.target ? ` ${esc(n.target)}` : ''} · rounds ${n.rounds.join(', ')}</div>`).join('') + '</td></tr>';
     }).join('');
     const st = r.stop ? ` <span class="stop"><code>${esc(r.stop.reason)}</code> round ${esc(r.stop.round)}${r.stop.why ? ` · ${esc(r.stop.why)}` : ''}</span>` : '';
     return `<h4>Agent rounds${st}</h4><div class="scroll-x"><table class="rounds"><tr><th class="n">Round</th><th>Candidates</th><th>Call</th><th>Result</th><th>Outcome</th></tr>` +
@@ -1028,6 +1054,53 @@
       (rf ? ` · refit roll ${deg(rf.roll_deg[0])} → ${deg(rf.roll_deg[1])}, pitch ${deg(rf.pitch_deg[0])} → ${deg(rf.pitch_deg[1])},` +
         ` dist ${fmtNum(rf.dist[0])} → ${fmtNum(rf.dist[1])}${rf.rms ? `, rms ${fmt(rf.rms[0], 1)} → ${fmt(rf.rms[1], 1)} px` : ''}` : '') + '</p>';
   }
+  // rule B23 scale.prior_motion: the motion prior read on every observed motion piece (law, read, value, weight =
+  // observed seconds) on the clip's time axis, then the read the scale uses
+  function priorMotionBlock(pm, T) {
+    if (!pm) return '';
+    const pct = (t) => `${(100 * Math.min(Math.max(t / T, 0), 1)).toFixed(2)}%`;
+    const segs = pm.pieces.map((p) => `<span class="pm-seg pm-${esc(p.read || 'none')}${p.used ? '' : ' unused'}" style="left:${pct(p.t[0])};width:calc(${pct(p.t[1])} - ${pct(p.t[0])})" ` +
+      `title="${esc(`${p.piece} · ${p.law} · ${p.read || '—'} ${fmtNum(p.value)} · ${fmt(p.weight, 2)} s`)}">${esc(p.law)} · ${esc(p.read || '—')} ${fmtNum(p.value)} · ${fmt(p.weight, 2)} s</span>`).join('');
+    const bar = `<div class="trk-wrap pm-wrap"><div class="trk"><span class="trk-n"><code>scale.prior_motion</code></span><span class="trk-bar pm-bar">${segs}</span></div>` +
+      `<div class="trk"><span class="trk-n"></span><span class="trk-axis"><span>0</span><span>${fmt(T, 2)} s</span></span></div></div>`;
+    const px = (p) => (p.rms ? `${p.rms.map((x) => fmt(x, 2)).join(' / ')} ${p.rms.every((x, i) => x <= p.bound[i]) ? '≤' : '>'} ${p.bound.map((x) => fmt(x, 2)).join(' / ')}` : '');
+    const rows = pm.pieces.map((p) => `<tr class="${p.used ? '' : 'muted'}"><td class="n">${p.piece}</td><td class="n">${fmt(p.t[0], 2)}–${fmt(p.t[1], 2)}</td><td>${esc(p.law)}</td>` +
+      `<td>${esc(p.read || '')}</td><td class="n">${plusMinus(p.value, p.sigma)}</td><td class="n">${p.read === 'fit' ? fmtNum(p.displacement) : ''}</td>` +
+      `<td class="n">${fmt(p.weight, 2)}</td><td class="n">${p.n}</td><td class="n">${px(p)}</td>` +
+      `<td class="n" title="${esc(p.depth ? p.depth.how : '')}">${p.depth ? fmtNum(p.depth.z) : ''}</td><td class="pmwhy">${esc(p.why)}</td></tr>`).join('');
+    const sig = pm.value != null && pm.sigma_rel != null ? pm.value * pm.sigma_rel : null;
+    const total = `<tr class="camf ${cls3(pm.pass)}"><td></td><td class="n">${fmt(pm.t[0], 2)}–${fmt(pm.t[1], 2)}</td><td>${esc(pm.law || '')}</td><td><code>${esc(pm.read || '')}</code></td>` +
+      `<td class="n">${plusMinus(pm.value, sig)}</td><td></td><td></td><td></td><td></td><td></td><td>s ${plusMinus(pm.s, pm.sigma_s)}</td></tr>`;
+    return bar + '<div class="scroll-x"><table class="objs pmotion"><tr><th class="n">Piece</th><th class="n">t (s)</th><th>Law</th><th>Read</th><th class="n">Value</th>' +
+      '<th class="n">Displacement</th><th class="n">Weight (s)</th><th class="n">Frames</th><th class="n">rms / bound (px)</th><th class="n">Depth (m)</th><th></th></tr>' +
+      rows + total + '</table></div>';
+  }
+  // rule C16 prior.class_object: a size stated for a class is given to every instance; each instance's role, whether
+  // it stands still, its read (s: the scale from its extent, f: its focal vote); the chosen one carries the accent
+  function classObjectBlock(co) {
+    if (!co) return '';
+    const rows = co.instances.map((i) => {
+      const r = i.read;
+      const val = !i.tracked ? `<span class="bad">${esc(i.untracked)}</span>` : r && r.value != null ? plusMinus(r.value, r.sigma) : `<span class="muted">${esc(r ? r.how : '')}</span>`;
+      return `<tr class="${i.name === co.chosen ? 'chosen' : ''}"><td>${esc(i.name)}</td><td>${esc(i.role)}</td><td title="${esc(i.static_why)}">${i.static ? 'static' : 'moving'}</td>` +
+        `<td>${r ? `<code>${esc(r.mode)}</code>` : ''}</td><td class="n"${r && r.value != null ? ` title="${esc(r.how)}"` : ''}>${val}</td>` +
+        `<td class="n">${r && r.extent != null ? fmtNum(r.extent) : ''}</td><td class="n">${r && r.n != null ? r.n : ''}</td></tr>`;
+    }).join('');
+    return `<div class="scroll-x"><table class="objs classobj"><tr><th title="${esc(co.scope_why)}"><code>prior.class_object</code> · <code>${esc(co.class)}</code></th><th>Role</th><th></th><th>Read</th>` +
+      '<th class="n">Value</th><th class="n">Extent (m)</th><th class="n">Frames</th></tr>' + rows +
+      `<tr class="camf"><td colspan="4">${esc(co.given.quantity)}</td><td class="n">${plusMinus(co.given.value, co.given.sigma)} m</td><td></td><td></td></tr></table></div>`;
+  }
+  // rule A13 contained.same_depth: an object in a container takes the container's depth; per edge its plan, the dense
+  // rows it took from the container and its depth against the container's at the span's first / middle / last frame
+  function containedBlock(c) {
+    if (!c) return '';
+    const rows = c.edges.map((e) => `<tr class="${cls3(e.pass)}"><td>${esc(e.a)}</td><td>${esc(e.b)}</td><td>${span(e.span[0], e.span[1])}</td>` +
+      `<td>${e.containment ? `${esc(e.containment.verdict)} · ${esc(e.containment.level)} · ${fmt(e.containment.inside_frac, 2)} / ${fmt(e.containment.bound, 2)} · ${e.containment.frames}` : esc(e.source)}</td>` +
+      `<td class="n">${e.rows_dense ? `${e.rows_dense.n_a} → ${e.rows_dense.n_b}` : ''}</td>` +
+      `<td class="n">${fmtNum(e.z_a)}</td><td class="n">${fmtNum(e.z_b)}</td><td class="n">${fmtNum(e.sigma)}</td><td>${res3(e.pass)}</td><td>${esc(e.why)}</td></tr>`).join('');
+    return '<div class="scroll-x"><table class="objs contained"><tr><th><code>contained.same_depth</code></th><th>Container</th><th>Span</th><th>Containment</th>' +
+      '<th class="n">Dense rows</th><th class="n">z (m)</th><th class="n">z container (m)</th><th class="n">σ (m)</th><th></th><th></th></tr>' + rows + '</table></div>';
+  }
   function fitBlock(q, v) {
     const f = q.fit, s = v.scene;
     let h = '<h4>Reconstruction</h4>';
@@ -1072,15 +1145,15 @@
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
-        agentDimsTable(s) + fullExtentTable(s) + fitObjectTable(s) + segfitTable(s) + chainTable(s, v.duration) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) +
+        agentDimsTable(s) + fullExtentTable(s) + fitObjectTable(s) + segfitTable(s) + chainTable(s, v.duration) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) + containedBlock(s.contained) +
         (s.camera ? `<p class="facts"><span title="${esc(s.camera.how)}">f ${plusMinus(s.camera.f, s.camera.sigma)} px${s.camera.source ? ` (${esc(s.camera.source)}${wasText(s.camera.fused)})` : ''}</span>`
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
         (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + undeterminedTable(s.camera && s.camera.undetermined) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + floorTable(q.floor) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
-          (s.scale.checks ? checksTable(s.scale.checks) : '') + scaleFullExtentTable(s.scale.full_extent) : '') +
-        classReferenceBlock(q.inventory, s.class_reference, q.scale_source) + referencesTable(s.references) + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
+          (s.scale.checks ? checksTable(s.scale.checks) : '') + priorMotionBlock(s.scale.prior_motion, v.duration) + scaleFullExtentTable(s.scale.full_extent) : '') +
+        classObjectBlock(s.class_object) + classReferenceBlock(q.inventory, s.class_reference, q.scale_source) + referencesTable(s.references) + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
         gravityBlock(s.gravity) +
         focalVotes(s);
     }

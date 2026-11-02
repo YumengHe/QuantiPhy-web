@@ -254,7 +254,7 @@ VERSION_FORMAT = {
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
            "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
            "span": True, "launch": True, "classref": True, "sizeonly": True,
-           "undetermined": True},
+           "undetermined": True, "contained": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -398,6 +398,7 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
              | ({"source": text(e["source"])} if FMT.get("impulse") else {})
              | ({"event": edge_event(e, f"edge {e.get('from')!r} {e.get('rel')!r}")} if FMT.get("contact") and "event" in e else {})
              | ({"test": test_view(e["test"], f"edge {e.get('from')!r} {e.get('rel')!r}")} if "test" in e else {})
+             | ({"containment": containment_view(e)} if FMT.get("contained") and "containment" in e else {})
              | ({"absorbed": [span_edge(x, f"edge {e.get('from')!r} {e.get('rel')!r} absorbed") for x in e["absorbed"]]}
                 if FMT.get("selftest") and e.get("absorbed") else {})
              for e in req(g, "edges", "scene graph cache") if req(e, "rel", "edge") in SUPPORT_RELS]
@@ -483,6 +484,39 @@ def sgraph(key: str, rec: dict | None = None, state: dict | None = None):
     if out and FMT.get("kept"):
         out["kept"] = int(req(rec["kept_state"], "iter", "kept_state"))
     return out or None
+
+
+CONTAINMENT_KEYS = {"rule", "verdict", "inside_frac", "bound", "frames", "level", "r_px", "why"}
+CONTAINMENT_OPTIONAL = {"outside_frames", "longest_outside_run", "rows", "hull", "corrected"}
+CONTAINMENT_VERDICTS = ("in", "not_in", "untestable")
+CONTAINMENT_LEVELS = ("hull", "mask", "track")
+
+
+def containment_view(e: dict, hull: bool = False) -> dict:
+    """Rule A13 (per-frame graph): an "on" / "in" edge between two objects decided by their masks -- verdict, level
+    (hull: the extents2d hulls; mask: the SAM 2 masks, after the hulls said in; track: no track), median inside
+    fraction against its bound, frames with evidence, and the label it corrected; "in" -> rel in, "not_in" -> rel on."""
+    w = f"edge {e.get('from')!r} {e.get('rel')!r} containment"
+    c = e if hull else e["containment"]
+    if not CONTAINMENT_KEYS <= set(c) or set(c) - CONTAINMENT_KEYS - CONTAINMENT_OPTIONAL or c["rule"] != "contained.same_depth" or \
+            c["verdict"] not in CONTAINMENT_VERDICTS or c["level"] not in CONTAINMENT_LEVELS:
+        raise ValueError(f"{AT['where']}: {w} keys {sorted(c)} verdict {c.get('verdict')!r} level {c.get('level')!r}")
+    if not hull:
+        rel = e.get("rel")
+        if (c["verdict"] == "in" and rel != "in") or (c["verdict"] == "not_in" and rel != "on") or \
+                ("corrected" in c and (rel != "in" or c["corrected"].get("from_rel") == rel)):
+            raise ValueError(f"{AT['where']}: {w} verdict {c['verdict']!r} on a {rel!r} edge, corrected {c.get('corrected')!r}")
+    out = {"verdict": c["verdict"], "level": c["level"], "inside_frac": num(c["inside_frac"], 3), "bound": num(c["bound"], 3),
+           "frames": int(c["frames"]), "r_px": num(c["r_px"], 3), "why": text(c["why"]),
+           "outside": int(c["longest_outside_run"]) if c.get("longest_outside_run") is not None else None}
+    if "hull" in c and not hull:
+        if c["level"] != "mask":
+            raise ValueError(f"{AT['where']}: {w} a hull record on level {c['level']!r}")
+        out["hull"] = containment_view(c["hull"], hull=True)
+    if "corrected" in c:
+        cr = c["corrected"]
+        out["corrected"] = {"from_rel": text(req(cr, "from_rel", f"{w} corrected")), "source": text(req(cr, "source", f"{w} corrected"))}
+    return out
 
 
 TEST_RESULTS = ("pass", "fail", "untestable")
@@ -775,7 +809,12 @@ def motion_law(name: str, o: dict):
                               "sigma_px": None if untestable else [num(x, 3) for x in req(rf, "sigma_px", wr)],
                               "tried": None if untestable else [[num(a, 4), bool(b), int(c)] for a, b, c in req(rf, "tried", wr)],
                               "why": text(req(rf, "why", wr))}
-    if FMT.get("selftest") and rot is None:
+    if FMT.get("contained") and out["model"] == "pendulum":
+        # a held, hanging object's pendulum law (scene_fit.motion_law, plan held): no phases, no unknown span
+        if set(law) != {"model", "why"}:
+            raise ValueError(f"{AT['where']}: object {name!r} pendulum motion law keys {sorted(law)}")
+        out["why"] = text(law["why"])
+    elif FMT.get("selftest") and rot is None:
         out["unknown"] = [[num(a, 4), None if b >= OPEN_END else num(b, 4)]
                           for a, b in req(law, "unknown", f"object {name!r} motion law")] or None
     return out
@@ -1040,7 +1079,11 @@ def direct_view(m: dict, what: str) -> dict:
         if FMT.get("roll"):
             inputs = req(m, "inputs", what) or {}
             win |= {"law": text(req(w, "law", f"{what} window")) or None, "check": text(req(w, "check", f"{what} window"))}
-            if win["law"] is None:   # rule window.driven: the state's own jitter is the noise of window.smooth
+            if win["law"] is None and win["used"] is None and win["t0"] is None and m.get("value") is None:
+                # a driven window over no tracked frame (t outside the track): nothing measured, no window.smooth
+                if win["check"] != "window.smooth" or req(m, "checks", what) or inputs:
+                    raise ValueError(f"{AT['where']}: {what} empty driven window with checks / inputs")
+            elif win["law"] is None:   # rule window.driven: the state's own jitter is the noise of window.smooth
                 if win["check"] != "window.smooth" or "window.smooth" not in req(m, "checks", what):
                     raise ValueError(f"{AT['where']}: {what} driven window without the check window.smooth")
                 win["driven"] = {"state": text(req(inputs, "driven", f"{what} inputs")),
@@ -1098,7 +1141,7 @@ def law_view(law: dict, what: str) -> dict:
     return {"g": num(req(law, "g", f"{what} law")), "source": text(req(law, "source", f"{what} law"))}
 
 
-def agreement_view(result: dict, answer: dict, status: str) -> dict:
+def agreement_view(result: dict, answer: dict, status: str, state: dict | None = None) -> dict:
     """The measurements of the asked quantity (scene result), the chosen one, and the checks "agree" / "constraints"
     of the answer with each constraint residual (answer "measurement"."constraint_residuals")."""
     ms = [measurement_row(m) for m in req(result, "measurements", "scene result")]
@@ -1119,7 +1162,16 @@ def agreement_view(result: dict, answer: dict, status: str) -> dict:
     agree = {"pass": req(ag, "pass", "agree"), "chi2": num(req(ag, "chi2", "agree"), 4), "dof": req(ag, "dof", "agree"),
              "bound": num(req(ag, "bound", "agree"), 4),
              "values": [[k, num(v[0]), num(v[1], 3)] for k, v in req(ag, "values", "agree").items()]}
-    res = req(req(answer, "measurement", "answer"), "constraint_residuals", "answer measurement")
+    res = list(req(req(answer, "measurement", "answer"), "constraint_residuals", "answer measurement"))
+    if FMT.get("contained"):
+        # rule A13 contained.same_depth: the container-depth rows are judged in "constraints" but are no stated
+        # constraint, so they are only in the scene's own "constraints" list (kind "contained"), never in the residuals
+        sc = req(state, "constraints", "scene")
+        rid = {text(c.get("id")) for c in res}
+        if any(text(c.get("kind")) == "contained" for c in res) or \
+                {text(c.get("id")) for c in sc if c.get("kind") != "contained"} != rid:
+            raise ValueError(f"{AT['where']}: scene constraints {[c.get('id') for c in sc]} differ from the answer's residuals {sorted(rid)}")
+        res += [c for c in sc if c.get("kind") == "contained"]
     rows = []
     for c in res:
         w = f"constraint {c.get('id')!r}"
@@ -1132,7 +1184,8 @@ def agreement_view(result: dict, answer: dict, status: str) -> dict:
                     | ({"stated": stated_view(req(c, "stated", w), w)} if FMT.get("kept") else {})
                     | ({"untestable": untestable_view(c, w)}
                        if FMT.get("fused") and c.get("pass") is None and c.get("inadmissible") is None else {})
-                    | ({"inadmissible": inadmissible_view(c, w)} if FMT.get("contact") and c.get("inadmissible") is not None else {}))
+                    | ({"inadmissible": inadmissible_view(c, w)} if FMT.get("contact") and c.get("inadmissible") is not None else {})
+                    | ({"contained": contained_row_view(c, w)} if FMT.get("contained") and c.get("kind") == "contained" else {}))
     ids = {r["id"] for r in rows}
     failed_ids = list(req(cs, "failed_ids", "constraints"))
     if not set(failed_ids) <= ids:
@@ -1150,6 +1203,21 @@ def agreement_view(result: dict, answer: dict, status: str) -> dict:
     wi = result.get("window_impulse") if FMT.get("span") else None
     return {"measurements": ms, "chosen": chosen, "agree": agree, "constraints": rows,
             "window_impulse": impulse_window_view(wi, "scene result", result=True) if wi is not None else None}
+
+
+def contained_row_view(c: dict, what: str) -> dict:
+    """A constraint of rule A13 contained.same_depth: the object's predicted depth against its container's observed
+    depth at one time of the edge's span; {object, container, t, sigma_container {sigma, sigma_zb, sigma_zb_how, h,
+    extent_a, extent_b}}."""
+    sc, w = req(c, "sigma_container", what), f"{what} sigma_container"
+    ev = req(c, "evaluation", what)
+    if text(req(ev, "kind", f"{what} evaluation")) != "contained" or text(req(ev, "container", f"{what} evaluation")) != text(req(c, "container", what)):
+        raise ValueError(f"{AT['where']}: {what} evaluation {ev!r}")
+    if num(req(sc, "sigma", w)) != num(req(c, "sigma_stated", what)):
+        raise ValueError(f"{AT['where']}: {what} sigma_container differs from its sigma_stated")
+    return {"object": text(req(c, "object", what)), "container": text(c["container"]), "t": num(req(c, "time", what), 4),
+            "sigma": num(sc["sigma"], 3), "sigma_zb": num(req(sc, "sigma_zb", w), 3), "sigma_zb_how": text(req(sc, "sigma_zb_how", w)),
+            "h": num(req(sc, "h", w), 3), "extent_a": num(req(sc, "extent_a", w), 3), "extent_b": num(req(sc, "extent_b", w), 3)}
 
 
 def inadmissible_view(c: dict, what: str) -> dict:
@@ -1189,6 +1257,14 @@ def dropped_view(c: dict, what: str) -> dict:
     """A repair candidate the loop dropped before the planner: its call and the rule that rejected it with the test's
     reason ("rule repair.applicable: rejected (rule <name>): <reason>")."""
     why = text(req(c, "why", f"{what} dropped candidate"))
+    if FMT.get("contained") and "dropped" in c:
+        # rule D27 repair.no_repeat: a repair that failed the same way twice is not offered again
+        nr = req(c, NO_REPEAT, f"{what} dropped candidate")
+        if c["dropped"] != NO_REPEAT:
+            raise ValueError(f"{AT['where']}: {what} dropped candidate dropped {c['dropped']!r}")
+        call = req(c, "call", f"{what} dropped candidate")
+        return {"name": text(req(call, "name", what)), "params": {k: v for k, v in (call.get("params") or {}).items() if v is not None},
+                "rule": NO_REPEAT, "why": why, "no_repeat": no_repeat_view(nr, what)}
     m = re.match(r"^rule repair\.applicable: rejected \(rule ([\w.]+)\):\s*(.*)$", why, re.S)
     call = req(c, "call", f"{what} dropped candidate")
     return {"name": text(req(call, "name", what)), "params": {k: v for k, v in (call.get("params") or {}).items() if v is not None},
@@ -1196,7 +1272,16 @@ def dropped_view(c: dict, what: str) -> dict:
 
 
 PLANNING_FAILED_KEYS = {"iter", "why", "accepted", "execution_status", "tool_calls"}
-REJECTED_CALL_REASONS = ("reference.not_repairable",)
+NO_REPEAT = "repair.no_repeat"   # rule D27 (pipeline.scene_agent.REPAIR_NO_REPEAT)
+REJECTED_CALL_REASONS = ("reference.not_repairable", NO_REPEAT)
+
+
+def no_repeat_view(x: dict, what: str) -> dict:
+    """A repair key that failed the same way twice (rule D27): {tool, target, rounds, reason}."""
+    if set(x) != {"tool", "target", "rounds", "reason"} or len(x["rounds"]) != 2:
+        raise ValueError(f"{AT['where']}: {what} {NO_REPEAT} record {x!r}")
+    return {"tool": text(x["tool"]), "target": text(x["target"]) or None, "rounds": [int(r) for r in x["rounds"]],
+            "reason": text(x["reason"])}
 
 
 def rejected_call_view(c: dict, w: str) -> dict:
@@ -1205,6 +1290,8 @@ def rejected_call_view(c: dict, w: str) -> dict:
     if reason not in REJECTED_CALL_REASONS:
         raise ValueError(f"{AT['where']}: {w} rejected call reason {reason!r}")
     call = req(c, "call", f"{w} rejected call")
+    if reason == NO_REPEAT:
+        no_repeat_view(req(c, NO_REPEAT, f"{w} rejected call"), f"{w} rejected call")
     return {"name": text(req(call, "name", f"{w} rejected call")),
             "params": {k: v for k, v in (call.get("params") or {}).items() if v is not None},
             "reason": reason, "why": text(req(c, "why", f"{w} rejected call"))}
@@ -1276,6 +1363,13 @@ def rounds_view(rec: dict) -> dict | None:
         if FMT.get("sizeonly"):
             # rule reference.size_only: a call that names a reference is rejected (reference.not_repairable)
             row["rejected_calls"] = [rejected_call_view(c, w) for c in req(it, "rejected_calls", w)]
+        if FMT.get("contained"):
+            # rule D27: the keys that joined the no-repeat set this round; a round stopped before planning
+            row["no_repeat"] = [no_repeat_view(x, w) for x in it.get(NO_REPEAT) or []]
+            ds = it.get("decision_status")
+            row["not_planned"] = ds == "not_planned"
+            if row["not_planned"] and (calls or it.get("execution_status") != "unchanged" or acc):
+                raise ValueError(f"{AT['where']}: {w} not_planned with calls / execution_status {it.get('execution_status')!r}")
         rows.append(row)
     out = {"kept": kept, "rounds": rows}
     if FMT.get("horizon"):
@@ -1286,6 +1380,11 @@ def rounds_view(rec: dict) -> dict | None:
                  for x in (st.get("tried") or [])]
         out["stop"] = {"reason": text(req(st, "reason", "stop")), "round": st.get("round"),
                        "why": text(st.get("why")) or None, "tried": tried}
+        if FMT.get("contained"):
+            out["stop"]["no_repeat"] = [no_repeat_view(x, "stop") for x in st.get(NO_REPEAT) or []]
+            nps = [r["iter"] for r in rows if r.get("not_planned")]
+            if nps and (st["reason"] != "loop.no_repair" or nps != [st.get("round")] or not out["stop"]["no_repeat"]):
+                raise ValueError(f"{AT['where']}: not_planned rounds {nps} with stop {st['reason']!r} round {st.get('round')!r}")
     return out if rows else None
 
 
@@ -1321,7 +1420,65 @@ def scale_view(state: dict):
         if req(sc, "class_reference", "scale") != req(state, "scale.class_reference", "scene"):
             raise ValueError(f"{AT['where']}: scale.class_reference differs from the scene's scale.class_reference")
         out["full_extent"] = scale_full_extent_view(req(sc, "full_extent", "scale"))
+    if FMT.get("contained"):
+        # rule B23: a scale read from a motion prior carries its record, every other scale has none
+        if ("prior_motion" in sc) != (src == "prior_object_motion"):
+            raise ValueError(f"{AT['where']}: scale source {src!r} {'with' if 'prior_motion' in sc else 'without'} scale.prior_motion")
+        out["prior_motion"] = prior_motion_view(sc.get("prior_motion"), req(sc, "checks", "scale"))
     return out
+
+
+PRIOR_MOTION_KEYS = {"name", "pass", "pieces", "unobserved", "piece", "t_lo", "t_hi", "law", "rms_px", "noise_px",
+                     "bound_px", "read", "speed_px_s", "depth", "value", "displacement_value", "sigma_rel", "s",
+                     "sigma_s", "why"}
+PRIOR_MOTION_PIECE_KEYS = {"piece", "law", "t_lo", "t_hi", "n", "used", "read", "value", "sigma", "weight", "rms_px",
+                           "bound_px", "rate", "depth", "displacement_value", "why"}
+PRIOR_MOTION_READS = ("fit", "displacement", "mean")
+
+
+def prior_motion_view(pm: dict | None, checks: dict):
+    """Rule B23 scale.prior_motion: the motion prior read over the object's observed motion pieces; each piece's law,
+    read (fit / displacement), value, weight (observed seconds), whether it entered the mean; the chosen read and the
+    scale. None for a scale that is not read from a motion prior; the check scale.checks.prior_motion carries its pass
+    and why."""
+    if pm is None:
+        if "prior_motion" in checks:
+            raise ValueError(f"{AT['where']}: scale check prior_motion without its scale.prior_motion record")
+        return None
+    w = "scale.prior_motion"
+    if set(pm) != PRIOR_MOTION_KEYS or pm["name"] != w:
+        raise ValueError(f"{AT['where']}: {w} keys {sorted(pm)} name {pm.get('name')!r}")
+    c = req(checks, "prior_motion", "scale checks")
+    if c["pass"] is not pm["pass"] or text(c["reason"]) != text(pm["why"]):
+        raise ValueError(f"{AT['where']}: scale check prior_motion differs from {w}")
+    read = pm["read"]
+    if read not in PRIOR_MOTION_READS + (None,) or (read is None) == bool(pm["pass"]):
+        raise ValueError(f"{AT['where']}: {w} read {read!r} with pass {pm['pass']!r}")
+    pieces = []
+    for p in pm["pieces"]:
+        wp = f"{w} piece {p.get('piece')!r}"
+        if set(p) != PRIOR_MOTION_PIECE_KEYS:
+            raise ValueError(f"{AT['where']}: {wp} keys {sorted(p)}")
+        if p["read"] not in ("fit", "displacement", None) or (p["used"] and p["read"] is None):
+            raise ValueError(f"{AT['where']}: {wp} read {p['read']!r} used {p['used']!r}")
+        dz = p["depth"]
+        pieces.append({"piece": int(p["piece"]), "law": text(p["law"]), "t": [num(p["t_lo"], 4), num(p["t_hi"], 4)],
+                       "n": int(p["n"]), "used": bool(p["used"]), "read": text(p["read"]) or None,
+                       "value": num(p["value"]), "sigma": num(p["sigma"], 3), "weight": num(p["weight"], 3),
+                       "displacement": num(p["displacement_value"]),
+                       "rms": [num(x, 3) for x in p["rms_px"]] if p["rms_px"] else None,
+                       "bound": [num(x, 3) for x in p["bound_px"]] if p["bound_px"] else None,
+                       "rate": num(p["rate"], 4),
+                       "depth": None if dz is None else {"z": num(req(dz, "Z", f"{wp} depth"), 4), "how": text(req(dz, "how", f"{wp} depth"))},
+                       "why": text(p["why"])})
+    un = req(pm, "unobserved", w)
+    return {"pass": pm["pass"], "read": read, "piece": pm["piece"], "t": [num(pm["t_lo"], 4), num(pm["t_hi"], 4)],
+            "law": text(pm["law"]) or None, "value": num(pm["value"]), "displacement": num(pm["displacement_value"]),
+            "sigma_rel": num(pm["sigma_rel"], 3), "s": num(pm["s"]), "sigma_s": num(pm["sigma_s"], 3),
+            "pieces": pieces, "unobserved": {"border": text(req(un, "border", f"{w} unobserved")) or None,
+                                             "n": int(req(un, "n", f"{w} unobserved")),
+                                             "ends": {k: text(v) for k, v in (req(un, "ends", f"{w} unobserved") or {}).items()}},
+            "why": text(pm["why"])}
 
 
 CLASS_SKIP_REASONS = ("self_reference", "observe.line_spacing", "prior.stated", "part.unmeasured", "track.none",
@@ -1618,6 +1775,10 @@ def identity_view(key: str) -> dict:
         rows = []
         for c in cands:
             pres, mv = c.get("presence"), c.get("moves")
+            if FMT.get("contained") and mv and (not {"moves", "px", "centre", "size", "evidence"} <= set(mv) or set(mv) - MOVES_KEYS):
+                raise ValueError(f"{AT['where']}: {w} candidate moves keys {sorted(mv)}")
+            if FMT.get("contained") and text(c.get("outcome")).startswith("dropped") and c["outcome"] != "dropped: candidate.full_frame":
+                raise ValueError(f"{AT['where']}: {w} candidate outcome {c['outcome']!r}")
             rows.append({"source": text(req(c, "source", w)), "frame": req(c, "frame", w),
                          "box": [round(float(x)) for x in c["box"]] if req(c, "box", w) else None,
                          "n": req(c, "n_frames", w), "px": num(mv["px"], 3) if mv else None,
@@ -1631,9 +1792,51 @@ def identity_view(key: str) -> dict:
                                   for x in c.get("class_size") or []],
                          "span": [pres["first"], pres["last"]] if pres and pres.get("pass") else None,
                          "border": num(c["border_frac"], 2) if c.get("border_frac") is not None else None,
-                         "outcome": text(req(c, "outcome", w)), "why": text(c.get("why")) or None})
+                         "outcome": text(req(c, "outcome", w)), "why": text(c.get("why")) or None}
+                        | ({"terms": {k: num(mv[k], 3) for k in ("centre", "size", "evidence")}
+                                     | ({"window": mv["window"]} if "window" in mv else {})} if FMT.get("contained") and mv else {}))
         out[name] = {"candidates": rows, "chosen": chosen, "untracked": text(untracked) or None}
+        if FMT.get("contained"):
+            out[name]["whole_set"] = whole_set_view(v["whole_set"], len(cands), w) if "whole_set" in v else None
+    if FMT.get("contained"):
+        choose = req(j["meta"], "choose", "track cache meta")
+        for name, c in choose.items():
+            if name not in out:
+                raise ValueError(f"{AT['where']}: track meta choose names {name!r} without an identity record")
+            out[name]["choice"] = choice_view(c, f"choose of {name!r}")
     return out
+
+
+MOVES_KEYS = {"moves", "px", "centre", "size", "evidence", "window"}   # rule E15 identity.moves
+
+
+def whole_set_view(x: dict, n: int, w: str) -> dict:
+    """Rule E15 identity.whole_set: every candidate failed and some failed only "static" while the object's motion is
+    asserted -- judged again most-moving first; {chosen, terms [{candidate, centre, size, evidence}], why}."""
+    w = f"{w} whole_set"
+    if set(x) != {"rule", "chosen", "motion_terms", "why"} or x["rule"] != "ranked" or \
+            (x["chosen"] is not None and not 0 <= int(x["chosen"]) < n):
+        raise ValueError(f"{AT['where']}: {w} {x!r}")
+    return {"chosen": x["chosen"], "why": text(x["why"]),
+            "terms": [{"candidate": req(t, "candidate", w), "centre": num(req(t, "centre", w), 3), "size": num(req(t, "size", w), 3),
+                       "evidence": num(req(t, "evidence", w), 3)} for t in x["motion_terms"]]}
+
+
+def choice_view(c: dict, w: str) -> dict:
+    """Rule E15 choice_frame: the frame each object's box was chosen on (its most complete, largest appearance by one
+    scan of the probe frames) with why, the scan's labels per probe frame, and the detector boxes dropped as the
+    image itself (candidate.full_frame)."""
+    cf, sc = req(c, "choice_frame", w), req(c, "scan", w)
+    if set(cf) != {"frame", "why"} or set(sc) != {"labels", "best"} or any(v not in ("full", "partial", "absent") for v in sc["labels"].values()):
+        raise ValueError(f"{AT['where']}: {w} choice_frame {cf!r} scan {sc!r}")
+    dropped = []
+    for d in c.get("dropped") or []:
+        if set(d) != {"box", "why", "outcome"}:
+            raise ValueError(f"{AT['where']}: {w} dropped keys {sorted(d)}")
+        dropped.append({"box": [round(float(x)) for x in d["box"]], "why": text(d["why"]), "outcome": text(d["outcome"])})
+    return {"frame": cf["frame"], "why": text(cf["why"]), "shared": req(c, "shared_frame", w),
+            "scan": [[int(k), v] for k, v in sorted(sc["labels"].items(), key=lambda kv: int(kv[0]))], "best": sc["best"],
+            "dropped": dropped}
 
 
 def focal_view(state: dict):
@@ -1835,7 +2038,94 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"plane_fusion": plane_fusion_view(j), "plane_sigma": plane_sigma_view(j)} if FMT.get("launch") else {}) | \
         ({"class_reference": class_reference_view(j, camera_scale_source(req(j, "camera", "scene")))}
          if FMT.get("classref") else {}) | \
-        ({"references": references_view(j)} if FMT.get("sizeonly") else {})
+        ({"references": references_view(j)} if FMT.get("sizeonly") else {}) | \
+        ({"class_object": class_object_view(j), "contained": contained_view(j)} if FMT.get("contained") else {})
+
+
+CLASS_OBJECT_KEYS = {"scope", "scope_why", "class", "instances", "given_size", "chosen"}
+CLASS_INSTANCE_KEYS = {"name", "tracked", "untracked", "role", "static", "static_why", "read"}
+CLASS_READ_KEYS = {"mode", "value", "sigma", "extent", "n_frames", "how"}
+PRIOR_SCOPES = ("instance", "class", "unbound", None)
+
+
+def class_object_view(state: dict):
+    """Rule C16 prior.class_object: a size stated for a class is the given size of every instance; each instance's
+    track, role, static flag and its read (s: the scale from its extent, f: its size-prior focal vote), the chosen one.
+    None unless the prior's scope is "class" (then class / instances / given size / chosen are empty)."""
+    w = "prior.class_object"
+    c = req(state, w, "scene")
+    if set(c) != CLASS_OBJECT_KEYS or c["scope"] not in PRIOR_SCOPES:
+        raise ValueError(f"{AT['where']}: {w} keys {sorted(c)} scope {c.get('scope')!r}")
+    cp = req(state, "class_prior", "scene")
+    if c["scope"] != "class":
+        if c["class"] is not None or c["instances"] or c["given_size"] is not None or c["chosen"] is not None or \
+                (cp is not None and cp.get("scope") == "class"):
+            raise ValueError(f"{AT['where']}: {w} scope {c['scope']!r} with a class / instances / given size / chosen")
+        return None
+    names = [text(req(i, "name", f"{w} instance")) for i in c["instances"]]
+    if not names or text(c["chosen"]) not in names or cp is None or cp.get("scope") != "class" or cp.get("class") != c["class"]:
+        raise ValueError(f"{AT['where']}: {w} chosen {c['chosen']!r} of {names}, class_prior {cp!r}")
+    gs = req(c, "given_size", w)
+    rows = []
+    for i in c["instances"]:
+        wi = f"{w} instance {i.get('name')!r}"
+        r = req(i, "read", wi)
+        if set(i) != CLASS_INSTANCE_KEYS or (r is not None and set(r) != CLASS_READ_KEYS) or (i["tracked"] == (i["untracked"] is not None)):
+            raise ValueError(f"{AT['where']}: {wi} keys {sorted(i)} read {sorted(r or {})} tracked {i.get('tracked')!r}")
+        if r is not None and r["mode"] not in ("s", "f"):
+            raise ValueError(f"{AT['where']}: {wi} read mode {r['mode']!r}")
+        rows.append({"name": text(i["name"]), "tracked": bool(i["tracked"]), "untracked": text(i["untracked"]) or None,
+                     "role": text(i["role"]), "static": i["static"], "static_why": text(i["static_why"]),
+                     "read": None if r is None else {
+                         "mode": r["mode"], "value": num(r["value"]), "sigma": num(r["sigma"], 3), "extent": num(r["extent"]),
+                         "n": r["n_frames"], "how": text(r["how"])}})
+    return {"scope_why": text(c["scope_why"]), "class": text(c["class"]), "instances": rows, "chosen": text(c["chosen"]),
+            "given": {"quantity": text(req(gs, "quantity", f"{w} given_size")), "value": num(req(gs, "value_si", f"{w} given_size")),
+                      "sigma": num(req(gs, "sigma", f"{w} given_size"), 3)}}
+
+
+CONTAINED_KEYS = {"rule", "pass", "why", "edges"}
+CONTAINED_EDGE_KEYS = {"a", "b", "span", "source", "containment", "plan", "rows_dense", "z_a", "z_b", "sigma", "pass",
+                       "testable", "ids", "rows", "why"}
+CONTAINED_ROW_KEYS = {"t", "z_a", "z_b", "sigma", "sigma_container", "sigma_pred", "pass"}
+
+
+def contained_view(state: dict):
+    """Rule A13 contained.same_depth: every "A in B" edge's plan (contained), dense rows taken from the container, the
+    depth of A against B at the span's first / middle / last shared frame; None without an "in" edge."""
+    w = "contained.same_depth"
+    c = req(state, w, "scene")
+    if set(c) != CONTAINED_KEYS or c["rule"] != w:
+        raise ValueError(f"{AT['where']}: {w} keys {sorted(c)}")
+    if not c["edges"]:
+        if c["pass"] is not None:
+            raise ValueError(f"{AT['where']}: {w} pass {c['pass']!r} without an edge")
+        return None
+    cons = {text(x.get("id")): x for x in req(state, "constraints", "scene") if x.get("kind") == "contained"}
+    edges = []
+    for e in c["edges"]:
+        we = f"{w} edge {e.get('a')!r} in {e.get('b')!r}"
+        if set(e) != CONTAINED_EDGE_KEYS:
+            raise ValueError(f"{AT['where']}: {we} keys {sorted(e)}")
+        plan, ct = e["plan"], e["containment"]
+        if req(plan, "mode", f"{we} plan") != "contained" or text(req(plan, "target", f"{we} plan")) != text(e["b"]):
+            raise ValueError(f"{AT['where']}: {we} plan {plan!r}")
+        if any(i not in cons for i in e["ids"]) or len(e["ids"]) != len(e["rows"]):
+            raise ValueError(f"{AT['where']}: {we} ids {e['ids']} not the scene's contained constraints {sorted(cons)}")
+        rows = []
+        for r in e["rows"]:
+            if set(r) != CONTAINED_ROW_KEYS:
+                raise ValueError(f"{AT['where']}: {we} row keys {sorted(r)}")
+            rows.append({k: (num(r[k], 4) if k != "pass" else r[k]) for k in ("t", "z_a", "z_b", "sigma", "sigma_container", "sigma_pred", "pass")})
+        rd = e["rows_dense"]
+        edges.append({"a": text(e["a"]), "b": text(e["b"]), "span": [num(x, 4) for x in e["span"]], "source": text(e["source"]),
+                      "containment": None if ct is None else {"verdict": text(req(ct, "verdict", we)), "level": text(req(ct, "level", we)),
+                                                              "inside_frac": num(req(ct, "inside_frac", we), 3),
+                                                              "bound": num(req(ct, "bound", we), 3), "frames": req(ct, "frames", we)},
+                      "rows_dense": None if rd is None else {"n_a": req(rd, "n_a", we), "n_b": req(rd, "n_b", we)},
+                      "z_a": num(e["z_a"], 4), "z_b": num(e["z_b"], 4), "sigma": num(e["sigma"], 3),
+                      "pass": e["pass"], "testable": bool(e["testable"]), "rows": rows, "why": text(e["why"])})
+    return {"pass": c["pass"], "why": text(c["why"]), "edges": edges}
 
 
 def object_role(name: str, o: dict) -> str:
@@ -2253,6 +2543,7 @@ def undetermined_view(state: dict, cam: dict):
 
 
 PRIOR_UNTRACKED = re.compile(r"^prior object '(.+?)' has no track: ")   # pipeline.scene_fit.prior_untracked reason
+PRIOR_UNTRACKED_CLASS = re.compile(r"^no instance of the class prior \((\w+)\) has a track: ")   # the same, rule C16
 
 
 def prior_untracked_view(state: dict):
@@ -2265,6 +2556,12 @@ def prior_untracked_view(state: dict):
             raise ValueError(f"{AT['where']}: result check prior.untracked {c!r} with camera prior.untracked {pu!r}")
     if pu is None:
         return None
+    if FMT.get("contained") and PRIOR_UNTRACKED_CLASS.match(pu):
+        # rule C16: a class prior fails only when no instance is tracked; the instances are in prior.class_object
+        co = req(state, "prior.class_object", "scene")
+        if co.get("scope") != "class" or any(i.get("tracked") for i in co["instances"]):
+            raise ValueError(f"{AT['where']}: class prior.untracked {pu!r} with prior.class_object {co.get('scope')!r}")
+        return {"object": None, "instances": [[text(i["name"]), text(i["untracked"])] for i in co["instances"]], "reason": pu}
     m = PRIOR_UNTRACKED.match(pu)
     if not m:
         raise ValueError(f"{AT['where']}: prior.untracked reason {pu!r}")
@@ -3091,7 +3388,7 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
             elif FMT["decide"] == "agree":
                 if result is None:
                     raise ValueError(f"{unit}: the scene has no result for this question")
-                query |= agreement_view(result, answer, query["status"])
+                query |= agreement_view(result, answer, query["status"], state)
             quality = req(result, "quality", "scene result") if result else {}
             alignment = align(quality.get("align_tq"))   # absent or null when no alignment check ran
             mid = (result or {}).get("measurement_id")
@@ -3128,6 +3425,12 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                         same_depth_rows(state, query["measurements"])
                 if FMT.get("kept"):
                     query["rounds"] = rounds_view(rec)
+                if FMT.get("contained") and sv is not None:
+                    # rule D27: agent_status lists every no-repeat key (always present), as the rounds joined them
+                    nr = [no_repeat_view(x, "agent_status") for x in req(req(state, "agent_status", "scene"), NO_REPEAT, "agent_status")]
+                    joined = [x for r in (query.get("rounds") or {}).get("rounds", []) for x in r.get("no_repeat", [])]
+                    if sorted(map(str, nr)) != sorted(map(str, joined)):
+                        raise ValueError(f"{AT['where']}: agent_status {NO_REPEAT} {nr} differs from the rounds' {joined}")
                 if FMT.get("identity"):
                     query |= {"identity": identity_view(unit),
                               "dims_check": dims_check(sv) if sv is not None else None}
@@ -3154,12 +3457,17 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                     pu = prior_untracked_view(state) if state is not None and not donly else None
                     if donly:
                         c = (result or {}).get("checks", {}).get("prior.untracked")
-                        pu = None if c is None else {"object": PRIOR_UNTRACKED.match(text(c["reason"])).group(1),
-                                                     "reason": text(c["reason"])}
+                        if c is None:
+                            pu = None
+                        elif FMT.get("contained") and PRIOR_UNTRACKED_CLASS.match(text(c["reason"])):
+                            pu = {"object": None, "instances": None, "reason": text(c["reason"])}
+                        else:
+                            pu = {"object": PRIOR_UNTRACKED.match(text(c["reason"])).group(1), "reason": text(c["reason"])}
                     if pu is not None:
                         if "prior.untracked" not in req(answer, "failed", "answer"):
                             raise ValueError(f"{AT['where']}: prior.untracked is not among the answer's failed checks")
-                        prior_untracked_repairs(query.get("rounds"), pu["object"])
+                        if pu["object"] is not None:
+                            prior_untracked_repairs(query.get("rounds"), pu["object"])
                     query["prior_untracked"] = pu
             query["tq"], query["tjump"] = question_times(query["q"], alignment)
             questions.append(query)
@@ -3194,7 +3502,7 @@ def direct_only_view(state: dict, result: dict | None) -> dict:
             "measurements": [measurement_row(m) for m in req(result, "measurements", "scene result")]}
 
 
-EXCLUDED_KEYS = ("reference.size_only", "structure.static", "buoyant")   # pipeline.critic plausible.excluded
+EXCLUDED_KEYS = ("reference.size_only", "structure.static", "buoyant", "contained")   # pipeline.critic plausible.excluded
 
 
 def excluded_view(pl: dict) -> list[dict]:
