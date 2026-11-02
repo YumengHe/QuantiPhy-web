@@ -510,7 +510,8 @@
         x.rejected.map((w) => `<div class="bad">${esc(w)}</div>`).join('') +
         (x.rejected_calls || []).map((c) => `<div class="bad"><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span> <code>${esc(c.reason)}</code> ${esc(c.why)}</div>` + keptLine(c.unobserved_kept)).join('') +
         contractTable(x.contract);
-      const cand = (x.candidates || []).map((c) => `<div class="cand"><code>${esc(c.for)}</code> ← <code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span></div>`).join('') +
+      const cand = (x.candidates || []).map((c) => `<div class="cand"${c.why ? ` title="${esc(c.why)}"` : ''}><code>${esc(c.for)}</code> ← <code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span></div>`).join('') +
+        (x.support_plane || []).map((c) => `<div class="cand drop" title="${esc(c.why)}"><code>visibility.support_plane</code> ${esc(c.object)}</div>`).join('') +
         (x.dropped || []).map((c) => `<div class="cand drop"><code>${esc(c.name)}</code> <span class="muted">${esc(par(c.params))}</span>` +
           `<div class="bad">${c.rule ? `<code>${esc(c.rule)}</code> ` : ''}${esc(c.why)}</div></div>`).join('');
       if (x.planning_failed) return `<tr><td class="n">${x.iter}</td><td colspan="3"></td><td class="bad">${esc(x.why)}</td></tr>`;
@@ -716,7 +717,7 @@
     let t = sp.mode === 'support' ? `on ${sp.target || 'main support'}` : sp.mode === 'airborne' ? (sp.airborne_part && sp.target ? `on ${sp.target}, then airborne` : 'airborne') : sp.mode || '';
     if (o.hang) t += ' (top face is the support)';
     if (o.t_on > 0) t += `; at rest until ${fmt(o.t_on, 2)} s`;
-    const MODE = { ballistic: 'bouncing', contact: 'contact (geometry first)', overhead: 'overhead structure', free3d: 'free 3D motion', own_plane: 'own plane' };
+    const MODE = { ballistic: 'bouncing', contact: 'contact (geometry first)', overhead: 'overhead structure', free3d: 'free 3D motion', own_plane: 'own plane', held_static: 'held static' };
     if (o.mode && MODE[o.mode]) t += `; ${MODE[o.mode]}`;
     if (o.events && o.events.length) t += ` (${o.events.slice(0, 4).map((e) => `${e[1]} ${fmt(e[0], 2)} s`).join(', ')}${o.events.length > 4 ? '…' : ''})`;
     if (o.out_of_frame && o.out_of_frame.length) t += `; out of frame ${o.out_of_frame.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ')} s`;
@@ -780,6 +781,16 @@
         `<td class="n">${plusMinus(x.f, x.sigma)}</td><td>${x.used ? 'used' : esc(x.why)}</td></tr>`).join('') +
       `<tr class="camf"><td colspan="2" title="${esc(co.how)}">camera.f</td><td class="n">${plusMinus(co.f, co.sigma)}</td><td></td></tr></table></div>`;
   }
+  // rule C22 focal.refit_fixed_point: each refit pass at its own f (0: stage A's), the votes the fusion admitted
+  // there, the f they give and the class votes it skipped; the f is kept when the admitted set repeats
+  function refitTable(r) {
+    if (!r) return '';
+    return '<div class="scroll-x"><table class="focal refitfp"><tr><th><code>focal.refit_fixed_point</code></th><th class="n">At f (px)</th><th>Admitted</th><th class="n">f (px)</th><th>Class votes skipped</th></tr>' +
+      r.steps.map((x) => `<tr class="${x.fusion_pass === false ? 'bad' : ''}"><td class="n">${x.iteration}</td><td class="n">${fmtNum(x.f_scene)}</td>` +
+        `<td>${x.admitted.map((a) => `<code>${esc(a)}</code>`).join(' ')}</td><td class="n">${x.f != null ? plusMinus(x.f, x.sigma) : '—'}</td>` +
+        `<td class="muted">${x.class_skipped.map((k) => `${esc(k.name)} <code>${esc(k.reason)}</code>`).join('; ')}</td></tr>`).join('') +
+      `<tr class="camf ${cls3(r.pass)}"><td colspan="4">${res3(r.pass)}</td><td>${esc(r.why)}</td></tr></table></div>`;
+  }
   // stage A's f undetermined (σ ≥ f) and never kept; the focal fusion's sources set the camera's f and the scene is
   // fitted again at it (rule focal.undetermined); class votes that could not join are listed muted
   function undeterminedTable(u) {
@@ -825,6 +836,19 @@
       '</table></div>';
   }
   // the support plane's acceptance with its sub-tests (rule D9 support.plane); a recorded sub-test has no verdict
+  // rule C23 support.undetermined_soft: the plane's roll / pitch σ and where it came from; a soft plane (σ ≥ 90°) is
+  // no hard surface -- the chains' bounded phases against it become flight
+  function softTable(x) {
+    if (!x || !x.plane) return '';
+    const f = x.from;
+    const src = f.source + (f.source === 'main_support' ? ` · ${f.n_mask_points} mask points · ${f.n_contacts} contacts`
+      : f.source === 'stage_a_fit' ? ` · ${esc(f.stage_a)}${f.objects.length ? ` · anchors ${f.objects.map(([o, n]) => `${esc(o)} ${n}`).join(', ')}` : ''}${f.horizon ? ' · horizon' : ''}${f.own_only ? ' · own contacts only' : ''}` : '');
+    return `<p class="facts ${cls3(x.pass)}" title="${esc(x.why)}"><code>support.undetermined_soft</code> roll ${fmt(x.plane.roll_deg, 2)}° ± ${x.sigma_roll == null ? '—' : fmtNum(x.sigma_roll)}°` +
+      ` · pitch ${fmt(x.plane.pitch_deg, 2)}° ± ${x.sigma_pitch == null ? '—' : fmtNum(x.sigma_pitch)}° · ${src} · ${x.pass === false ? 'soft' : x.pass ? 'hard' : 'untestable'}</p>` +
+      (x.softened.length ? '<div class="scroll-x"><table class="sgrel soft"><tr><th>Object</th><th>Span</th><th>Edge</th><th>Law</th></tr>' +
+        x.softened.map((r) => `<tr><td>${esc(r.object)}</td><td>${span(r.t0, r.t1)}</td><td>${esc(r.rel)}${r.to ? ` ${esc(r.to)}` : ''}</td><td title="${esc(r.events)}">${esc(r.was)} → ${esc(r.now)}</td></tr>`).join('') +
+        '</table></div>' : '');
+  }
   function supportPlaneTable(sp) {
     if (!sp) return '';
     if (!sp.tests.length) return `<p class="facts"><code>support.plane</code> <span class="muted">${esc(sp.reason)}</span></p>`;
@@ -915,9 +939,19 @@
             : '<td colspan="4" class="muted">no support plane</td></tr>');
       }).join('') + '</table></div>';
   }
+  // rule B31 unobserved.no_new_law: an unobserved phase starts no new law -- the state before it continues through
+  // it (backward at the clip's start, none: a gap) and its frames leave the fit's rows
+  function noNewLawTable(rows) {
+    if (!rows || !rows.length) return '';
+    return '<div class="scroll-x"><table class="sgrel nonewlaw"><tr><th><code>unobserved.no_new_law</code></th><th>Unobserved</th><th>Continued</th><th class="n">Rows dropped</th></tr>' +
+      rows.map((r) => `<tr><td>${esc(r.object)}</td><td class="uo" title="${esc(r.why)}">${span(r.phase[0], r.phase[1])}</td>` +
+        `<td>${r.direction ? r.continued.map((c) => `${esc(c.rel)}${c.to ? ` ${esc(c.to)}` : ''} ${span(c.was[0], c.was[1])} → ${span(c.now[0], c.now[1])}`).join('<br>') + ` <span class="muted">${esc(r.direction)}</span>` : '<span class="muted">gap</span>'}</td>` +
+        `<td class="n">${r.dropped.n ? `${r.dropped.n} <span class="muted">${r.dropped.frames.map(([a, b]) => (a === b ? a : `${a}–${b}`)).join(', ')}</span>` : '0'}</td></tr>`).join('') +
+      '</table></div>';
+  }
   // each physics chain's phases over the clip; a driven span (rule law.impulse_span) has no law, a straight segment
   function chainTable(s, T) {
-    const os = s.objects.filter((o) => o.chain && o.chain.length);
+    const os = s.objects.filter((o) => (o.chain && o.chain.length) || o.chain_rejected);
     if (!os.length) return '';
     const W = 600, H = 34, B = 14;
     const bar = (ph) => {
@@ -935,7 +969,8 @@
       `<td class="n muted">chain ${fmtNum(g.rms_chain_law)} / ${g.frames_law}<div>kinematic ${fmtNum(g.rms_kinematic_all)} / ${g.frames_kinematic_all}</div></td>`);
     return '<div class="scroll-x"><table class="objs chain"><tr><th>Physics chain</th><th>Phases</th>' +
       (hasGate ? '<th class="n"><code>physics.gate</code> rms (px)</th><th class="n">Own rms (px) / frames</th>' : '') + '</tr>' +
-      os.map((o) => `<tr><td>${esc(o.name)}</td><td>${bar(o.chain)}</td>${hasGate ? gate(o.gate) : ''}</tr>`).join('') +
+      os.map((o) => (!o.chain ? `<tr class="bad"><td>${esc(o.name)}</td><td colspan="${hasGate ? 3 : 1}">${esc(o.chain_rejected)}</td></tr>`
+        : `<tr${o.chain_rejected ? ' class="bad"' : ''}><td>${esc(o.name)}</td><td>${bar(o.chain)}</td>${hasGate ? gate(o.gate) : ''}</tr>`)).join('') +
       '</table></div>';
   }
   // the agents' upright extent re-run at the nominal scene's depth before the prior scale is read (rule
@@ -947,11 +982,22 @@
         ['overlap', 'shrink', 'no_depth', 'border'].map((k) => `<td>${r.excluded[k] ? esc(r.excluded[k].replace(/^\[|\]$/g, '')) : ''}</td>`).join('') +
         `<td title="${esc(r.depth)}">${esc(r.variant)}</td><td>${res3(r.pass)}</td></tr>`).join('') + '</table></div>';
   }
+  // rule C15d scene.rendered: the model's answer, the cues it named on the grid frames (a rejected cue with its
+  // reason), and the verdict -- a rendering only with at least one valid cue
+  function renderedTable(r) {
+    if (!r || r.verdict === null) return '';
+    if (!r.answer && !r.cues.length && !r.rejected.length) return '';
+    return '<div class="scroll-x"><table class="objs rendered"><tr><th><code>scene.rendered</code></th><th>Frame</th><th></th></tr>' +
+      r.cues.map((c) => `<tr><td><code>${esc(c.kind)}</code></td><td>${esc(c.where)}</td><td>${esc(c.why)}</td></tr>`).join('') +
+      r.rejected.map((c) => `<tr class="bad"><td><code>${esc(c.kind)}</code></td><td>${esc(c.where)}</td><td><code>${esc(c.reason)}</code> ${esc(c.why)}</td></tr>`).join('') +
+      `<tr class="camf ${r.verdict ? '' : 'bad'}"><td>${r.verdict ? 'rendered' : 'not rendered'}</td><td></td><td title="${esc(r.why || '')}">${r.reason ? `<code>${esc(r.reason)}</code>` : esc(r.why || '')}</td></tr>` +
+      '</table></div>';
+  }
   // the class references (rule C15): the inventory's classes and reference objects, the rejected ones with their
   // reason, then one row per class vote (s or f against the stated source) and per skipped object with its reason
   function classReferenceBlock(inv, cr, ss) {
     if (!inv && !cr) return '';
-    let h = '';
+    let h = renderedTable(inv && inv.rendered);
     const rej = new Set(inv ? inv.rejected.map((o) => o.name) : []);
     if (inv && (inv.objects.length || inv.references.length || inv.rejected.length)) {
       h += '<div class="scroll-x"><table class="objs classref"><tr><th>Class reference</th><th>Class</th><th></th></tr>' +
@@ -1185,16 +1231,16 @@
           cols.map((k) => `<td class="dims dims-${k}">${dims[i][k].join('')}</td>`).join('') + (hasSup ? `<td>${esc(supportText(o))}</td>` : '') +
           (hasLaw ? `<td>${lawText(o.law)}</td>` : '') +
           (hasVis ? `<td>${o.visible ? o.visible.map((iv) => `${fmt(iv[0], 2)}–${fmt(iv[1], 2)}`).join(', ') + ' s' : '<span class="muted">—</span>'}</td>` : '') +
-          `<td class="n">${fmt(o.rms, 1)}</td></tr>`;
+          `<td class="n"${o.near != null ? ` title="near ${fmtNum(o.near)} m"` : ''}>${fmt(o.rms, 1)}</td></tr>`;
       }).join('');
       h += `<div class="scroll-x"><table class="objs"><tr><th></th><th>Object</th><th>Shape</th>${cols.map((k) => `<th class="dims-${k}">${k[0].toUpperCase() + k.slice(1)} (m)</th>`).join('')}` +
         (hasSup ? '<th>Support</th>' : '') + (hasLaw ? '<th>Motion law</th>' : '') + (hasVis ? '<th>Visible</th>' : '') + `<th class="n">Residual (px)</th></tr>${rows}</table></div>` +
-        agentDimsTable(s) + fullExtentTable(s) + fitObjectTable(s) + segfitTable(s) + chainTable(s, v.duration) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) + containedBlock(s.contained) +
+        agentDimsTable(s) + fullExtentTable(s) + fitObjectTable(s) + segfitTable(s) + chainTable(s, v.duration) + noNewLawTable(s.no_new_law) + eventsTable(s) + impulseTable(s) + inclineBlock(s) + pendulumTable(s) + containedBlock(s.contained) +
         (s.camera ? `<p class="facts"><span title="${esc(s.camera.how)}">f ${plusMinus(s.camera.f, s.camera.sigma)} px${s.camera.source ? ` (${esc(s.camera.source)}${wasText(s.camera.fused)})` : ''}</span>`
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + undeterminedTable(s.camera && s.camera.undetermined) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + floorTable(q.floor) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + undeterminedTable(s.camera && s.camera.undetermined) + refitTable(s.camera && s.camera.refit) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + softTable(s.soft) + floorTable(q.floor) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') + priorMotionBlock(s.scale.prior_motion, v.duration) + scaleFullExtentTable(s.scale.full_extent) : '') +
         classObjectBlock(s.class_object) + classReferenceBlock(q.inventory, s.class_reference, q.scale_source) + referencesTable(s.references) + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +
@@ -1472,9 +1518,15 @@
       `<span class="ramp">ramp end ${w.ramp_end != null ? `${fmt(w.ramp_end, 3)} s` : '—'}</span> · <span class="piece">piece ${w.piece ? span3(w.piece) : '—'}${frs(w.piece_frames)}</span> · first frame ${fmt(w.first_frame, 3)} s · ` +
       `<span class="win ${cls3(w.pass)}" title="${esc(w.reason)}">direct window ${w.window ? span3(w.window) : '—'}${frs(w.window_frames)} ${res3(w.pass)}</span></p>${kline}${svg}${pairs}</div>`;
   }
+  // rule B31 piece.untested_not_read: the span an averaging answer reads (clipped from the fitted frames)
+  function answerSpanLine(a) {
+    if (!a) return '';
+    return `<p class="facts ${a.pass ? '' : 'bad'}"><code>answer.span</code> ${a.t0 != null ? span(a.t0, a.t1) : '—'}` +
+      `${a.frames ? ` <span class="muted">frames ${a.frames[0]}–${a.frames[1]}</span>` : ''}${a.clipped_from ? ` · clipped from ${span(a.clipped_from[0], a.clipped_from[1])}` : ''} · ${esc(a.why)}</p>`;
+  }
   function measurementBlock(q, v) {
     let h = '<div class="scroll-x"><table class="meas"><tr><th>Measurement</th><th>Method</th><th class="n">Value</th><th>Admissible</th><th>Failed</th><th>Inputs</th></tr>' +
-      q.measurements.map((m) => measurementRow(m, q)).join('') + '</table></div>' + impulseBlock(q.window_impulse, v.fps);
+      q.measurements.map((m) => measurementRow(m, q)).join('') + '</table></div>' + answerSpanLine(q.answer_span) + impulseBlock(q.window_impulse, v.fps);
     const other = q.measurements.filter((m) => m.name !== q.chosen && m.checks.length);
     if (other.length) {
       h += '<div class="scroll-x"><table class="checks mchecks"><tr><th>Check</th><th></th><th>Reason</th></tr>' +
@@ -1544,6 +1596,11 @@
     if (l.phases) parts.push(l.phases.map(([t, st]) => `${esc(st)} ${fmt(t, 2)}`).join(', ') + ' s');
     if (l.unknown) parts.push(`<span class="bad">unknown ${l.unknown.map(([a, b]) => span(a, b)).join(', ')}</span>`);
     if (l.agency) parts.push(`<span class="muted">agency untestable · ${esc(l.agency.why)}</span>`);
+    if (l.oscillates) {
+      const o = l.oscillates;
+      parts.push(`<span class="${o.pass ? '' : 'muted'}" title="${esc(o.why)}"><code>pendulum.oscillates</code> ${o.pass ? `period from ${esc(o.period_from)}` : 'no period'}</span>`);
+      if (l.model === 'held_static') parts.push(`at ${esc(l.attached_to || 'a string')}`);
+    }
     if (l.release_fit) {
       const r = l.release_fit;
       parts.push(`<span title="${esc(r.why)}"><code>release.fit</code> ${r.t == null ? 'none' : `${fmt(r.t, 3)} s`} in ${fmt(r.lo, 3)}–${fmt(r.hi, 3)} s, flight to ${fmt(r.t_stop, 3)} s</span>`);

@@ -249,6 +249,12 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #            (D31 time.one_grid); agent rounds carry the replayed constraint contract residuals and untestable ids (D30),
 #            graph_edit.unobserved_kept on results / rejected calls (A16); a measurement's constraint_residuals hold the
 #            contained rows (D30)
+#   rendered (batch 27) inventory format 9: "rendered" is {verdict, answer, cues [{kind, where, why}], cues_rejected
+#            [{.., reason}], why, reason null | rendered.unsupported} (C15d); the scene has "unobserved.no_new_law" (B31),
+#            "support.undetermined_soft" (also on the plane and on each softened chain's motion law, C23), camera
+#            "focal.refit_fixed_point" (C22; class skip reason focal.undetermined); a result has "answer.span" (B31); a
+#            hanging object's law is pendulum / held_static with "pendulum.oscillates" (A15); a rejected physics record
+#            may hold only the plan; a round has "visibility.support_plane" (D32); forward.near is the fit's own depth
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -263,7 +269,7 @@ VERSION_FORMAT = {
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
            "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
            "span": True, "launch": True, "classref": True, "sizeonly": True,
-           "undetermined": True, "contained": True, "unobserved": True},
+           "undetermined": True, "contained": True, "unobserved": True, "rendered": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -872,12 +878,30 @@ def sampled_path(o: dict):
     return [[num(i * PATH_DT, 4)] + [num(float(x), 5) for x in position(o, i * PATH_DT)] for i in range(n + 1)]
 
 
+def fitted_physics(name: str, o: dict):
+    """The object's physics record when its chain was fitted; None without one or when scene_fit rejected the chain
+    (a "rejected" record keeps the plan -- model, phases, why, impulse_span -- and no fit)."""
+    ph = req(o, "physics", f"scene object {name!r}")
+    if ph is not None and FMT.get("rendered") and "rejected" in ph and "events" not in ph:
+        if not set(ph) <= {"model", "phases", "why", "rejected", "impulse_span"} or o.get("mode") == "physics":
+            raise ValueError(f"{AT['where']}: object {name!r} rejected physics record keys {sorted(ph)} mode {o.get('mode')!r}")
+        return None
+    return ph
+
+
 def motion_events(name: str, o: dict) -> list:
     """An object's motion events ([t, kind] list) from the version's physics-law motion record (FMT["motion"])."""
     other = [k for k in MOTION_KEYS if k != FMT["motion"] and o.get(k)]
     if other:
         raise ValueError(f"object {name!r} has a {other[0]!r} motion record; this version's format is {FMT['motion']!r}")
     record = req(o, FMT["motion"], f"object {name!r}")    # null: no physics-law motion
+    if record is not None and FMT.get("rendered") and "rejected" in record:
+        # a rejected chain (scene_fit fit_physics: fit failed / no law after the kick: the plan only; box rms above the
+        # gate: the full record) is not the object's motion
+        if o.get("mode") == "physics":
+            raise ValueError(f"{AT['where']}: object {name!r} rejected physics record with mode physics")
+        if fitted_physics(name, o) is None:
+            return []
     return [] if record is None else list(req(record, "events", f"object {name!r} motion record"))
 
 
@@ -916,7 +940,19 @@ def motion_law(name: str, o: dict):
             if (rf.get("t") is None) != ("frame" not in rf):
                 raise ValueError(f"{AT['where']}: {wr} t {rf.get('t')!r} with frame {rf.get('frame', 'absent')!r}")
             out["release_fit"]["frame"] = rf.get("frame")
-    if FMT.get("contained") and out["model"] == "pendulum":
+    if FMT.get("rendered") and out["model"] in ("pendulum", "held_static"):
+        # rule A15 pendulum.oscillates: a hanging object is a pendulum only when its track oscillates, else held static
+        # at its attachment (attached_to: the attachment's name, or null for a string)
+        keys = {"model", "why", "pendulum.oscillates"} | ({"attached_to"} if out["model"] == "held_static" else set())
+        po = law.get("pendulum.oscillates") or {}
+        if set(law) != keys or set(po) != {"pass", "period_from", "why"} \
+                or po["pass"] is not (out["model"] == "pendulum") or (po["period_from"] is None) == po["pass"] \
+                or po["period_from"] not in (None, "d", "u", "d+u"):
+            raise ValueError(f"{AT['where']}: object {name!r} {out['model']} motion law {law!r}")
+        out |= {"why": text(law["why"]), "oscillates": {"pass": po["pass"], "period_from": po["period_from"], "why": text(po["why"])}}
+        if out["model"] == "held_static":
+            out["attached_to"] = text(law["attached_to"]) or None
+    elif FMT.get("contained") and out["model"] == "pendulum":
         # a held, hanging object's pendulum law (scene_fit.motion_law, plan held): no phases, no unknown span
         if set(law) != {"model", "why"}:
             raise ValueError(f"{AT['where']}: object {name!r} pendulum motion law keys {sorted(law)}")
@@ -952,7 +988,7 @@ def segfit_view(name: str, o: dict):
 def events_view(name: str, o: dict):
     """The boundaries of the physics chain, each a scene-graph event (rule events.graph): [{"phase", "event", "t",
     "window", "precision", "t_fit", "kick"}]; None without a physics record."""
-    ph = req(o, "physics", f"scene object {name!r}")
+    ph = fitted_physics(name, o)
     if ph is None:
         return None
     w = f"object {name!r} physics events_graph"
@@ -1336,7 +1372,23 @@ def agreement_view(result: dict, answer: dict, status: str, state: dict | None =
             raise ValueError(f"{AT['where']}: constraints inadmissible_ids {in_ids} differ from the residuals marked inadmissible")
     wi = result.get("window_impulse") if FMT.get("span") else None
     return {"measurements": ms, "chosen": chosen, "agree": agree, "constraints": rows,
-            "window_impulse": impulse_window_view(wi, "scene result", result=True) if wi is not None else None}
+            "window_impulse": impulse_window_view(wi, "scene result", result=True) if wi is not None else None} \
+        | ({"answer_span": answer_span_view(result.get("answer.span"))} if FMT.get("rendered") else {})
+
+
+def answer_span_view(x: dict | None):
+    """Rule B31 piece.untested_not_read: the span an averaging answer reads -- the fitted frames clipped to the first /
+    last one outside every unobserved phase and untested piece (clipped_from: the span before; null: not clipped)."""
+    if x is None:
+        return None
+    w = "scene result answer.span"
+    if set(x) != {"rule", "pass", "t0", "t1", "frames", "clipped_from", "why"} or x["rule"] != "piece.untested_not_read" \
+            or not isinstance(x["pass"], bool) or (x["pass"] and (x["t0"] is None or len(x["frames"] or []) != 2)):
+        raise ValueError(f"{AT['where']}: {w} {x!r}")
+    cf = x["clipped_from"]
+    return {"pass": x["pass"], "t0": num(x["t0"], 4), "t1": num(x["t1"], 4),
+            "frames": [int(f) for f in x["frames"]] if x["frames"] else None,
+            "clipped_from": [num(t, 4) for t in cf] if cf is not None else None, "why": text(x["why"])}
 
 
 def contained_row_view(c: dict, what: str) -> dict:
@@ -1456,6 +1508,14 @@ def contract_view(m: dict | None, what: str):
     return {"rows": rows, "untestable_ids": ut}
 
 
+def support_plane_issue_view(x: dict, w: str) -> dict:
+    """Rule D32 visibility.support_plane: a scene-graph support surface with no scene object, dropped from the
+    visibility issues (it is the scene's support plane): {object, t, why}."""
+    if set(x) != {"object", "kind", "t", "dropped", "why"} or x["dropped"] != "visibility.support_plane":
+        raise ValueError(f"{AT['where']}: {w} visibility.support_plane {x!r}")
+    return {"object": text(x["object"]), "kind": text(x["kind"]), "t": num(x["t"], 4), "why": text(x["why"])}
+
+
 def no_repeat_view(x: dict, what: str) -> dict:
     """A repair key that failed the same way twice (rule D27): {tool, target, rounds, reason}."""
     if set(x) != {"tool", "target", "rounds", "reason"} or len(x["rounds"]) != 2:
@@ -1545,7 +1605,9 @@ def rounds_view(rec: dict) -> dict | None:
         if FMT.get("roll"):
             row["candidates"] = [{"for": text(req(c, "for", f"{w} repair candidate")), "name": text(req(req(c, "call", w), "name", w)),
                                   "params": {k: v for k, v in (c["call"].get("params") or {}).items() if v is not None},
-                                  "class": text(c.get("class")) or None} for c in (it.get("repair_candidates") or [])]
+                                  "class": text(c.get("class")) or None}
+                                 | ({"why": text(c.get("why")) or None} if FMT.get("rendered") else {})
+                                 for c in (it.get("repair_candidates") or [])]
             row["dropped"] = [dropped_view(c, w) for c in (it.get("repair_candidates_dropped") or [])]
         if FMT.get("sizeonly"):
             # rule reference.size_only: a call that names a reference is rejected (reference.not_repairable)
@@ -1557,6 +1619,9 @@ def rounds_view(rec: dict) -> dict | None:
             row["not_planned"] = ds == "not_planned"
             if row["not_planned"] and (calls or it.get("execution_status") != "unchanged" or acc):
                 raise ValueError(f"{AT['where']}: {w} not_planned with calls / execution_status {it.get('execution_status')!r}")
+        if FMT.get("rendered"):
+            # rule D32: a support surface the scene fit takes as the support plane is no omitted object
+            row["support_plane"] = [support_plane_issue_view(x, w) for x in it.get("visibility.support_plane") or []]
         if FMT.get("unobserved"):
             row["contract"] = {"before": contract_view(it.get("metrics_before"), f"{w} metrics_before"),
                                "after": contract_view(it.get("metrics_after"), f"{w} metrics_after")}
@@ -1674,7 +1739,7 @@ def prior_motion_view(pm: dict | None, checks: dict):
 CLASS_SKIP_REASONS = ("self_reference", "observe.line_spacing", "prior.stated", "part.unmeasured", "track.none",
                       "presence.absent", "support.plane", "dims.agent_lateral", "dims.agent_height", "size.full_extent",
                       "fit.none", "fit.object", "dim.unobserved", "extent.frames",
-                      "read.frames", "support.none")   # pipeline.scene_fit (rules C15, reference.size_only)
+                      "read.frames", "support.none", "focal.undetermined")   # pipeline.scene_fit (rules C15, reference.size_only, C22)
 CLASS_ROLES = ("cross-check", "carries", "vote")   # scale.class_reference.role (rules C15, class_vote.regular)
 CLASS_VOTE_KEYS = ("source", "object", "class", "dim", "key", "value", "sigma", "role", "px", "extent", "extent_rel",
                    "n_frames", "frames", "z_how", "pass", "reason", "z")
@@ -1766,6 +1831,39 @@ REJECT_REASONS = ("class.unknown", "class.not_answered", "name.listed", "name.gr
 OBJECT_ROLES = ("object", "structure", "reference")
 
 
+RENDER_CUES = ("synthetic_surface", "engine_overlay", "impossible_camera", "engine_objects", "clean_image",
+               "animation_style")   # pipeline.objects.RENDER_CUES (rule C15d scene.rendered)
+RENDER_CUE_REJECTS = ("cue.kind_unknown", "cue.frame_unknown", "cue.why_missing")
+RENDER_UNSUPPORTED = "rendered.unsupported"
+
+
+def rendered_view(r: dict | None, w: str) -> dict | None:
+    """Rule C15d scene.rendered (inventory format 9): the model's answer and the verdict -- true only with at least one
+    valid cue {kind, where (a grid frame's stamp), why}; a true answer without one is rendered.unsupported. The record
+    of an unresolved reference call has verdict / answer null."""
+    keys = {"verdict", "answer", "cues", "cues_rejected", "why", "reason"}
+    if r is None or set(r) != keys:
+        raise ValueError(f"{AT['where']}: {w} {r!r}")
+    cues = []
+    for c in r["cues"]:
+        if set(c) != {"kind", "where", "why"} or c["kind"] not in RENDER_CUES or not text(c["why"]):
+            raise ValueError(f"{AT['where']}: {w} cue {c!r}")
+        cues.append({"kind": c["kind"], "where": text(c["where"]), "why": text(c["why"])})
+    bad = []
+    for c in r["cues_rejected"]:
+        if set(c) != {"kind", "where", "why", "reason"} or c["reason"] not in RENDER_CUE_REJECTS:
+            raise ValueError(f"{AT['where']}: {w} rejected cue {c!r}")
+        bad.append({"kind": text(c["kind"]), "where": text(c["where"]), "why": text(c["why"]), "reason": c["reason"]})
+    v, a = r["verdict"], r["answer"]
+    if v is None:
+        if a is not None or cues or bad or r["reason"] is not None:
+            raise ValueError(f"{AT['where']}: {w} null verdict with {r!r}")
+    elif not isinstance(v, bool) or not isinstance(a, bool) or v != (a and bool(cues)) \
+            or r["reason"] != (RENDER_UNSUPPORTED if a and not cues else None):
+        raise ValueError(f"{AT['where']}: {w} verdict {v!r} answer {a!r} cues {len(cues)} reason {r['reason']!r}")
+    return {"verdict": v, "answer": a, "cues": cues, "rejected": bad, "why": text(r["why"]) or None, "reason": r["reason"]}
+
+
 def inventory_view(unit: str) -> dict:
     """The inventory's class references (format 7, rule C15 part 1): whether the video is a rendering, the class of
     every listed object (self: the question asks its own size), the reference objects the texts do not name with the
@@ -1773,10 +1871,15 @@ def inventory_view(unit: str) -> dict:
     from pipeline.class_sizes import TABLE_VERSION, size_reference
     inv = unit_json("objects", unit, "object inventory")
     w = "object inventory"
-    if req(inv, "version", w) != (8 if FMT.get("sizeonly") else 7) or req(inv, "class_table", w) != TABLE_VERSION:
+    fmt = 9 if FMT.get("rendered") else 8 if FMT.get("sizeonly") else 7
+    if req(inv, "version", w) != fmt or req(inv, "class_table", w) != TABLE_VERSION:
         raise ValueError(f"{AT['where']}: {w} version {inv.get('version')!r} class_table {inv.get('class_table')!r}")
     rendered, refs = req(inv, "rendered", w), req(inv, "references", w)
-    if rendered not in (True, False, None) or req(refs, "status", f"{w} references") not in ("ok", "unresolved"):
+    if FMT.get("rendered"):
+        rendered = rendered_view(rendered, f"{w} rendered")
+    elif rendered not in (True, False, None):
+        raise ValueError(f"{AT['where']}: {w} rendered {rendered!r}")
+    if req(refs, "status", f"{w} references") not in ("ok", "unresolved"):
         raise ValueError(f"{AT['where']}: {w} rendered {rendered!r} references {refs!r}")
     objs, references = [], []
     for o in req(inv, "objects", w):
@@ -2224,6 +2327,17 @@ def camera_one_view(state: dict):
             "how": text(req(co, "how", "camera_one")), "votes": votes}
 
 
+def forward_near(name: str, o: dict):
+    """The exported projection's near depth (forward.near): the fit's own nearest depth, not a fixed 0.3 m."""
+    fw = req(o, "forward", f"scene object {name!r}")
+    if fw is None:
+        return None
+    n = req(fw, "near", f"scene object {name!r} forward")
+    if not isinstance(n, (int, float)) or not n > 0:
+        raise ValueError(f"{AT['where']}: object {name!r} forward.near {n!r}")
+    return num(n, 4)
+
+
 def scene_view(state: dict, source_path: Path) -> dict:
     """A saved scene as the page draws it, without the per-question results (a shared scene must not show other
     questions' answers)."""
@@ -2258,7 +2372,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
                     | ({"fit_object": fit_object_view(name, o)} if FMT.get("contact") else {})
                     | ({"size.full_extent": full_extent_view(req(o, "size.full_extent", what), what)} if FMT.get("span") else {})
                     | (agent_dims_view(name, o) | chain_view(name, o) if FMT.get("launch") else {})
-                    | ({"role": object_role(name, o)} if FMT.get("classref") else {}))
+                    | ({"role": object_role(name, o)} if FMT.get("classref") else {})
+                    | ({"near": forward_near(name, o)} if FMT.get("rendered") else {}))
     return {"file": str(source_path.relative_to(ROOT)), "f": num(j["f"], 5), "plane": plane, "objects": objs,
             "scale": scale_view(j), "gravity": gravity_view(j),
             "main_support": req(j, "main_support", "scene"),
@@ -2280,7 +2395,87 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"class_reference": class_reference_view(j, camera_scale_source(req(j, "camera", "scene")))}
          if FMT.get("classref") else {}) | \
         ({"references": references_view(j)} if FMT.get("sizeonly") else {}) | \
-        ({"class_object": class_object_view(j), "contained": contained_view(j)} if FMT.get("contained") else {})
+        ({"class_object": class_object_view(j), "contained": contained_view(j)} if FMT.get("contained") else {}) | \
+        ({"soft": soft_view(j), "no_new_law": [no_new_law_view(x) for x in req(j, "unobserved.no_new_law", "scene")] or None}
+         if FMT.get("rendered") else {})
+
+
+SOFT_SOURCES = {"support_mask": set(), "main_support": {"n_mask_points", "n_contacts"},
+                "stage_a_fit": {"objects", "own_only", "horizon", "stage_a"}}   # scene_fit.support_undetermined_soft
+SOFT_KEYS = ("plane", "pass", "sigma_roll", "sigma_pitch", "anchors_from", "why")
+SOFT_SIGMA_DEG = 90.0
+
+
+def soft_view(state: dict) -> dict:
+    """Rule C23 support.undetermined_soft: the support plane judged once, after stage A -- its roll / pitch sigma and
+    where it came from; soft (pass false) when a sigma >= 90 deg: no hard surface, a chain's bounded phases against it
+    become flight (the objects' softened rows). {pass, plane, sigma_roll, sigma_pitch, from {..}, why, softened
+    [{object, t0, t1, rel, to, was, now}]}."""
+    w = "support.undetermined_soft"
+    x = req(state, w, "scene")
+    if set(x) != {"name", *SOFT_KEYS} or x["name"] != w or x["pass"] not in (True, False, None) \
+            or req(state, "plane", "scene").get(w) != x:
+        raise ValueError(f"{AT['where']}: scene {w} {x!r} (or plane's copy differs)")
+    af, pl = x["anchors_from"], x["plane"]
+    if pl is None:
+        if af is not None or x["pass"] is not None or x["sigma_roll"] is not None or x["sigma_pitch"] is not None:
+            raise ValueError(f"{AT['where']}: scene {w} without a plane {x!r}")
+    elif set(pl) != {"roll_deg", "pitch_deg", "dist"} or af is None or af.get("source") not in SOFT_SOURCES \
+            or set(af) != {"source"} | SOFT_SOURCES[af["source"]]:
+        raise ValueError(f"{AT['where']}: scene {w} plane {pl!r} anchors_from {af!r}")
+    sig = [x["sigma_roll"], x["sigma_pitch"]]
+    if x["pass"] is True and (None in sig or max(sig) >= SOFT_SIGMA_DEG) \
+            or x["pass"] is None and pl is not None and None not in sig:
+        raise ValueError(f"{AT['where']}: scene {w} pass {x['pass']!r} with sigma {sig}")
+    softened = []
+    for name, o in req(state, "objects", "scene").items():
+        ol = (o.get("motion_law") or {}).get(w)
+        if ol is None:
+            continue
+        wo = f"object {name!r} motion law {w}"
+        if x["pass"] is not False or set(ol) != {*SOFT_KEYS, "softened", "events"} \
+                or any(ol[k] != x[k] for k in SOFT_KEYS):
+            raise ValueError(f"{AT['where']}: {wo} differs from the scene's (pass {x['pass']!r})")
+        for r in ol["softened"]:
+            if set(r) != {"t0", "t1", "rel", "to", "was", "now"}:
+                raise ValueError(f"{AT['where']}: {wo} softened {r!r}")
+            softened.append({"object": text(name), "t0": num(r["t0"], 4), "t1": num(r["t1"], 4), "rel": text(r["rel"]),
+                             "to": text(r["to"]) or None, "was": text(r["was"]), "now": text(r["now"]),
+                             "events": text(ol["events"])})
+    fr = None
+    if af is not None:
+        fr = {"source": af["source"]} | {k: af[k] for k in SOFT_SOURCES[af["source"]] if k != "objects"} \
+            | ({"objects": [[text(k), int(n)] for k, n in af["objects"].items()]} if "objects" in af else {})
+    return {"pass": x["pass"], "plane": None if pl is None else {k: num(v, 4) for k, v in pl.items()},
+            "sigma_roll": num(sig[0], 3), "sigma_pitch": num(sig[1], 3), "from": fr, "why": text(x["why"]),
+            "softened": softened}
+
+
+NO_NEW_LAW_DIRECTIONS = ("forward", "backward", None)
+
+
+def no_new_law_view(x: dict) -> dict:
+    """Rule B31 unobserved.no_new_law: an unobserved phase is no state and no event for the fit -- the state edge
+    before it continues through it (forward; backward at the clip's start; none: a gap), and its frames are absent rows:
+    {object, phase [t0, t1], why, direction, continued [{rel, to, was, now}], dropped {frames, n}, note}."""
+    w = "scene unobserved.no_new_law"
+    keys = {"rule", "object", "phase", "why", "direction", "continued", "rows_dropped", "note"}
+    if set(x) != keys or x["rule"] != "unobserved.no_new_law" or x["direction"] not in NO_NEW_LAW_DIRECTIONS \
+            or len(x["phase"]) != 2 or set(x["rows_dropped"]) != {"frames", "n"} \
+            or (x["direction"] is None) != (not x["continued"]):
+        raise ValueError(f"{AT['where']}: {w} {x!r}")
+    sp = lambda v: [num(t, 4) if t is not None else None for t in v]   # noqa: E731
+    cont = []
+    for c in x["continued"]:
+        if set(c) != {"rel", "to", "was", "now"}:
+            raise ValueError(f"{AT['where']}: {w} continued {c!r}")
+        cont.append({"rel": text(c["rel"]), "to": text(c["to"]) or None, "was": sp(c["was"]), "now": sp(c["now"])})
+    rd = x["rows_dropped"]
+    fr = [[int(a), int(b)] for a, b in rd["frames"]]
+    if int(rd["n"]) != sum(b - a + 1 for a, b in fr):
+        raise ValueError(f"{AT['where']}: {w} rows_dropped n {rd['n']} vs frames {fr}")
+    return {"object": text(x["object"]), "phase": sp(x["phase"]), "why": text(x["why"]), "direction": x["direction"],
+            "continued": cont, "dropped": {"frames": fr, "n": int(rd["n"])}, "note": text(x["note"]) or None}
 
 
 CLASS_OBJECT_KEYS = {"scope", "scope_why", "class", "instances", "given_size", "chosen"}
@@ -2504,10 +2699,14 @@ def chain_view(name: str, o: dict) -> dict:
     span record "impulse_span" {onset, verdict, ramp_end, first_frame, t_stop, n_driven, speeds, how, untestable,
     applied, free_piece} (None without one; the motion law's copy and the onset event's must agree with it)."""
     ph = req(o, "physics", f"scene object {name!r}")
+    if ph is not None and "rejected" in ph and fitted_physics(name, o) is None:
+        # a rejected chain: its reason (the plan's phases and kick span were not fitted)
+        return {"chain": None, "impulse_span": None, "gate": None, "chain_rejected": text(ph["rejected"])}
     if ph is None:
         return {"chain": None, "impulse_span": None} | ({"gate": None} if FMT.get("classref") else {})
     w = f"object {name!r} physics"
     gate = {"gate": gate_view(req(ph, "gate", w), f"{w} gate")} if FMT.get("classref") else {}
+    rej = {"chain_rejected": text(ph["rejected"])} if FMT.get("rendered") and "rejected" in ph else {}
     phases = []
     for t, k, kick in req(ph, "phases", w):
         if k not in CHAIN_KINDS or not isinstance(kick, bool):
@@ -2518,10 +2717,13 @@ def chain_view(name: str, o: dict) -> dict:
     if sp is None:
         if driven or "impulse_span" in ph:
             raise ValueError(f"{AT['where']}: {w} has a driven phase without impulse_span")
-        return {"chain": phases, "impulse_span": None} | gate
+        return {"chain": phases, "impulse_span": None} | gate | rej
     ws = f"{w} impulse_span"
     # rule record.one_shape (classref): the record always has "why" (null when applied) and is the motion law's own
-    extra = {"applied", "free_piece"} | ({"why"} if FMT.get("classref") else set()) | ({"kick_ramp"} if FMT.get("unobserved") else set())
+    # an untestable span with no frame-pair speeds has no kick_ramp record (scene_fit.impulse_span returns early)
+    no_ramp = FMT.get("rendered") and sp.get("untestable") is True and sp.get("speeds") == [] and "kick_ramp" not in sp
+    extra = {"applied", "free_piece"} | ({"why"} if FMT.get("classref") else set()) \
+        | ({"kick_ramp"} if FMT.get("unobserved") and not no_ramp else set())
     if req(sp, "name", ws) != "law.impulse_span" or set(sp) != set(IMPULSE_SPAN_KEYS) | extra:
         raise ValueError(f"{AT['where']}: {ws} name {sp.get('name')!r} keys {sorted(sp)}")
     ml = (req(o, "motion_law", f"scene object {name!r}") or {}).get("impulse_span")
@@ -2542,11 +2744,11 @@ def chain_view(name: str, o: dict) -> dict:
     return {"chain": phases,
             "impulse_span": {"onset": num(sp["onset"], 5), "verdict": text(sp["verdict"]), "ramp_end": num(sp["ramp_end"], 5),
                              "first_frame": num(sp["first_frame"], 5), "t_stop": num(sp["t_stop"], 5),
-                             "n_driven": int(sp["n_driven_frames"]), "speeds": [[num(t, 5), num(v, 4)] for t, v in sp["speeds"]],
+                             "n_driven": None if no_ramp and sp["n_driven_frames"] is None else int(sp["n_driven_frames"]), "speeds": [[num(t, 5), num(v, 4)] for t, v in sp["speeds"]],
                              "how": text(sp["how"]), "untestable": sp["untestable"], "applied": bool(sp["applied"]),
                              "free_piece": bool(sp["free_piece"]), "why": text(sp.get("why")) or None}
-                       | ({"kick_ramp": kick_ramp_view(sp["kick_ramp"], ws) if sp["kick_ramp"] is not None else None}
-                          if FMT.get("unobserved") else {})} | gate
+                       | ({"kick_ramp": kick_ramp_view(sp["kick_ramp"], ws) if sp.get("kick_ramp") is not None else None}
+                          if FMT.get("unobserved") else {})} | gate | rej
 
 
 GATE_KEYS = ("name", "pass", "rms_chain", "rms_kinematic", "frames", "bound", "rms_chain_law", "frames_law",
@@ -2570,7 +2772,7 @@ def impulse_view(name: str, o: dict) -> dict:
     """The physics record's impulse decisions (rule law.impulse), its refined onsets (kinematic.onset) and incline laws
     (support.incline): {"impulse": [{t, event, agent, source, verdict, why, jump, sigma, jump_how}] | None,
     "onset": [{phase, t, sigma, how}] | None, "incline_law": [{..}] | None}; all None without a physics record."""
-    ph = req(o, "physics", f"scene object {name!r}")
+    ph = fitted_physics(name, o)
     if ph is None:
         return {"impulse": None, "onset": None, "incline_law": None}
     w = f"object {name!r} physics"
@@ -2724,7 +2926,50 @@ def camera_view(state: dict) -> dict:
         out |= {"fused": fused_view(state, out), "agency_unknown": agency_unknown_view(state)}
     if FMT.get("undetermined"):
         out |= {"undetermined": undetermined_view(state, out), "prior_untracked": prior_untracked_view(state)}
+    if FMT.get("rendered"):
+        out["refit"] = refit_fixed_point_view(cam, out)
     return out
+
+
+REFIT_KEYS = {"name", "pass", "iterations", "why", "admitted", "f", "f_scene", "steps"}
+REFIT_STEP_KEYS = {"iteration", "f_scene", "admitted", "f", "sigma", "fusion_pass", "class_skipped"}
+
+
+def refit_fixed_point_view(cam: dict, out: dict):
+    """Rule C22 focal.refit_fixed_point: the passes of the focal refit -- each at its own f (0: stage A's), the votes
+    the fusion admitted there and the f they give -- until the admitted set repeats (pass) or cycles / runs out
+    (fail): {pass, why, steps [{iteration, f_scene, admitted, f, sigma, fusion_pass, class_skipped}]}; None without a
+    refit. The record is the same object camera["focal.undetermined"]["refit_fixed_point"]."""
+    w = "focal.refit_fixed_point"
+    rp, fu = req(cam, w, "camera"), cam.get("focal.undetermined")
+    if fu is None and rp is not None or fu is not None and fu.get("refit_fixed_point") != rp:
+        raise ValueError(f"{AT['where']}: camera {w} differs from focal.undetermined.refit_fixed_point")
+    if rp is None:
+        return None
+    st = rp["steps"] if isinstance(rp.get("steps"), list) else []
+    if set(rp) != REFIT_KEYS or rp["name"] != w or not isinstance(rp["pass"], bool) or rp["iterations"] != len(st) - 1 \
+            or not (len(rp["admitted"]) == len(rp["f"]) == len(rp["f_scene"]) == len(st)):
+        raise ValueError(f"{AT['where']}: camera {w} keys {sorted(rp)} pass {rp.get('pass')!r} iterations {rp.get('iterations')!r}")
+    steps = []
+    for i, x in enumerate(st):
+        ws = f"camera {w} step {i}"
+        if set(x) != REFIT_STEP_KEYS or x["iteration"] != i or sorted(x["admitted"]) != sorted(rp["admitted"][i]) \
+                or num(x["f_scene"], 3) != num(rp["f_scene"][i], 3) or num(x["f"], 3) != num(rp["f"][i], 3) \
+                or (i > 0 and num(x["f_scene"], 3) != num(rp["f"][i - 1], 3)):
+            raise ValueError(f"{AT['where']}: {ws} {x!r}")
+        sk = []
+        for k in x["class_skipped"]:
+            if set(k) != {"name", "reason"} or k["reason"] not in CLASS_SKIP_REASONS or (i == 0 and k["reason"] != "focal.undetermined"):
+                raise ValueError(f"{AT['where']}: {ws} class_skipped {k!r}")
+            sk.append({"name": text(k["name"]), "reason": k["reason"]})
+        steps.append({"iteration": i, "f_scene": num(x["f_scene"], 4), "admitted": [text(a) for a in x["admitted"]],
+                      "f": num(x["f"], 4), "sigma": num(x["sigma"], 3), "fusion_pass": x["fusion_pass"], "class_skipped": sk})
+    if num(steps[0]["f_scene"], 3) != num(req(fu, "stage_a_f", "focal.undetermined"), 3):
+        raise ValueError(f"{AT['where']}: camera {w} iteration 0 f_scene {steps[0]['f_scene']} is not stage A's f")
+    if rp["pass"] and (len(steps) < 2 or sorted(steps[-1]["admitted"]) != sorted(steps[-2]["admitted"])
+                       or num(steps[-1]["f"], 3) != num(out["f"], 3)):
+        raise ValueError(f"{AT['where']}: camera {w} passes without a repeated admitted set at camera.f {out['f']}")
+    return {"pass": rp["pass"], "why": text(rp["why"]), "steps": steps}
 
 
 UNDETERMINED_KEYS = ("name", "pass", "reason", "stage_a_f", "stage_a_sigma", "stage_a_how", "kept", "f", "sigma",

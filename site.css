@@ -300,7 +300,7 @@ table.choice .scan-full { color: var(--text); }
 table.choice .scan.chosen { font-weight: 600; color: var(--accent); }
 /* batch 26: unobserved phases on the track timeline, frame indices beside seconds, kick ramp pair speeds, contract */
 .trk-uo { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 6px); opacity: .55; border-left: 1px solid var(--muted); border-right: 1px solid var(--muted); }
-table.unobs td.uo { background: repeating-linear-gradient(135deg, var(--sh-soft) 0 3px, transparent 3px 8px); white-space: nowrap; }
+table.unobs td.uo, table.nonewlaw td.uo { background: repeating-linear-gradient(135deg, var(--sh-soft) 0 3px, transparent 3px 8px); white-space: nowrap; }
 .frs { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 div.frs { font-size: 12px; }
 svg.impchart line.err { stroke: var(--muted); stroke-width: 1.5; }
