@@ -1,0 +1,3718 @@
+{
+ "generated": "2026-11-03",
+ "methods": [
+  {
+   "key": "caw_4b",
+   "label": "Code-as-World-VL-4B",
+   "paper": 0.506,
+   "source": "https://github.com/MirroS-Lab/Code-as-World",
+   "setup": "released evaluator code_as_world.evaluation @1353bf0, 16 frames, temperature 0.01, seed 1, no thinking; gpu_memory_utilization 0.85 (released 0.2 is sized for 80 GB); 1× L40S, 2026-11-03"
+  },
+  {
+   "key": "caw_9b",
+   "label": "Code-as-World-VL-9B",
+   "paper": 0.554,
+   "source": "https://github.com/MirroS-Lab/Code-as-World",
+   "setup": "released evaluator code_as_world.evaluation @1353bf0, 16 frames, temperature 0.01, seed 1, no thinking; gpu_memory_utilization 0.85 (released 0.5 is sized for 80 GB); 1× L40S, 2026-11-03"
+  }
+ ],
+ "videos": [
+  {
+   "id": "captured_0013",
+   "source": "lab",
+   "thumb": "data/thumbs/captured_0013.jpg",
+   "orig": "media/val/captured_0013.mp4",
+   "video": "media/test/captured_0013.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "captured_0021x",
+   "source": "lab",
+   "thumb": "data/thumbs/captured_0021x.jpg",
+   "orig": "media/val/captured_0021x.mp4",
+   "video": "media/test/captured_0021x.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "captured_0027s",
+   "source": "lab",
+   "thumb": "data/thumbs/captured_0027s.jpg",
+   "orig": "media/val/captured_0027s.mp4",
+   "video": "media/test/captured_0027s.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "captured_0034as",
+   "source": "lab",
+   "thumb": "data/thumbs/captured_0034as.jpg",
+   "orig": "media/val/captured_0034as.mp4",
+   "video": "media/test/captured_0034as.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "captured_0041x",
+   "source": "lab",
+   "thumb": "data/thumbs/captured_0041x.jpg",
+   "orig": "media/val/captured_0041x.mp4",
+   "video": "media/test/captured_0041x.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "captured_0061",
+   "source": "lab",
+   "thumb": "data/thumbs/captured_0061.jpg",
+   "orig": "media/val/captured_0061.mp4",
+   "video": "media/test/captured_0061.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "internet_0001",
+   "source": "internet",
+   "thumb": "data/thumbs/internet_0001.jpg",
+   "orig": "media/val/internet_0001.mp4",
+   "video": "media/test/internet_0001.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "internet_0004",
+   "source": "internet",
+   "thumb": "data/thumbs/internet_0004.jpg",
+   "orig": "media/val/internet_0004.mp4",
+   "video": "media/test/internet_0004.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "internet_0005",
+   "source": "internet",
+   "thumb": "data/thumbs/internet_0005.jpg",
+   "orig": "media/val/internet_0005.mp4",
+   "video": null,
+   "video_from": "val",
+   "codec": "fmp4"
+  },
+  {
+   "id": "internet_0013",
+   "source": "internet",
+   "thumb": "data/thumbs/internet_0013.jpg",
+   "orig": "media/val/internet_0013.mp4",
+   "video": "media/test/internet_0013.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "internet_0019",
+   "source": "internet",
+   "thumb": "data/thumbs/internet_0019.jpg",
+   "orig": "media/val/internet_0019.mp4",
+   "video": "media/test/internet_0019.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "internet_0027",
+   "source": "internet",
+   "thumb": "data/thumbs/internet_0027.jpg",
+   "orig": "media/val/internet_0027.mp4",
+   "video": "media/test/internet_0027.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0009",
+   "source": "simulation",
+   "thumb": "data/thumbs/simulation_0009.jpg",
+   "orig": "media/val/simulation_0009.mp4",
+   "video": "media/test/simulation_0009.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0015",
+   "source": "simulation",
+   "thumb": "data/thumbs/simulation_0015.jpg",
+   "orig": "media/val/simulation_0015.mp4",
+   "video": "media/test/simulation_0015.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0034_segmented",
+   "source": "segmentation",
+   "thumb": "data/thumbs/simulation_0034_segmented.jpg",
+   "orig": "media/val/simulation_0034_segmented.mp4",
+   "video": "media/test/simulation_0034_segmented.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0060",
+   "source": "simulation",
+   "thumb": "data/thumbs/simulation_0060.jpg",
+   "orig": "media/val/simulation_0060.mp4",
+   "video": "media/test/simulation_0060.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0089",
+   "source": "simulation",
+   "thumb": "data/thumbs/simulation_0089.jpg",
+   "orig": "media/val/simulation_0089.mp4",
+   "video": "media/test/simulation_0089.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0098_segmented",
+   "source": "segmentation",
+   "thumb": "data/thumbs/simulation_0098_segmented.jpg",
+   "orig": "media/val/simulation_0098_segmented.mp4",
+   "video": "media/test/simulation_0098_segmented.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0163",
+   "source": "simulation",
+   "thumb": "data/thumbs/simulation_0163.jpg",
+   "orig": "media/val/simulation_0163.mp4",
+   "video": "media/test/simulation_0163.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0170_segmented",
+   "source": "segmentation",
+   "thumb": "data/thumbs/simulation_0170_segmented.jpg",
+   "orig": "media/val/simulation_0170_segmented.mp4",
+   "video": "media/test/simulation_0170_segmented.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0171",
+   "source": "simulation",
+   "thumb": "data/thumbs/simulation_0171.jpg",
+   "orig": "media/val/simulation_0171.mp4",
+   "video": "media/test/simulation_0171.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0193",
+   "source": "simulation",
+   "thumb": "data/thumbs/simulation_0193.jpg",
+   "orig": "media/val/simulation_0193.mp4",
+   "video": "media/test/simulation_0193.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0196",
+   "source": "simulation",
+   "thumb": "data/thumbs/simulation_0196.jpg",
+   "orig": "media/val/simulation_0196.mp4",
+   "video": "media/test/simulation_0196.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  },
+  {
+   "id": "simulation_0300",
+   "source": "simulation",
+   "thumb": "data/thumbs/simulation_0300.jpg",
+   "orig": "media/val/simulation_0300.mp4",
+   "video": "media/test/simulation_0300.mp4",
+   "video_from": "test",
+   "codec": "fmp4"
+  }
+ ],
+ "questions": [
+  {
+   "id": "captured_0013_q1",
+   "video": "captured_0013",
+   "k": 1,
+   "cat": "D3",
+   "q": "What is the height of the cup in cm?",
+   "prior": "t=1.5, ball acceleration = 3.0 m/s^2",
+   "depth": "t=0s, distance_cup_camera = 1.2100 m\nt=0s, distance_pen_camera = 1.1750 m\nt=0s, distance_cookie_camera = 1.1820 m\nt=0s, distance_note_book_camera = 0.9620 m\nt=0s, distance_desk_left_camera = 0.8690 m\nt=0s, distance_desk_right_camera = 0.8520 m\nt=0s, distance_slope_far_camera = 1.3450 m\nt=0s, distance_slope_near_camera = 1.1040 m",
+   "answer": 14.5,
+   "preds": {
+    "caw_4b": {
+     "pred": 12.0,
+     "mra": 0.8,
+     "raw": "12"
+    },
+    "caw_9b": {
+     "pred": 12.0,
+     "mra": 0.8,
+     "raw": "12"
+    }
+   }
+  },
+  {
+   "id": "captured_0013_q2",
+   "video": "captured_0013",
+   "k": 2,
+   "cat": "D3",
+   "q": "What is the length of the pen in cm?",
+   "prior": "t=1.5, ball acceleration = 3.0 m/s^2",
+   "depth": "t=0s, distance_cup_camera = 1.2100 m\nt=0s, distance_pen_camera = 1.1750 m\nt=0s, distance_cookie_camera = 1.1820 m\nt=0s, distance_note_book_camera = 0.9620 m\nt=0s, distance_desk_left_camera = 0.8690 m\nt=0s, distance_desk_right_camera = 0.8520 m\nt=0s, distance_slope_far_camera = 1.3450 m\nt=0s, distance_slope_near_camera = 1.1040 m",
+   "answer": 14.5,
+   "preds": {
+    "caw_4b": {
+     "pred": 14.0,
+     "mra": 1.0,
+     "raw": "14"
+    },
+    "caw_9b": {
+     "pred": 15.0,
+     "mra": 1.0,
+     "raw": "15"
+    }
+   }
+  },
+  {
+   "id": "captured_0013_q3",
+   "video": "captured_0013",
+   "k": 3,
+   "cat": "D3",
+   "q": "What is the diameter of the cookie in cm?",
+   "prior": "t=1.5, ball acceleration = 3.0 m/s^2",
+   "depth": "t=0s, distance_cup_camera = 1.2100 m\nt=0s, distance_pen_camera = 1.1750 m\nt=0s, distance_cookie_camera = 1.1820 m\nt=0s, distance_note_book_camera = 0.9620 m\nt=0s, distance_desk_left_camera = 0.8690 m\nt=0s, distance_desk_right_camera = 0.8520 m\nt=0s, distance_slope_far_camera = 1.3450 m\nt=0s, distance_slope_near_camera = 1.1040 m",
+   "answer": 8.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 8.6,
+     "mra": 0.9,
+     "raw": "8.6"
+    },
+    "caw_9b": {
+     "pred": 7.0,
+     "mra": 0.8,
+     "raw": "7"
+    }
+   }
+  },
+  {
+   "id": "captured_0013_q4",
+   "video": "captured_0013",
+   "k": 4,
+   "cat": "D3",
+   "q": "What is the width of the note book in cm?",
+   "prior": "t=1.5, ball acceleration = 3.0 m/s^2",
+   "depth": "t=0s, distance_cup_camera = 1.2100 m\nt=0s, distance_pen_camera = 1.1750 m\nt=0s, distance_cookie_camera = 1.1820 m\nt=0s, distance_note_book_camera = 0.9620 m\nt=0s, distance_desk_left_camera = 0.8690 m\nt=0s, distance_desk_right_camera = 0.8520 m\nt=0s, distance_slope_far_camera = 1.3450 m\nt=0s, distance_slope_near_camera = 1.1040 m",
+   "answer": 10.8,
+   "preds": {
+    "caw_4b": {
+     "pred": 19.0,
+     "mra": 0.2,
+     "raw": "19"
+    },
+    "caw_9b": {
+     "pred": 15.0,
+     "mra": 0.6,
+     "raw": "15"
+    }
+   }
+  },
+  {
+   "id": "captured_0013_q5",
+   "video": "captured_0013",
+   "k": 5,
+   "cat": "D3",
+   "q": "What is the width of the desk in cm?",
+   "prior": "t=1.5, ball acceleration = 3.0 m/s^2",
+   "depth": "t=0s, distance_cup_camera = 1.2100 m\nt=0s, distance_pen_camera = 1.1750 m\nt=0s, distance_cookie_camera = 1.1820 m\nt=0s, distance_note_book_camera = 0.9620 m\nt=0s, distance_desk_left_camera = 0.8690 m\nt=0s, distance_desk_right_camera = 0.8520 m\nt=0s, distance_slope_far_camera = 1.3450 m\nt=0s, distance_slope_near_camera = 1.1040 m",
+   "answer": 857.9,
+   "preds": {
+    "caw_4b": {
+     "pred": 22.1,
+     "mra": 0.0,
+     "raw": "22.1"
+    },
+    "caw_9b": {
+     "pred": 31.7,
+     "mra": 0.0,
+     "raw": "31.7"
+    }
+   }
+  },
+  {
+   "id": "captured_0013_q6",
+   "video": "captured_0013",
+   "k": 6,
+   "cat": "D3",
+   "q": "What is the length of the slope in cm?",
+   "prior": "t=1.5, ball acceleration = 3.0 m/s^2",
+   "depth": "t=0s, distance_cup_camera = 1.2100 m\nt=0s, distance_pen_camera = 1.1750 m\nt=0s, distance_cookie_camera = 1.1820 m\nt=0s, distance_note_book_camera = 0.9620 m\nt=0s, distance_desk_left_camera = 0.8690 m\nt=0s, distance_desk_right_camera = 0.8520 m\nt=0s, distance_slope_far_camera = 1.3450 m\nt=0s, distance_slope_near_camera = 1.1040 m",
+   "answer": 30.8,
+   "preds": {
+    "caw_4b": {
+     "pred": 24.1,
+     "mra": 0.7,
+     "raw": "24.1"
+    },
+    "caw_9b": {
+     "pred": 100.0,
+     "mra": 0.0,
+     "raw": "100"
+    }
+   }
+  },
+  {
+   "id": "captured_0013_q7",
+   "video": "captured_0013",
+   "k": 7,
+   "cat": "D3",
+   "q": "What is the diameter of the ball in cm?",
+   "prior": "t=1.5, ball acceleration = 3.0 m/s^2",
+   "depth": "t=0s, distance_cup_camera = 1.2100 m\nt=0s, distance_pen_camera = 1.1750 m\nt=0s, distance_cookie_camera = 1.1820 m\nt=0s, distance_note_book_camera = 0.9620 m\nt=0s, distance_desk_left_camera = 0.8690 m\nt=0s, distance_desk_right_camera = 0.8520 m\nt=0s, distance_slope_far_camera = 1.3450 m\nt=0s, distance_slope_near_camera = 1.1040 m",
+   "answer": 6.7,
+   "preds": {
+    "caw_4b": {
+     "pred": 6.0,
+     "mra": 0.8,
+     "raw": "6.0"
+    },
+    "caw_9b": {
+     "pred": 7.0,
+     "mra": 1.0,
+     "raw": "7"
+    }
+   }
+  },
+  {
+   "id": "captured_0013_q8",
+   "video": "captured_0013",
+   "k": 8,
+   "cat": "D3",
+   "q": "What is the velolicty of the ball at 1.5s in cm/s?",
+   "prior": "t=1.5, ball acceleration = 3.0 m/s^2",
+   "depth": "t=0s, distance_cup_camera = 1.2100 m\nt=0s, distance_pen_camera = 1.1750 m\nt=0s, distance_cookie_camera = 1.1820 m\nt=0s, distance_note_book_camera = 0.9620 m\nt=0s, distance_desk_left_camera = 0.8690 m\nt=0s, distance_desk_right_camera = 0.8520 m\nt=0s, distance_slope_far_camera = 1.3450 m\nt=0s, distance_slope_near_camera = 1.1040 m",
+   "answer": 102.65,
+   "preds": {
+    "caw_4b": {
+     "pred": 45.0,
+     "mra": 0.4,
+     "raw": "45"
+    },
+    "caw_9b": {
+     "pred": 450.0,
+     "mra": 0.0,
+     "raw": "450 cm/s"
+    }
+   }
+  },
+  {
+   "id": "captured_0021x_q1",
+   "video": "captured_0021x",
+   "k": 1,
+   "cat": "S3",
+   "q": "What is the velocity of the ping pong ball at 1.2s in cm/s?",
+   "prior": "diameter of the ping pong ball = 40 mm",
+   "depth": "t=1.0s, distance_pingpong_camera=1.511 m\nt=1.4s, distance_pingpong_camera=1.03 m",
+   "answer": 117.73,
+   "preds": {
+    "caw_4b": {
+     "pred": 266.0,
+     "mra": 0.0,
+     "raw": "266"
+    },
+    "caw_9b": {
+     "pred": 125.0,
+     "mra": 0.9,
+     "raw": "125 cm/s"
+    }
+   }
+  },
+  {
+   "id": "captured_0021x_q2",
+   "video": "captured_0021x",
+   "k": 2,
+   "cat": "S3",
+   "q": "What is the velocity of the ping pong ball at 1.4s in cm/s?",
+   "prior": "diameter of the ping pong ball = 40mm",
+   "depth": "t=1.0s, distance_pingpong_camera=1.511 m\nt=1.4s, distance_pingpong_camera=1.03 m",
+   "answer": 87.9,
+   "preds": {
+    "caw_4b": {
+     "pred": 266.0,
+     "mra": 0.0,
+     "raw": "266"
+    },
+    "caw_9b": {
+     "pred": 120.0,
+     "mra": 0.6,
+     "raw": "120"
+    }
+   }
+  },
+  {
+   "id": "captured_0021x_q3",
+   "video": "captured_0021x",
+   "k": 3,
+   "cat": "S3",
+   "q": "What is the displacement of the ping pong ball between 1.0s and 1.4s in cm?",
+   "prior": "diameter of the ping pong ball = 40mm",
+   "depth": "t=1.0s, distance_pingpong_camera=1.511 m\nt=1.4s, distance_pingpong_camera=1.03 m",
+   "answer": 49.69,
+   "preds": {
+    "caw_4b": {
+     "pred": 29.6,
+     "mra": 0.5,
+     "raw": "29.6"
+    },
+    "caw_9b": {
+     "pred": 48.1,
+     "mra": 1.0,
+     "raw": "48.1"
+    }
+   }
+  },
+  {
+   "id": "captured_0021x_q4",
+   "video": "captured_0021x",
+   "k": 4,
+   "cat": "S3",
+   "q": "What is the width of the table in cm?",
+   "prior": "diameter of the ping pong ball = 40mm",
+   "depth": "t=1.0s, distance_pingpong_camera=1.511 m\nt=1.4s, distance_pingpong_camera=1.03 m",
+   "answer": 60.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 115.0,
+     "mra": 0.0,
+     "raw": "115"
+    },
+    "caw_9b": {
+     "pred": 91.0,
+     "mra": 0.4,
+     "raw": "91 cm"
+    }
+   }
+  },
+  {
+   "id": "captured_0021x_q5",
+   "video": "captured_0021x",
+   "k": 5,
+   "cat": "S3",
+   "q": "What is the length of the table in cm?",
+   "prior": "diameter of the ping pong ball = 40mm",
+   "depth": "t=1.0s, distance_pingpong_camera=1.511 m\nt=1.4s, distance_pingpong_camera=1.03 m",
+   "answer": 75.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 115.0,
+     "mra": 0.4,
+     "raw": "115"
+    },
+    "caw_9b": {
+     "pred": 103.0,
+     "mra": 0.6,
+     "raw": "103"
+    }
+   }
+  },
+  {
+   "id": "captured_0027s_q1",
+   "video": "captured_0027s",
+   "k": 1,
+   "cat": "S3",
+   "q": "What is the velocity of the red ball at 0.2s in cm/s?",
+   "prior": "diameter of the red ball = 7 cm",
+   "depth": "t=0.2s, distance_book_camera=1.0995 m\nt=0.6s, distance_book_camera=1.1510 m\ndistance_person_left_camera=1.2750 m\ndistance_person_right_camera=1.2305 m",
+   "answer": 201.73,
+   "preds": {
+    "caw_4b": {
+     "pred": 22.0,
+     "mra": 0.1,
+     "raw": "22"
+    },
+    "caw_9b": {
+     "pred": 115.5,
+     "mra": 0.5,
+     "raw": "115.5"
+    }
+   }
+  },
+  {
+   "id": "captured_0027s_q2",
+   "video": "captured_0027s",
+   "k": 2,
+   "cat": "S3",
+   "q": "What is the velocity of the red ball at 0.6s in cm/s?",
+   "prior": "diameter of the red ball = 7 cm",
+   "depth": "t=0.2s, distance_book_camera=1.0995 m\nt=0.6s, distance_book_camera=1.1510 m\ndistance_person_left_camera=1.2750 m\ndistance_person_right_camera=1.2305 m",
+   "answer": 66.68,
+   "preds": {
+    "caw_4b": {
+     "pred": 26.0,
+     "mra": 0.3,
+     "raw": "26"
+    },
+    "caw_9b": {
+     "pred": 115.1,
+     "mra": 0.2,
+     "raw": "115.1"
+    }
+   }
+  },
+  {
+   "id": "captured_0027s_q3",
+   "video": "captured_0027s",
+   "k": 3,
+   "cat": "S3",
+   "q": "What is the acceleration of the red ball at 0.2s in cm/s^2?",
+   "prior": "diameter of the red ball = 7 cm",
+   "depth": "t=0.2s, distance_book_camera=1.0995 m\nt=0.6s, distance_book_camera=1.1510 m\ndistance_person_left_camera=1.2750 m\ndistance_person_right_camera=1.2305 m",
+   "answer": 1086.09,
+   "preds": {
+    "caw_4b": {
+     "pred": 266.0,
+     "mra": 0.2,
+     "raw": "266"
+    },
+    "caw_9b": {
+     "pred": 980.0,
+     "mra": 0.9,
+     "raw": "980"
+    }
+   }
+  },
+  {
+   "id": "captured_0034as_q1",
+   "video": "captured_0034as",
+   "k": 1,
+   "cat": "S3",
+   "q": "What is the velocity of the left tennis ball at 1.2s in cm/s?",
+   "prior": "diameter of the tennis ball = 6.7 cm",
+   "depth": "t=1.2s, distance_right_tennis_ball_camera = 0.7760 m\nt=1.2s, distance_left_tennis_ball_camera = 0.7060 m\ndistance_pencil_bag_camera = 1.0500 m\ndistance_soccer_ball_camera = 0.8940 m",
+   "answer": 82.93,
+   "preds": {
+    "caw_4b": {
+     "pred": 28.8,
+     "mra": 0.3,
+     "raw": "28.8"
+    },
+    "caw_9b": {
+     "pred": 100.0,
+     "mra": 0.7,
+     "raw": "100"
+    }
+   }
+  },
+  {
+   "id": "captured_0034as_q2",
+   "video": "captured_0034as",
+   "k": 2,
+   "cat": "S3",
+   "q": "What is the velocity of the right tennis ball at 1.2s in cm/s?",
+   "prior": "diameter of the tennis ball = 6.7 cm",
+   "depth": "t=1.2s, distance_right_tennis_ball_camera = 0.7760 m\nt=1.2s, distance_left_tennis_ball_camera = 0.7060 m\ndistance_pencil_bag_camera = 1.0500 m\ndistance_soccer_ball_camera = 0.8940 m",
+   "answer": 99.47,
+   "preds": {
+    "caw_4b": {
+     "pred": 28.8,
+     "mra": 0.2,
+     "raw": "28.8"
+    },
+    "caw_9b": {
+     "pred": 143.0,
+     "mra": 0.5,
+     "raw": "143"
+    }
+   }
+  },
+  {
+   "id": "captured_0034as_q3",
+   "video": "captured_0034as",
+   "k": 3,
+   "cat": "S3",
+   "q": "What is the height of the pencil bag in cm?",
+   "prior": "diameter of the tennis ball = 6.7 cm",
+   "depth": "t=1.2s, distance_right_tennis_ball_camera = 0.7760 m\nt=1.2s, distance_left_tennis_ball_camera = 0.7060 m\ndistance_pencil_bag_camera = 1.0500 m\ndistance_soccer_ball_camera = 0.8940 m",
+   "answer": 6.7,
+   "preds": {
+    "caw_4b": {
+     "pred": 5.2,
+     "mra": 0.7,
+     "raw": "5.2"
+    },
+    "caw_9b": {
+     "pred": 15.0,
+     "mra": 0.0,
+     "raw": "15"
+    }
+   }
+  },
+  {
+   "id": "captured_0034as_q4",
+   "video": "captured_0034as",
+   "k": 4,
+   "cat": "S3",
+   "q": "What is the length of the pencil bag in cm?",
+   "prior": "diameter of the tennis ball = 6.7 cm",
+   "depth": "t=1.2s, distance_right_tennis_ball_camera = 0.7760 m\nt=1.2s, distance_left_tennis_ball_camera = 0.7060 m\ndistance_pencil_bag_camera = 1.0500 m\ndistance_soccer_ball_camera = 0.8940 m",
+   "answer": 21.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 11.5,
+     "mra": 0.5,
+     "raw": "11.5"
+    },
+    "caw_9b": {
+     "pred": 20.0,
+     "mra": 1.0,
+     "raw": "20"
+    }
+   }
+  },
+  {
+   "id": "captured_0034as_q5",
+   "video": "captured_0034as",
+   "k": 5,
+   "cat": "S3",
+   "q": "What is the diameter of the soccer ball in cm?",
+   "prior": "diameter of the tennis ball = 6.7 cm",
+   "depth": "t=1.2s, distance_right_tennis_ball_camera = 0.7760 m\nt=1.2s, distance_left_tennis_ball_camera = 0.7060 m\ndistance_pencil_bag_camera = 1.0500 m\ndistance_soccer_ball_camera = 0.8940 m",
+   "answer": 17.5,
+   "preds": {
+    "caw_4b": {
+     "pred": 17.2,
+     "mra": 1.0,
+     "raw": "17.2"
+    },
+    "caw_9b": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22 cm"
+    }
+   }
+  },
+  {
+   "id": "captured_0034as_q6",
+   "video": "captured_0034as",
+   "k": 6,
+   "cat": "S3",
+   "q": "What is the velocity of the left tennis ball at 1.3s in cm/s?",
+   "prior": "diameter of the tennis ball = 6.7 cm",
+   "depth": "t=1.2s, distance_right_tennis_ball_camera = 0.7760 m\nt=1.2s, distance_left_tennis_ball_camera = 0.7060 m\ndistance_pencil_bag_camera = 1.0500 m\ndistance_soccer_ball_camera = 0.8940 m",
+   "answer": 84.54,
+   "preds": {
+    "caw_4b": {
+     "pred": 29.4,
+     "mra": 0.3,
+     "raw": "29.4"
+    },
+    "caw_9b": {
+     "pred": 115.0,
+     "mra": 0.6,
+     "raw": "115"
+    }
+   }
+  },
+  {
+   "id": "captured_0034as_q7",
+   "video": "captured_0034as",
+   "k": 7,
+   "cat": "S3",
+   "q": "What is the velocity of the right tennis ball at 1.3s in cm/s?",
+   "prior": "diameter of the tennis ball = 6.7 cm",
+   "depth": "t=1.2s, distance_right_tennis_ball_camera = 0.7760 m\nt=1.2s, distance_left_tennis_ball_camera = 0.7060 m\ndistance_pencil_bag_camera = 1.0500 m\ndistance_soccer_ball_camera = 0.8940 m",
+   "answer": 92.33,
+   "preds": {
+    "caw_4b": {
+     "pred": 28.0,
+     "mra": 0.3,
+     "raw": "28"
+    },
+    "caw_9b": {
+     "pred": 115.0,
+     "mra": 0.7,
+     "raw": "115"
+    }
+   }
+  },
+  {
+   "id": "captured_0034as_q8",
+   "video": "captured_0034as",
+   "k": 8,
+   "cat": "S3",
+   "q": "What is the total distance traveled by the left tennis ball in cm?",
+   "prior": "diameter of the tennis ball = 6.7 cm",
+   "depth": "t=1.2s, distance_right_tennis_ball_camera = 0.7760 m\nt=1.2s, distance_left_tennis_ball_camera = 0.7060 m\ndistance_pencil_bag_camera = 1.0500 m\ndistance_soccer_ball_camera = 0.8940 m",
+   "answer": 57.1,
+   "preds": {
+    "caw_4b": {
+     "pred": 14.0,
+     "mra": 0.2,
+     "raw": "14"
+    },
+    "caw_9b": {
+     "pred": 19.0,
+     "mra": 0.3,
+     "raw": "19"
+    }
+   }
+  },
+  {
+   "id": "captured_0034as_q9",
+   "video": "captured_0034as",
+   "k": 9,
+   "cat": "S3",
+   "q": "What is the total distance traveled by the right tennis ball in cm?",
+   "prior": "diameter of the tennis ball = 6.7 cm",
+   "depth": "t=1.2s, distance_right_tennis_ball_camera = 0.7760 m\nt=1.2s, distance_left_tennis_ball_camera = 0.7060 m\ndistance_pencil_bag_camera = 1.0500 m\ndistance_soccer_ball_camera = 0.8940 m",
+   "answer": 70.62,
+   "preds": {
+    "caw_4b": {
+     "pred": 21.5,
+     "mra": 0.3,
+     "raw": "21.5"
+    },
+    "caw_9b": {
+     "pred": 18.0,
+     "mra": 0.2,
+     "raw": "18"
+    }
+   }
+  },
+  {
+   "id": "captured_0041x_q1",
+   "video": "captured_0041x",
+   "k": 1,
+   "cat": "D3",
+   "q": "What is the soccer ball's diameter in cm?",
+   "prior": "velocity of the soccer ball at 1.5s = 5.21 m/s",
+   "depth": "t=1.5s, distance_soccer_ball_camera = 2.5440 m\nt=1.6s, distance_soccer_ball_camera = 2.0740 m",
+   "answer": 17.5,
+   "preds": {
+    "caw_4b": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22"
+    },
+    "caw_9b": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22 cm"
+    }
+   }
+  },
+  {
+   "id": "captured_0041x_q2",
+   "video": "captured_0041x",
+   "k": 2,
+   "cat": "D3",
+   "q": "What is the soccer ball's diasplacement between 1.5s and 1.6s in meters?",
+   "prior": "velocity of the soccer ball at 1.5s = 5.21 m/s",
+   "depth": "t=1.5s, distance_soccer_ball_camera = 2.5440 m\nt=1.6s, distance_soccer_ball_camera = 2.0740 m",
+   "answer": 0.6116,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.47,
+     "mra": 0.7,
+     "raw": "0.47"
+    },
+    "caw_9b": {
+     "pred": 0.47,
+     "mra": 0.7,
+     "raw": "0.47"
+    }
+   }
+  },
+  {
+   "id": "captured_0041x_q3",
+   "video": "captured_0041x",
+   "k": 3,
+   "cat": "D3",
+   "q": "What is the distance from the soccerball to the person at 1.5s in meters?",
+   "prior": "velocity of the soccer ball at 1.5s = 5.21 m/s",
+   "depth": "t=1.5s, distance_soccer_ball_camera = 2.5440 m\nt=1.6s, distance_soccer_ball_camera = 2.0740 m",
+   "answer": 0.198,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.27,
+     "mra": 0.0,
+     "raw": "1.27"
+    },
+    "caw_9b": {
+     "pred": 1.47,
+     "mra": 0.0,
+     "raw": "1.47"
+    }
+   }
+  },
+  {
+   "id": "captured_0061_q1",
+   "video": "captured_0061",
+   "k": 1,
+   "cat": "D3",
+   "q": "What is the diameter of the yoga ball in cm?",
+   "prior": "velocity of the yoga ball at 0.6s = 2.5104 m/s",
+   "depth": "t=0.6s, distance_yoga_ball_camera = 2.1330 m\nt=1.1s, distance_basketball_camera = 2.4200 m\nt=1.6s, distance_basketball_camera = 1.9015 m\nt=0.6s, distance_soccer_ball_camera = 1.9370 m\nt=0.9s, distance_soccer_ball_camera = 1.5850 m",
+   "answer": 52.2,
+   "preds": {
+    "caw_4b": {
+     "pred": 38.0,
+     "mra": 0.7,
+     "raw": "38"
+    },
+    "caw_9b": {
+     "pred": 65.0,
+     "mra": 0.7,
+     "raw": "65"
+    }
+   }
+  },
+  {
+   "id": "captured_0061_q2",
+   "video": "captured_0061",
+   "k": 2,
+   "cat": "D3",
+   "q": "What is the diameter of the soccer ball in cm?",
+   "prior": "velocity of the yoga ball at 0.6s = 2.5104 m/s",
+   "depth": "t=0.6s, distance_yoga_ball_camera = 2.1330 m\nt=1.1s, distance_basketball_camera = 2.4200 m\nt=1.6s, distance_basketball_camera = 1.9015 m\nt=0.6s, distance_soccer_ball_camera = 1.9370 m\nt=0.9s, distance_soccer_ball_camera = 1.5850 m",
+   "answer": 17.5,
+   "preds": {
+    "caw_4b": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22"
+    },
+    "caw_9b": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22"
+    }
+   }
+  },
+  {
+   "id": "captured_0061_q3",
+   "video": "captured_0061",
+   "k": 3,
+   "cat": "D3",
+   "q": "What is the distance between the soccer ball and the basketball at 2.0s in meters?",
+   "prior": "velocity of the yoga ball at 0.6s = 2.5104 m/s",
+   "depth": "t=0.6s, distance_yoga_ball_camera = 2.1330 m\nt=1.1s, distance_basketball_camera = 2.4200 m\nt=1.6s, distance_basketball_camera = 1.9015 m\nt=0.6s, distance_soccer_ball_camera = 1.9370 m\nt=0.9s, distance_soccer_ball_camera = 1.5850 m",
+   "answer": 1.9461,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.8,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 2.42,
+     "mra": 0.7,
+     "raw": "2.42"
+    }
+   }
+  },
+  {
+   "id": "captured_0061_q4",
+   "video": "captured_0061",
+   "k": 4,
+   "cat": "D3",
+   "q": "What is the distance between the basketball and the yoga ball at 2.0s in meters?",
+   "prior": "velocity of the yoga ball at 0.6s = 2.5104 m/s",
+   "depth": "t=0.6s, distance_yoga_ball_camera = 2.1330 m\nt=1.1s, distance_basketball_camera = 2.4200 m\nt=1.6s, distance_basketball_camera = 1.9015 m\nt=0.6s, distance_soccer_ball_camera = 1.9370 m\nt=0.9s, distance_soccer_ball_camera = 1.5850 m",
+   "answer": 1.6593,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.6,
+     "mra": 1.0,
+     "raw": "1.6"
+    },
+    "caw_9b": {
+     "pred": 2.4,
+     "mra": 0.5,
+     "raw": "2.4"
+    }
+   }
+  },
+  {
+   "id": "captured_0061_q5",
+   "video": "captured_0061",
+   "k": 5,
+   "cat": "D3",
+   "q": "What is the distance between the soccer ball and the floor at 2.0s in meters?",
+   "prior": "velocity of the yoga ball at 0.6s = 2.5104 m/s",
+   "depth": "t=0.6s, distance_yoga_ball_camera = 2.1330 m\nt=1.1s, distance_basketball_camera = 2.4200 m\nt=1.6s, distance_basketball_camera = 1.9015 m\nt=0.6s, distance_soccer_ball_camera = 1.9370 m\nt=0.9s, distance_soccer_ball_camera = 1.5850 m",
+   "answer": 1.6913,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.48,
+     "mra": 0.2,
+     "raw": "0.48"
+    },
+    "caw_9b": {
+     "pred": 0.6,
+     "mra": 0.3,
+     "raw": "0.6"
+    }
+   }
+  },
+  {
+   "id": "captured_0061_q6",
+   "video": "captured_0061",
+   "k": 6,
+   "cat": "D3",
+   "q": "What is the velocity of the soccer ball at 0.6s in m/s?",
+   "prior": "velocity of the yoga ball at 0.6s = 2.5104 m/s",
+   "depth": "t=0.6s, distance_yoga_ball_camera = 2.1330 m\nt=1.1s, distance_basketball_camera = 2.4200 m\nt=1.6s, distance_basketball_camera = 1.9015 m\nt=0.6s, distance_soccer_ball_camera = 1.9370 m\nt=0.9s, distance_soccer_ball_camera = 1.5850 m",
+   "answer": 2.7918,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.5104,
+     "mra": 0.8,
+     "raw": "2.5104"
+    },
+    "caw_9b": {
+     "pred": 3.42,
+     "mra": 0.7,
+     "raw": "3.42"
+    }
+   }
+  },
+  {
+   "id": "captured_0061_q7",
+   "video": "captured_0061",
+   "k": 7,
+   "cat": "D3",
+   "q": "What is the velocity of the soccer ball at 0.9s in m/s?",
+   "prior": "velocity of the yoga ball at 0.6s = 2.5104 m/s",
+   "depth": "t=0.6s, distance_yoga_ball_camera = 2.1330 m\nt=1.1s, distance_basketball_camera = 2.4200 m\nt=1.6s, distance_basketball_camera = 1.9015 m\nt=0.6s, distance_soccer_ball_camera = 1.9370 m\nt=0.9s, distance_soccer_ball_camera = 1.5850 m",
+   "answer": 2.75,
+   "preds": {
+    "caw_4b": {
+     "pred": 3.66,
+     "mra": 0.6,
+     "raw": "3.66"
+    },
+    "caw_9b": {
+     "pred": 3.52,
+     "mra": 0.7,
+     "raw": "3.52"
+    }
+   }
+  },
+  {
+   "id": "captured_0061_q8",
+   "video": "captured_0061",
+   "k": 8,
+   "cat": "D3",
+   "q": "What is the velocity of the basketball at 1.1s in m/s?",
+   "prior": "velocity of the yoga ball at 0.6s = 2.5104 m/s",
+   "depth": "t=0.6s, distance_yoga_ball_camera = 2.1330 m\nt=1.1s, distance_basketball_camera = 2.4200 m\nt=1.6s, distance_basketball_camera = 1.9015 m\nt=0.6s, distance_soccer_ball_camera = 1.9370 m\nt=0.9s, distance_soccer_ball_camera = 1.5850 m",
+   "answer": 9.32,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.66,
+     "mra": 0.2,
+     "raw": "2.66"
+    },
+    "caw_9b": {
+     "pred": 3.58,
+     "mra": 0.3,
+     "raw": "3.58"
+    }
+   }
+  },
+  {
+   "id": "captured_0061_q9",
+   "video": "captured_0061",
+   "k": 9,
+   "cat": "D3",
+   "q": "What is the velocity of the basketball at 1.6s in m/s?",
+   "prior": "velocity of the yoga ball at 0.6s = 2.5104 m/s",
+   "depth": "t=0.6s, distance_yoga_ball_camera = 2.1330 m\nt=1.1s, distance_basketball_camera = 2.4200 m\nt=1.6s, distance_basketball_camera = 1.9015 m\nt=0.6s, distance_soccer_ball_camera = 1.9370 m\nt=0.9s, distance_soccer_ball_camera = 1.5850 m",
+   "answer": 0.8405,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.89,
+     "mra": 0.0,
+     "raw": "2.89"
+    },
+    "caw_9b": {
+     "pred": 3.58,
+     "mra": 0.0,
+     "raw": "3.58"
+    }
+   }
+  },
+  {
+   "id": "internet_0001_q1",
+   "video": "internet_0001",
+   "k": 1,
+   "cat": "S2",
+   "q": "What is the length of the black car in meters?",
+   "prior": "lane width = 3.66 m",
+   "depth": "",
+   "answer": 5.81,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.83,
+     "mra": 0.3,
+     "raw": "1.83"
+    },
+    "caw_9b": {
+     "pred": 4.6,
+     "mra": 0.7,
+     "raw": "4.6 m"
+    }
+   }
+  },
+  {
+   "id": "internet_0001_q2",
+   "video": "internet_0001",
+   "k": 2,
+   "cat": "S2",
+   "q": "What is the width of the black car in meters?",
+   "prior": "lane width = 3.66 m",
+   "depth": "",
+   "answer": 2.21,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.6,
+     "mra": 0.7,
+     "raw": "1.6"
+    },
+    "caw_9b": {
+     "pred": 1.8,
+     "mra": 0.8,
+     "raw": "1.8"
+    }
+   }
+  },
+  {
+   "id": "internet_0001_q3",
+   "video": "internet_0001",
+   "k": 3,
+   "cat": "S2",
+   "q": "What is the average speed of the black car in m/s?",
+   "prior": "lane width = 3.66 m",
+   "depth": "",
+   "answer": 29.3,
+   "preds": {
+    "caw_4b": {
+     "pred": 27.2,
+     "mra": 0.9,
+     "raw": "27.2"
+    },
+    "caw_9b": {
+     "pred": 25.0,
+     "mra": 0.8,
+     "raw": "25"
+    }
+   }
+  },
+  {
+   "id": "internet_0004_q1",
+   "video": "internet_0004",
+   "k": 1,
+   "cat": "S2",
+   "q": "What is the length of the wood block in cm?",
+   "prior": "ruler calibre = 1 cm",
+   "depth": "",
+   "answer": 9.9,
+   "preds": {
+    "caw_4b": {
+     "pred": 20.0,
+     "mra": 0.0,
+     "raw": "20"
+    },
+    "caw_9b": {
+     "pred": 10.0,
+     "mra": 1.0,
+     "raw": "10"
+    }
+   }
+  },
+  {
+   "id": "internet_0004_q2",
+   "video": "internet_0004",
+   "k": 2,
+   "cat": "S2",
+   "q": "What is the thickness of the wood block in cm?",
+   "prior": "ruler calibre = 1 cm",
+   "depth": "",
+   "answer": 1.9,
+   "preds": {
+    "caw_4b": {
+     "pred": 3.0,
+     "mra": 0.4,
+     "raw": "3"
+    },
+    "caw_9b": {
+     "pred": 2.0,
+     "mra": 0.9,
+     "raw": "2"
+    }
+   }
+  },
+  {
+   "id": "internet_0004_q3",
+   "video": "internet_0004",
+   "k": 3,
+   "cat": "S2",
+   "q": "What is the average velocity of the pencil tip moving on the block in cm/s?",
+   "prior": "ruler calibre = 1 cm",
+   "depth": "",
+   "answer": 14.1,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.5,
+     "mra": 0.1,
+     "raw": "2.5"
+    },
+    "caw_9b": {
+     "pred": 10.0,
+     "mra": 0.7,
+     "raw": "10"
+    }
+   }
+  },
+  {
+   "id": "internet_0004_q4",
+   "video": "internet_0004",
+   "k": 4,
+   "cat": "S2",
+   "q": "What is the average velocity of the saw cutting the block in cm/s?",
+   "prior": "ruler calibre = 1 cm",
+   "depth": "",
+   "answer": 1.2,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.5,
+     "mra": 0.0,
+     "raw": "2.5"
+    },
+    "caw_9b": {
+     "pred": 1.5,
+     "mra": 0.7,
+     "raw": "1.5 cm/s"
+    }
+   }
+  },
+  {
+   "id": "internet_0005_q1",
+   "video": "internet_0005",
+   "k": 1,
+   "cat": "D2",
+   "q": "What is the distance between the two black road signs in meters?",
+   "prior": "walking velocity = 1.25 m/s",
+   "depth": "",
+   "answer": 4.77,
+   "preds": {
+    "caw_4b": {
+     "pred": 10.0,
+     "mra": 0.0,
+     "raw": "10"
+    },
+    "caw_9b": {
+     "pred": 4.0,
+     "mra": 0.8,
+     "raw": "4"
+    }
+   }
+  },
+  {
+   "id": "internet_0005_q2",
+   "video": "internet_0005",
+   "k": 2,
+   "cat": "D2",
+   "q": "What is the height of the woman in yellow in meters?",
+   "prior": "walking velocity = 1.25 m/s",
+   "depth": "",
+   "answer": 1.71,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.7,
+     "mra": 1.0,
+     "raw": "1.7"
+    },
+    "caw_9b": {
+     "pred": 1.65,
+     "mra": 1.0,
+     "raw": "1.65 m"
+    }
+   }
+  },
+  {
+   "id": "internet_0005_q3",
+   "video": "internet_0005",
+   "k": 3,
+   "cat": "D2",
+   "q": "What is the length of the light right above the woman's head in meters?",
+   "prior": "walking velocity = 1.25 m/s",
+   "depth": "",
+   "answer": 1.05,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.2,
+     "mra": 0.8,
+     "raw": "1.2"
+    },
+    "caw_9b": {
+     "pred": 1.2,
+     "mra": 0.8,
+     "raw": "1.2"
+    }
+   }
+  },
+  {
+   "id": "internet_0005_q4",
+   "video": "internet_0005",
+   "k": 4,
+   "cat": "D2",
+   "q": "What is the side length of the floor tiles in meters?",
+   "prior": "walking velocity = 1.25 m/s",
+   "depth": "",
+   "answer": 1.25,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.5,
+     "mra": 0.3,
+     "raw": "0.5"
+    },
+    "caw_9b": {
+     "pred": 0.5,
+     "mra": 0.3,
+     "raw": "0.5"
+    }
+   }
+  },
+  {
+   "id": "internet_0013_q1",
+   "video": "internet_0013",
+   "k": 1,
+   "cat": "D2",
+   "q": "What is the width of the straight-through lane in meters?",
+   "prior": "pedestrian walking speed ~1.1 m/s",
+   "depth": "",
+   "answer": 3.68,
+   "preds": {
+    "caw_4b": {
+     "pred": 3.5,
+     "mra": 1.0,
+     "raw": "3.5"
+    },
+    "caw_9b": {
+     "pred": 6.0,
+     "mra": 0.3,
+     "raw": "6"
+    }
+   }
+  },
+  {
+   "id": "internet_0013_q2",
+   "video": "internet_0013",
+   "k": 2,
+   "cat": "D2",
+   "q": "What is the width of the roundabout lane in meters?",
+   "prior": "pedestrian walking speed ~1.1 m/s",
+   "depth": "",
+   "answer": 4.09,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.5,
+     "mra": 0.8,
+     "raw": "4.5"
+    },
+    "caw_9b": {
+     "pred": 6.0,
+     "mra": 0.5,
+     "raw": "6"
+    }
+   }
+  },
+  {
+   "id": "internet_0013_q3",
+   "video": "internet_0013",
+   "k": 3,
+   "cat": "D2",
+   "q": "What is the diameter of the center island planter in meters?",
+   "prior": "pedestrian walking speed ~1.1 m/s",
+   "depth": "",
+   "answer": 20.41,
+   "preds": {
+    "caw_4b": {
+     "pred": 22.0,
+     "mra": 0.9,
+     "raw": "22"
+    },
+    "caw_9b": {
+     "pred": 18.0,
+     "mra": 0.8,
+     "raw": "18"
+    }
+   }
+  },
+  {
+   "id": "internet_0013_q4",
+   "video": "internet_0013",
+   "k": 4,
+   "cat": "D2",
+   "q": "What is the speed of the white car in the roundabout at 3.0s in m/s?",
+   "prior": "pedestrian walking speed ~1.1 m/s",
+   "depth": "",
+   "answer": 5.79,
+   "preds": {
+    "caw_4b": {
+     "pred": 12.0,
+     "mra": 0.0,
+     "raw": "12"
+    },
+    "caw_9b": {
+     "pred": 13.0,
+     "mra": 0.0,
+     "raw": "13 m/s"
+    }
+   }
+  },
+  {
+   "id": "internet_0013_q5",
+   "video": "internet_0013",
+   "k": 5,
+   "cat": "D2",
+   "q": "What is the speed of the bycicle on the upper left conrner at 3.0s in m/s?",
+   "prior": "pedestrian walking speed ~1.1 m/s",
+   "depth": "",
+   "answer": 3.41,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.6,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 5.6,
+     "mra": 0.3,
+     "raw": "5.6"
+    }
+   }
+  },
+  {
+   "id": "internet_0013_q6",
+   "video": "internet_0013",
+   "k": 6,
+   "cat": "D2",
+   "q": "What is the distance between the two black cars in the round about at 1.0s in meters?",
+   "prior": "pedestrian walking speed ~1.1 m/s",
+   "depth": "",
+   "answer": 27.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 22.0,
+     "mra": 0.8,
+     "raw": "22"
+    },
+    "caw_9b": {
+     "pred": 18.0,
+     "mra": 0.6,
+     "raw": "18"
+    }
+   }
+  },
+  {
+   "id": "internet_0019_q1",
+   "video": "internet_0019",
+   "k": 1,
+   "cat": "D2",
+   "q": "What is the size of the ball in cm?",
+   "prior": "gravity acc = 9.8 m/s^2",
+   "depth": "",
+   "answer": 21.9,
+   "preds": {
+    "caw_4b": {
+     "pred": 22.0,
+     "mra": 1.0,
+     "raw": "22"
+    },
+    "caw_9b": {
+     "pred": 22.0,
+     "mra": 1.0,
+     "raw": "22"
+    }
+   }
+  },
+  {
+   "id": "internet_0019_q2",
+   "video": "internet_0019",
+   "k": 2,
+   "cat": "D2",
+   "q": "What is the height of the person standing in the middle in cm?",
+   "prior": "gravity acc = 9.8 m/s^2",
+   "depth": "",
+   "answer": 181.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 180.0,
+     "mra": 1.0,
+     "raw": "180"
+    },
+    "caw_9b": {
+     "pred": 170.0,
+     "mra": 0.9,
+     "raw": "170"
+    }
+   }
+  },
+  {
+   "id": "internet_0019_q3",
+   "video": "internet_0019",
+   "k": 3,
+   "cat": "D2",
+   "q": "What is the height of the person on the left (the passer) in cm?",
+   "prior": "gravity acc = 9.8 m/s^2",
+   "depth": "",
+   "answer": 161.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 175.0,
+     "mra": 0.9,
+     "raw": "175"
+    },
+    "caw_9b": {
+     "pred": 160.0,
+     "mra": 1.0,
+     "raw": "160"
+    }
+   }
+  },
+  {
+   "id": "internet_0019_q4",
+   "video": "internet_0019",
+   "k": 4,
+   "cat": "D2",
+   "q": "What is the height of the person on the right (the receiver) in cm?",
+   "prior": "gravity acc = 9.8 m/s^2",
+   "depth": "",
+   "answer": 184.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 175.0,
+     "mra": 1.0,
+     "raw": "175"
+    },
+    "caw_9b": {
+     "pred": 170.0,
+     "mra": 0.9,
+     "raw": "170"
+    }
+   }
+  },
+  {
+   "id": "internet_0019_q5",
+   "video": "internet_0019",
+   "k": 5,
+   "cat": "D2",
+   "q": "What is the distance between the passer and the receiver at 0.00s in meters?",
+   "prior": "gravity acc = 9.8 m/s^2",
+   "depth": "",
+   "answer": 4.52,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.0,
+     "mra": 0.4,
+     "raw": "2"
+    },
+    "caw_9b": {
+     "pred": 9.5,
+     "mra": 0.0,
+     "raw": "9.5"
+    }
+   }
+  },
+  {
+   "id": "internet_0019_q6",
+   "video": "internet_0019",
+   "k": 6,
+   "cat": "D2",
+   "q": "What is the velocity of the ball at 1.00s in m/s?",
+   "prior": "gravity acc = 9.8 m/s^2",
+   "depth": "",
+   "answer": 3.7,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.0,
+     "mra": 0.2,
+     "raw": "1.0"
+    },
+    "caw_9b": {
+     "pred": 9.8,
+     "mra": 0.0,
+     "raw": "9.8"
+    }
+   }
+  },
+  {
+   "id": "internet_0019_q7",
+   "video": "internet_0019",
+   "k": 7,
+   "cat": "D2",
+   "q": "What is the (average) horizontal velocity of the ball in m/s?",
+   "prior": "gravity acc = 9.8 m/s^2",
+   "depth": "",
+   "answer": 1.93,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.5,
+     "mra": 0.7,
+     "raw": "2.5"
+    },
+    "caw_9b": {
+     "pred": 8.2,
+     "mra": 0.0,
+     "raw": "8.2 m/s"
+    }
+   }
+  },
+  {
+   "id": "internet_0027_q1",
+   "video": "internet_0027",
+   "k": 1,
+   "cat": "S2",
+   "q": "What is the initial distance between the balck ball and the purple ball in cm?",
+   "prior": "billiard ball diameter = 57.2 mm",
+   "depth": "",
+   "answer": 14.74,
+   "preds": {
+    "caw_4b": {
+     "pred": 6.8,
+     "mra": 0.4,
+     "raw": "6.8"
+    },
+    "caw_9b": {
+     "pred": 11.4,
+     "mra": 0.7,
+     "raw": "11.4 cm"
+    }
+   }
+  },
+  {
+   "id": "internet_0027_q2",
+   "video": "internet_0027",
+   "k": 2,
+   "cat": "S2",
+   "q": "What is the white ball's average velocity in 1.00s to 2.00s in cm/s?",
+   "prior": "billiard ball diameter = 57.2 mm",
+   "depth": "",
+   "answer": 26.82,
+   "preds": {
+    "caw_4b": {
+     "pred": 22.6,
+     "mra": 0.8,
+     "raw": "22.6"
+    },
+    "caw_9b": {
+     "pred": 23.0,
+     "mra": 0.8,
+     "raw": "23"
+    }
+   }
+  },
+  {
+   "id": "internet_0027_q3",
+   "video": "internet_0027",
+   "k": 3,
+   "cat": "S2",
+   "q": "What is the velocity of the orange ball at 1.00s in cm/s?",
+   "prior": "billiard ball diameter = 57.2 mm",
+   "depth": "",
+   "answer": 24.99,
+   "preds": {
+    "caw_4b": {
+     "pred": 24.2,
+     "mra": 1.0,
+     "raw": "24.2"
+    },
+    "caw_9b": {
+     "pred": 115.0,
+     "mra": 0.0,
+     "raw": "115"
+    }
+   }
+  },
+  {
+   "id": "internet_0027_q4",
+   "video": "internet_0027",
+   "k": 4,
+   "cat": "S2",
+   "q": "What is the final distance between the purple ball and the black ball in cm?",
+   "prior": "billiard ball diameter = 57.2 mm",
+   "depth": "",
+   "answer": 18.04,
+   "preds": {
+    "caw_4b": {
+     "pred": 10.2,
+     "mra": 0.5,
+     "raw": "10.2"
+    },
+    "caw_9b": {
+     "pred": 11.4,
+     "mra": 0.6,
+     "raw": "11.4 cm"
+    }
+   }
+  },
+  {
+   "id": "internet_0027_q5",
+   "video": "internet_0027",
+   "k": 5,
+   "cat": "S2",
+   "q": "What is the acceleration of the yellow ballon the left at 2.00s in cm/s^2?",
+   "prior": "billiard ball diameter = 57.2 mm",
+   "depth": "",
+   "answer": 11.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 26.8,
+     "mra": 0.0,
+     "raw": "26.8"
+    },
+    "caw_9b": {
+     "pred": 10.8,
+     "mra": 1.0,
+     "raw": "10.8 cm/s^2"
+    }
+   }
+  },
+  {
+   "id": "simulation_0009_q1",
+   "video": "simulation_0009",
+   "k": 1,
+   "cat": "D3",
+   "q": "What is the length of the boat in meters?",
+   "prior": "speed of the boat = 1.5 m/s",
+   "depth": "t=0s, distance_boat_camera =11.827 m\nt=1s, distance_boat_camera = 13.154 m\ndistance_pier_camera = 18.920 m\ndistance_stairs_camera = 23.125 m",
+   "answer": 3.62,
+   "preds": {
+    "caw_4b": {
+     "pred": 3.5,
+     "mra": 1.0,
+     "raw": "3.5"
+    },
+    "caw_9b": {
+     "pred": 3.2,
+     "mra": 0.8,
+     "raw": "3.2 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0009_q2",
+   "video": "simulation_0009",
+   "k": 2,
+   "cat": "D3",
+   "q": "What is the width of the boat in meters?",
+   "prior": "speed of the boat = 1.5 m/s",
+   "depth": "t=0s, distance_boat_camera =11.827 m\nt=1s, distance_boat_camera = 13.154 m\ndistance_pier_camera = 18.920 m\ndistance_stairs_camera = 23.125 m",
+   "answer": 1.23,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.1,
+     "mra": 0.2,
+     "raw": "2.1"
+    },
+    "caw_9b": {
+     "pred": 2.4,
+     "mra": 0.0,
+     "raw": "2.4 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0009_q3",
+   "video": "simulation_0009",
+   "k": 3,
+   "cat": "D3",
+   "q": "What is the height of the boat in meters?",
+   "prior": "speed of the boat = 1.5 m/s",
+   "depth": "t=0s, distance_boat_camera =11.827 m\nt=1s, distance_boat_camera = 13.154 m\ndistance_pier_camera = 18.920 m\ndistance_stairs_camera = 23.125 m",
+   "answer": 0.75,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.6,
+     "mra": 0.7,
+     "raw": "0.6"
+    },
+    "caw_9b": {
+     "pred": 0.75,
+     "mra": 1.0,
+     "raw": "0.75 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0009_q4",
+   "video": "simulation_0009",
+   "k": 4,
+   "cat": "D3",
+   "q": "What is the width of the wooden pier in meters?",
+   "prior": "speed of the boat = 1.5 m/s",
+   "depth": "t=0s, distance_boat_camera =11.827 m\nt=1s, distance_boat_camera = 13.154 m\ndistance_pier_camera = 18.920 m\ndistance_stairs_camera = 23.125 m",
+   "answer": 1.53,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.1,
+     "mra": 0.6,
+     "raw": "2.1"
+    },
+    "caw_9b": {
+     "pred": 3.5,
+     "mra": 0.0,
+     "raw": "3.5 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0009_q5",
+   "video": "simulation_0009",
+   "k": 5,
+   "cat": "D3",
+   "q": "What is the length of the pier from the shore-side edge to the water-side edge in meters?",
+   "prior": "speed of the boat = 1.5 m/s",
+   "depth": "t=0s, distance_boat_camera =11.827 m\nt=1s, distance_boat_camera = 13.154 m\ndistance_pier_camera = 18.920 m\ndistance_stairs_camera = 23.125 m",
+   "answer": 6.17,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.2,
+     "mra": 0.6,
+     "raw": "4.2"
+    },
+    "caw_9b": {
+     "pred": 6.2,
+     "mra": 1.0,
+     "raw": "6.2"
+    }
+   }
+  },
+  {
+   "id": "simulation_0009_q6",
+   "video": "simulation_0009",
+   "k": 6,
+   "cat": "D3",
+   "q": "When t=3s, what is the minimum distance from the outer end of the pier to the boat in meters?",
+   "prior": "speed of the boat = 1.5 m/s",
+   "depth": "t=0s, distance_boat_camera =11.827 m\nt=1s, distance_boat_camera = 13.154 m\ndistance_pier_camera = 18.920 m\ndistance_stairs_camera = 23.125 m",
+   "answer": 1.95,
+   "preds": {
+    "caw_4b": {
+     "pred": 5.2,
+     "mra": 0.0,
+     "raw": "5.2"
+    },
+    "caw_9b": {
+     "pred": 3.45,
+     "mra": 0.2,
+     "raw": "3.45"
+    }
+   }
+  },
+  {
+   "id": "simulation_0009_q7",
+   "video": "simulation_0009",
+   "k": 7,
+   "cat": "D3",
+   "q": "What is the width of the wooden steps in meters?",
+   "prior": "speed of the boat = 1.5 m/s",
+   "depth": "t=0s, distance_boat_camera =11.827 m\nt=1s, distance_boat_camera = 13.154 m\ndistance_pier_camera = 18.920 m\ndistance_stairs_camera = 23.125 m",
+   "answer": 1.56,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.8,
+     "mra": 0.5,
+     "raw": "0.8"
+    },
+    "caw_9b": {
+     "pred": 1.2,
+     "mra": 0.7,
+     "raw": "1.2"
+    }
+   }
+  },
+  {
+   "id": "simulation_0009_q8",
+   "video": "simulation_0009",
+   "k": 8,
+   "cat": "D3",
+   "q": "What is the height of the pier deck above the water surface in meters?",
+   "prior": "speed of the boat = 1.5 m/s",
+   "depth": "t=0s, distance_boat_camera =11.827 m\nt=1s, distance_boat_camera = 13.154 m\ndistance_pier_camera = 18.920 m\ndistance_stairs_camera = 23.125 m",
+   "answer": 0.26,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.0,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 1.2,
+     "mra": 0.0,
+     "raw": "1.2 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0009_q9",
+   "video": "simulation_0009",
+   "k": 9,
+   "cat": "D3",
+   "q": "What is the height of the cabin floor above the ground in meters?",
+   "prior": "speed of the boat = 1.5 m/s",
+   "depth": "t=0s, distance_boat_camera =11.827 m\nt=1s, distance_boat_camera = 13.154 m\ndistance_pier_camera = 18.920 m\ndistance_stairs_camera = 23.125 m",
+   "answer": 0.85,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.1,
+     "mra": 0.0,
+     "raw": "2.1"
+    },
+    "caw_9b": {
+     "pred": 2.1,
+     "mra": 0.0,
+     "raw": "2.1"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q1",
+   "video": "simulation_0015",
+   "k": 1,
+   "cat": "S3",
+   "q": "What is the height of the central sculpture itself (excluding the pedestal) in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 1.97,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.8,
+     "mra": 0.9,
+     "raw": "1.8"
+    },
+    "caw_9b": {
+     "pred": 1.68,
+     "mra": 0.8,
+     "raw": "1.68"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q2",
+   "video": "simulation_0015",
+   "k": 2,
+   "cat": "S3",
+   "q": "What is the width of the pedestal (square base) of the central sculpture in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 1.46,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.2,
+     "mra": 0.8,
+     "raw": "1.2"
+    },
+    "caw_9b": {
+     "pred": 1.2,
+     "mra": 0.8,
+     "raw": "1.2"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q3",
+   "video": "simulation_0015",
+   "k": 3,
+   "cat": "S3",
+   "q": "What is the height of the pedestal (square base) of the central sculpture in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 0.6,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.1,
+     "mra": 0.1,
+     "raw": "1.1"
+    },
+    "caw_9b": {
+     "pred": 1.1,
+     "mra": 0.1,
+     "raw": "1.1"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q4",
+   "video": "simulation_0015",
+   "k": 4,
+   "cat": "S3",
+   "q": "What is the width of the freestanding art display panel in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 1.58,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.9,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 1.2,
+     "mra": 0.7,
+     "raw": "1.2"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q5",
+   "video": "simulation_0015",
+   "k": 5,
+   "cat": "S3",
+   "q": "What is the height of the freestanding art display panel in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 2.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.7,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 2.1,
+     "mra": 0.9,
+     "raw": "2.1"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q6",
+   "video": "simulation_0015",
+   "k": 6,
+   "cat": "S3",
+   "q": "What is the height of the bench seat in the atrium in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 0.45,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.4,
+     "mra": 0.8,
+     "raw": "0.4"
+    },
+    "caw_9b": {
+     "pred": 0.63,
+     "mra": 0.6,
+     "raw": "0.63 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q7",
+   "video": "simulation_0015",
+   "k": 7,
+   "cat": "S3",
+   "q": "What is the width of the bench seat in the atrium in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 0.706,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.0,
+     "mra": 0.5,
+     "raw": "1.0"
+    },
+    "caw_9b": {
+     "pred": 1.22,
+     "mra": 0.2,
+     "raw": "1.22 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q8",
+   "video": "simulation_0015",
+   "k": 8,
+   "cat": "S3",
+   "q": "What is the length of the bench seat in the atrium in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 2.23,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.6,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 1.5,
+     "mra": 0.6,
+     "raw": "1.5"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q9",
+   "video": "simulation_0015",
+   "k": 9,
+   "cat": "S3",
+   "q": "What is the clear height from the floor to the underside of the open roof frame (lattice) in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 12.9,
+   "preds": {
+    "caw_4b": {
+     "pred": 10.2,
+     "mra": 0.7,
+     "raw": "10.2"
+    },
+    "caw_9b": {
+     "pred": 6.5,
+     "mra": 0.5,
+     "raw": "6.5"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q10",
+   "video": "simulation_0015",
+   "k": 10,
+   "cat": "S3",
+   "q": "What is the vertical depth (thickness) of the open roof frame (top edge to bottom edge) in meters?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 0.72,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.87,
+     "mra": 0.0,
+     "raw": "1.87"
+    },
+    "caw_9b": {
+     "pred": 4.5,
+     "mra": 0.0,
+     "raw": "4.5"
+    }
+   }
+  },
+  {
+   "id": "simulation_0015_q11",
+   "video": "simulation_0015",
+   "k": 11,
+   "cat": "S3",
+   "q": "What is the average speed of the bird in m/s?",
+   "prior": "height of the person = 1.87 m",
+   "depth": "t=0s, distance_human_camera = 12.26 m\nt=1s, distance_human_camera = 10.97 m\ndistance_the_pedestal_of_the_central _sculpture_and_camera = 9.460 m\ndistance_the centeral_sculpture_camera = 9.460 m\ndistance_the_nearest_freestanding_art_display_panel = 11.874 m",
+   "answer": 1.3,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.6,
+     "mra": 0.4,
+     "raw": "0.6"
+    },
+    "caw_9b": {
+     "pred": 1.29,
+     "mra": 1.0,
+     "raw": "1.29"
+    }
+   }
+  },
+  {
+   "id": "simulation_0034_segmented_q1",
+   "video": "simulation_0034_segmented",
+   "k": 1,
+   "cat": "S3",
+   "q": "What is the average speed of the boat in m/s?",
+   "prior": "height of the person = 1.75 m",
+   "depth": "t=1s, distance_boat_camera = 96.8995 m\nt=2s, distance_boat_camera = 92.8490 m\nt=1s, distance_human_camera = 92.1861 m\nt=2s, distance_human_camera = 92.1960 m\nt=1s, distance_eagle_camera = 91.6867 m\nt=2s, distance_eagle_camera = 103.4262 m",
+   "answer": 4.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 3.99,
+     "mra": 1.0,
+     "raw": "3.99"
+    },
+    "caw_9b": {
+     "pred": 4.05,
+     "mra": 1.0,
+     "raw": "4.05"
+    }
+   }
+  },
+  {
+   "id": "simulation_0034_segmented_q2",
+   "video": "simulation_0034_segmented",
+   "k": 2,
+   "cat": "S3",
+   "q": "What is the height of the boat in meters?",
+   "prior": "height of the person = 1.75 m",
+   "depth": "t=1s, distance_boat_camera = 96.8995 m\nt=2s, distance_boat_camera = 92.8490 m\nt=1s, distance_human_camera = 92.1861 m\nt=2s, distance_human_camera = 92.1960 m\nt=1s, distance_eagle_camera = 91.6867 m\nt=2s, distance_eagle_camera = 103.4262 m",
+   "answer": 9.42,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.5,
+     "mra": 0.4,
+     "raw": "4.5"
+    },
+    "caw_9b": {
+     "pred": 4.2,
+     "mra": 0.4,
+     "raw": "4.2 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0034_segmented_q3",
+   "video": "simulation_0034_segmented",
+   "k": 3,
+   "cat": "S3",
+   "q": "What is the width of the boat in meters?",
+   "prior": "height of the person = 1.75 m",
+   "depth": "t=1s, distance_boat_camera = 96.8995 m\nt=2s, distance_boat_camera = 92.8490 m\nt=1s, distance_human_camera = 92.1861 m\nt=2s, distance_human_camera = 92.1960 m\nt=1s, distance_eagle_camera = 91.6867 m\nt=2s, distance_eagle_camera = 103.4262 m",
+   "answer": 3.27,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.2,
+     "mra": 0.7,
+     "raw": "4.2"
+    },
+    "caw_9b": {
+     "pred": 4.5,
+     "mra": 0.6,
+     "raw": "4.5 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0034_segmented_q4",
+   "video": "simulation_0034_segmented",
+   "k": 4,
+   "cat": "S3",
+   "q": "What is the average speed of the person in m/s?",
+   "prior": "height of the person = 1.75 m",
+   "depth": "t=1s, distance_boat_camera = 96.8995 m\nt=2s, distance_boat_camera = 92.8490 m\nt=1s, distance_human_camera = 92.1861 m\nt=2s, distance_human_camera = 92.1960 m\nt=1s, distance_eagle_camera = 91.6867 m\nt=2s, distance_eagle_camera = 103.4262 m",
+   "answer": 1.3,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.5,
+     "mra": 0.3,
+     "raw": "0.5"
+    },
+    "caw_9b": {
+     "pred": 0.99,
+     "mra": 0.7,
+     "raw": "0.99"
+    }
+   }
+  },
+  {
+   "id": "simulation_0034_segmented_q5",
+   "video": "simulation_0034_segmented",
+   "k": 5,
+   "cat": "S3",
+   "q": "What is the eagle’s wingspan (the distance from the tip of one wing to the tip of the other when fully spread) in meters?",
+   "prior": "height of the person = 1.75 m",
+   "depth": "t=1s, distance_boat_camera = 96.8995 m\nt=2s, distance_boat_camera = 92.8490 m\nt=1s, distance_human_camera = 92.1861 m\nt=2s, distance_human_camera = 92.1960 m\nt=1s, distance_eagle_camera = 91.6867 m\nt=2s, distance_eagle_camera = 103.4262 m",
+   "answer": 1.57,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.6,
+     "mra": 1.0,
+     "raw": "1.6"
+    },
+    "caw_9b": {
+     "pred": 1.52,
+     "mra": 1.0,
+     "raw": "1.52 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0034_segmented_q6",
+   "video": "simulation_0034_segmented",
+   "k": 6,
+   "cat": "S3",
+   "q": "What is the average speed of the eagle in m/s?",
+   "prior": "height of the person = 1.75 m",
+   "depth": "t=1s, distance_boat_camera = 96.8995 m\nt=2s, distance_boat_camera = 92.8490 m\nt=1s, distance_human_camera = 92.1861 m\nt=2s, distance_human_camera = 92.1960 m\nt=1s, distance_eagle_camera = 91.6867 m\nt=2s, distance_eagle_camera = 103.4262 m",
+   "answer": 12.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 13.7262,
+     "mra": 0.8,
+     "raw": "13.7262"
+    },
+    "caw_9b": {
+     "pred": 11.74,
+     "mra": 1.0,
+     "raw": "11.74"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q1",
+   "video": "simulation_0060",
+   "k": 1,
+   "cat": "D3",
+   "q": "What is the average speed of the yellow car in m/s？",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 4.075,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.19,
+     "mra": 0.5,
+     "raw": "2.19"
+    },
+    "caw_9b": {
+     "pred": 21.965,
+     "mra": 0.0,
+     "raw": "21.965"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q2",
+   "video": "simulation_0060",
+   "k": 2,
+   "cat": "D3",
+   "q": "What is the width of the lane in meters?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 11.8,
+   "preds": {
+    "caw_4b": {
+     "pred": 3.9,
+     "mra": 0.3,
+     "raw": "3.9"
+    },
+    "caw_9b": {
+     "pred": 3.66,
+     "mra": 0.3,
+     "raw": "3.66 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q3",
+   "video": "simulation_0060",
+   "k": 3,
+   "cat": "D3",
+   "q": "What is the length of the white car in meters？",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 6.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.6,
+     "mra": 0.7,
+     "raw": "4.6"
+    },
+    "caw_9b": {
+     "pred": 4.5,
+     "mra": 0.7,
+     "raw": "4.5"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q4",
+   "video": "simulation_0060",
+   "k": 4,
+   "cat": "D3",
+   "q": "What is the length of the turning yellow car in meters?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 5.44,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.5,
+     "mra": 0.8,
+     "raw": "4.5"
+    },
+    "caw_9b": {
+     "pred": 4.5,
+     "mra": 0.8,
+     "raw": "4.5"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q5",
+   "video": "simulation_0060",
+   "k": 5,
+   "cat": "D3",
+   "q": "What is the height of the turning yellow car in meters?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 1.65,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.9,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 1.5,
+     "mra": 0.9,
+     "raw": "1.5 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q6",
+   "video": "simulation_0060",
+   "k": 6,
+   "cat": "D3",
+   "q": "What is the diameter of the bicycle wheel in meters?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 0.56,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.6,
+     "mra": 0.9,
+     "raw": "0.6"
+    },
+    "caw_9b": {
+     "pred": 0.67,
+     "mra": 0.8,
+     "raw": "0.67"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q7",
+   "video": "simulation_0060",
+   "k": 7,
+   "cat": "D3",
+   "q": "What is the average speed of the walking pedestrian in m/s?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 1.3,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.3,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 1.4,
+     "mra": 0.9,
+     "raw": "1.4"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q8",
+   "video": "simulation_0060",
+   "k": 8,
+   "cat": "D3",
+   "q": "What is the height of the walking pedestrian in meters?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 1.87,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.7,
+     "mra": 0.9,
+     "raw": "1.7"
+    },
+    "caw_9b": {
+     "pred": 1.7,
+     "mra": 0.9,
+     "raw": "1.7"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q9",
+   "video": "simulation_0060",
+   "k": 9,
+   "cat": "D3",
+   "q": "What is the average speed of the bicycle in m/s?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 5.33,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.68,
+     "mra": 0.3,
+     "raw": "1.68"
+    },
+    "caw_9b": {
+     "pred": 3.2773,
+     "mra": 0.6,
+     "raw": "3.2773"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q10",
+   "video": "simulation_0060",
+   "k": 10,
+   "cat": "D3",
+   "q": "What is the width of the green car in meters?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 2.03,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.5,
+     "mra": 0.0,
+     "raw": "4.5"
+    },
+    "caw_9b": {
+     "pred": 1.8,
+     "mra": 0.8,
+     "raw": "1.8"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q11",
+   "video": "simulation_0060",
+   "k": 11,
+   "cat": "D3",
+   "q": "What is the width of the purple car in meters?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 1.86,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.3,
+     "mra": 0.0,
+     "raw": "4.3"
+    },
+    "caw_9b": {
+     "pred": 1.8,
+     "mra": 1.0,
+     "raw": "1.8"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q12",
+   "video": "simulation_0060",
+   "k": 12,
+   "cat": "D3",
+   "q": "What is the height of three stacked trash bags in meters?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 1.34,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.6,
+     "mra": 0.4,
+     "raw": "0.6"
+    },
+    "caw_9b": {
+     "pred": 2.1,
+     "mra": 0.4,
+     "raw": "2.1"
+    }
+   }
+  },
+  {
+   "id": "simulation_0060_q13",
+   "video": "simulation_0060",
+   "k": 13,
+   "cat": "D3",
+   "q": "What is the height of the trash can in meters?",
+   "prior": "acceleration of the white car = 4 m/s^2",
+   "depth": "t=0.58s, distance_human_camera = 34.4785 m\nt=1.58s, distance_human_camera = 35.6486 m\nt=0.58s, distance_yellow_car_camera = 26.2275 m\nt=1.58s, distance_yellow_car_camera = 28.4240 m\nt=0.58s, distance_white_car_camera = 22.7254 m\nt=1.58s, distance_white_car_camera = 21.5370 m\nt=0.58s, distance_bike_camera = 23.5534 m\nt=1.58s, distance_bike_camera = 23.2262 m",
+   "answer": 0.6,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.1,
+     "mra": 0.1,
+     "raw": "1.1"
+    },
+    "caw_9b": {
+     "pred": 0.8,
+     "mra": 0.6,
+     "raw": "0.8"
+    }
+   }
+  },
+  {
+   "id": "simulation_0089_q1",
+   "video": "simulation_0089",
+   "k": 1,
+   "cat": "S2",
+   "q": "What is the length of the big bird in meters?",
+   "prior": "length of the small bird = 0.94 m",
+   "depth": "",
+   "answer": 0.72,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.8,
+     "mra": 0.0,
+     "raw": "1.8"
+    },
+    "caw_9b": {
+     "pred": 2.1,
+     "mra": 0.0,
+     "raw": "2.1"
+    }
+   }
+  },
+  {
+   "id": "simulation_0089_q2",
+   "video": "simulation_0089",
+   "k": 2,
+   "cat": "S2",
+   "q": "What is the width of the big bird in meters?",
+   "prior": "length of the small bird = 0.94 m",
+   "depth": "",
+   "answer": 2.04,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.7,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 1.5,
+     "mra": 0.7,
+     "raw": "1.5"
+    }
+   }
+  },
+  {
+   "id": "simulation_0089_q3",
+   "video": "simulation_0089",
+   "k": 3,
+   "cat": "S2",
+   "q": "What is the width of the small bird in meters?",
+   "prior": "length of the small bird = 0.94 m",
+   "depth": "",
+   "answer": 1.3,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.5,
+     "mra": 0.3,
+     "raw": "0.5"
+    },
+    "caw_9b": {
+     "pred": 0.4,
+     "mra": 0.3,
+     "raw": "0.4"
+    }
+   }
+  },
+  {
+   "id": "simulation_0089_q4",
+   "video": "simulation_0089",
+   "k": 4,
+   "cat": "S2",
+   "q": "What is the average speed of the small bird in m/s?",
+   "prior": "length of the small bird = 0.94 m",
+   "depth": "",
+   "answer": 11.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.6,
+     "mra": 0.1,
+     "raw": "1.6"
+    },
+    "caw_9b": {
+     "pred": 10.5,
+     "mra": 1.0,
+     "raw": "10.5 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0089_q5",
+   "video": "simulation_0089",
+   "k": 5,
+   "cat": "S2",
+   "q": "What is the average speed of the big bird in m/s?",
+   "prior": "length of the small bird = 0.94 m",
+   "depth": "",
+   "answer": 17.98,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.8,
+     "mra": 0.1,
+     "raw": "1.8"
+    },
+    "caw_9b": {
+     "pred": 10.0,
+     "mra": 0.5,
+     "raw": "10"
+    }
+   }
+  },
+  {
+   "id": "simulation_0089_q6",
+   "video": "simulation_0089",
+   "k": 6,
+   "cat": "S2",
+   "q": "What is the horizontal distance(XY-plane) between the big bird and the small bird at 0.5 s in meters?",
+   "prior": "length of the small bird = 0.94 m",
+   "depth": "",
+   "answer": 14.56,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.88,
+     "mra": 0.1,
+     "raw": "1.88"
+    },
+    "caw_9b": {
+     "pred": 10.5,
+     "mra": 0.7,
+     "raw": "10.5 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0098_segmented_q1",
+   "video": "simulation_0098_segmented",
+   "k": 1,
+   "cat": "D2",
+   "q": "What is the average speed of the boat in m/s?",
+   "prior": "speed of the shark = 3 m/s",
+   "depth": "",
+   "answer": 5.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.0,
+     "mra": 0.3,
+     "raw": "2"
+    },
+    "caw_9b": {
+     "pred": 3.0,
+     "mra": 0.5,
+     "raw": "3"
+    }
+   }
+  },
+  {
+   "id": "simulation_0098_segmented_q2",
+   "video": "simulation_0098_segmented",
+   "k": 2,
+   "cat": "D2",
+   "q": "What is the length of the boat in meters?",
+   "prior": "speed of the shark = 3 m/s",
+   "depth": "",
+   "answer": 10.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 12.0,
+     "mra": 0.7,
+     "raw": "12"
+    },
+    "caw_9b": {
+     "pred": 10.0,
+     "mra": 1.0,
+     "raw": "10 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0098_segmented_q3",
+   "video": "simulation_0098_segmented",
+   "k": 3,
+   "cat": "D2",
+   "q": "What is the length of the shark in meters?",
+   "prior": "speed of the shark = 3 m/s",
+   "depth": "",
+   "answer": 3.26,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.2,
+     "mra": 0.3,
+     "raw": "1.2"
+    },
+    "caw_9b": {
+     "pred": 2.5,
+     "mra": 0.7,
+     "raw": "2.5 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0098_segmented_q4",
+   "video": "simulation_0098_segmented",
+   "k": 4,
+   "cat": "D2",
+   "q": "What is the height of the shark in meters?",
+   "prior": "speed of the shark = 3 m/s",
+   "depth": "",
+   "answer": 1.11,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.6,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 1.2,
+     "mra": 0.9,
+     "raw": "1.2 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0163_q1",
+   "video": "simulation_0163",
+   "k": 1,
+   "cat": "S2",
+   "q": "What is the speed of the ball at time 0.5s in m/s?",
+   "prior": "diameter of the ball = 0.21 m",
+   "depth": "",
+   "answer": 3.148,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.8,
+     "mra": 0.8,
+     "raw": "2.8"
+    },
+    "caw_9b": {
+     "pred": 5.25,
+     "mra": 0.3,
+     "raw": "5.25"
+    }
+   }
+  },
+  {
+   "id": "simulation_0163_q2",
+   "video": "simulation_0163",
+   "k": 2,
+   "cat": "S2",
+   "q": "What is the acceleration of the ball at time 0.5s in m/s^2?",
+   "prior": "diameter of the ball = 0.21 m",
+   "depth": "",
+   "answer": 0.359,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.0,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 2.4,
+     "mra": 0.0,
+     "raw": "2.4"
+    }
+   }
+  },
+  {
+   "id": "simulation_0163_q3",
+   "video": "simulation_0163",
+   "k": 3,
+   "cat": "S2",
+   "q": "What is the speed of the ball at time 1s in m/s?",
+   "prior": "diameter of the ball = 0.21 m",
+   "depth": "",
+   "answer": 2.974,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.2,
+     "mra": 0.5,
+     "raw": "4.2"
+    },
+    "caw_9b": {
+     "pred": 4.2,
+     "mra": 0.5,
+     "raw": "4.2"
+    }
+   }
+  },
+  {
+   "id": "simulation_0163_q4",
+   "video": "simulation_0163",
+   "k": 4,
+   "cat": "S2",
+   "q": "What is the acceleration of the ball at time 1s in m/s^2?",
+   "prior": "diameter of the ball = 0.21 m",
+   "depth": "",
+   "answer": 0.339,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.0,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 2.5,
+     "mra": 0.0,
+     "raw": "2.5"
+    }
+   }
+  },
+  {
+   "id": "simulation_0163_q5",
+   "video": "simulation_0163",
+   "k": 5,
+   "cat": "S2",
+   "q": "What is the height of the bowling pin in meters?",
+   "prior": "diameter of the ball = 0.21 m",
+   "depth": "",
+   "answer": 0.32,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.17,
+     "mra": 0.5,
+     "raw": "0.17"
+    },
+    "caw_9b": {
+     "pred": 0.48,
+     "mra": 0.5,
+     "raw": "0.48"
+    }
+   }
+  },
+  {
+   "id": "simulation_0163_q6",
+   "video": "simulation_0163",
+   "k": 6,
+   "cat": "S2",
+   "q": "What is the height of the ball return opening in meters?",
+   "prior": "diameter of the ball = 0.21 m",
+   "depth": "",
+   "answer": 10.0,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.21,
+     "mra": 0.0,
+     "raw": "0.21"
+    },
+    "caw_9b": {
+     "pred": 0.21,
+     "mra": 0.0,
+     "raw": "0.21"
+    }
+   }
+  },
+  {
+   "id": "simulation_0170_segmented_q1",
+   "video": "simulation_0170_segmented",
+   "k": 1,
+   "cat": "S3",
+   "q": "What is the speed of the astronaut at time 0.5s in m/s?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "t=1s, distance_astronaut_camera = 23.137 m",
+   "answer": 3.533,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.6,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 2.2,
+     "mra": 0.6,
+     "raw": "2.2"
+    }
+   }
+  },
+  {
+   "id": "simulation_0170_segmented_q2",
+   "video": "simulation_0170_segmented",
+   "k": 2,
+   "cat": "S3",
+   "q": "What is the acceleration of the astronaut at time 0.5s in m/s^2?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "t=1s, distance_astronaut_camera = 23.137 m",
+   "answer": 6.227,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.9,
+     "mra": 0.4,
+     "raw": "2.9"
+    },
+    "caw_9b": {
+     "pred": 2.4,
+     "mra": 0.3,
+     "raw": "2.4"
+    }
+   }
+  },
+  {
+   "id": "simulation_0170_segmented_q3",
+   "video": "simulation_0170_segmented",
+   "k": 3,
+   "cat": "S3",
+   "q": "What is the speed of the astronaut at time 1s in m/s?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "t=1s, distance_astronaut_camera = 23.137 m",
+   "answer": 5.938,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.3,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 2.2,
+     "mra": 0.3,
+     "raw": "2.2"
+    }
+   }
+  },
+  {
+   "id": "simulation_0170_segmented_q4",
+   "video": "simulation_0170_segmented",
+   "k": 4,
+   "cat": "S3",
+   "q": "What is the acceleration of the astronaut at time 1s in m/s^2?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "t=1s, distance_astronaut_camera = 23.137 m",
+   "answer": 3.604,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.97,
+     "mra": 0.2,
+     "raw": "0.97"
+    },
+    "caw_9b": {
+     "pred": 2.7,
+     "mra": 0.7,
+     "raw": "2.7"
+    }
+   }
+  },
+  {
+   "id": "simulation_0170_segmented_q5",
+   "video": "simulation_0170_segmented",
+   "k": 5,
+   "cat": "S3",
+   "q": "What is the speed of the astronaut at time 2s in m/s?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "t=1s, distance_astronaut_camera = 23.137 m",
+   "answer": 6.812,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.3,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 3.3,
+     "mra": 0.4,
+     "raw": "3.3"
+    }
+   }
+  },
+  {
+   "id": "simulation_0170_segmented_q6",
+   "video": "simulation_0170_segmented",
+   "k": 6,
+   "cat": "S3",
+   "q": "What is the acceleration of the astronaut at time 2s in m/s^2?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "t=1s, distance_astronaut_camera = 23.137 m",
+   "answer": 1.641,
+   "preds": {
+    "caw_4b": {
+     "pred": 9.8,
+     "mra": 0.0,
+     "raw": "9.8"
+    },
+    "caw_9b": {
+     "pred": 9.8,
+     "mra": 0.0,
+     "raw": "9.8 m/s^2"
+    }
+   }
+  },
+  {
+   "id": "simulation_0170_segmented_q7",
+   "video": "simulation_0170_segmented",
+   "k": 7,
+   "cat": "S3",
+   "q": "What is the speed of the astronaut at time 3s in m/s?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "t=1s, distance_astronaut_camera = 23.137 m",
+   "answer": 2.441,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.9,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 3.7,
+     "mra": 0.4,
+     "raw": "3.7"
+    }
+   }
+  },
+  {
+   "id": "simulation_0170_segmented_q8",
+   "video": "simulation_0170_segmented",
+   "k": 8,
+   "cat": "S3",
+   "q": "What is the acceleration of the astronaut at time 3s in m/s^2?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "t=1s, distance_astronaut_camera = 23.137 m",
+   "answer": 6.885,
+   "preds": {
+    "caw_4b": {
+     "pred": 9.8,
+     "mra": 0.5,
+     "raw": "9.8"
+    },
+    "caw_9b": {
+     "pred": 0.01,
+     "mra": 0.0,
+     "raw": "0.01"
+    }
+   }
+  },
+  {
+   "id": "simulation_0171_q1",
+   "video": "simulation_0171",
+   "k": 1,
+   "cat": "S2",
+   "q": "What is the speed of the astronaut at time 0.5s in m/s?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "",
+   "answer": 1.72,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.7,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 1.8,
+     "mra": 1.0,
+     "raw": "1.8 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0171_q2",
+   "video": "simulation_0171",
+   "k": 2,
+   "cat": "S2",
+   "q": "What is the acceleration of the astronaut at time 0.5s in m/s^2?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "",
+   "answer": 1.801,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.63,
+     "mra": 0.9,
+     "raw": "1.63"
+    },
+    "caw_9b": {
+     "pred": 1.62,
+     "mra": 0.8,
+     "raw": "1.62"
+    }
+   }
+  },
+  {
+   "id": "simulation_0171_q3",
+   "video": "simulation_0171",
+   "k": 3,
+   "cat": "S2",
+   "q": "What is the speed of the astronaut at time 1s in m/s?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "",
+   "answer": 4.89,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.4,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 1.8,
+     "mra": 0.3,
+     "raw": "1.8 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0171_q4",
+   "video": "simulation_0171",
+   "k": 4,
+   "cat": "S2",
+   "q": "What is the acceleration of the astronaut at time 1s in m/s^2?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "",
+   "answer": 1.192,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.6,
+     "mra": 0.6,
+     "raw": "1.6"
+    },
+    "caw_9b": {
+     "pred": 1.62,
+     "mra": 0.6,
+     "raw": "1.62"
+    }
+   }
+  },
+  {
+   "id": "simulation_0171_q5",
+   "video": "simulation_0171",
+   "k": 5,
+   "cat": "S2",
+   "q": "What is the speed of the astronaut at time 2s in m/s?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "",
+   "answer": 1.86,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.2,
+     "mra": 0.8,
+     "raw": "2.2"
+    },
+    "caw_9b": {
+     "pred": 1.8,
+     "mra": 1.0,
+     "raw": "1.8 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0171_q6",
+   "video": "simulation_0171",
+   "k": 6,
+   "cat": "S2",
+   "q": "What is the acceleration of the astronaut at time 2s in m/s^2?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "",
+   "answer": 0.705,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.6,
+     "mra": 0.0,
+     "raw": "1.6"
+    },
+    "caw_9b": {
+     "pred": 1.62,
+     "mra": 0.0,
+     "raw": "1.62"
+    }
+   }
+  },
+  {
+   "id": "simulation_0171_q7",
+   "video": "simulation_0171",
+   "k": 7,
+   "cat": "S2",
+   "q": "What is the speed of the astronaut at time 3s in m/s?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "",
+   "answer": 1.462,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.6,
+     "mra": 0.9,
+     "raw": "1.6"
+    },
+    "caw_9b": {
+     "pred": 2.2,
+     "mra": 0.4,
+     "raw": "2.2 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0171_q8",
+   "video": "simulation_0171",
+   "k": 8,
+   "cat": "S2",
+   "q": "What is the acceleration of the astronaut at time 3s in m/s^2?",
+   "prior": "height of the astronaut = 2.2 m",
+   "depth": "",
+   "answer": 2.634,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.6,
+     "mra": 0.6,
+     "raw": "1.6"
+    },
+    "caw_9b": {
+     "pred": 1.62,
+     "mra": 0.6,
+     "raw": "1.62"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q1",
+   "video": "simulation_0193",
+   "k": 1,
+   "cat": "D2",
+   "q": "What is the diameter of the model of Callisto in meters?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 0.137,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.12,
+     "mra": 0.8,
+     "raw": "0.12"
+    },
+    "caw_9b": {
+     "pred": 0.04,
+     "mra": 0.2,
+     "raw": "0.04"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q2",
+   "video": "simulation_0193",
+   "k": 2,
+   "cat": "D2",
+   "q": "What is the diameter of the model of Jupiter (the one at the center) in meters?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 1.76,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.14,
+     "mra": 0.0,
+     "raw": "0.14"
+    },
+    "caw_9b": {
+     "pred": 0.8,
+     "mra": 0.4,
+     "raw": "0.8"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q3",
+   "video": "simulation_0193",
+   "k": 3,
+   "cat": "D2",
+   "q": "What is the average orbital speed of the model of Io in m/s?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 1.932,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.5,
+     "mra": 0.7,
+     "raw": "2.5"
+    },
+    "caw_9b": {
+     "pred": 1.25,
+     "mra": 0.6,
+     "raw": "1.25 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q4",
+   "video": "simulation_0193",
+   "k": 4,
+   "cat": "D2",
+   "q": "What is the average orbital speed of the model of Europa in m/s?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 1.242,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.5,
+     "mra": 0.7,
+     "raw": "1.5"
+    },
+    "caw_9b": {
+     "pred": 1.18,
+     "mra": 1.0,
+     "raw": "1.18 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q5",
+   "video": "simulation_0193",
+   "k": 5,
+   "cat": "D2",
+   "q": "What is the average orbital speed of the model of Ganymede in m/s?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 0.808,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.2,
+     "mra": 0.5,
+     "raw": "1.2"
+    },
+    "caw_9b": {
+     "pred": 0.843,
+     "mra": 1.0,
+     "raw": "0.843 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q6",
+   "video": "simulation_0193",
+   "k": 6,
+   "cat": "D2",
+   "q": "What is the diameter of the model of Io in meters?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 0.137,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.12,
+     "mra": 0.8,
+     "raw": "0.12"
+    },
+    "caw_9b": {
+     "pred": 0.15,
+     "mra": 0.9,
+     "raw": "0.15"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q7",
+   "video": "simulation_0193",
+   "k": 7,
+   "cat": "D2",
+   "q": "What is the diameter of the model of Europa in meters?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 0.137,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.14,
+     "mra": 1.0,
+     "raw": "0.14"
+    },
+    "caw_9b": {
+     "pred": 1.25,
+     "mra": 0.0,
+     "raw": "1.25 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q8",
+   "video": "simulation_0193",
+   "k": 8,
+   "cat": "D2",
+   "q": "What is the diameter of the model of Ganymede in meters?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 0.137,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.45,
+     "mra": 0.0,
+     "raw": "0.45"
+    },
+    "caw_9b": {
+     "pred": 0.15,
+     "mra": 0.9,
+     "raw": "0.15"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q9",
+   "video": "simulation_0193",
+   "k": 9,
+   "cat": "D2",
+   "q": "What is the orbital diameter of the Io model?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 3.31,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.4,
+     "mra": 0.1,
+     "raw": "0.4"
+    },
+    "caw_9b": {
+     "pred": 1.26,
+     "mra": 0.3,
+     "raw": "1.26 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q10",
+   "video": "simulation_0193",
+   "k": 10,
+   "cat": "D2",
+   "q": "What is the orbital diameter of the Europa model?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 4.24,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.42,
+     "mra": 0.0,
+     "raw": "0.42"
+    },
+    "caw_9b": {
+     "pred": 1.26,
+     "mra": 0.2,
+     "raw": "1.26 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q11",
+   "video": "simulation_0193",
+   "k": 11,
+   "cat": "D2",
+   "q": "What is the orbital diameter of the Ganymede model?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 5.55,
+   "preds": {
+    "caw_4b": {
+     "pred": 1.2,
+     "mra": 0.2,
+     "raw": "1.2"
+    },
+    "caw_9b": {
+     "pred": 1.88,
+     "mra": 0.3,
+     "raw": "1.88 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0193_q12",
+   "video": "simulation_0193",
+   "k": 12,
+   "cat": "D2",
+   "q": "What is the orbital diameter of the Callisto model?",
+   "prior": "Callisto's model speed = 0.627 m/s",
+   "depth": "",
+   "answer": 8.53,
+   "preds": {
+    "caw_4b": {
+     "pred": 12.5,
+     "mra": 0.5,
+     "raw": "12.5"
+    },
+    "caw_9b": {
+     "pred": 10.0,
+     "mra": 0.8,
+     "raw": "10.0 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0196_q1",
+   "video": "simulation_0196",
+   "k": 1,
+   "cat": "D2",
+   "q": "What is the diameter of the plunge tube in meters?",
+   "prior": "speed of the bubble in the drop = 0.00144 m/s",
+   "depth": "",
+   "answer": 0.00307,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.00144,
+     "mra": 0.4,
+     "raw": "0.00144"
+    },
+    "caw_9b": {
+     "pred": 0.0004,
+     "mra": 0.1,
+     "raw": "0.0004"
+    }
+   }
+  },
+  {
+   "id": "simulation_0196_q2",
+   "video": "simulation_0196",
+   "k": 2,
+   "cat": "D2",
+   "q": "What is the width of the droplet in meters?",
+   "prior": "speed of the bubble in the drop = 0.00144 m/s",
+   "depth": "",
+   "answer": 0.00175,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.00144,
+     "mra": 0.8,
+     "raw": "0.00144"
+    },
+    "caw_9b": {
+     "pred": 0.000432,
+     "mra": 0.2,
+     "raw": "0.000432 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0196_q3",
+   "video": "simulation_0196",
+   "k": 3,
+   "cat": "D2",
+   "q": "What is the horizontal width of the “skynova” text on the bottle in meters?",
+   "prior": "speed of the bubble in the drop = 0.00144 m/s",
+   "depth": "",
+   "answer": 0.00188,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.00144,
+     "mra": 0.7,
+     "raw": "0.00144"
+    },
+    "caw_9b": {
+     "pred": 0.015,
+     "mra": 0.0,
+     "raw": "0.015"
+    }
+   }
+  },
+  {
+   "id": "simulation_0196_q4",
+   "video": "simulation_0196",
+   "k": 4,
+   "cat": "D2",
+   "q": "What is the vertical height of the “skynova” lettering on the bottle in meters?",
+   "prior": "speed of the bubble in the drop = 0.00144 m/s",
+   "depth": "",
+   "answer": 0.014,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.00144,
+     "mra": 0.1,
+     "raw": "0.00144"
+    },
+    "caw_9b": {
+     "pred": 0.05,
+     "mra": 0.0,
+     "raw": "0.05"
+    }
+   }
+  },
+  {
+   "id": "simulation_0300_q1",
+   "video": "simulation_0300",
+   "k": 1,
+   "cat": "D3",
+   "q": "What is the speed of the car at 1s, in m/s?",
+   "prior": "acceleration of the car = 5 m/s^2",
+   "depth": "t = 1.0s, distance_car_camera = 17.8278 m\nt = 2.0s, distance_car_camera = 23.1989 m",
+   "answer": 4.8,
+   "preds": {
+    "caw_4b": {
+     "pred": 5.0,
+     "mra": 1.0,
+     "raw": "5"
+    },
+    "caw_9b": {
+     "pred": 5.0,
+     "mra": 1.0,
+     "raw": "5 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0300_q2",
+   "video": "simulation_0300",
+   "k": 2,
+   "cat": "D3",
+   "q": "What is the speed of the car at 2s, in m/s?",
+   "prior": "acceleration of the car = 5 m/s^2",
+   "depth": "t = 1.0s, distance_car_camera = 17.8278 m\nt = 2.0s, distance_car_camera = 23.1989 m",
+   "answer": 9.8,
+   "preds": {
+    "caw_4b": {
+     "pred": 15.0,
+     "mra": 0.4,
+     "raw": "15"
+    },
+    "caw_9b": {
+     "pred": 10.0,
+     "mra": 1.0,
+     "raw": "10 m/s"
+    }
+   }
+  },
+  {
+   "id": "simulation_0300_q3",
+   "video": "simulation_0300",
+   "k": 3,
+   "cat": "D3",
+   "q": "What is the length ((from the front to the back) of the car in meters?",
+   "prior": "acceleration of the car = 5 m/s^2",
+   "depth": "t = 1.0s, distance_car_camera = 17.8278 m\nt = 2.0s, distance_car_camera = 23.1989 m",
+   "answer": 4.45,
+   "preds": {
+    "caw_4b": {
+     "pred": 4.2,
+     "mra": 0.9,
+     "raw": "4.2"
+    },
+    "caw_9b": {
+     "pred": 4.5711,
+     "mra": 1.0,
+     "raw": "4.5711"
+    }
+   }
+  },
+  {
+   "id": "simulation_0300_q4",
+   "video": "simulation_0300",
+   "k": 4,
+   "cat": "D3",
+   "q": "What is the width (from the left wheel to the right wheel) of the car in meters?",
+   "prior": "acceleration of the car = 5 m/s^2",
+   "depth": "t = 1.0s, distance_car_camera = 17.8278 m\nt = 2.0s, distance_car_camera = 23.1989 m",
+   "answer": 2.23,
+   "preds": {
+    "caw_4b": {
+     "pred": 2.0,
+     "mra": 0.8,
+     "raw": "2.0"
+    },
+    "caw_9b": {
+     "pred": 1.85,
+     "mra": 0.8,
+     "raw": "1.85 m"
+    }
+   }
+  },
+  {
+   "id": "simulation_0300_q5",
+   "video": "simulation_0300",
+   "k": 5,
+   "cat": "D3",
+   "q": "What is the height of the car in meters?",
+   "prior": "acceleration of the car = 5 m/s^2",
+   "depth": "t = 1.0s, distance_car_camera = 17.8278 m\nt = 2.0s, distance_car_camera = 23.1989 m",
+   "answer": 1.15,
+   "preds": {
+    "caw_4b": {
+     "pred": 0.8,
+     "mra": 0.6,
+     "raw": "0.8"
+    },
+    "caw_9b": {
+     "pred": 1.05,
+     "mra": 0.9,
+     "raw": "1.05 m"
+    }
+   }
+  }
+ ],
+ "left_out": [
+  "captured_0027s_q4"
+ ]
+}
