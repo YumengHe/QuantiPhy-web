@@ -43,21 +43,14 @@ METHODS = {
         "setup": "released evaluator code_as_world.evaluation @1353bf0, 16 frames, temperature 0.01, seed 1, "
                  "no thinking; gpu_memory_utilization 0.85 (released 0.5 is sized for 80 GB); 1× L40S, 2026-11-03",
     },
-    "gemini_direct": {
-        "label": "Gemini 3 Flash (direct)",
-        "paper": None,
-        "source": "https://openrouter.ai/google/gemini-3-flash-preview",
-        "setup": "google/gemini-3-flash-preview via OpenRouter through PhysMind's own video query (agent.query), "
-                 "whole video + prior + depth info + question, one number parsed from the reply; 2026-11-03",
-    },
     "physmind": {
-        "label": "PhysMind (variant B)",
+        "label": "PhysMind",
         "paper": None,
         "source": "https://github.com/ccyydd/PhysMind",
         "setup": "PhysMind @8c106b7 stages 1-3 (SAM 3 tracks from VLM question concepts, MoGe-2, Metric Video Depth "
                  "Anything, SAM 3D Objects, FoundationPose, GeoCalib), quantity measured on the posed metric meshes "
                  "(no prior used, as in PhysMind); 66 of 158 measured, the other 92 (no posed track 57, SAM 3 "
-                 "stage failed 28, no poses 7) take the Gemini direct answer; VLM gemini-3-flash-preview; "
+                 "stage failed 28, no poses 7) fall back to the VLM's direct answer on the whole video, as PhysMind's own pipeline does; VLM gemini-3-flash-preview via OpenRouter; "
                  "1× L40S, 2026-11-03",
     },
 }
