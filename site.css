@@ -265,6 +265,8 @@ table.classref, table.classvotes { font-size: 13px; }
 table.classref tr.bad td:last-child, table.classvotes tr.bad td:last-child { color: var(--m1t, #8a1c12); font-weight: 600; }
 table.classref tr.muted td, table.classvotes tr.muted td { color: var(--muted); }
 table.classvotes tr.camf td { border-top: 1.5px solid var(--text); font-weight: 600; }
+table.classvotes tr.sub td { font-size: 12px; border-top: none; padding-top: 1px; }
+table.classvotes tr.sub td:first-child { padding-left: 18px; }
 table.chain td.n .muted, table.chain td.muted div { font-size: 12px; }
 /* stage A's undetermined f and the fusion that replaced it (rule focal.undetermined) */
 table.undet td { vertical-align: top; }

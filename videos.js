@@ -246,10 +246,14 @@
     if (!te) return '';
     const end = (e) => `<td class="n">${e.frame}</td><td title="${esc(e.why)}"><code>${esc(e.reason)}</code></td>`;
     const hasSet = Object.values(te.tracks).some((t) => t.frame_set);
+    // rule E21 track.mask_one_component: mask components dropped as detached from the object, and leak frames
+    const hasMask = Object.values(te.tracks).some((t) => t.mask && (t.mask.dropped.length || t.mask.leak.length));
+    const drop = (m) => (m && m.dropped.length ? `<span title="${esc(m.dropped.map((d) => `${d.frame}: ${d.area} px at [${d.box.join(', ')}] · ${d.why}`).join('\n'))}">${frameRuns([...new Set(m.dropped.map((d) => d.frame))])}</span>` : '');
     return '<div class="scroll-x"><table class="sgrel trkends"><tr><th><code>track.visible_span</code></th><th class="n">Start</th><th></th><th class="n">End</th><th></th>' +
-      `<th><code>overlap_same_class</code></th>${hasSet ? '<th><code>frame_set</code></th>' : ''}</tr>` +
+      `<th><code>overlap_same_class</code></th>${hasSet ? '<th><code>frame_set</code></th>' : ''}${hasMask ? '<th>Components dropped</th><th><code>leak</code></th>' : ''}</tr>` +
       Object.entries(te.tracks).map(([name, t]) => `<tr><td>${esc(name)}</td>${end(t.ends.start)}${end(t.ends.end)}` +
-        `<td>${t.overlap_same_class.length ? frameRuns(t.overlap_same_class) : ''}</td>${hasSet ? `<td>${t.frame_set ? esc(t.frame_set) : ''}</td>` : ''}</tr>`).join('') + '</table></div>';
+        `<td>${t.overlap_same_class.length ? frameRuns(t.overlap_same_class) : ''}</td>${hasSet ? `<td>${t.frame_set ? esc(t.frame_set) : ''}</td>` : ''}` +
+        `${hasMask ? `<td>${drop(t.mask)}</td><td>${t.mask && t.mask.leak.length ? frameRuns(t.mask.leak) : ''}</td>` : ''}</tr>`).join('') + '</table></div>';
   }
   // the inventory's presence verdict per object (rules decisions.no_conf, presence.split_vote): the grid votes, the
   // zoom re-check's votes (an unknown vote is a third state, not "not visible"), the rule, its reason, recorded errors
@@ -714,7 +718,8 @@
   }
   function supportText(o) {
     const sp = o.support;
-    let t = sp.mode === 'support' ? `on ${sp.target || 'main support'}` : sp.mode === 'airborne' ? (sp.airborne_part && sp.target ? `on ${sp.target}, then airborne` : 'airborne') : sp.mode || '';
+    let t = sp.mode === 'support' ? `on ${sp.target || 'main support'}` : sp.mode === 'airborne' ? (sp.airborne_part && sp.target ? `on ${sp.target}, then airborne` : 'airborne')
+      : sp.mode === 'static_above' ? `static, above ${sp.target}` : sp.mode || '';
     if (o.hang) t += ' (top face is the support)';
     if (o.t_on > 0) t += `; at rest until ${fmt(o.t_on, 2)} s`;
     const MODE = { ballistic: 'bouncing', contact: 'contact (geometry first)', overhead: 'overhead structure', free3d: 'free 3D motion', own_plane: 'own plane', held_static: 'held static' };
@@ -860,6 +865,18 @@
       `${same ? ` · ${esc(u.roll.source)}` : ''}</p>` +
       (u.skipped.length ? '<div class="scroll-x"><table class="sgrel"><tr><th>Passed over</th><th></th></tr>' +
         u.skipped.map((r) => `<tr><td>${esc(r.source)}</td><td class="muted">${esc(r.why)}</td></tr>`).join('') + '</table></div>' : '');
+  }
+  // rule D34 plan.overhead_seen_from_below: an overhead structure's box bottom against the support plane's horizon line
+  function seenFromBelow(l) {
+    if (!l || !l.length) return '';
+    return '<div class="scroll-x"><table class="sgrel"><tr><th><code>plan.overhead_seen_from_below</code></th><th class="n">Horizon row</th><th class="n">Bottom row</th>' +
+      '<th class="n">Margin (px)</th><th class="n">Camera height (m)</th><th class="n">Frames above</th><th></th></tr>' +
+      l.map((x) => {
+        const v = x.values;
+        return `<tr><td>${esc(x.object)}</td>` + (v ? `<td class="n">${fmt(v.horizon_row, 1)}</td><td class="n">${fmt(v.bottom_row, 1)}</td><td class="n">${fmt(v.margin_px, 1)}</td>` +
+          `<td class="n">${fmt(v.camera_height, 2)}</td><td class="n">${v.n_above} / ${v.n_frames}</td>` : '<td colspan="5"></td>') +
+          `<td class="${cls3(x.pass)}" title="${esc(x.why)}">${x.pass === false ? 'static box' : res3(x.pass)}</td></tr>`;
+      }).join('') + '</table></div>';
   }
   function supportPlaneTable(sp) {
     if (!sp) return '';
@@ -1023,14 +1040,23 @@
     h += `<div class="scroll-x"><table class="objs classvotes"><tr><th><code>scale.class_reference</code>${cr.role ? ` · ${esc(cr.role)}` : ''}</th><th>Class</th><th>Dim</th><th class="n">Class (m)</th>` +
       `<th class="n">Extent</th><th class="n">${x}</th><th class="n">z</th><th></th></tr>` +
       cr.votes.map((v) => `<tr class="${cls3(v.pass)}"><td>${esc(v.object)}</td><td><code>${esc(v.class)}</code></td><td>${esc(v.dim)} <span class="muted">${esc(v.key)}</span></td>` +
-        `<td class="n">${plusMinus(v.value, v.sigma)}</td><td class="n" title="${esc(`${v.px} px · ${v.z_how} · frames ${v.frames}${v.frame_set ? ` of ${v.frame_set}` : ''}`)}">${fmtNum(v.extent)}<div class="muted">${v.n_frames} frames${v.size_only ? ' · size read' : ''}</div></td>` +
+        `<td class="n">${plusMinus(v.value, v.sigma)}</td><td class="n" title="${esc(`${v.px} px · ${v.z_how} · frames ${v.frames}${v.frame_set ? ` of ${v.frame_set}` : ''}`)}">${v.anchored ? `${fmtNum(v.px)} px` : fmtNum(v.extent)}<div class="muted">${v.n_frames} frames${v.size_only ? ' · size read' : ''}</div></td>` +
         `<td class="n">${plusMinus(v.x, v.sigma_x)}</td><td class="n">${v.z == null ? '' : `${fmt(v.z, 2)} ${v.pass ? '≤' : '>'} 3`}</td>` +
-        `<td title="${esc(v.reason)}">${cr.used.includes(v.object) ? 'used' : cr.role === 'vote' && v.pass === false ? 'outlier' : res3(v.pass)}</td></tr>`).join('') +
-      cr.skipped.map((k) => `<tr class="muted"><td>${esc(k.object)}</td><td><code>${esc(k.class)}</code></td><td colspan="5"></td><td title="${esc(k.why)}"><code>${esc(k.reason)}</code></td></tr>`).join('') +
+        `<td title="${esc(v.reason)}">${cr.used.includes(v.object) ? 'used' : cr.role === 'vote' && v.pass === false ? 'outlier' : res3(v.pass)}</td></tr>` +
+        anchoredRows(v.anchored && v.anchored.readings)).join('') +
+      cr.skipped.map((k) => `<tr class="muted"><td>${esc(k.object)}</td><td><code>${esc(k.class)}</code></td><td colspan="5"></td><td title="${esc(k.why)}"><code>${esc(k.reason)}</code></td></tr>` +
+        anchoredRows(k.readings)).join('') +
       (cr.stated ? `<tr class="camf"><td colspan="5">${esc(cr.stated.source)}</td><td class="n">${plusMinus(cr.stated.value, cr.stated.sigma)}</td><td></td><td title="${esc(cr.reason)}">${cr.carries ? '' : res3(cr.pass)}</td></tr>` : '') +
       (cr.carries ? `<tr class="camf"><td colspan="5"><code>class</code></td><td class="n">${plusMinus(cr.value, cr.sigma)}</td><td></td><td title="${esc(cr.reason)}">${res3(cr.pass)}</td></tr>` : '') +
       '</table></div>';
     return h;
+  }
+  // rule C15e focal.anchored_class_vote: per stated depth, f = extent px x Z / D at its frame, or why the frame was not read
+  function anchoredRows(rd) {
+    if (!rd || !rd.length) return '';
+    return rd.map((r) => `<tr class="sub${r.skip ? ' muted' : ''}"><td colspan="3"><code>focal.anchored_class_vote</code> ${fmt(r.t, 3)} s · Z ${fmtNum(r.Z)} m · frame ${r.frame}</td><td></td>` +
+      (r.skip ? `<td colspan="3"></td><td title="${esc(r.why)}"><code>${esc(r.skip)}</code></td></tr>`
+        : `<td class="n" title="${esc(r.how)}">${fmtNum(r.px)} px<div class="muted">${r.n_frames} frames</div></td><td class="n">${fmtNum(r.f)} <span class="muted">± ${fmt(100 * r.rel, 1)} %</span></td><td></td><td></td></tr>`)).join('');
   }
   // the reference objects' size reads (rule reference.size_only): frames read of the track's frame set and those left
   // out, depth samples, headings from its own path or one shared yaw, box rms, metric dims by source; no read: its reason
@@ -1252,7 +1278,7 @@
           : `<p class="facts">f = ${fmtNum(s.f)} px${s.f_source ? ` · ${esc(s.f_source)}` : ''}`) +
         (s.f_first_clamp ? ` · first estimate ${fmtNum(s.f_first_clamp.from)} → ${fmtNum(s.f_first_clamp.to)} px (band ${fmtNum(s.f_first_clamp.band[0])}–${fmtNum(s.f_first_clamp.band[1])})` : '') +
         (s.focal && s.focal.f_votes != null ? ` · votes ${fmtNum(s.focal.f_votes)} ± ${fmtNum(s.focal.sigma)} px (${esc(s.focal.n_votes)})` : '') +
-        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + undeterminedTable(s.camera && s.camera.undetermined) + refitTable(s.camera && s.camera.refit) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + softTable(s.soft) + upBlock(s.up) + floorTable(q.floor) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
+        (s.main_support ? ` · main support ${esc(s.main_support)}` : '') + (q.scale_source ? ` · scale from <code>${esc(q.scale_source)}</code>` : '') + '</p>' + cameraOneTable(s.camera_one) + undeterminedTable(s.camera && s.camera.undetermined) + refitTable(s.camera && s.camera.refit) + fusionTable(s.fusion, q) + consistentTable(s.camera) + focalTable(s.focal) + agencyUnknown(s.camera) + supportPlaneTable(s.support_plane) + softTable(s.soft) + upBlock(s.up) + seenFromBelow(s.seen_from_below) + floorTable(q.floor) + mainPlaneLines(s.main_plane, s.main_support) + horizonLines(s.horizon) + rollLines(s.camera_roll) +
         (s.scale ? `<p class="facts">scale ${fmtNum(s.scale.s)} · ${esc(s.scale.source)}${s.scale.object ? ` (${esc(s.scale.object)})` : ''} · ${esc(s.scale.prior)} · ${esc(s.scale.extent || s.scale.how)}</p>` +
           (s.scale.checks ? checksTable(s.scale.checks) : '') + priorMotionBlock(s.scale.prior_motion, v.duration) + scaleFullExtentTable(s.scale.full_extent) : '') +
         classObjectBlock(s.class_object) + classReferenceBlock(q.inventory, s.class_reference, q.scale_source) + referencesTable(s.references) + planeFusionTable(s.plane_fusion) + scaleContactBlock(s.scale_contact) + depthRowsTable(s.depth_rows, q.id) + planeSigmaTable(s.plane_sigma) +

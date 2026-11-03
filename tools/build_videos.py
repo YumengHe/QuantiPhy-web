@@ -258,6 +258,12 @@ CURRENT = (ROOT / "pipeline" / "VERSION").read_text().strip()
 #   up      (batch 28) the scene has "gravity.up" {name, up, up_source, roll {deg, source}, pitch {deg, source},
 #            skipped [{source, why}], why} (C23b gravity.up_not_from_soft_plane): a soft support plane never supplies
 #            the up; gravity.up_source carries the same string, also on a scene without a metric scale
+#   anchored (batch 29) a track has "mask" {components {dropped [{frame, area, box, why}], leak [frames], rule}} or null
+#            (E21 track.mask_one_component); a class vote has "anchored" {t, Z, source "depth_info", f [], readings} or
+#            null, an anchored vote has extent null, an anchored skip may carry "anchored_readings", skip reasons
+#            dim.truncated / dim.occluded, and the refit's first pass may skip a class object before its fit (C15e
+#            focal.anchored_class_vote); an overhead plan may be "static_above" with "plan.overhead_seen_from_below",
+#            listed at the scene's top level too, answer method fit-box-clearance (D34)
 STEPS_V4 = ("objects", "scenegraph_grid", "track", "scenegraph_pf", "observe", "scene", "agent", "answer")
 STEPS_V5 = ("objects", "scenegraph_grid", "observe", "track", "measure", "scenegraph_pf", "ground", "scene", "agent",
             "answer")
@@ -272,7 +278,8 @@ VERSION_FORMAT = {
            "pendulum": True, "selftest": True, "horizon": True, "camera": True, "roll": True,
            "static": True, "fusion": True, "fused": True, "impulse": True, "contact": True, "interval": True,
            "span": True, "launch": True, "classref": True, "sizeonly": True,
-           "undetermined": True, "contained": True, "unobserved": True, "rendered": True, "up": True},
+           "undetermined": True, "contained": True, "unobserved": True, "rendered": True, "up": True,
+           "anchored": True},
 }
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -771,8 +778,31 @@ def track_ends(key: str):
                     (fs is not None and not set(fr) <= {int(x) for x in fs}):
                 raise ValueError(f"{AT['where']}: {w} role {role!r} frame_set {'set' if fs else fs!r} boxes outside it")
             row["frame_set"] = frame_runs([int(x) for x in fs]) if fs is not None else None
+        if FMT.get("anchored"):
+            row["mask"] = mask_view(req(tr, "mask", w), set(fr), w)
         out[name] = row
     return {"fps": num(j["info"]["fps"], 6), "tracks": out} if out else None
+
+
+def mask_view(m, boxed: set, w: str):
+    """Rule E21 track.mask_one_component: the mask components a track's frames dropped (detached from the object's
+    reference box) and its leak frames (an edge out and back within 6 frames). None for a track without masks."""
+    if m is None:
+        return None
+    c = m.get("components") if isinstance(m, dict) and set(m) == {"components"} else None
+    if not isinstance(c, dict) or set(c) != {"dropped", "leak", "rule"} or not str(c["rule"]).startswith("track.mask_one_component"):
+        raise ValueError(f"{AT['where']}: {w} mask {m!r}")
+    dropped = []
+    for d in c["dropped"]:
+        if not isinstance(d, dict) or set(d) != {"frame", "area", "box", "why"} or len(d["box"]) != 4 \
+                or int(d["frame"]) not in boxed or not int(d["area"]) > 0:
+            raise ValueError(f"{AT['where']}: {w} mask dropped {d!r}")
+        dropped.append({"frame": int(d["frame"]), "area": int(d["area"]), "box": [num(x, 1) for x in d["box"]],
+                        "why": text(d["why"])})
+    leak = sorted(int(x) for x in c["leak"])
+    if not set(leak) <= boxed:
+        raise ValueError(f"{AT['where']}: {w} mask leak frames {leak} outside its boxes")
+    return {"dropped": dropped, "leak": leak}
 
 
 def full_extent_view(fe: dict | None, what: str):
@@ -1742,10 +1772,51 @@ def prior_motion_view(pm: dict | None, checks: dict):
 CLASS_SKIP_REASONS = ("self_reference", "observe.line_spacing", "prior.stated", "part.unmeasured", "track.none",
                       "presence.absent", "support.plane", "dims.agent_lateral", "dims.agent_height", "size.full_extent",
                       "fit.none", "fit.object", "dim.unobserved", "extent.frames",
-                      "read.frames", "support.none", "focal.undetermined")   # pipeline.scene_fit (rules C15, reference.size_only, C22)
+                      "read.frames", "support.none", "focal.undetermined",
+                      "dim.truncated", "dim.occluded")   # pipeline.scene_fit (rules C15, reference.size_only, C22, C15e)
+# reasons only a fitted body gives: never in the refit's first pass at an undetermined stage-A f (rule C22)
+CLASS_SKIP_FIT = ("fit.none", "fit.object", "dim.unobserved", "read.frames", "support.none")
 CLASS_ROLES = ("cross-check", "carries", "vote")   # scale.class_reference.role (rules C15, class_vote.regular)
 CLASS_VOTE_KEYS = ("source", "object", "class", "dim", "key", "value", "sigma", "role", "px", "extent", "extent_rel",
                    "n_frames", "frames", "z_how", "pass", "reason", "z")
+ANCHOR_READ_KEYS = {"t", "Z", "frame", "f", "rel", "px", "frames", "how"}
+ANCHOR_SKIP_KEYS = {"t", "Z", "frame", "skip", "why"}
+
+
+def anchored_readings(rd, where: str) -> list:
+    """Rule C15e focal.anchored_class_vote: per stated depth (t, Z) at its frame either a reading f = extent_px x Z / D
+    {t, Z, frame, f, rel, px, frames, how} or a skip {t, Z, frame, skip, why} (the frame not fully seen, no extent)."""
+    out = []
+    for r in rd if isinstance(rd, list) else [None]:
+        if not isinstance(r, dict) or set(r) not in (ANCHOR_READ_KEYS, ANCHOR_SKIP_KEYS):
+            raise ValueError(f"{AT['where']}: {where} reading {r!r}")
+        base = {"t": num(r["t"], 4), "Z": num(r["Z"], 4), "frame": int(r["frame"])}
+        if "skip" in r:
+            if r["skip"] not in CLASS_SKIP_REASONS:
+                raise ValueError(f"{AT['where']}: {where} reading skip {r['skip']!r}")
+            out.append(base | {"skip": r["skip"], "why": text(r["why"])})
+        else:
+            out.append(base | {"f": num(r["f"], 4), "rel": num(r["rel"], 3), "px": num(r["px"], 4),
+                               "n_frames": len(r["frames"]), "how": text(r["how"])})
+    return out
+
+
+def anchored_view(a, v: dict, where: str):
+    """An anchored class vote's record: the stated depths it read, f per reading, every reading. None: fit-read."""
+    if a is None:
+        if v["extent"] is None:
+            raise ValueError(f"{AT['where']}: {where} has neither an extent nor an anchored record")
+        return None
+    if not isinstance(a, dict) or set(a) != {"t", "Z", "source", "f", "readings"} or a["source"] != "depth_info" \
+            or not (len(a["t"]) == len(a["Z"]) == len(a["f"]) >= 1) or v["extent"] is not None \
+            or v.get("f") is None or not str(v["z_how"]).startswith(f"{len(a['t'])} stated depth(s) at "):
+        raise ValueError(f"{AT['where']}: {where} anchored {a!r} extent {v['extent']!r} z_how {v['z_how']!r}")
+    rd = anchored_readings(a["readings"], where)
+    if [r["f"] for r in rd if "f" in r] != [num(x, 4) for x in a["f"]]:
+        raise ValueError(f"{AT['where']}: {where} anchored f {a['f']} differs from its readings")
+    return {"t": [num(x, 4) for x in a["t"]], "Z": [num(x, 4) for x in a["Z"]], "readings": rd}
+
+
 CLASS_REFERENCE_KEYS = ("name", "mode", "votes", "used", "skipped", "carries_scale", "stated", "value", "sigma", "pass",
                         "reason")
 
@@ -1778,7 +1849,7 @@ def class_reference_view(state: dict, scale_source: str) -> dict:
         wv = f"{w} vote {v.get('object')!r}"
         # a carrying vote has no z: there is no stated source to test it against (its verdict is the carry's, "reason")
         keys = set(CLASS_VOTE_KEYS) - ({"z"} if role == "carries" else set()) | {mode, f"sigma_{mode}"} \
-            | ({"size_only", "frame_set"} if so else set())
+            | ({"size_only", "frame_set"} if so else set()) | ({"anchored"} if FMT.get("anchored") else set())
         if set(v) != keys or v["source"] != f"class:{v['object']}" or v["pass"] not in (True, False, None):
             raise ValueError(f"{AT['where']}: {wv} keys {sorted(v)} source {v.get('source')!r} pass {v.get('pass')!r}")
         # rule reference.size_only: a reference's vote is its size read, on its track's frame set
@@ -1792,15 +1863,19 @@ def class_reference_view(state: dict, scale_source: str) -> dict:
                       "n_frames": int(v["n_frames"]), "frames": text(v["frames"]), "z_how": text(v["z_how"]),
                       "x": num(v[mode], 4), "sigma_x": num(v[f"sigma_{mode}"], 3), "z": num(v.get("z"), 3),
                       "pass": v["pass"], "reason": text(v["reason"])}
-                     | ({"size_only": v["size_only"], "frame_set": text(v["frame_set"]) or None} if so else {}))
+                     | ({"size_only": v["size_only"], "frame_set": text(v["frame_set"]) or None} if so else {})
+                     | ({"anchored": anchored_view(v["anchored"], v, wv)} if FMT.get("anchored") else {}))
     skipped = []
     for x in cr["skipped"]:
         ws = f"{w} skipped {x.get('name')!r}"
         r = text(req(x, "reason", ws))
         if r not in CLASS_SKIP_REASONS:
             raise ValueError(f"{AT['where']}: {ws} reason {r!r}")
+        if "anchored_readings" in x and not FMT.get("anchored"):
+            raise ValueError(f"{AT['where']}: {ws} anchored_readings before batch 29")
         skipped.append({"object": text(req(x, "name", ws)), "class": text(req(x, "class", ws)), "reason": r,
-                        "why": text(req(x, "why", ws))})
+                        "why": text(req(x, "why", ws))}
+                       | ({"readings": anchored_readings(x["anchored_readings"], ws)} if "anchored_readings" in x else {}))
     names = [v["object"] for v in votes]
     # "used" names the votes by source ("class:<object>")
     by_source = {f"class:{n}": n for n in names}
@@ -2393,6 +2468,57 @@ def forward_near(name: str, o: dict):
     return num(n, 4)
 
 
+SEEN_FROM_BELOW = "plan.overhead_seen_from_below"
+SEEN_VALUES = {"horizon_row", "bottom_row", "margin_px", "camera_height", "n_frames", "n_above"}
+
+
+def seen_from_below_view(x, name: str | None, where: str) -> dict:
+    """Rule D34 plan.overhead_seen_from_below: an overhead structure's underside faces the camera only above the
+    camera's eye level -- its box's bottom edge above the support plane's horizon line (median over its tracked
+    frames). {object, pass (None: untestable), test, why, values}."""
+    if not isinstance(x, dict) or set(x) != {"object", "pass", "test", "why", "values"} or x["pass"] not in (True, False, None) \
+            or (name is not None and x["object"] != name):
+        raise ValueError(f"{AT['where']}: {where} {SEEN_FROM_BELOW} {x!r}")
+    v = x["values"]
+    if x["pass"] is not None and (not isinstance(v, dict) or set(v) != SEEN_VALUES
+                                  or (num(v["margin_px"], 3) > 0) != x["pass"] or not 0 <= v["n_above"] <= v["n_frames"]):
+        raise ValueError(f"{AT['where']}: {where} {SEEN_FROM_BELOW} values {v!r} pass {x['pass']!r}")
+    return {"object": text(x["object"]), "pass": x["pass"], "test": text(x["test"]), "why": text(x["why"]),
+            "values": {k: num(a, 4) for k, a in v.items()} if isinstance(v, dict) else None}
+
+
+def support_view(name: str, o: dict) -> dict:
+    """An object's support plan (scene_fit.plan): mode, target, airborne_part, source; a rewritten plan names its rule
+    and what it was; an overhead structure carries its D34 test, and a failing one is a static box "static_above"."""
+    w = f"scene object {name!r} support"
+    sp = req(o, "support", f"scene object {name!r}")
+    if not isinstance(sp, dict) or not {"mode", "target", "airborne_part", "source"} <= set(sp) \
+            or not set(sp) <= {"mode", "target", "airborne_part", "source", "rel", "rule", "was", SEEN_FROM_BELOW} \
+            or ("rule" in sp) != ("was" in sp):
+        raise ValueError(f"{AT['where']}: {w} {sp!r}")
+    out = {k: sp[k] for k in ("mode", "target", "airborne_part", "source", "rel") if k in sp}
+    if "was" in sp:
+        out |= {"rule": text(sp["rule"]), "was": {k: text(sp["was"].get(k)) for k in ("mode", "target")}}
+    sb = sp.get(SEEN_FROM_BELOW)
+    if sb is not None:
+        out["seen_from_below"] = seen_from_below_view(sb, name, w)
+    if (sp["mode"] == "static_above") != (sb is not None and sb["pass"] is False) or \
+            (sp["mode"] == "static_above" and (sp.get("rule") != SEEN_FROM_BELOW or sp["was"].get("mode") != "overhead")) or \
+            (sb is not None and sp["mode"] not in ("overhead", "static_above")):
+        raise ValueError(f"{AT['where']}: {w} mode {sp['mode']!r} rule {sp.get('rule')!r} with {SEEN_FROM_BELOW} {sb!r}")
+    return out
+
+
+def seen_from_below_list(j: dict) -> list:
+    """The scene's top-level list of D34 tests: the same records as the objects' plans carry."""
+    lst = req(j, SEEN_FROM_BELOW, "scene")
+    own = [o["support"][SEEN_FROM_BELOW] for o in req(j, "objects", "scene").values()
+           if isinstance(o.get("support"), dict) and SEEN_FROM_BELOW in o["support"]]
+    if not isinstance(lst, list) or sorted(map(repr, lst)) != sorted(map(repr, own)):
+        raise ValueError(f"{AT['where']}: scene {SEEN_FROM_BELOW} {lst!r} differs from the objects' plans")
+    return [seen_from_below_view(x, None, "scene") for x in lst]
+
+
 def scene_view(state: dict, source_path: Path) -> dict:
     """A saved scene as the page draws it, without the per-question results (a shared scene must not show other
     questions' answers)."""
@@ -2413,7 +2539,7 @@ def scene_view(state: dict, source_path: Path) -> dict:
                      "a": vec(req(o, "a", what)), "yaw": num(req(o, "yaw", what), 5), "t_on": num(req(o, "t_on", what), 5),
                      # where each dimension comes from: observed / prior / bound (not seen, anti-collapse floor)
                      "dim_source": req(o, "dim_source", what), "dim_bounds": dim_bounds(name, o),
-                     "support": req(o, "support", what),
+                     "support": support_view(name, o) if FMT.get("anchored") else req(o, "support", what),
                      "hang": req(o, "hang", what), "mode": req(o, "mode", what),
                      "out_of_frame": req(o, "out_of_frame", what), "visibility": req(o, "visibility", what),
                      "overhead": bool(req(o, "overhead", what)), "events": motion_events(name, o)[:12],
@@ -2453,7 +2579,8 @@ def scene_view(state: dict, source_path: Path) -> dict:
         ({"class_object": class_object_view(j), "contained": contained_view(j)} if FMT.get("contained") else {}) | \
         ({"soft": soft_view(j), "no_new_law": [no_new_law_view(x) for x in req(j, "unobserved.no_new_law", "scene")] or None}
          if FMT.get("rendered") else {}) | \
-        ({"up": gravity_up_view(j)} if FMT.get("up") else {})
+        ({"up": gravity_up_view(j)} if FMT.get("up") else {}) | \
+        ({"seen_from_below": seen_from_below_list(j)} if FMT.get("anchored") else {})
 
 
 SOFT_SOURCES = {"support_mask": set(), "main_support": {"n_mask_points", "n_contacts"},
@@ -3015,7 +3142,8 @@ def refit_fixed_point_view(cam: dict, out: dict):
             raise ValueError(f"{AT['where']}: {ws} {x!r}")
         sk = []
         for k in x["class_skipped"]:
-            if set(k) != {"name", "reason"} or k["reason"] not in CLASS_SKIP_REASONS or (i == 0 and k["reason"] != "focal.undetermined"):
+            if set(k) != {"name", "reason"} or k["reason"] not in CLASS_SKIP_REASONS or (i == 0 and (
+                    k["reason"] in CLASS_SKIP_FIT if FMT.get("anchored") else k["reason"] != "focal.undetermined")):
                 raise ValueError(f"{AT['where']}: {ws} class_skipped {k!r}")
             sk.append({"name": text(k["name"]), "reason": k["reason"]})
         steps.append({"iteration": i, "f_scene": num(x["f_scene"], 4), "admitted": [text(a) for a in x["admitted"]],
@@ -3023,7 +3151,8 @@ def refit_fixed_point_view(cam: dict, out: dict):
     if num(steps[0]["f_scene"], 3) != num(req(fu, "stage_a_f", "focal.undetermined"), 3):
         raise ValueError(f"{AT['where']}: camera {w} iteration 0 f_scene {steps[0]['f_scene']} is not stage A's f")
     if rp["pass"] and (len(steps) < 2 or sorted(steps[-1]["admitted"]) != sorted(steps[-2]["admitted"])
-                       or num(steps[-1]["f"], 3) != num(out["f"], 3)):
+                       or num(steps[-1]["f_scene"], 3) != num(out["f"], 3)):
+        # the camera keeps the f the repeating pass ran at (f_scene); its fusion's f re-reads the fit-read votes there
         raise ValueError(f"{AT['where']}: camera {w} passes without a repeated admitted set at camera.f {out['f']}")
     return {"pass": rp["pass"], "why": text(rp["why"]), "steps": steps}
 
