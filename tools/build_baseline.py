@@ -47,11 +47,7 @@ METHODS = {
         "label": "PhysMind",
         "paper": None,
         "source": "https://github.com/ccyydd/PhysMind",
-        "setup": "PhysMind @8c106b7 stages 1-3 (SAM 3 tracks from VLM question concepts, MoGe-2, Metric Video Depth "
-                 "Anything, SAM 3D Objects, FoundationPose, GeoCalib), quantity measured on the posed metric meshes "
-                 "(no prior used, as in PhysMind); 66 of 158 measured, the other 92 (no posed track 57, SAM 3 "
-                 "stage failed 28, no poses 7) fall back to the VLM's direct answer on the whole video, as PhysMind's own pipeline does; VLM gemini-3-flash-preview via OpenRouter; "
-                 "1× L40S, 2026-11-03",
+        "setup": "PhysMind @8c106b7 stages 1-3 (SAM 3 tracks from VLM concept prompts naming the question objects, PhysMind's own vlm-concept-prompts route; MoGe-2, Metric Video Depth Anything, SAM 3D Objects, FoundationPose, GeoCalib), quantity measured on the posed metric meshes (no prior used, as in PhysMind); adapter: one SAM 3 session per prompt, untagged tracks matched to question objects by Gemini; 90 of 158 measured, the other 68 (no posed track 46, SAM 3 found nothing 15, no poses 7) fall back to the VLM's direct answer on the whole video, as PhysMind's own pipeline does (FAIL-001); VLM gemini-3-flash-preview via OpenRouter; 1× L40S, 2026-11-04",
     },
 }
 

@@ -20,7 +20,7 @@
    "label": "PhysMind",
    "paper": null,
    "source": "https://github.com/ccyydd/PhysMind",
-   "setup": "PhysMind @8c106b7 stages 1-3 (SAM 3 tracks from VLM question concepts, MoGe-2, Metric Video Depth Anything, SAM 3D Objects, FoundationPose, GeoCalib), quantity measured on the posed metric meshes (no prior used, as in PhysMind); 66 of 158 measured, the other 92 (no posed track 57, SAM 3 stage failed 28, no poses 7) fall back to the VLM's direct answer on the whole video, as PhysMind's own pipeline does; VLM gemini-3-flash-preview via OpenRouter; 1× L40S, 2026-11-03"
+   "setup": "PhysMind @8c106b7 stages 1-3 (SAM 3 tracks from VLM concept prompts naming the question objects, PhysMind's own vlm-concept-prompts route; MoGe-2, Metric Video Depth Anything, SAM 3D Objects, FoundationPose, GeoCalib), quantity measured on the posed metric meshes (no prior used, as in PhysMind); adapter: one SAM 3 session per prompt, untagged tracks matched to question objects by Gemini; 90 of 158 measured, the other 68 (no posed track 46, SAM 3 found nothing 15, no poses 7) fall back to the VLM's direct answer on the whole video, as PhysMind's own pipeline does (FAIL-001); VLM gemini-3-flash-preview via OpenRouter; 1× L40S, 2026-11-04"
   }
  ],
  "videos": [
@@ -263,9 +263,9 @@
      "raw": "12"
     },
     "physmind": {
-     "pred": 27.34431330731868,
+     "pred": 26.90386251541024,
      "mra": 0.1,
-     "raw": "measured on posed meshes: 27.34"
+     "raw": "measured on posed meshes: 26.9"
     }
    }
   },
@@ -290,9 +290,9 @@
      "raw": "15"
     },
     "physmind": {
-     "pred": 25.043526684007045,
+     "pred": 25.17291774150623,
      "mra": 0.2,
-     "raw": "measured on posed meshes: 25.04"
+     "raw": "measured on posed meshes: 25.17"
     }
    }
   },
@@ -317,7 +317,7 @@
      "raw": "7"
     },
     "physmind": {
-     "pred": 14.847406441800093,
+     "pred": 14.851427752269519,
      "mra": 0.1,
      "raw": "measured on posed meshes: 14.85"
     }
@@ -344,9 +344,9 @@
      "raw": "15"
     },
     "physmind": {
-     "pred": 16.64705265983426,
+     "pred": 16.639526928408532,
      "mra": 0.4,
-     "raw": "measured on posed meshes: 16.65"
+     "raw": "measured on posed meshes: 16.64"
     }
    }
   },
@@ -479,9 +479,9 @@
      "raw": "125 cm/s"
     },
     "physmind": {
-     "pred": 7.863937654910953,
+     "pred": 8.713990344251547,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 7.864"
+     "raw": "measured on posed meshes: 8.714"
     }
    }
   },
@@ -506,9 +506,9 @@
      "raw": "120"
     },
     "physmind": {
-     "pred": 29.751133307397136,
+     "pred": 29.51367209084009,
      "mra": 0.3,
-     "raw": "measured on posed meshes: 29.75"
+     "raw": "measured on posed meshes: 29.51"
     }
    }
   },
@@ -533,9 +533,9 @@
      "raw": "48.1"
     },
     "physmind": {
-     "pred": 2.856808392722255,
+     "pred": 3.1800445810679756,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 2.857"
+     "raw": "measured on posed meshes: 3.18"
     }
    }
   },
@@ -803,9 +803,9 @@
      "raw": "22 cm"
     },
     "physmind": {
-     "pred": 30.479533629046585,
+     "pred": 30.48531906334678,
      "mra": 0.2,
-     "raw": "measured on posed meshes: 30.48"
+     "raw": "measured on posed meshes: 30.49"
     }
    }
   },
@@ -938,9 +938,9 @@
      "raw": "22 cm"
     },
     "physmind": {
-     "pred": 31.80233691124359,
+     "pred": 31.781486782437085,
      "mra": 0.1,
-     "raw": "measured on posed meshes: 31.8"
+     "raw": "measured on posed meshes: 31.78"
     }
    }
   },
@@ -965,9 +965,9 @@
      "raw": "0.47"
     },
     "physmind": {
-     "pred": 0.32835032542497045,
+     "pred": 0.32853306471418997,
      "mra": 0.5,
-     "raw": "measured on posed meshes: 0.3284"
+     "raw": "measured on posed meshes: 0.3285"
     }
    }
   },
@@ -992,9 +992,9 @@
      "raw": "1.47"
     },
     "physmind": {
-     "pred": 2.025912226199418,
+     "pred": 2.0456362433337816,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 2.026"
+     "raw": "measured on posed meshes: 2.046"
     }
    }
   },
@@ -1019,9 +1019,9 @@
      "raw": "65"
     },
     "physmind": {
-     "pred": 45.0,
-     "mra": 0.8,
-     "raw": "no_posed_track -> direct answer 45.0"
+     "pred": 67.8976746503956,
+     "mra": 0.6,
+     "raw": "measured on posed meshes: 67.9"
     }
    }
   },
@@ -1046,9 +1046,9 @@
      "raw": "22"
     },
     "physmind": {
-     "pred": 22.0,
-     "mra": 0.7,
-     "raw": "no_posed_track -> direct answer 22.0"
+     "pred": 44.33571481769398,
+     "mra": 0.0,
+     "raw": "measured on posed meshes: 44.34"
     }
    }
   },
@@ -1073,9 +1073,9 @@
      "raw": "2.42"
     },
     "physmind": {
-     "pred": 1.446,
-     "mra": 0.7,
-     "raw": "no_posed_track -> direct answer 1.446"
+     "pred": 1.850134317061598,
+     "mra": 1.0,
+     "raw": "measured on posed meshes: 1.85"
     }
    }
   },
@@ -1100,9 +1100,9 @@
      "raw": "2.4"
     },
     "physmind": {
-     "pred": 4.16086,
-     "mra": 0.0,
-     "raw": "no_posed_track -> direct answer 4.16086"
+     "pred": 0.40235786824640857,
+     "mra": 0.2,
+     "raw": "measured on posed meshes: 0.4024"
     }
    }
   },
@@ -1127,9 +1127,9 @@
      "raw": "0.6"
     },
     "physmind": {
-     "pred": 0.4578,
-     "mra": 0.2,
-     "raw": "no_posed_track -> direct answer 0.4578"
+     "pred": 2.3920359384275507,
+     "mra": 0.5,
+     "raw": "measured on posed meshes: 2.392"
     }
    }
   },
@@ -1154,9 +1154,9 @@
      "raw": "3.42"
     },
     "physmind": {
-     "pred": 3.8188,
-     "mra": 0.6,
-     "raw": "no_posed_track -> direct answer 3.8188"
+     "pred": 0.5125358767674778,
+     "mra": 0.1,
+     "raw": "measured on posed meshes: 0.5125"
     }
    }
   },
@@ -1181,9 +1181,9 @@
      "raw": "3.52"
     },
     "physmind": {
-     "pred": 2.1966,
-     "mra": 0.7,
-     "raw": "no_posed_track -> direct answer 2.1966"
+     "pred": 1.0450382575209414,
+     "mra": 0.3,
+     "raw": "measured on posed meshes: 1.045"
     }
    }
   },
@@ -1208,9 +1208,9 @@
      "raw": "3.58"
     },
     "physmind": {
-     "pred": 2.170702268077892,
+     "pred": 2.207461139447479,
      "mra": 0.2,
-     "raw": "measured on posed meshes: 2.171"
+     "raw": "measured on posed meshes: 2.207"
     }
    }
   },
@@ -1235,9 +1235,9 @@
      "raw": "3.58"
     },
     "physmind": {
-     "pred": 0.8361747227331963,
-     "mra": 1.0,
-     "raw": "measured on posed meshes: 0.8362"
+     "pred": 0.947451146625896,
+     "mra": 0.8,
+     "raw": "measured on posed meshes: 0.9475"
     }
    }
   },
@@ -1343,9 +1343,9 @@
      "raw": "10"
     },
     "physmind": {
-     "pred": 67.33174540784076,
+     "pred": 68.90528991637119,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 67.33"
+     "raw": "measured on posed meshes: 68.91"
     }
    }
   },
@@ -1370,9 +1370,9 @@
      "raw": "2"
     },
     "physmind": {
-     "pred": 19.432497201189552,
+     "pred": 19.729841676042813,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 19.43"
+     "raw": "measured on posed meshes: 19.73"
     }
    }
   },
@@ -1478,9 +1478,9 @@
      "raw": "1.65 m"
     },
     "physmind": {
-     "pred": 2.1749749058606183,
+     "pred": 2.121957182884212,
      "mra": 0.7,
-     "raw": "measured on posed meshes: 2.175"
+     "raw": "measured on posed meshes: 2.122"
     }
    }
   },
@@ -1586,9 +1586,9 @@
      "raw": "6"
     },
     "physmind": {
-     "pred": 2.8281302768941803,
+     "pred": 2.7347601508544717,
      "mra": 0.6,
-     "raw": "measured on posed meshes: 2.828"
+     "raw": "measured on posed meshes: 2.735"
     }
    }
   },
@@ -1640,9 +1640,9 @@
      "raw": "13 m/s"
     },
     "physmind": {
-     "pred": 0.5477210772696323,
+     "pred": 0.5471072025484458,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 0.5477"
+     "raw": "measured on posed meshes: 0.5471"
     }
    }
   },
@@ -1721,9 +1721,9 @@
      "raw": "22"
     },
     "physmind": {
-     "pred": 22.0,
-     "mra": 1.0,
-     "raw": "no_posed_track -> direct answer 22.0"
+     "pred": 58.6271716925566,
+     "mra": 0.0,
+     "raw": "measured on posed meshes: 58.63"
     }
    }
   },
@@ -1748,9 +1748,9 @@
      "raw": "170"
     },
     "physmind": {
-     "pred": 254.90504200379448,
+     "pred": 254.50563581182956,
      "mra": 0.5,
-     "raw": "measured on posed meshes: 254.9"
+     "raw": "measured on posed meshes: 254.5"
     }
    }
   },
@@ -1802,9 +1802,9 @@
      "raw": "170"
     },
     "physmind": {
-     "pred": 255.37244110556583,
+     "pred": 255.25637479134255,
      "mra": 0.6,
-     "raw": "measured on posed meshes: 255.4"
+     "raw": "measured on posed meshes: 255.3"
     }
    }
   },
@@ -1856,9 +1856,9 @@
      "raw": "9.8"
     },
     "physmind": {
-     "pred": 4.75,
+     "pred": 2.622678392227455,
      "mra": 0.7,
-     "raw": "no_posed_track -> direct answer 4.75"
+     "raw": "measured on posed meshes: 2.623"
     }
    }
   },
@@ -1883,9 +1883,9 @@
      "raw": "8.2 m/s"
     },
     "physmind": {
-     "pred": 3.3,
-     "mra": 0.2,
-     "raw": "no_posed_track -> direct answer 3.3"
+     "pred": 2.5124999651998614,
+     "mra": 0.6,
+     "raw": "measured on posed meshes: 2.512"
     }
    }
   },
@@ -1910,9 +1910,9 @@
      "raw": "11.4 cm"
     },
     "physmind": {
-     "pred": 17.16,
-     "mra": 0.8,
-     "raw": "no_posed_track -> direct answer 17.16"
+     "pred": 32.4463150934201,
+     "mra": 0.0,
+     "raw": "measured on posed meshes: 32.45"
     }
    }
   },
@@ -1937,9 +1937,9 @@
      "raw": "23"
     },
     "physmind": {
-     "pred": 52.18,
+     "pred": 56.30725114909869,
      "mra": 0.0,
-     "raw": "no_posed_track -> direct answer 52.18"
+     "raw": "measured on posed meshes: 56.31"
     }
    }
   },
@@ -1964,9 +1964,9 @@
      "raw": "115"
     },
     "physmind": {
-     "pred": 47.937481551905634,
+     "pred": 48.30875075047626,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 47.94"
+     "raw": "measured on posed meshes: 48.31"
     }
    }
   },
@@ -1991,9 +1991,9 @@
      "raw": "11.4 cm"
     },
     "physmind": {
-     "pred": 53.2,
-     "mra": 0.0,
-     "raw": "no_posed_track -> direct answer 53.2"
+     "pred": 32.4463150934201,
+     "mra": 0.2,
+     "raw": "measured on posed meshes: 32.45"
     }
    }
   },
@@ -2045,9 +2045,9 @@
      "raw": "3.2 m"
     },
     "physmind": {
-     "pred": 2.822694156330545,
+     "pred": 2.812248125540414,
      "mra": 0.7,
-     "raw": "measured on posed meshes: 2.823"
+     "raw": "measured on posed meshes: 2.812"
     }
    }
   },
@@ -2072,9 +2072,9 @@
      "raw": "2.4 m"
     },
     "physmind": {
-     "pred": 2.7342028759685286,
+     "pred": 2.729204359575,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 2.734"
+     "raw": "measured on posed meshes: 2.729"
     }
    }
   },
@@ -2099,9 +2099,9 @@
      "raw": "0.75 m"
     },
     "physmind": {
-     "pred": 1.3337852197654207,
+     "pred": 1.3464284077589577,
      "mra": 0.2,
-     "raw": "measured on posed meshes: 1.334"
+     "raw": "measured on posed meshes: 1.346"
     }
    }
   },
@@ -2126,9 +2126,9 @@
      "raw": "3.5 m"
     },
     "physmind": {
-     "pred": 2.5261656093207776,
-     "mra": 0.3,
-     "raw": "measured on posed meshes: 2.526"
+     "pred": 2.725282129231502,
+     "mra": 0.2,
+     "raw": "measured on posed meshes: 2.725"
     }
    }
   },
@@ -2153,9 +2153,9 @@
      "raw": "6.2"
     },
     "physmind": {
-     "pred": 4.71194320418088,
+     "pred": 4.783324792442976,
      "mra": 0.7,
-     "raw": "measured on posed meshes: 4.712"
+     "raw": "measured on posed meshes: 4.783"
     }
    }
   },
@@ -2207,9 +2207,9 @@
      "raw": "1.2"
     },
     "physmind": {
-     "pred": 2.9136914452424314,
+     "pred": 2.962319797123275,
      "mra": 0.1,
-     "raw": "measured on posed meshes: 2.914"
+     "raw": "measured on posed meshes: 2.962"
     }
    }
   },
@@ -2288,9 +2288,9 @@
      "raw": "1.68"
     },
     "physmind": {
-     "pred": 1.0678592077335058,
+     "pred": 1.1537098960974337,
      "mra": 0.5,
-     "raw": "measured on posed meshes: 1.068"
+     "raw": "measured on posed meshes: 1.154"
     }
    }
   },
@@ -2315,9 +2315,9 @@
      "raw": "1.2"
     },
     "physmind": {
-     "pred": 0.7162556885264619,
+     "pred": 0.7156046980202521,
      "mra": 0.4,
-     "raw": "measured on posed meshes: 0.7163"
+     "raw": "measured on posed meshes: 0.7156"
     }
    }
   },
@@ -2342,9 +2342,9 @@
      "raw": "1.1"
     },
     "physmind": {
-     "pred": 0.4315497928419997,
+     "pred": 0.43623898083194146,
      "mra": 0.7,
-     "raw": "measured on posed meshes: 0.4315"
+     "raw": "measured on posed meshes: 0.4362"
     }
    }
   },
@@ -2369,9 +2369,9 @@
      "raw": "1.2"
     },
     "physmind": {
-     "pred": 0.561358265411009,
+     "pred": 0.5906618499103793,
      "mra": 0.3,
-     "raw": "measured on posed meshes: 0.5614"
+     "raw": "measured on posed meshes: 0.5907"
     }
    }
   },
@@ -2396,9 +2396,9 @@
      "raw": "2.1"
     },
     "physmind": {
-     "pred": 1.8724867731494004,
+     "pred": 1.8691110785434093,
      "mra": 0.9,
-     "raw": "measured on posed meshes: 1.872"
+     "raw": "measured on posed meshes: 1.869"
     }
    }
   },
@@ -2585,9 +2585,9 @@
      "raw": "4.05"
     },
     "physmind": {
-     "pred": 0.946863506206019,
+     "pred": 1.0503594220032484,
      "mra": 0.2,
-     "raw": "measured on posed meshes: 0.9469"
+     "raw": "measured on posed meshes: 1.05"
     }
    }
   },
@@ -2612,9 +2612,9 @@
      "raw": "4.2 m"
     },
     "physmind": {
-     "pred": 3.3711245007072232,
+     "pred": 3.407233599818281,
      "mra": 0.3,
-     "raw": "measured on posed meshes: 3.371"
+     "raw": "measured on posed meshes: 3.407"
     }
    }
   },
@@ -2639,9 +2639,9 @@
      "raw": "4.5 m"
     },
     "physmind": {
-     "pred": 1.3106616896645682,
+     "pred": 1.3288078510153518,
      "mra": 0.4,
-     "raw": "measured on posed meshes: 1.311"
+     "raw": "measured on posed meshes: 1.329"
     }
    }
   },
@@ -2666,9 +2666,9 @@
      "raw": "0.99"
     },
     "physmind": {
-     "pred": 0.8061234559443989,
+     "pred": 0.8565868242164838,
      "mra": 0.6,
-     "raw": "measured on posed meshes: 0.8061"
+     "raw": "measured on posed meshes: 0.8566"
     }
    }
   },
@@ -2693,9 +2693,9 @@
      "raw": "1.52 m"
     },
     "physmind": {
-     "pred": 1.83,
-     "mra": 0.8,
-     "raw": "no_posed_track -> direct answer 1.83"
+     "pred": 0.46638477647505105,
+     "mra": 0.2,
+     "raw": "measured on posed meshes: 0.4664"
     }
    }
   },
@@ -2720,9 +2720,9 @@
      "raw": "11.74"
     },
     "physmind": {
-     "pred": 12.81,
-     "mra": 0.9,
-     "raw": "no_posed_track -> direct answer 12.81"
+     "pred": 1.7760528078686795,
+     "mra": 0.1,
+     "raw": "measured on posed meshes: 1.776"
     }
    }
   },
@@ -2747,9 +2747,9 @@
      "raw": "21.965"
     },
     "physmind": {
-     "pred": 4.065,
-     "mra": 1.0,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 4.065"
+     "pred": 3.3531387231134246,
+     "mra": 0.8,
+     "raw": "measured on posed meshes: 3.353"
     }
    }
   },
@@ -2776,7 +2776,7 @@
     "physmind": {
      "pred": 3.5,
      "mra": 0.2,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 3.5"
+     "raw": "no_posed_track -> direct answer 3.5"
     }
    }
   },
@@ -2801,9 +2801,9 @@
      "raw": "4.5"
     },
     "physmind": {
-     "pred": 4.5,
+     "pred": 4.232986584779546,
      "mra": 0.7,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 4.5"
+     "raw": "measured on posed meshes: 4.233"
     }
    }
   },
@@ -2828,9 +2828,9 @@
      "raw": "4.5"
     },
     "physmind": {
-     "pred": 4.7,
-     "mra": 0.8,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 4.7"
+     "pred": 3.6529294145596936,
+     "mra": 0.6,
+     "raw": "measured on posed meshes: 3.653"
     }
    }
   },
@@ -2855,9 +2855,9 @@
      "raw": "1.5 m"
     },
     "physmind": {
-     "pred": 1.44,
-     "mra": 0.8,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 1.44"
+     "pred": 2.005194154424349,
+     "mra": 0.7,
+     "raw": "measured on posed meshes: 2.005"
     }
    }
   },
@@ -2882,9 +2882,9 @@
      "raw": "0.67"
     },
     "physmind": {
-     "pred": 0.7,
+     "pred": 0.6820961984181935,
      "mra": 0.7,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.7"
+     "raw": "measured on posed meshes: 0.6821"
     }
    }
   },
@@ -2909,9 +2909,9 @@
      "raw": "1.4"
     },
     "physmind": {
-     "pred": 4.25,
-     "mra": 0.0,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 4.25"
+     "pred": 1.37079724394451,
+     "mra": 0.9,
+     "raw": "measured on posed meshes: 1.371"
     }
    }
   },
@@ -2936,9 +2936,9 @@
      "raw": "1.7"
     },
     "physmind": {
-     "pred": 1.75,
-     "mra": 0.9,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 1.75"
+     "pred": 1.5265074480810754,
+     "mra": 0.8,
+     "raw": "measured on posed meshes: 1.527"
     }
    }
   },
@@ -2963,9 +2963,9 @@
      "raw": "3.2773"
     },
     "physmind": {
-     "pred": 1.189,
-     "mra": 0.2,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 1.189"
+     "pred": 4.59345431260861,
+     "mra": 0.8,
+     "raw": "measured on posed meshes: 4.593"
     }
    }
   },
@@ -2992,7 +2992,7 @@
     "physmind": {
      "pred": 1.8,
      "mra": 0.8,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 1.8"
+     "raw": "no_posed_track -> direct answer 1.8"
     }
    }
   },
@@ -3019,7 +3019,7 @@
     "physmind": {
      "pred": 1.8,
      "mra": 1.0,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 1.8"
+     "raw": "no_posed_track -> direct answer 1.8"
     }
    }
   },
@@ -3046,7 +3046,7 @@
     "physmind": {
      "pred": 1.2,
      "mra": 0.8,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 1.2"
+     "raw": "no_posed_track -> direct answer 1.2"
     }
    }
   },
@@ -3071,9 +3071,9 @@
      "raw": "0.8"
     },
     "physmind": {
-     "pred": 0.85,
-     "mra": 0.5,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.85"
+     "pred": 0.7057816420686667,
+     "mra": 0.8,
+     "raw": "measured on posed meshes: 0.7058"
     }
    }
   },
@@ -3152,9 +3152,9 @@
      "raw": "0.4"
     },
     "physmind": {
-     "pred": 0.8497409614958038,
+     "pred": 0.85763035262167,
      "mra": 0.6,
-     "raw": "measured on posed meshes: 0.8497"
+     "raw": "measured on posed meshes: 0.8576"
     }
    }
   },
@@ -3179,9 +3179,9 @@
      "raw": "10.5 m/s"
     },
     "physmind": {
-     "pred": 1.5913217853519883,
+     "pred": 1.5857282599325266,
      "mra": 0.1,
-     "raw": "measured on posed meshes: 1.591"
+     "raw": "measured on posed meshes: 1.586"
     }
    }
   },
@@ -3368,9 +3368,9 @@
      "raw": "5.25"
     },
     "physmind": {
-     "pred": 0.45314537916895753,
+     "pred": 0.49713694054637525,
      "mra": 0.1,
-     "raw": "measured on posed meshes: 0.4531"
+     "raw": "measured on posed meshes: 0.4971"
     }
    }
   },
@@ -3395,9 +3395,9 @@
      "raw": "2.4"
     },
     "physmind": {
-     "pred": 2.28380494387614,
+     "pred": 2.5829961982851293,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 2.284"
+     "raw": "measured on posed meshes: 2.583"
     }
    }
   },
@@ -3422,9 +3422,9 @@
      "raw": "4.2"
     },
     "physmind": {
-     "pred": 0.17058253480357746,
-     "mra": 0.0,
-     "raw": "measured on posed meshes: 0.1706"
+     "pred": 0.31936911030104526,
+     "mra": 0.1,
+     "raw": "measured on posed meshes: 0.3194"
     }
    }
   },
@@ -3449,9 +3449,9 @@
      "raw": "2.5"
     },
     "physmind": {
-     "pred": 4.035870447813062,
+     "pred": 4.467786245421888,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 4.036"
+     "raw": "measured on posed meshes: 4.468"
     }
    }
   },
@@ -3476,9 +3476,9 @@
      "raw": "0.48"
     },
     "physmind": {
-     "pred": 0.12102278832144608,
+     "pred": 0.12146364969206491,
      "mra": 0.3,
-     "raw": "measured on posed meshes: 0.121"
+     "raw": "measured on posed meshes: 0.1215"
     }
    }
   },
@@ -3530,9 +3530,9 @@
      "raw": "2.2"
     },
     "physmind": {
-     "pred": 0.7597225576235958,
-     "mra": 0.2,
-     "raw": "measured on posed meshes: 0.7597"
+     "pred": 0.3514115523148204,
+     "mra": 0.0,
+     "raw": "measured on posed meshes: 0.3514"
     }
    }
   },
@@ -3557,9 +3557,9 @@
      "raw": "2.4"
     },
     "physmind": {
-     "pred": 11.116829278333157,
-     "mra": 0.2,
-     "raw": "measured on posed meshes: 11.12"
+     "pred": 8.794909974639177,
+     "mra": 0.5,
+     "raw": "measured on posed meshes: 8.795"
     }
    }
   },
@@ -3584,9 +3584,9 @@
      "raw": "2.2"
     },
     "physmind": {
-     "pred": 0.7105567493935269,
+     "pred": 1.0713016806846585,
      "mra": 0.1,
-     "raw": "measured on posed meshes: 0.7106"
+     "raw": "measured on posed meshes: 1.071"
     }
    }
   },
@@ -3611,9 +3611,9 @@
      "raw": "2.7"
     },
     "physmind": {
-     "pred": 1.8318976607664523,
+     "pred": 2.0040222220298793,
      "mra": 0.5,
-     "raw": "measured on posed meshes: 1.832"
+     "raw": "measured on posed meshes: 2.004"
     }
    }
   },
@@ -3638,9 +3638,9 @@
      "raw": "3.3"
     },
     "physmind": {
-     "pred": 2.131490432893184,
+     "pred": 2.1225288482931712,
      "mra": 0.3,
-     "raw": "measured on posed meshes: 2.131"
+     "raw": "measured on posed meshes: 2.123"
     }
    }
   },
@@ -3665,9 +3665,9 @@
      "raw": "9.8 m/s^2"
     },
     "physmind": {
-     "pred": 5.774480852841204,
+     "pred": 6.3060227150912205,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 5.774"
+     "raw": "measured on posed meshes: 6.306"
     }
    }
   },
@@ -3692,9 +3692,9 @@
      "raw": "3.7"
     },
     "physmind": {
-     "pred": 3.8819402853270137,
-     "mra": 0.4,
-     "raw": "measured on posed meshes: 3.882"
+     "pred": 3.9917003577547945,
+     "mra": 0.3,
+     "raw": "measured on posed meshes: 3.992"
     }
    }
   },
@@ -3719,9 +3719,9 @@
      "raw": "0.01"
     },
     "physmind": {
-     "pred": 7.807978903126223,
+     "pred": 7.8091555433526585,
      "mra": 0.8,
-     "raw": "measured on posed meshes: 7.808"
+     "raw": "measured on posed meshes: 7.809"
     }
    }
   },
@@ -3746,9 +3746,9 @@
      "raw": "1.8 m/s"
     },
     "physmind": {
-     "pred": 3.9887304783196527,
+     "pred": 4.333066169384791,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 3.989"
+     "raw": "measured on posed meshes: 4.333"
     }
    }
   },
@@ -3773,9 +3773,9 @@
      "raw": "1.62"
     },
     "physmind": {
-     "pred": 17.217268078464265,
+     "pred": 16.841873926701258,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 17.22"
+     "raw": "measured on posed meshes: 16.84"
     }
    }
   },
@@ -3800,9 +3800,9 @@
      "raw": "1.8 m/s"
     },
     "physmind": {
-     "pred": 7.5814683844137205,
+     "pred": 7.568982784014956,
      "mra": 0.4,
-     "raw": "measured on posed meshes: 7.581"
+     "raw": "measured on posed meshes: 7.569"
     }
    }
   },
@@ -3827,9 +3827,9 @@
      "raw": "1.62"
     },
     "physmind": {
-     "pred": 9.817920152859493,
+     "pred": 8.5976059870799,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 9.818"
+     "raw": "measured on posed meshes: 8.598"
     }
    }
   },
@@ -3854,9 +3854,9 @@
      "raw": "1.8 m/s"
     },
     "physmind": {
-     "pred": 2.170800639838069,
-     "mra": 0.8,
-     "raw": "measured on posed meshes: 2.171"
+     "pred": 2.2722465584594493,
+     "mra": 0.7,
+     "raw": "measured on posed meshes: 2.272"
     }
    }
   },
@@ -3881,9 +3881,9 @@
      "raw": "1.62"
     },
     "physmind": {
-     "pred": 5.768323039314087,
+     "pred": 6.051716292608902,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 5.768"
+     "raw": "measured on posed meshes: 6.052"
     }
    }
   },
@@ -3908,9 +3908,9 @@
      "raw": "2.2 m/s"
     },
     "physmind": {
-     "pred": 3.026616725591674,
-     "mra": 0.0,
-     "raw": "measured on posed meshes: 3.027"
+     "pred": 2.4056020351583696,
+     "mra": 0.3,
+     "raw": "measured on posed meshes: 2.406"
     }
    }
   },
@@ -3935,9 +3935,9 @@
      "raw": "1.62"
     },
     "physmind": {
-     "pred": 4.526324342190069,
-     "mra": 0.2,
-     "raw": "measured on posed meshes: 4.526"
+     "pred": 6.051796136449603,
+     "mra": 0.0,
+     "raw": "measured on posed meshes: 6.052"
     }
    }
   },
@@ -3964,7 +3964,7 @@
     "physmind": {
      "pred": 0.0413,
      "mra": 0.3,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.0413"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.0413"
     }
    }
   },
@@ -3991,7 +3991,7 @@
     "physmind": {
      "pred": 0.89,
      "mra": 0.5,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.89"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.89"
     }
    }
   },
@@ -4018,7 +4018,7 @@
     "physmind": {
      "pred": 1.325,
      "mra": 0.6,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 1.325"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 1.325"
     }
    }
   },
@@ -4045,7 +4045,7 @@
     "physmind": {
      "pred": 1.0,
      "mra": 0.8,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 1.0"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 1.0"
     }
    }
   },
@@ -4072,7 +4072,7 @@
     "physmind": {
      "pred": 0.791,
      "mra": 1.0,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.791"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.791"
     }
    }
   },
@@ -4099,7 +4099,7 @@
     "physmind": {
      "pred": 0.14,
      "mra": 1.0,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.14"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.14"
     }
    }
   },
@@ -4126,7 +4126,7 @@
     "physmind": {
      "pred": 0.052,
      "mra": 0.3,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.052"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.052"
     }
    }
   },
@@ -4153,7 +4153,7 @@
     "physmind": {
      "pred": 0.0716,
      "mra": 0.5,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.0716"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.0716"
     }
    }
   },
@@ -4180,7 +4180,7 @@
     "physmind": {
      "pred": 0.55,
      "mra": 0.1,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.55"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.55"
     }
    }
   },
@@ -4207,7 +4207,7 @@
     "physmind": {
      "pred": 0.844,
      "mra": 0.1,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.844"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.844"
     }
    }
   },
@@ -4234,7 +4234,7 @@
     "physmind": {
      "pred": 2.06,
      "mra": 0.3,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 2.06"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 2.06"
     }
    }
   },
@@ -4261,7 +4261,7 @@
     "physmind": {
      "pred": 0.4,
      "mra": 0.0,
-     "raw": "stage_failed:sam3_video_tracks -> direct answer 0.4"
+     "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.4"
     }
    }
   },
@@ -4313,9 +4313,9 @@
      "raw": "0.000432 m"
     },
     "physmind": {
-     "pred": 0.026291571609717623,
+     "pred": 0.026593412857442753,
      "mra": 0.0,
-     "raw": "measured on posed meshes: 0.02629"
+     "raw": "measured on posed meshes: 0.02659"
     }
    }
   },
@@ -4394,9 +4394,9 @@
      "raw": "5 m/s"
     },
     "physmind": {
-     "pred": 2.9540734242521105,
+     "pred": 2.998656243008508,
      "mra": 0.6,
-     "raw": "measured on posed meshes: 2.954"
+     "raw": "measured on posed meshes: 2.999"
     }
    }
   },
@@ -4421,9 +4421,9 @@
      "raw": "10 m/s"
     },
     "physmind": {
-     "pred": 5.950020534441866,
-     "mra": 0.6,
-     "raw": "measured on posed meshes: 5.95"
+     "pred": 5.8069658959248756,
+     "mra": 0.5,
+     "raw": "measured on posed meshes: 5.807"
     }
    }
   },
@@ -4448,9 +4448,9 @@
      "raw": "4.5711"
     },
     "physmind": {
-     "pred": 3.228132785968344,
+     "pred": 3.1984818325796978,
      "mra": 0.7,
-     "raw": "measured on posed meshes: 3.228"
+     "raw": "measured on posed meshes: 3.198"
     }
    }
   },
@@ -4475,9 +4475,9 @@
      "raw": "1.85 m"
     },
     "physmind": {
-     "pred": 2.705782796336714,
+     "pred": 2.6909459056111324,
      "mra": 0.7,
-     "raw": "measured on posed meshes: 2.706"
+     "raw": "measured on posed meshes: 2.691"
     }
    }
   },
@@ -4502,9 +4502,9 @@
      "raw": "1.05 m"
     },
     "physmind": {
-     "pred": 1.1047036739442984,
+     "pred": 1.1581246259634015,
      "mra": 1.0,
-     "raw": "measured on posed meshes: 1.105"
+     "raw": "measured on posed meshes: 1.158"
     }
    }
   }
