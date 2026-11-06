@@ -29,7 +29,7 @@
       `<div><div class="muted">${esc(m.label)}</div><div class="big">${fmt(macro(qs, m.key), 3)}</div></div>`).join('');
     $('b-n').textContent = `${qs.length} questions · ${DATA.videos.length} videos · overall = mean of the four category means`;
     const head = '<tr><th>Method</th><th class="n">Overall</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') +
-      '<th class="n">Reported</th></tr>';
+      '<th class="n">Reported in<br>original paper</th></tr>';
     const counts = '<tr><td class="muted">Questions</td><td class="n muted">' + qs.length + '</td>' +
       CATS.map((c) => `<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + '<td></td></tr>';
     const rows = DATA.methods.map((m) => `<tr><td><a href="${esc(m.source)}">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
@@ -38,7 +38,7 @@
     $('b-table').innerHTML = head + rows + counts;
     const left = DATA.left_out.length ? ` Not in the HF validation release, so not run: ${DATA.left_out.map((x) => `<code>${esc(x)}</code>`).join(', ')}.` : '';
     $('b-notes').innerHTML = 'Ground truth and questions from the HF validation release (<code>PaulineLi/QuantiPhy-validation</code>); ' +
-      'MRA as on the Evaluation page. Reported = the authors’ own validation score.' + left + '<br>' +
+      'MRA as on the Evaluation page. Reported in original paper = the validation score published by the method’s authors; the other columns are our re-run of their released code.' + left + '<br>' +
       DATA.methods.map((m) => `${esc(m.label)}: ${esc(m.setup)}`).join('<br>');
   }
 

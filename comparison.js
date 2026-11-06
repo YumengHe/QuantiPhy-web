@@ -1,4 +1,4 @@
-// index.html: the method summary of baseline.html (same columns, same computation), from data/baseline.json.
+// index.html: the method summary of baseline.html (same computation, without the "Reported in original paper" column), from data/baseline.json.
 (function () {
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
@@ -13,15 +13,13 @@
   // our question count equals the baselines' question set
   function table(d, ours) {
     const qs = d.questions;
-    const head = '<tr><th>Method</th><th class="n">Overall</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') +
-      '<th class="n">Reported</th></tr>';
+    const head = '<tr><th>Method</th><th class="n">Overall</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '</tr>';
     const rows = d.methods.map((m) => `<tr><td><a href="${esc(m.source)}">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
-      CATS.map((c) => `<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') +
-      `<td class="n muted">${fmt(m.paper)}</td></tr>`).join('');
+      CATS.map((c) => `<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') + '</tr>').join('');
     const our = ours ? `<tr><td><b>${esc(ours.label)} (${esc(ours.version)})</b></td><td class="n"><b>${fmt(ours.overall)}</b></td>` +
-      CATS.map((c) => `<td class="n">${fmt(ours.cats[c])}</td>`).join('') + '<td class="n muted">—</td></tr>' : '';
+      CATS.map((c) => `<td class="n">${fmt(ours.cats[c])}</td>`).join('') + '</tr>' : '';
     const counts = ours && ours.n !== qs.length ? '' : '<tr><td class="muted">Questions</td><td class="n muted">' + qs.length + '</td>' +
-      CATS.map((c) => `<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + '<td></td></tr>';
+      CATS.map((c) => `<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + '</tr>';
     return head + rows + our + counts;
   }
 
