@@ -1,0 +1,9 @@
+{
+  "label": "Ours",
+  "version": "v1",
+  "overall": 0.6638,
+  "cats": { "S2": 0.659, "D2": 0.727, "S3": 0.635, "D3": 0.634 },
+  "n": 159,
+  "overall_rule": "mean of the four per-category means",
+  "source": "Home Results table as of web 7ac8290 (QuantiPhy validation, 159 questions, including captured_0027s_q4 that data/baseline.json leaves out); typed by hand from docs/VERSIONS.md"
+}

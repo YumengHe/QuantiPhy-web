@@ -9,19 +9,24 @@
   const catMean = (qs, key, c) => mean(qs.filter((q) => q.cat === c).map((q) => q.preds[key].mra));
   const macro = (qs, key) => mean(CATS.map((c) => catMean(qs, key, c)).filter((v) => isFinite(v)));
 
-  function table(d) {
+  // ours: data/comparison_ours.json (scores as given, not recomputed); the Questions row is shown only when
+  // our question count equals the baselines' question set
+  function table(d, ours) {
     const qs = d.questions;
     const head = '<tr><th>Method</th><th class="n">Overall</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') +
       '<th class="n">Reported</th></tr>';
     const rows = d.methods.map((m) => `<tr><td><a href="${esc(m.source)}">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
       CATS.map((c) => `<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') +
       `<td class="n muted">${fmt(m.paper)}</td></tr>`).join('');
-    const counts = '<tr><td class="muted">Questions</td><td class="n muted">' + qs.length + '</td>' +
+    const our = ours ? `<tr><td><b>${esc(ours.label)} (${esc(ours.version)})</b></td><td class="n"><b>${fmt(ours.overall)}</b></td>` +
+      CATS.map((c) => `<td class="n">${fmt(ours.cats[c])}</td>`).join('') + '<td class="n muted">—</td></tr>' : '';
+    const counts = ours && ours.n !== qs.length ? '' : '<tr><td class="muted">Questions</td><td class="n muted">' + qs.length + '</td>' +
       CATS.map((c) => `<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + '<td></td></tr>';
-    return head + rows + counts;
+    return head + rows + our + counts;
   }
 
   if (typeof module !== 'undefined') { module.exports = { table }; return; }
-  fetch('data/baseline.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then((d) => { document.getElementById('quantitative-comparison-table').innerHTML = table(d); });
+  const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  Promise.all([get('data/baseline.json'), get('data/comparison_ours.json')])
+    .then(([d, ours]) => { document.getElementById('quantitative-comparison-table').innerHTML = table(d, ours); });
 })();
