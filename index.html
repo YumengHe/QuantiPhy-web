@@ -13,6 +13,7 @@
 
 <h1>Reconstructing measurable physical scenes from video</h1>
 <p class="lede">Given a video, reconstruct the scene at real-world scale: what the objects are, how large they are, where they are and how they move. Quantitative questions about size, speed and distance are then measured directly in the reconstructed scene.</p>
+<p><strong>Keywords:</strong> Minimal Sufficient Reconstruction</p>
 
 <h2 id="pipeline">Pipeline</h2>
 <p>The prior, the known facts a question gives (an object's size or speed, or its distance to the camera), sets the scale. Every video runs the same pipeline and is fitted as a 3D scene: focal length and support-plane pose are estimated from the image, and objects have thickness. Every measurement of the asked quantity in the scene is kept with its uncertainty and named checks; a value becomes the answer only when the measurements agree and every check passes, otherwise the question stays unresolved.</p>
@@ -41,11 +42,6 @@
 
 <h2 id="comparison">Comparison</h2>
 <div id="comparison-grid" class="comparison-grid"></div>
-
-<h2 id="keywords">Keywords</h2>
-<ul>
-  <li><strong>Minimal Sufficient Reconstruction</strong></li>
-</ul>
 
 <h2 id="browse">Browse</h2>
 <div class="cards">
