@@ -313,3 +313,4 @@ table.kramp { width: auto; font-size: 13px; }
 table.swing { font-size: 13px; }
 table.contract { width: auto; margin: 4px 0 0; font-size: 12px; }
 table.contract th, table.contract td { padding: 1px 8px 1px 0; }
+.comparison-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; min-height: 160px; }
