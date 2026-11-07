@@ -49,6 +49,24 @@ METHODS = {
         "source": "https://github.com/ccyydd/PhysMind",
         "setup": "PhysMind @8c106b7 stages 1-3 (SAM 3 tracks from VLM concept prompts naming the question objects, PhysMind's own vlm-concept-prompts route; MoGe-2, Metric Video Depth Anything, SAM 3D Objects, FoundationPose, GeoCalib), quantity measured on the posed metric meshes (no prior used, as in PhysMind); adapter: one SAM 3 session per prompt, untagged tracks matched to question objects by Gemini; 90 of 158 measured, the other 68 (no posed track 46, SAM 3 found nothing 15, no poses 7) fall back to the VLM's direct answer on the whole video, as PhysMind's own pipeline does (FAIL-001); VLM gemini-3-flash-preview via OpenRouter; 1× L40S, 2026-11-04",
     },
+    "gpt56_luna": {
+        "label": "GPT-5.6-luna",
+        "paper": None,
+        "source": "https://openrouter.ai/openai/gpt-5.6-luna",
+        "setup": "pure model inference, no tools: 16 frames sampled uniformly over the video (long side 768 px, each "
+                 "labelled with its timestamp) + one prompt (expert persona, prior, the dataset's depth info for 3D "
+                 "questions, question, 'directly tell me the number'); default reasoning; openai/gpt-5.6-luna via "
+                 "OpenRouter (provider OpenAI), physmind_quantiphy/run_gpt.py; 2026-11-06",
+    },
+    "qwen35_27b": {
+        "label": "Qwen3.5-27B",
+        "paper": None,
+        "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
+        "setup": "pure model inference, no tools, same frames and prompt as GPT-5.6-luna (16 frames, long side 768 px, "
+                 "timestamps; expert persona, prior, depth info for 3D questions, question, 'directly tell me the "
+                 "number'); thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no "
+                 "fallback), physmind_quantiphy/run_gpt.py; 2026-11-07",
+    },
 }
 
 

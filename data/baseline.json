@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-03",
+ "generated": "2026-11-06",
  "methods": [
   {
    "key": "caw_4b",
@@ -21,6 +21,20 @@
    "paper": null,
    "source": "https://github.com/ccyydd/PhysMind",
    "setup": "PhysMind @8c106b7 stages 1-3 (SAM 3 tracks from VLM concept prompts naming the question objects, PhysMind's own vlm-concept-prompts route; MoGe-2, Metric Video Depth Anything, SAM 3D Objects, FoundationPose, GeoCalib), quantity measured on the posed metric meshes (no prior used, as in PhysMind); adapter: one SAM 3 session per prompt, untagged tracks matched to question objects by Gemini; 90 of 158 measured, the other 68 (no posed track 46, SAM 3 found nothing 15, no poses 7) fall back to the VLM's direct answer on the whole video, as PhysMind's own pipeline does (FAIL-001); VLM gemini-3-flash-preview via OpenRouter; 1× L40S, 2026-11-04"
+  },
+  {
+   "key": "gpt56_luna",
+   "label": "GPT-5.6-luna",
+   "paper": null,
+   "source": "https://openrouter.ai/openai/gpt-5.6-luna",
+   "setup": "pure model inference, no tools: 16 frames sampled uniformly over the video (long side 768 px, each labelled with its timestamp) + one prompt (expert persona, prior, the dataset's depth info for 3D questions, question, 'directly tell me the number'); default reasoning; openai/gpt-5.6-luna via OpenRouter (provider OpenAI), physmind_quantiphy/run_gpt.py; 2026-11-06"
+  },
+  {
+   "key": "qwen35_27b",
+   "label": "Qwen3.5-27B",
+   "paper": null,
+   "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
+   "setup": "pure model inference, no tools, same frames and prompt as GPT-5.6-luna (16 frames, long side 768 px, timestamps; expert persona, prior, depth info for 3D questions, question, 'directly tell me the number'); thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no fallback), physmind_quantiphy/run_gpt.py; 2026-11-07"
   }
  ],
  "videos": [
@@ -266,6 +280,16 @@
      "pred": 26.90386251541024,
      "mra": 0.1,
      "raw": "measured on posed meshes: 26.9"
+    },
+    "gpt56_luna": {
+     "pred": 10.0,
+     "mra": 0.6,
+     "raw": "10"
+    },
+    "qwen35_27b": {
+     "pred": 10.0,
+     "mra": 0.6,
+     "raw": "10"
     }
    }
   },
@@ -293,6 +317,16 @@
      "pred": 25.17291774150623,
      "mra": 0.2,
      "raw": "measured on posed meshes: 25.17"
+    },
+    "gpt56_luna": {
+     "pred": 14.0,
+     "mra": 1.0,
+     "raw": "14 cm"
+    },
+    "qwen35_27b": {
+     "pred": 15.0,
+     "mra": 1.0,
+     "raw": "15"
     }
    }
   },
@@ -320,6 +354,16 @@
      "pred": 14.851427752269519,
      "mra": 0.1,
      "raw": "measured on posed meshes: 14.85"
+    },
+    "gpt56_luna": {
+     "pred": 6.0,
+     "mra": 0.7,
+     "raw": "6 cm"
+    },
+    "qwen35_27b": {
+     "pred": 8.0,
+     "mra": 1.0,
+     "raw": "8"
     }
    }
   },
@@ -347,6 +391,16 @@
      "pred": 16.639526928408532,
      "mra": 0.4,
      "raw": "measured on posed meshes: 16.64"
+    },
+    "gpt56_luna": {
+     "pred": 10.0,
+     "mra": 0.9,
+     "raw": "10 cm"
+    },
+    "qwen35_27b": {
+     "pred": 20.0,
+     "mra": 0.1,
+     "raw": "20"
     }
    }
   },
@@ -374,6 +428,16 @@
      "pred": 60.0,
      "mra": 0.0,
      "raw": "no_posed_track -> direct answer 60.0"
+    },
+    "gpt56_luna": {
+     "pred": 87.0,
+     "mra": 0.1,
+     "raw": "87 cm"
+    },
+    "qwen35_27b": {
+     "pred": 172.1,
+     "mra": 0.2,
+     "raw": "172.1"
     }
    }
   },
@@ -401,6 +465,16 @@
      "pred": 337.5,
      "mra": 0.0,
      "raw": "no_posed_track -> direct answer 337.5"
+    },
+    "gpt56_luna": {
+     "pred": 24.1,
+     "mra": 0.7,
+     "raw": "24.1 cm"
+    },
+    "qwen35_27b": {
+     "pred": 24.1,
+     "mra": 0.7,
+     "raw": "24.1"
     }
    }
   },
@@ -428,6 +502,16 @@
      "pred": 4.0,
      "mra": 0.5,
      "raw": "no_posed_track -> direct answer 4.0"
+    },
+    "gpt56_luna": {
+     "pred": 4.0,
+     "mra": 0.5,
+     "raw": "4 cm"
+    },
+    "qwen35_27b": {
+     "pred": 4.0,
+     "mra": 0.5,
+     "raw": "4"
     }
    }
   },
@@ -455,6 +539,16 @@
      "pred": 450.0,
      "mra": 0.0,
      "raw": "no_posed_track -> direct answer 450.0"
+    },
+    "gpt56_luna": {
+     "pred": 450.0,
+     "mra": 0.0,
+     "raw": "450 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 90.0,
+     "mra": 0.8,
+     "raw": "90"
     }
    }
   },
@@ -482,6 +576,16 @@
      "pred": 8.713990344251547,
      "mra": 0.0,
      "raw": "measured on posed meshes: 8.714"
+    },
+    "gpt56_luna": {
+     "pred": 120.25,
+     "mra": 1.0,
+     "raw": "120.25 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 120.25,
+     "mra": 1.0,
+     "raw": "120.25"
     }
    }
   },
@@ -509,6 +613,16 @@
      "pred": 29.51367209084009,
      "mra": 0.3,
      "raw": "measured on posed meshes: 29.51"
+    },
+    "gpt56_luna": {
+     "pred": 120.25,
+     "mra": 0.6,
+     "raw": "120.25 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 120.25,
+     "mra": 0.6,
+     "raw": "120.25"
     }
    }
   },
@@ -536,6 +650,16 @@
      "pred": 3.1800445810679756,
      "mra": 0.0,
      "raw": "measured on posed meshes: 3.18"
+    },
+    "gpt56_luna": {
+     "pred": 48.1,
+     "mra": 1.0,
+     "raw": "48.1 cm"
+    },
+    "qwen35_27b": {
+     "pred": 48.1,
+     "mra": 1.0,
+     "raw": "48.1"
     }
    }
   },
@@ -563,6 +687,16 @@
      "pred": 152.0,
      "mra": 0.0,
      "raw": "no_posed_track -> direct answer 152.0"
+    },
+    "gpt56_luna": {
+     "pred": 60.0,
+     "mra": 1.0,
+     "raw": "60 cm"
+    },
+    "qwen35_27b": {
+     "pred": 96.2,
+     "mra": 0.3,
+     "raw": "96.2"
     }
    }
   },
@@ -590,6 +724,16 @@
      "pred": 48.1,
      "mra": 0.6,
      "raw": "no_posed_track -> direct answer 48.1"
+    },
+    "gpt56_luna": {
+     "pred": 60.0,
+     "mra": 0.7,
+     "raw": "60 cm"
+    },
+    "qwen35_27b": {
+     "pred": 180.0,
+     "mra": 0.0,
+     "raw": "180"
     }
    }
   },
@@ -617,6 +761,16 @@
      "pred": 196.0,
      "mra": 1.0,
      "raw": "stage_failed:no_poses -> direct answer 196.0"
+    },
+    "gpt56_luna": {
+     "pred": 12.875,
+     "mra": 0.0,
+     "raw": "12.875 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 12.875,
+     "mra": 0.0,
+     "raw": "12.875"
     }
    }
   },
@@ -644,6 +798,16 @@
      "pred": 117.0,
      "mra": 0.2,
      "raw": "stage_failed:no_poses -> direct answer 117.0"
+    },
+    "gpt56_luna": {
+     "pred": 12.5,
+     "mra": 0.1,
+     "raw": "12.5 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 12.875,
+     "mra": 0.1,
+     "raw": "12.875"
     }
    }
   },
@@ -671,6 +835,16 @@
      "pred": 221.8,
      "mra": 0.2,
      "raw": "stage_failed:no_poses -> direct answer 221.8"
+    },
+    "gpt56_luna": {
+     "pred": -394.0,
+     "mra": 0.3,
+     "raw": "-394 cm/s²"
+    },
+    "qwen35_27b": {
+     "pred": 980.0,
+     "mra": 0.9,
+     "raw": "980"
     }
    }
   },
@@ -698,6 +872,16 @@
      "pred": 21.8,
      "mra": 0.2,
      "raw": "no_posed_track -> direct answer 21.8"
+    },
+    "gpt56_luna": {
+     "pred": 65.0,
+     "mra": 0.7,
+     "raw": "65 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 80.0,
+     "mra": 1.0,
+     "raw": "80"
     }
    }
   },
@@ -725,6 +909,16 @@
      "pred": 62.7,
      "mra": 0.6,
      "raw": "no_posed_track -> direct answer 62.7"
+    },
+    "gpt56_luna": {
+     "pred": 55.4,
+     "mra": 0.5,
+     "raw": "55.4 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 28.0,
+     "mra": 0.2,
+     "raw": "28"
     }
    }
   },
@@ -752,6 +946,16 @@
      "pred": 6.2,
      "mra": 0.9,
      "raw": "no_posed_track -> direct answer 6.2"
+    },
+    "gpt56_luna": {
+     "pred": 6.0,
+     "mra": 0.8,
+     "raw": "6 cm"
+    },
+    "qwen35_27b": {
+     "pred": 4.0,
+     "mra": 0.5,
+     "raw": "4.0"
     }
    }
   },
@@ -779,6 +983,16 @@
      "pred": 21.0,
      "mra": 1.0,
      "raw": "no_posed_track -> direct answer 21.0"
+    },
+    "gpt56_luna": {
+     "pred": 15.2,
+     "mra": 0.7,
+     "raw": "15.2 cm"
+    },
+    "qwen35_27b": {
+     "pred": 10.0,
+     "mra": 0.4,
+     "raw": "10"
     }
    }
   },
@@ -806,6 +1020,16 @@
      "pred": 30.48531906334678,
      "mra": 0.2,
      "raw": "measured on posed meshes: 30.49"
+    },
+    "gpt56_luna": {
+     "pred": 15.0,
+     "mra": 0.8,
+     "raw": "15 cm"
+    },
+    "qwen35_27b": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22"
     }
    }
   },
@@ -833,6 +1057,16 @@
      "pred": 12.0,
      "mra": 0.1,
      "raw": "no_posed_track -> direct answer 12.0"
+    },
+    "gpt56_luna": {
+     "pred": 61.0,
+     "mra": 0.7,
+     "raw": "61 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 90.5,
+     "mra": 0.9,
+     "raw": "90.5"
     }
    }
   },
@@ -860,6 +1094,16 @@
      "pred": 44.66,
      "mra": 0.4,
      "raw": "no_posed_track -> direct answer 44.66"
+    },
+    "gpt56_luna": {
+     "pred": 55.0,
+     "mra": 0.5,
+     "raw": "55 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 100.0,
+     "mra": 0.9,
+     "raw": "100"
     }
    }
   },
@@ -887,6 +1131,16 @@
      "pred": 25.1,
      "mra": 0.4,
      "raw": "no_posed_track -> direct answer 25.1"
+    },
+    "gpt56_luna": {
+     "pred": 28.0,
+     "mra": 0.4,
+     "raw": "28 cm"
+    },
+    "qwen35_27b": {
+     "pred": 13.4,
+     "mra": 0.2,
+     "raw": "13.4"
     }
    }
   },
@@ -914,6 +1168,16 @@
      "pred": 42.1,
      "mra": 0.5,
      "raw": "no_posed_track -> direct answer 42.1"
+    },
+    "gpt56_luna": {
+     "pred": 38.0,
+     "mra": 0.5,
+     "raw": "38 cm"
+    },
+    "qwen35_27b": {
+     "pred": 46.9,
+     "mra": 0.6,
+     "raw": "46.9"
     }
    }
   },
@@ -941,6 +1205,16 @@
      "pred": 31.781486782437085,
      "mra": 0.1,
      "raw": "measured on posed meshes: 31.78"
+    },
+    "gpt56_luna": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22 cm"
+    },
+    "qwen35_27b": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22"
     }
    }
   },
@@ -968,6 +1242,16 @@
      "pred": 0.32853306471418997,
      "mra": 0.5,
      "raw": "measured on posed meshes: 0.3285"
+    },
+    "gpt56_luna": {
+     "pred": 0.47,
+     "mra": 0.7,
+     "raw": "0.47 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.47,
+     "mra": 0.7,
+     "raw": "0.47"
     }
    }
   },
@@ -995,6 +1279,16 @@
      "pred": 2.0456362433337816,
      "mra": 0.0,
      "raw": "measured on posed meshes: 2.046"
+    },
+    "gpt56_luna": {
+     "pred": 0.521,
+     "mra": 0.0,
+     "raw": "0.521 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.521,
+     "mra": 0.0,
+     "raw": "0.521"
     }
    }
   },
@@ -1022,6 +1316,16 @@
      "pred": 67.8976746503956,
      "mra": 0.6,
      "raw": "measured on posed meshes: 67.9"
+    },
+    "gpt56_luna": {
+     "pred": 55.0,
+     "mra": 0.9,
+     "raw": "55 cm"
+    },
+    "qwen35_27b": {
+     "pred": 65.0,
+     "mra": 0.7,
+     "raw": "65"
     }
    }
   },
@@ -1049,6 +1353,16 @@
      "pred": 44.33571481769398,
      "mra": 0.0,
      "raw": "measured on posed meshes: 44.34"
+    },
+    "gpt56_luna": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22 cm"
+    },
+    "qwen35_27b": {
+     "pred": 22.0,
+     "mra": 0.7,
+     "raw": "22"
     }
    }
   },
@@ -1076,6 +1390,16 @@
      "pred": 1.850134317061598,
      "mra": 1.0,
      "raw": "measured on posed meshes: 1.85"
+    },
+    "gpt56_luna": {
+     "pred": 1.193,
+     "mra": 0.6,
+     "raw": "1.1930 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.1924,
+     "mra": 0.6,
+     "raw": "1.1924"
     }
    }
   },
@@ -1103,6 +1427,16 @@
      "pred": 0.40235786824640857,
      "mra": 0.2,
      "raw": "measured on posed meshes: 0.4024"
+    },
+    "gpt56_luna": {
+     "pred": 4.1609,
+     "mra": 0.0,
+     "raw": "4.1609 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.9333,
+     "mra": 0.5,
+     "raw": "0.9333"
     }
    }
   },
@@ -1130,6 +1464,16 @@
      "pred": 2.3920359384275507,
      "mra": 0.5,
      "raw": "measured on posed meshes: 2.392"
+    },
+    "gpt56_luna": {
+     "pred": 0.0,
+     "mra": 0.0,
+     "raw": "0 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.0,
+     "mra": 0.0,
+     "raw": "0"
     }
    }
   },
@@ -1157,6 +1501,16 @@
      "pred": 0.5125358767674778,
      "mra": 0.1,
      "raw": "measured on posed meshes: 0.5125"
+    },
+    "gpt56_luna": {
+     "pred": 1.1733,
+     "mra": 0.4,
+     "raw": "1.1733 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.1733,
+     "mra": 0.4,
+     "raw": "1.1733"
     }
    }
   },
@@ -1184,6 +1538,16 @@
      "pred": 1.0450382575209414,
      "mra": 0.3,
      "raw": "measured on posed meshes: 1.045"
+    },
+    "gpt56_luna": {
+     "pred": 1.1733,
+     "mra": 0.4,
+     "raw": "1.1733 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.1733,
+     "mra": 0.4,
+     "raw": "1.1733"
     }
    }
   },
@@ -1211,6 +1575,16 @@
      "pred": 2.207461139447479,
      "mra": 0.2,
      "raw": "measured on posed meshes: 2.207"
+    },
+    "gpt56_luna": {
+     "pred": 1.037,
+     "mra": 0.1,
+     "raw": "1.037 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.037,
+     "mra": 0.1,
+     "raw": "1.037"
     }
    }
   },
@@ -1238,6 +1612,16 @@
      "pred": 0.947451146625896,
      "mra": 0.8,
      "raw": "measured on posed meshes: 0.9475"
+    },
+    "gpt56_luna": {
+     "pred": -1.037,
+     "mra": 0.7,
+     "raw": "-1.037 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.037,
+     "mra": 0.7,
+     "raw": "1.037"
     }
    }
   },
@@ -1265,6 +1649,16 @@
      "pred": 4.8,
      "mra": 0.8,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 4.8"
+    },
+    "gpt56_luna": {
+     "pred": 5.3,
+     "mra": 0.9,
+     "raw": "5.3 m"
+    },
+    "qwen35_27b": {
+     "pred": 4.5,
+     "mra": 0.7,
+     "raw": "4.5"
     }
    }
   },
@@ -1292,6 +1686,16 @@
      "pred": 1.8,
      "mra": 0.8,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 1.8"
+    },
+    "gpt56_luna": {
+     "pred": 2.2,
+     "mra": 1.0,
+     "raw": "2.2 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.8,
+     "mra": 0.8,
+     "raw": "1.8"
     }
    }
   },
@@ -1319,6 +1723,16 @@
      "pred": 30.2,
      "mra": 1.0,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 30.2"
+    },
+    "gpt56_luna": {
+     "pred": 33.5,
+     "mra": 0.8,
+     "raw": "33.5 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 30.0,
+     "mra": 1.0,
+     "raw": "30"
     }
    }
   },
@@ -1346,6 +1760,16 @@
      "pred": 68.90528991637119,
      "mra": 0.0,
      "raw": "measured on posed meshes: 68.91"
+    },
+    "gpt56_luna": {
+     "pred": 20.0,
+     "mra": 0.0,
+     "raw": "20 cm"
+    },
+    "qwen35_27b": {
+     "pred": 10.0,
+     "mra": 1.0,
+     "raw": "10"
     }
    }
   },
@@ -1373,6 +1797,16 @@
      "pred": 19.729841676042813,
      "mra": 0.0,
      "raw": "measured on posed meshes: 19.73"
+    },
+    "gpt56_luna": {
+     "pred": 2.0,
+     "mra": 0.9,
+     "raw": "2 cm"
+    },
+    "qwen35_27b": {
+     "pred": 2.0,
+     "mra": 0.9,
+     "raw": "2"
     }
    }
   },
@@ -1400,6 +1834,16 @@
      "pred": 6.2,
      "mra": 0.4,
      "raw": "no_posed_track -> direct answer 6.2"
+    },
+    "gpt56_luna": {
+     "pred": 24.0,
+     "mra": 0.2,
+     "raw": "24 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 9.0,
+     "mra": 0.6,
+     "raw": "9"
     }
    }
   },
@@ -1427,6 +1871,16 @@
      "pred": 1.56,
      "mra": 0.6,
      "raw": "no_posed_track -> direct answer 1.56"
+    },
+    "gpt56_luna": {
+     "pred": 2.15,
+     "mra": 0.2,
+     "raw": "2.15 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.0,
+     "mra": 0.8,
+     "raw": "1"
     }
    }
   },
@@ -1454,6 +1908,16 @@
      "pred": 5.0,
      "mra": 1.0,
      "raw": "no_posed_track -> direct answer 5.0"
+    },
+    "gpt56_luna": {
+     "pred": 5.0,
+     "mra": 1.0,
+     "raw": "5 m"
+    },
+    "qwen35_27b": {
+     "pred": 3.55,
+     "mra": 0.7,
+     "raw": "3.55"
     }
    }
   },
@@ -1481,6 +1945,16 @@
      "pred": 2.121957182884212,
      "mra": 0.7,
      "raw": "measured on posed meshes: 2.122"
+    },
+    "gpt56_luna": {
+     "pred": 1.6,
+     "mra": 0.9,
+     "raw": "1.6 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.6,
+     "mra": 0.9,
+     "raw": "1.6"
     }
    }
   },
@@ -1508,6 +1982,16 @@
      "pred": 1.5,
      "mra": 0.5,
      "raw": "no_posed_track -> direct answer 1.5"
+    },
+    "gpt56_luna": {
+     "pred": 1.5,
+     "mra": 0.5,
+     "raw": "1.5 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.2,
+     "mra": 0.8,
+     "raw": "1.2"
     }
    }
   },
@@ -1535,6 +2019,16 @@
      "pred": 0.6,
      "mra": 0.4,
      "raw": "no_posed_track -> direct answer 0.6"
+    },
+    "gpt56_luna": {
+     "pred": 0.7,
+     "mra": 0.5,
+     "raw": "0.7 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.6,
+     "mra": 0.4,
+     "raw": "0.6"
     }
    }
   },
@@ -1562,6 +2056,16 @@
      "pred": 3.5,
      "mra": 1.0,
      "raw": "no_posed_track -> direct answer 3.5"
+    },
+    "gpt56_luna": {
+     "pred": 3.5,
+     "mra": 1.0,
+     "raw": "3.5 meters"
+    },
+    "qwen35_27b": {
+     "pred": 3.5,
+     "mra": 1.0,
+     "raw": "3.5"
     }
    }
   },
@@ -1589,6 +2093,16 @@
      "pred": 2.7347601508544717,
      "mra": 0.6,
      "raw": "measured on posed meshes: 2.735"
+    },
+    "gpt56_luna": {
+     "pred": 3.0,
+     "mra": 0.7,
+     "raw": "3 m"
+    },
+    "qwen35_27b": {
+     "pred": 3.5,
+     "mra": 0.8,
+     "raw": "3.5"
     }
    }
   },
@@ -1616,6 +2130,16 @@
      "pred": 8.0,
      "mra": 0.3,
      "raw": "no_posed_track -> direct answer 8.0"
+    },
+    "gpt56_luna": {
+     "pred": 20.0,
+     "mra": 1.0,
+     "raw": "20 m"
+    },
+    "qwen35_27b": {
+     "pred": 20.0,
+     "mra": 1.0,
+     "raw": "20"
     }
    }
   },
@@ -1643,6 +2167,16 @@
      "pred": 0.5471072025484458,
      "mra": 0.0,
      "raw": "measured on posed meshes: 0.5471"
+    },
+    "gpt56_luna": {
+     "pred": 7.0,
+     "mra": 0.7,
+     "raw": "7 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 11.0,
+     "mra": 0.1,
+     "raw": "11"
     }
    }
   },
@@ -1670,6 +2204,16 @@
      "pred": 3.7,
      "mra": 0.9,
      "raw": "no_posed_track -> direct answer 3.7"
+    },
+    "gpt56_luna": {
+     "pred": 4.0,
+     "mra": 0.8,
+     "raw": "4.0 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 4.5,
+     "mra": 0.6,
+     "raw": "4.5"
     }
    }
   },
@@ -1697,6 +2241,16 @@
      "pred": 0.0,
      "mra": 0.0,
      "raw": "measured on posed meshes: 0"
+    },
+    "gpt56_luna": {
+     "pred": 29.0,
+     "mra": 0.9,
+     "raw": "29 meters"
+    },
+    "qwen35_27b": {
+     "pred": 27.0,
+     "mra": 1.0,
+     "raw": "27"
     }
    }
   },
@@ -1724,6 +2278,16 @@
      "pred": 58.6271716925566,
      "mra": 0.0,
      "raw": "measured on posed meshes: 58.63"
+    },
+    "gpt56_luna": {
+     "pred": 22.0,
+     "mra": 1.0,
+     "raw": "22 cm"
+    },
+    "qwen35_27b": {
+     "pred": 22.0,
+     "mra": 1.0,
+     "raw": "22"
     }
    }
   },
@@ -1751,6 +2315,16 @@
      "pred": 254.50563581182956,
      "mra": 0.5,
      "raw": "measured on posed meshes: 254.5"
+    },
+    "gpt56_luna": {
+     "pred": 170.0,
+     "mra": 0.9,
+     "raw": "170 cm"
+    },
+    "qwen35_27b": {
+     "pred": 175.0,
+     "mra": 1.0,
+     "raw": "175"
     }
    }
   },
@@ -1778,6 +2352,16 @@
      "pred": 145.0,
      "mra": 0.9,
      "raw": "no_posed_track -> direct answer 145.0"
+    },
+    "gpt56_luna": {
+     "pred": 140.0,
+     "mra": 0.8,
+     "raw": "140 cm"
+    },
+    "qwen35_27b": {
+     "pred": 170.0,
+     "mra": 0.9,
+     "raw": "170"
     }
    }
   },
@@ -1805,6 +2389,16 @@
      "pred": 255.25637479134255,
      "mra": 0.6,
      "raw": "measured on posed meshes: 255.3"
+    },
+    "gpt56_luna": {
+     "pred": 133.0,
+     "mra": 0.7,
+     "raw": "133 cm"
+    },
+    "qwen35_27b": {
+     "pred": 170.0,
+     "mra": 0.9,
+     "raw": "170"
     }
    }
   },
@@ -1832,6 +2426,16 @@
      "pred": 6.5,
      "mra": 0.5,
      "raw": "no_posed_track -> direct answer 6.5"
+    },
+    "gpt56_luna": {
+     "pred": 3.2,
+     "mra": 0.7,
+     "raw": "3.2 m"
+    },
+    "qwen35_27b": {
+     "pred": 10.0,
+     "mra": 0.0,
+     "raw": "10"
     }
    }
   },
@@ -1859,6 +2463,16 @@
      "pred": 2.622678392227455,
      "mra": 0.7,
      "raw": "measured on posed meshes: 2.623"
+    },
+    "gpt56_luna": {
+     "pred": -3.3,
+     "mra": 0.8,
+     "raw": "-3.3 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 2.0,
+     "mra": 0.5,
+     "raw": "2.0"
     }
    }
   },
@@ -1886,6 +2500,16 @@
      "pred": 2.5124999651998614,
      "mra": 0.6,
      "raw": "measured on posed meshes: 2.512"
+    },
+    "gpt56_luna": {
+     "pred": 2.0,
+     "mra": 1.0,
+     "raw": "2.0 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 4.0,
+     "mra": 0.0,
+     "raw": "4"
     }
    }
   },
@@ -1913,6 +2537,16 @@
      "pred": 32.4463150934201,
      "mra": 0.0,
      "raw": "measured on posed meshes: 32.45"
+    },
+    "gpt56_luna": {
+     "pred": 15.0,
+     "mra": 1.0,
+     "raw": "15 cm"
+    },
+    "qwen35_27b": {
+     "pred": 14.3,
+     "mra": 1.0,
+     "raw": "14.3"
     }
    }
   },
@@ -1940,6 +2574,16 @@
      "pred": 56.30725114909869,
      "mra": 0.0,
      "raw": "measured on posed meshes: 56.31"
+    },
+    "gpt56_luna": {
+     "pred": 26.3,
+     "mra": 1.0,
+     "raw": "26.3 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 18.3,
+     "mra": 0.6,
+     "raw": "18.3"
     }
    }
   },
@@ -1967,6 +2611,16 @@
      "pred": 48.30875075047626,
      "mra": 0.0,
      "raw": "measured on posed meshes: 48.31"
+    },
+    "gpt56_luna": {
+     "pred": 24.6,
+     "mra": 1.0,
+     "raw": "24.6 cm/s"
+    },
+    "qwen35_27b": {
+     "pred": 28.6,
+     "mra": 0.8,
+     "raw": "28.6"
     }
    }
   },
@@ -1994,6 +2648,16 @@
      "pred": 32.4463150934201,
      "mra": 0.2,
      "raw": "measured on posed meshes: 32.45"
+    },
+    "gpt56_luna": {
+     "pred": 17.8,
+     "mra": 1.0,
+     "raw": "17.8 cm"
+    },
+    "qwen35_27b": {
+     "pred": 14.3,
+     "mra": 0.7,
+     "raw": "14.3"
     }
    }
   },
@@ -2021,6 +2685,16 @@
      "pred": -12.8,
      "mra": 0.8,
      "raw": "no_posed_track -> direct answer -12.8"
+    },
+    "gpt56_luna": {
+     "pred": 4.9,
+     "mra": 0.4,
+     "raw": "4.9 cm/s²"
+    },
+    "qwen35_27b": {
+     "pred": 0.0,
+     "mra": 0.0,
+     "raw": "0"
     }
    }
   },
@@ -2048,6 +2722,16 @@
      "pred": 2.812248125540414,
      "mra": 0.7,
      "raw": "measured on posed meshes: 2.812"
+    },
+    "gpt56_luna": {
+     "pred": 2.5,
+     "mra": 0.6,
+     "raw": "2.5 m"
+    },
+    "qwen35_27b": {
+     "pred": 2.5,
+     "mra": 0.6,
+     "raw": "2.5"
     }
    }
   },
@@ -2075,6 +2759,16 @@
      "pred": 2.729204359575,
      "mra": 0.0,
      "raw": "measured on posed meshes: 2.729"
+    },
+    "gpt56_luna": {
+     "pred": 0.7,
+     "mra": 0.5,
+     "raw": "0.7 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.5,
+     "mra": 0.7,
+     "raw": "1.5"
     }
    }
   },
@@ -2102,6 +2796,16 @@
      "pred": 1.3464284077589577,
      "mra": 0.2,
      "raw": "measured on posed meshes: 1.346"
+    },
+    "gpt56_luna": {
+     "pred": 1.4,
+     "mra": 0.1,
+     "raw": "1.4 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.5,
+     "mra": 0.6,
+     "raw": "0.5"
     }
    }
   },
@@ -2129,6 +2833,16 @@
      "pred": 2.725282129231502,
      "mra": 0.2,
      "raw": "measured on posed meshes: 2.725"
+    },
+    "gpt56_luna": {
+     "pred": 5.0,
+     "mra": 0.0,
+     "raw": "5 m"
+    },
+    "qwen35_27b": {
+     "pred": 4.205,
+     "mra": 0.0,
+     "raw": "4.205"
     }
    }
   },
@@ -2156,6 +2870,16 @@
      "pred": 4.783324792442976,
      "mra": 0.7,
      "raw": "measured on posed meshes: 4.783"
+    },
+    "gpt56_luna": {
+     "pred": 4.205,
+     "mra": 0.6,
+     "raw": "4.205 m"
+    },
+    "qwen35_27b": {
+     "pred": 4.205,
+     "mra": 0.6,
+     "raw": "4.205"
     }
    }
   },
@@ -2183,6 +2907,16 @@
      "pred": 2.593,
      "mra": 0.6,
      "raw": "no_posed_track -> direct answer 2.593"
+    },
+    "gpt56_luna": {
+     "pred": 2.766,
+     "mra": 0.5,
+     "raw": "2.766 m"
+    },
+    "qwen35_27b": {
+     "pred": 2.593,
+     "mra": 0.6,
+     "raw": "2.593"
     }
    }
   },
@@ -2210,6 +2944,16 @@
      "pred": 2.962319797123275,
      "mra": 0.1,
      "raw": "measured on posed meshes: 2.962"
+    },
+    "gpt56_luna": {
+     "pred": 1.0,
+     "mra": 0.6,
+     "raw": "1 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.0,
+     "mra": 0.6,
+     "raw": "1.0"
     }
    }
   },
@@ -2237,6 +2981,16 @@
      "pred": 0.5,
      "mra": 0.0,
      "raw": "no_posed_track -> direct answer 0.5"
+    },
+    "gpt56_luna": {
+     "pred": 0.75,
+     "mra": 0.0,
+     "raw": "0.75 m"
+    },
+    "qwen35_27b": {
+     "pred": 4.205,
+     "mra": 0.0,
+     "raw": "4.205"
     }
    }
   },
@@ -2264,6 +3018,16 @@
      "pred": 0.77,
      "mra": 0.9,
      "raw": "no_posed_track -> direct answer 0.77"
+    },
+    "gpt56_luna": {
+     "pred": 1.25,
+     "mra": 0.5,
+     "raw": "1.25 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.5,
+     "mra": 0.2,
+     "raw": "1.5"
     }
    }
   },
@@ -2291,6 +3055,16 @@
      "pred": 1.1537098960974337,
      "mra": 0.5,
      "raw": "measured on posed meshes: 1.154"
+    },
+    "gpt56_luna": {
+     "pred": 1.9,
+     "mra": 1.0,
+     "raw": "1.9 m"
+    },
+    "qwen35_27b": {
+     "pred": 2.5,
+     "mra": 0.7,
+     "raw": "2.5"
     }
    }
   },
@@ -2318,6 +3092,16 @@
      "pred": 0.7156046980202521,
      "mra": 0.4,
      "raw": "measured on posed meshes: 0.7156"
+    },
+    "gpt56_luna": {
+     "pred": 1.6,
+     "mra": 0.9,
+     "raw": "1.6 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.5,
+     "mra": 1.0,
+     "raw": "1.5"
     }
    }
   },
@@ -2345,6 +3129,16 @@
      "pred": 0.43623898083194146,
      "mra": 0.7,
      "raw": "measured on posed meshes: 0.4362"
+    },
+    "gpt56_luna": {
+     "pred": 1.06,
+     "mra": 0.2,
+     "raw": "1.06 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.0,
+     "mra": 0.3,
+     "raw": "1.0"
     }
    }
   },
@@ -2372,6 +3166,16 @@
      "pred": 0.5906618499103793,
      "mra": 0.3,
      "raw": "measured on posed meshes: 0.5907"
+    },
+    "gpt56_luna": {
+     "pred": 1.8,
+     "mra": 0.8,
+     "raw": "1.8 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.87,
+     "mra": 0.8,
+     "raw": "1.87"
     }
    }
   },
@@ -2399,6 +3203,16 @@
      "pred": 1.8691110785434093,
      "mra": 0.9,
      "raw": "measured on posed meshes: 1.869"
+    },
+    "gpt56_luna": {
+     "pred": 1.9,
+     "mra": 0.9,
+     "raw": "1.9 m"
+    },
+    "qwen35_27b": {
+     "pred": 3.0,
+     "mra": 0.4,
+     "raw": "3.0"
     }
    }
   },
@@ -2426,6 +3240,16 @@
      "pred": 0.45,
      "mra": 1.0,
      "raw": "no_posed_track -> direct answer 0.45"
+    },
+    "gpt56_luna": {
+     "pred": 0.45,
+     "mra": 1.0,
+     "raw": "0.45 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.45,
+     "mra": 1.0,
+     "raw": "0.45"
     }
    }
   },
@@ -2453,6 +3277,16 @@
      "pred": 0.6,
      "mra": 0.8,
      "raw": "no_posed_track -> direct answer 0.6"
+    },
+    "gpt56_luna": {
+     "pred": 2.4,
+     "mra": 0.0,
+     "raw": "2.4 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.8,
+     "mra": 0.8,
+     "raw": "0.8"
     }
    }
   },
@@ -2480,6 +3314,16 @@
      "pred": 3.0,
      "mra": 0.6,
      "raw": "no_posed_track -> direct answer 3.0"
+    },
+    "gpt56_luna": {
+     "pred": 2.5,
+     "mra": 0.8,
+     "raw": "2.5 m"
+    },
+    "qwen35_27b": {
+     "pred": 2.4,
+     "mra": 0.9,
+     "raw": "2.4"
     }
    }
   },
@@ -2507,6 +3351,16 @@
      "pred": 15.0,
      "mra": 0.8,
      "raw": "no_posed_track -> direct answer 15.0"
+    },
+    "gpt56_luna": {
+     "pred": 8.0,
+     "mra": 0.6,
+     "raw": "8 m"
+    },
+    "qwen35_27b": {
+     "pred": 20.0,
+     "mra": 0.4,
+     "raw": "20"
     }
    }
   },
@@ -2534,6 +3388,16 @@
      "pred": 0.31,
      "mra": 0.4,
      "raw": "no_posed_track -> direct answer 0.31"
+    },
+    "gpt56_luna": {
+     "pred": 0.25,
+     "mra": 0.3,
+     "raw": "0.25 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.0,
+     "mra": 0.6,
+     "raw": "1.0"
     }
    }
   },
@@ -2561,6 +3425,16 @@
      "pred": 5.1,
      "mra": 0.0,
      "raw": "no_posed_track -> direct answer 5.1"
+    },
+    "gpt56_luna": {
+     "pred": 1.29,
+     "mra": 1.0,
+     "raw": "1.29 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.29,
+     "mra": 1.0,
+     "raw": "1.29"
     }
    }
   },
@@ -2588,6 +3462,16 @@
      "pred": 1.0503594220032484,
      "mra": 0.2,
      "raw": "measured on posed meshes: 1.05"
+    },
+    "gpt56_luna": {
+     "pred": 4.0505,
+     "mra": 1.0,
+     "raw": "4.0505 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 4.0505,
+     "mra": 1.0,
+     "raw": "4.0505"
     }
    }
   },
@@ -2615,6 +3499,16 @@
      "pred": 3.407233599818281,
      "mra": 0.3,
      "raw": "measured on posed meshes: 3.407"
+    },
+    "gpt56_luna": {
+     "pred": 22.0,
+     "mra": 0.0,
+     "raw": "22 m"
+    },
+    "qwen35_27b": {
+     "pred": 12.0,
+     "mra": 0.7,
+     "raw": "12"
     }
    }
   },
@@ -2642,6 +3536,16 @@
      "pred": 1.3288078510153518,
      "mra": 0.4,
      "raw": "measured on posed meshes: 1.329"
+    },
+    "gpt56_luna": {
+     "pred": 3.0,
+     "mra": 0.9,
+     "raw": "3 m"
+    },
+    "qwen35_27b": {
+     "pred": 5.0,
+     "mra": 0.4,
+     "raw": "5"
     }
    }
   },
@@ -2669,6 +3573,16 @@
      "pred": 0.8565868242164838,
      "mra": 0.6,
      "raw": "measured on posed meshes: 0.8566"
+    },
+    "gpt56_luna": {
+     "pred": 0.0099,
+     "mra": 0.0,
+     "raw": "0.0099 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.35,
+     "mra": 1.0,
+     "raw": "1.35"
     }
    }
   },
@@ -2696,6 +3610,16 @@
      "pred": 0.46638477647505105,
      "mra": 0.2,
      "raw": "measured on posed meshes: 0.4664"
+    },
+    "gpt56_luna": {
+     "pred": 1.75,
+     "mra": 0.8,
+     "raw": "1.75 m"
+    },
+    "qwen35_27b": {
+     "pred": 2.0,
+     "mra": 0.7,
+     "raw": "2.0"
     }
    }
   },
@@ -2723,6 +3647,16 @@
      "pred": 1.7760528078686795,
      "mra": 0.1,
      "raw": "measured on posed meshes: 1.776"
+    },
+    "gpt56_luna": {
+     "pred": 11.74,
+     "mra": 1.0,
+     "raw": "11.740 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 11.7395,
+     "mra": 1.0,
+     "raw": "11.7395"
     }
    }
   },
@@ -2750,6 +3684,16 @@
      "pred": 3.3531387231134246,
      "mra": 0.8,
      "raw": "measured on posed meshes: 3.353"
+    },
+    "gpt56_luna": {
+     "pred": 2.1965,
+     "mra": 0.5,
+     "raw": "2.1965 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 2.1965,
+     "mra": 0.5,
+     "raw": "2.1965"
     }
    }
   },
@@ -2777,6 +3721,16 @@
      "pred": 3.5,
      "mra": 0.2,
      "raw": "no_posed_track -> direct answer 3.5"
+    },
+    "gpt56_luna": {
+     "pred": 3.19,
+     "mra": 0.2,
+     "raw": "3.19 m"
+    },
+    "qwen35_27b": {
+     "pred": 4.32,
+     "mra": 0.3,
+     "raw": "4.32"
     }
    }
   },
@@ -2804,6 +3758,16 @@
      "pred": 4.232986584779546,
      "mra": 0.7,
      "raw": "measured on posed meshes: 4.233"
+    },
+    "gpt56_luna": {
+     "pred": 5.0,
+     "mra": 0.8,
+     "raw": "5 m"
+    },
+    "qwen35_27b": {
+     "pred": 5.5,
+     "mra": 0.9,
+     "raw": "5.5"
     }
    }
   },
@@ -2831,6 +3795,16 @@
      "pred": 3.6529294145596936,
      "mra": 0.6,
      "raw": "measured on posed meshes: 3.653"
+    },
+    "gpt56_luna": {
+     "pred": 4.5,
+     "mra": 0.8,
+     "raw": "4.5 m"
+    },
+    "qwen35_27b": {
+     "pred": 5.0,
+     "mra": 0.9,
+     "raw": "5"
     }
    }
   },
@@ -2858,6 +3832,16 @@
      "pred": 2.005194154424349,
      "mra": 0.7,
      "raw": "measured on posed meshes: 2.005"
+    },
+    "gpt56_luna": {
+     "pred": 1.5,
+     "mra": 0.9,
+     "raw": "1.5 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.5,
+     "mra": 0.9,
+     "raw": "1.5"
     }
    }
   },
@@ -2885,6 +3869,16 @@
      "pred": 0.6820961984181935,
      "mra": 0.7,
      "raw": "measured on posed meshes: 0.6821"
+    },
+    "gpt56_luna": {
+     "pred": 0.7,
+     "mra": 0.7,
+     "raw": "0.7 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.7,
+     "mra": 0.7,
+     "raw": "0.7"
     }
    }
   },
@@ -2912,6 +3906,16 @@
      "pred": 1.37079724394451,
      "mra": 0.9,
      "raw": "measured on posed meshes: 1.371"
+    },
+    "gpt56_luna": {
+     "pred": 1.17,
+     "mra": 0.8,
+     "raw": "1.17 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.17,
+     "mra": 0.8,
+     "raw": "1.17"
     }
    }
   },
@@ -2939,6 +3943,16 @@
      "pred": 1.5265074480810754,
      "mra": 0.8,
      "raw": "measured on posed meshes: 1.527"
+    },
+    "gpt56_luna": {
+     "pred": 1.6,
+     "mra": 0.8,
+     "raw": "1.6 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.7,
+     "mra": 0.9,
+     "raw": "1.7"
     }
    }
   },
@@ -2966,6 +3980,16 @@
      "pred": 4.59345431260861,
      "mra": 0.8,
      "raw": "measured on posed meshes: 4.593"
+    },
+    "gpt56_luna": {
+     "pred": 0.3272,
+     "mra": 0.0,
+     "raw": "0.3272 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 3.91,
+     "mra": 0.7,
+     "raw": "3.91"
     }
    }
   },
@@ -2993,6 +4017,16 @@
      "pred": 1.8,
      "mra": 0.8,
      "raw": "no_posed_track -> direct answer 1.8"
+    },
+    "gpt56_luna": {
+     "pred": 1.8,
+     "mra": 0.8,
+     "raw": "1.8 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.8,
+     "mra": 0.8,
+     "raw": "1.8"
     }
    }
   },
@@ -3020,6 +4054,16 @@
      "pred": 1.8,
      "mra": 1.0,
      "raw": "no_posed_track -> direct answer 1.8"
+    },
+    "gpt56_luna": {
+     "pred": 1.8,
+     "mra": 1.0,
+     "raw": "1.8 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.8,
+     "mra": 1.0,
+     "raw": "1.8"
     }
    }
   },
@@ -3047,6 +4091,16 @@
      "pred": 1.2,
      "mra": 0.8,
      "raw": "no_posed_track -> direct answer 1.2"
+    },
+    "gpt56_luna": {
+     "pred": 1.2,
+     "mra": 0.8,
+     "raw": "1.2 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.0,
+     "mra": 0.7,
+     "raw": "1.0"
     }
    }
   },
@@ -3074,6 +4128,16 @@
      "pred": 0.7057816420686667,
      "mra": 0.8,
      "raw": "measured on posed meshes: 0.7058"
+    },
+    "gpt56_luna": {
+     "pred": 1.0,
+     "mra": 0.3,
+     "raw": "1 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.0,
+     "mra": 0.3,
+     "raw": "1.0"
     }
    }
   },
@@ -3101,6 +4165,16 @@
      "pred": 1.62,
      "mra": 0.0,
      "raw": "no_posed_track -> direct answer 1.62"
+    },
+    "gpt56_luna": {
+     "pred": 1.18,
+     "mra": 0.3,
+     "raw": "1.18 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.88,
+     "mra": 0.0,
+     "raw": "1.88"
     }
    }
   },
@@ -3128,6 +4202,16 @@
      "pred": 1.53,
      "mra": 0.7,
      "raw": "no_posed_track -> direct answer 1.53"
+    },
+    "gpt56_luna": {
+     "pred": 1.1,
+     "mra": 0.5,
+     "raw": "1.1 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.88,
+     "mra": 0.9,
+     "raw": "1.88"
     }
    }
   },
@@ -3155,6 +4239,16 @@
      "pred": 0.85763035262167,
      "mra": 0.6,
      "raw": "measured on posed meshes: 0.8576"
+    },
+    "gpt56_luna": {
+     "pred": 1.41,
+     "mra": 0.9,
+     "raw": "1.41 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.94,
+     "mra": 0.7,
+     "raw": "0.94"
     }
    }
   },
@@ -3182,6 +4276,16 @@
      "pred": 1.5857282599325266,
      "mra": 0.1,
      "raw": "measured on posed meshes: 1.586"
+    },
+    "gpt56_luna": {
+     "pred": 14.3,
+     "mra": 0.6,
+     "raw": "14.3 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 20.0,
+     "mra": 0.1,
+     "raw": "20"
     }
    }
   },
@@ -3209,6 +4313,16 @@
      "pred": 18.6,
      "mra": 1.0,
      "raw": "no_posed_track -> direct answer 18.6"
+    },
+    "gpt56_luna": {
+     "pred": 19.0,
+     "mra": 0.9,
+     "raw": "19.0 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 18.8,
+     "mra": 1.0,
+     "raw": "18.8"
     }
    }
   },
@@ -3236,6 +4350,16 @@
      "pred": 11.48,
      "mra": 0.7,
      "raw": "no_posed_track -> direct answer 11.48"
+    },
+    "gpt56_luna": {
+     "pred": 17.0,
+     "mra": 0.8,
+     "raw": "17.0 m"
+    },
+    "qwen35_27b": {
+     "pred": 26.32,
+     "mra": 0.1,
+     "raw": "26.32"
     }
    }
   },
@@ -3263,6 +4387,16 @@
      "pred": 4.5,
      "mra": 0.8,
      "raw": "stage_failed:no_poses -> direct answer 4.5"
+    },
+    "gpt56_luna": {
+     "pred": 5.0,
+     "mra": 1.0,
+     "raw": "5 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 3.0,
+     "mra": 0.5,
+     "raw": "3"
     }
    }
   },
@@ -3290,6 +4424,16 @@
      "pred": 10.0,
      "mra": 1.0,
      "raw": "stage_failed:no_poses -> direct answer 10.0"
+    },
+    "gpt56_luna": {
+     "pred": 10.0,
+     "mra": 1.0,
+     "raw": "10 meters"
+    },
+    "qwen35_27b": {
+     "pred": 18.0,
+     "mra": 0.1,
+     "raw": "18"
     }
    }
   },
@@ -3317,6 +4461,16 @@
      "pred": 2.0,
      "mra": 0.6,
      "raw": "stage_failed:no_poses -> direct answer 2.0"
+    },
+    "gpt56_luna": {
+     "pred": 3.0,
+     "mra": 0.9,
+     "raw": "3 m"
+    },
+    "qwen35_27b": {
+     "pred": 3.0,
+     "mra": 0.9,
+     "raw": "3"
     }
    }
   },
@@ -3344,6 +4498,16 @@
      "pred": 0.8,
      "mra": 0.7,
      "raw": "stage_failed:no_poses -> direct answer 0.8"
+    },
+    "gpt56_luna": {
+     "pred": 1.2,
+     "mra": 0.9,
+     "raw": "1.2 m"
+    },
+    "qwen35_27b": {
+     "pred": 3.0,
+     "mra": 0.0,
+     "raw": "3"
     }
    }
   },
@@ -3371,6 +4535,16 @@
      "pred": 0.49713694054637525,
      "mra": 0.1,
      "raw": "measured on posed meshes: 0.4971"
+    },
+    "gpt56_luna": {
+     "pred": 3.1,
+     "mra": 1.0,
+     "raw": "3.1 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 5.0,
+     "mra": 0.4,
+     "raw": "5"
     }
    }
   },
@@ -3398,6 +4572,16 @@
      "pred": 2.5829961982851293,
      "mra": 0.0,
      "raw": "measured on posed meshes: 2.583"
+    },
+    "gpt56_luna": {
+     "pred": 2.0,
+     "mra": 0.0,
+     "raw": "-0.22 m/s^2"
+    },
+    "qwen35_27b": {
+     "pred": 0.0,
+     "mra": 0.0,
+     "raw": "0"
     }
    }
   },
@@ -3425,6 +4609,16 @@
      "pred": 0.31936911030104526,
      "mra": 0.1,
      "raw": "measured on posed meshes: 0.3194"
+    },
+    "gpt56_luna": {
+     "pred": 3.1,
+     "mra": 1.0,
+     "raw": "3.1 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 2.1,
+     "mra": 0.7,
+     "raw": "2.1"
     }
    }
   },
@@ -3452,6 +4646,16 @@
      "pred": 4.467786245421888,
      "mra": 0.0,
      "raw": "measured on posed meshes: 4.468"
+    },
+    "gpt56_luna": {
+     "pred": 2.0,
+     "mra": 0.0,
+     "raw": "-0.55 m/s^2"
+    },
+    "qwen35_27b": {
+     "pred": 0.0,
+     "mra": 0.0,
+     "raw": "0"
     }
    }
   },
@@ -3479,6 +4683,16 @@
      "pred": 0.12146364969206491,
      "mra": 0.3,
      "raw": "measured on posed meshes: 0.1215"
+    },
+    "gpt56_luna": {
+     "pred": 0.33,
+     "mra": 1.0,
+     "raw": "0.33 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.38,
+     "mra": 0.8,
+     "raw": "0.38"
     }
    }
   },
@@ -3506,6 +4720,16 @@
      "pred": 0.25,
      "mra": 0.0,
      "raw": "no_posed_track -> direct answer 0.25"
+    },
+    "gpt56_luna": {
+     "pred": 0.12,
+     "mra": 0.0,
+     "raw": "0.12 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.42,
+     "mra": 0.0,
+     "raw": "0.42"
     }
    }
   },
@@ -3533,6 +4757,16 @@
      "pred": 0.3514115523148204,
      "mra": 0.0,
      "raw": "measured on posed meshes: 0.3514"
+    },
+    "gpt56_luna": {
+     "pred": 7.5,
+     "mra": 0.0,
+     "raw": "7.5 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 36.0,
+     "mra": 0.0,
+     "raw": "36"
     }
    }
   },
@@ -3560,6 +4794,16 @@
      "pred": 8.794909974639177,
      "mra": 0.5,
      "raw": "measured on posed meshes: 8.795"
+    },
+    "gpt56_luna": {
+     "pred": 2.0,
+     "mra": 0.3,
+     "raw": "9.8 m/s^2"
+    },
+    "qwen35_27b": {
+     "pred": 4.0,
+     "mra": 0.6,
+     "raw": "4"
     }
    }
   },
@@ -3587,6 +4831,16 @@
      "pred": 1.0713016806846585,
      "mra": 0.1,
      "raw": "measured on posed meshes: 1.071"
+    },
+    "gpt56_luna": {
+     "pred": 1.8,
+     "mra": 0.3,
+     "raw": "1.8 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 7.71,
+     "mra": 0.7,
+     "raw": "7.71"
     }
    }
   },
@@ -3614,6 +4868,16 @@
      "pred": 2.0040222220298793,
      "mra": 0.5,
      "raw": "measured on posed meshes: 2.004"
+    },
+    "gpt56_luna": {
+     "pred": 2.5,
+     "mra": 0.6,
+     "raw": "2.5 m/s²"
+    },
+    "qwen35_27b": {
+     "pred": 9.8,
+     "mra": 0.0,
+     "raw": "9.8"
     }
    }
   },
@@ -3641,6 +4905,16 @@
      "pred": 2.1225288482931712,
      "mra": 0.3,
      "raw": "measured on posed meshes: 2.123"
+    },
+    "gpt56_luna": {
+     "pred": 6.5,
+     "mra": 1.0,
+     "raw": "6.5 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 7.0,
+     "mra": 1.0,
+     "raw": "7"
     }
    }
   },
@@ -3668,6 +4942,16 @@
      "pred": 6.3060227150912205,
      "mra": 0.0,
      "raw": "measured on posed meshes: 6.306"
+    },
+    "gpt56_luna": {
+     "pred": 2.0,
+     "mra": 0.7,
+     "raw": "3.0 m/s^2"
+    },
+    "qwen35_27b": {
+     "pred": 9.8,
+     "mra": 0.0,
+     "raw": "9.8"
     }
    }
   },
@@ -3695,6 +4979,16 @@
      "pred": 3.9917003577547945,
      "mra": 0.3,
      "raw": "measured on posed meshes: 3.992"
+    },
+    "gpt56_luna": {
+     "pred": 5.0,
+     "mra": 0.0,
+     "raw": "5 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 10.0,
+     "mra": 0.0,
+     "raw": "10"
     }
    }
   },
@@ -3722,6 +5016,16 @@
      "pred": 7.8091555433526585,
      "mra": 0.8,
      "raw": "measured on posed meshes: 7.809"
+    },
+    "gpt56_luna": {
+     "pred": 0.0,
+     "mra": 0.0,
+     "raw": "0 m/s²"
+    },
+    "qwen35_27b": {
+     "pred": 10.0,
+     "mra": 0.5,
+     "raw": "10"
     }
    }
   },
@@ -3749,6 +5053,16 @@
      "pred": 4.333066169384791,
      "mra": 0.0,
      "raw": "measured on posed meshes: 4.333"
+    },
+    "gpt56_luna": {
+     "pred": 2.5,
+     "mra": 0.5,
+     "raw": "2.5 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 2.2,
+     "mra": 0.7,
+     "raw": "2.2"
     }
    }
   },
@@ -3776,6 +5090,16 @@
      "pred": 16.841873926701258,
      "mra": 0.0,
      "raw": "measured on posed meshes: 16.84"
+    },
+    "gpt56_luna": {
+     "pred": 1.6,
+     "mra": 0.8,
+     "raw": "1.6 m/s²"
+    },
+    "qwen35_27b": {
+     "pred": 9.8,
+     "mra": 0.0,
+     "raw": "9.8"
     }
    }
   },
@@ -3803,6 +5127,16 @@
      "pred": 7.568982784014956,
      "mra": 0.4,
      "raw": "measured on posed meshes: 7.569"
+    },
+    "gpt56_luna": {
+     "pred": 5.6,
+     "mra": 0.8,
+     "raw": "5.6 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 2.2,
+     "mra": 0.4,
+     "raw": "2.2"
     }
    }
   },
@@ -3830,6 +5164,16 @@
      "pred": 8.5976059870799,
      "mra": 0.0,
      "raw": "measured on posed meshes: 8.598"
+    },
+    "gpt56_luna": {
+     "pred": 1.62,
+     "mra": 0.6,
+     "raw": "1.62"
+    },
+    "qwen35_27b": {
+     "pred": 1.62,
+     "mra": 0.6,
+     "raw": "1.62"
     }
    }
   },
@@ -3857,6 +5201,16 @@
      "pred": 2.2722465584594493,
      "mra": 0.7,
      "raw": "measured on posed meshes: 2.272"
+    },
+    "gpt56_luna": {
+     "pred": 2.0,
+     "mra": 0.9,
+     "raw": "2.0 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 4.4,
+     "mra": 0.0,
+     "raw": "4.4"
     }
    }
   },
@@ -3884,6 +5238,16 @@
      "pred": 6.051716292608902,
      "mra": 0.0,
      "raw": "measured on posed meshes: 6.052"
+    },
+    "gpt56_luna": {
+     "pred": 2.0,
+     "mra": 0.0,
+     "raw": "-1.62 m/s^2"
+    },
+    "qwen35_27b": {
+     "pred": 9.8,
+     "mra": 0.0,
+     "raw": "9.8"
     }
    }
   },
@@ -3911,6 +5275,16 @@
      "pred": 2.4056020351583696,
      "mra": 0.3,
      "raw": "measured on posed meshes: 2.406"
+    },
+    "gpt56_luna": {
+     "pred": 1.2,
+     "mra": 0.8,
+     "raw": "1.2 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 0.0,
+     "mra": 0.0,
+     "raw": "0"
     }
    }
   },
@@ -3938,6 +5312,16 @@
      "pred": 6.051796136449603,
      "mra": 0.0,
      "raw": "measured on posed meshes: 6.052"
+    },
+    "gpt56_luna": {
+     "pred": 1.62,
+     "mra": 0.6,
+     "raw": "1.62 m/s²"
+    },
+    "qwen35_27b": {
+     "pred": 0.0,
+     "mra": 0.0,
+     "raw": "0"
     }
    }
   },
@@ -3965,6 +5349,16 @@
      "pred": 0.0413,
      "mra": 0.3,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.0413"
+    },
+    "gpt56_luna": {
+     "pred": 0.1,
+     "mra": 0.7,
+     "raw": "0.1 m"
+    },
+    "qwen35_27b": {
+     "pred": 8.0,
+     "mra": 0.0,
+     "raw": "8"
     }
    }
   },
@@ -3992,6 +5386,16 @@
      "pred": 0.89,
      "mra": 0.5,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.89"
+    },
+    "gpt56_luna": {
+     "pred": 2.0,
+     "mra": 0.8,
+     "raw": "2 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.5,
+     "mra": 0.2,
+     "raw": "0.5"
     }
    }
   },
@@ -4019,6 +5423,16 @@
      "pred": 1.325,
      "mra": 0.6,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 1.325"
+    },
+    "gpt56_luna": {
+     "pred": 1.325,
+     "mra": 0.6,
+     "raw": "1.325 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.254,
+     "mra": 0.6,
+     "raw": "1.254"
     }
    }
   },
@@ -4046,6 +5460,16 @@
      "pred": 1.0,
      "mra": 0.8,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 1.0"
+    },
+    "gpt56_luna": {
+     "pred": 1.05,
+     "mra": 0.8,
+     "raw": "1.05 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 1.05,
+     "mra": 0.8,
+     "raw": "1.05"
     }
    }
   },
@@ -4073,6 +5497,16 @@
      "pred": 0.791,
      "mra": 1.0,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.791"
+    },
+    "gpt56_luna": {
+     "pred": 0.832,
+     "mra": 1.0,
+     "raw": "0.832 m/s"
+    },
+    "qwen35_27b": {
+     "pred": 0.832,
+     "mra": 1.0,
+     "raw": "0.832"
     }
    }
   },
@@ -4100,6 +5534,16 @@
      "pred": 0.14,
      "mra": 1.0,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.14"
+    },
+    "gpt56_luna": {
+     "pred": 0.05,
+     "mra": 0.3,
+     "raw": "0.05 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.627,
+     "mra": 0.0,
+     "raw": "0.627"
     }
    }
   },
@@ -4127,6 +5571,16 @@
      "pred": 0.052,
      "mra": 0.3,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.052"
+    },
+    "gpt56_luna": {
+     "pred": 0.05,
+     "mra": 0.3,
+     "raw": "0.05 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.012,
+     "mra": 0.0,
+     "raw": "0.012"
     }
    }
   },
@@ -4154,6 +5608,16 @@
      "pred": 0.0716,
      "mra": 0.5,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.0716"
+    },
+    "gpt56_luna": {
+     "pred": 0.065,
+     "mra": 0.4,
+     "raw": "0.065 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.053,
+     "mra": 0.3,
+     "raw": "0.053"
     }
    }
   },
@@ -4181,6 +5645,16 @@
      "pred": 0.55,
      "mra": 0.1,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.55"
+    },
+    "gpt56_luna": {
+     "pred": 2.6,
+     "mra": 0.7,
+     "raw": "2.6 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.49,
+     "mra": 0.4,
+     "raw": "1.49"
     }
    }
   },
@@ -4208,6 +5682,16 @@
      "pred": 0.844,
      "mra": 0.1,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.844"
+    },
+    "gpt56_luna": {
+     "pred": 2.2,
+     "mra": 0.5,
+     "raw": "2.2 m"
+    },
+    "qwen35_27b": {
+     "pred": 2.21,
+     "mra": 0.5,
+     "raw": "2.21"
     }
    }
   },
@@ -4235,6 +5719,16 @@
      "pred": 2.06,
      "mra": 0.3,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 2.06"
+    },
+    "gpt56_luna": {
+     "pred": 4.0,
+     "mra": 0.7,
+     "raw": "4 m"
+    },
+    "qwen35_27b": {
+     "pred": 4.5,
+     "mra": 0.8,
+     "raw": "4.5"
     }
    }
   },
@@ -4262,6 +5756,16 @@
      "pred": 0.4,
      "mra": 0.0,
      "raw": "stage_failed:sam3_video_track_labels -> direct answer 0.4"
+    },
+    "gpt56_luna": {
+     "pred": 9.0,
+     "mra": 0.9,
+     "raw": "9 m"
+    },
+    "qwen35_27b": {
+     "pred": 2.0,
+     "mra": 0.2,
+     "raw": "2"
     }
    }
   },
@@ -4289,6 +5793,16 @@
      "pred": 0.00074,
      "mra": 0.2,
      "raw": "no_posed_track -> direct answer 0.00074"
+    },
+    "gpt56_luna": {
+     "pred": 0.00235,
+     "mra": 0.7,
+     "raw": "0.00235 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.00144,
+     "mra": 0.4,
+     "raw": "0.00144"
     }
    }
   },
@@ -4316,6 +5830,16 @@
      "pred": 0.026593412857442753,
      "mra": 0.0,
      "raw": "measured on posed meshes: 0.02659"
+    },
+    "gpt56_luna": {
+     "pred": 0.00235,
+     "mra": 0.6,
+     "raw": "0.00235 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.0023472,
+     "mra": 0.6,
+     "raw": "0.0023472"
     }
    }
   },
@@ -4343,6 +5867,16 @@
      "pred": 0.0095,
      "mra": 0.0,
      "raw": "no_posed_track -> direct answer 0.0095"
+    },
+    "gpt56_luna": {
+     "pred": 0.0036,
+     "mra": 0.0,
+     "raw": "0.0036 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.00144,
+     "mra": 0.7,
+     "raw": "0.00144"
     }
    }
   },
@@ -4370,6 +5904,16 @@
      "pred": 0.012,
      "mra": 0.8,
      "raw": "no_posed_track -> direct answer 0.012"
+    },
+    "gpt56_luna": {
+     "pred": 0.03,
+     "mra": 0.0,
+     "raw": "0.03 m"
+    },
+    "qwen35_27b": {
+     "pred": 0.0235,
+     "mra": 0.3,
+     "raw": "0.0235"
     }
    }
   },
@@ -4397,6 +5941,16 @@
      "pred": 2.998656243008508,
      "mra": 0.6,
      "raw": "measured on posed meshes: 2.999"
+    },
+    "gpt56_luna": {
+     "pred": 2.8711,
+     "mra": 0.5,
+     "raw": "2.8711"
+    },
+    "qwen35_27b": {
+     "pred": 2.8711,
+     "mra": 0.5,
+     "raw": "2.8711"
     }
    }
   },
@@ -4424,6 +5978,16 @@
      "pred": 5.8069658959248756,
      "mra": 0.5,
      "raw": "measured on posed meshes: 5.807"
+    },
+    "gpt56_luna": {
+     "pred": 7.8711,
+     "mra": 0.8,
+     "raw": "7.8711"
+    },
+    "qwen35_27b": {
+     "pred": 7.8711,
+     "mra": 0.8,
+     "raw": "7.8711"
     }
    }
   },
@@ -4451,6 +6015,16 @@
      "pred": 3.1984818325796978,
      "mra": 0.7,
      "raw": "measured on posed meshes: 3.198"
+    },
+    "gpt56_luna": {
+     "pred": 5.37,
+     "mra": 0.7,
+     "raw": "5.37 m"
+    },
+    "qwen35_27b": {
+     "pred": 5.3711,
+     "mra": 0.7,
+     "raw": "5.3711"
     }
    }
   },
@@ -4478,6 +6052,16 @@
      "pred": 2.6909459056111324,
      "mra": 0.7,
      "raw": "measured on posed meshes: 2.691"
+    },
+    "gpt56_luna": {
+     "pred": 1.9,
+     "mra": 0.8,
+     "raw": "1.9 m"
+    },
+    "qwen35_27b": {
+     "pred": 2.0,
+     "mra": 0.8,
+     "raw": "2.0"
     }
    }
   },
@@ -4505,6 +6089,16 @@
      "pred": 1.1581246259634015,
      "mra": 1.0,
      "raw": "measured on posed meshes: 1.158"
+    },
+    "gpt56_luna": {
+     "pred": 17.4567,
+     "mra": 0.0,
+     "raw": "17.4567 m"
+    },
+    "qwen35_27b": {
+     "pred": 1.2,
+     "mra": 1.0,
+     "raw": "1.2"
     }
    }
   }
