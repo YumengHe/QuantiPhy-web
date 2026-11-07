@@ -1,4 +1,5 @@
-// index.html: the method summary of baseline.html (same computation, without the "Reported in original paper" column), from data/baseline.json.
+// index.html: the method summary of baseline.html (same computation, without the "Reported in original paper" column), from data/baseline.json,
+// and the qualitative comparison from data/physmind/index.json.
 (function () {
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
@@ -23,8 +24,26 @@
     return head + rows + our + counts;
   }
 
-  if (typeof module !== 'undefined') { module.exports = { table }; return; }
+  // qualitative: the frames where our v1 run drew a question overlay (data/runtime/v1), and PhysMind's posed meshes of the
+  // same question objects drawn on the same frame the same way (data/physmind/index.json, tools/render_physmind.py)
+  const WHY = { sam3_video_track_labels: 'SAM 3 found no objects', sam3d_objects: 'mesh reconstruction failed' };
+  function card(v) {
+    const img = (src, alt) => (src ? `<a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy"></a>` : '<div class="qc-none muted small">no overlay</div>');
+    const head = `<div class="qc-head"><b>${esc(v.video)}</b><span class="muted small">PhysMind: ${v.posed_question_objects} / ${v.question_objects} question objects posed` +
+      `${v.failed_stage ? ` · ${esc(WHY[v.failed_stage] || v.failed_stage)}` : ''}</span></div>`;
+    const rows = v.frames.map((f) => {
+      const pm = f.physmind ? img(f.physmind, `${v.video} PhysMind t = ${f.t} s`) : `<div class="qc-none muted small">${esc(WHY[v.failed_stage] || 'no reconstruction')}</div>`;
+      const miss = f.physmind && f.missing.length ? ` · PhysMind has no pose here for ${f.missing.map(esc).join(', ')}` : '';
+      return `<div class="qc-pair">${img(f.ours, `${v.video} ours t = ${f.t} s`)}${pm}</div>` +
+        `<div class="qc-cap muted small">t = ${fmt(f.t, 2)} s${f.questions.length ? ` · ${f.questions.map((q) => esc(q.replace(v.video + '_', ''))).join(', ')}` : ''}${miss}</div>`;
+    }).join('');
+    return `<figure class="qc-card">${head}<div class="qc-pair qc-cols muted small"><span>Ours (v1)</span><span>PhysMind</span></div>${rows}</figure>`;
+  }
+
+  if (typeof module !== 'undefined') { module.exports = { table, card }; return; }
   const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
   Promise.all([get('data/baseline.json'), get('data/comparison_ours.json')])
     .then(([d, ours]) => { document.getElementById('quantitative-comparison-table').innerHTML = table(d, ours); });
+  get('data/physmind/index.json')
+    .then((d) => { document.getElementById('qualitative-comparison-grid').innerHTML = d.videos.map(card).join(''); });
 })();
