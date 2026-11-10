@@ -30,11 +30,11 @@
 <div id="b-list" class="qlist-b"></div>
 
 <div class="panel mt-l">
-  <h3 class="mt0">PhysMind 为什么表现差</h3>
+  <h3 class="mt0">Why PhysMind performs poorly</h3>
   <ul class="small flat">
-    <li><b>领域差异是部分原因：</b>PhysMind 为 CLEVRER 类合成场景设计，在 simulation 视频上最好（可测 60%，MRA 0.398），真实视频更差（captured 54% / 0.280，internet 52% / 0.260）；部件、静止结构没有 mesh，测不了。</li>
-    <li><b>主因是不用 prior：</b>尺度只靠单目深度，误差大（预测/GT 中位数 1.13，但只有 50/89 在 2 倍以内）；在相同题上，即使 simulation 也输给 Gemini 直接回答（0.398 vs 0.518）。</li>
-    <li><b>SAM 3 没找到物体的 15 题（2 个视频）：</b>simulation_0193（9 个物体名都没找到）和 internet_0001（"black car"），后续标注步骤报错，回退到 VLM 回答。</li>
+    <li><b>Domain shift is part of the reason:</b> PhysMind is designed for CLEVRER-style synthetic scenes and does best on the simulation videos (60% measurable, MRA 0.398); real videos are worse (captured 54% / 0.280, internet 52% / 0.260). Parts and static structures have no mesh and cannot be measured.</li>
+    <li><b>The main reason is that it does not use the prior:</b> the scale comes from monocular depth alone and has large errors (median prediction / GT 1.13, but only 50 of 89 within a factor of 2); on the same questions, even on simulation it loses to Gemini answering directly (0.398 vs 0.518).</li>
+    <li><b>15 questions (2 videos) where SAM 3 found no object:</b> simulation_0193 (none of its 9 object names found) and internet_0001 ("black car"); the later annotation step fails and the answer falls back to the VLM.</li>
   </ul>
 </div>
 

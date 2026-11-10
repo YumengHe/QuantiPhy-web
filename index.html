@@ -16,14 +16,14 @@
 <p><strong>Keywords:</strong> Minimal Sufficient Reconstruction</p>
 
 <h2 id="pipeline">Pipeline</h2>
-<p>The prior, the known facts a question gives (an object's size or speed, or its distance to the camera), sets the scale. Every video runs the same pipeline and is fitted as a 3D scene: focal length and support-plane pose are estimated from the image, and objects have thickness. Every measurement of the asked quantity in the scene is kept with its uncertainty and named checks; a value becomes the answer only when the measurements agree and every check passes, otherwise the question stays unresolved.</p>
-<div class="steps" aria-label="Pipeline overview">
-  <span class="s">Objects</span><span class="ar">→</span><span class="s">Scene graph (grid)</span><span class="ar">→</span><span class="s">Observe</span><span class="ar">→</span>
-  <span class="s">Track</span><span class="ar">→</span><span class="s">Measure</span><span class="ar">→</span><span class="s">Scene graph (per frame)</span><span class="ar">→</span>
-  <span class="s">Ground</span><span class="ar">→</span><span class="s fit">Physics-guided Fitting</span><span class="ar">→</span>
-  <span class="s loop">Agent loop</span><span class="ar">→</span><span class="s answer">Answer</span>
+<p>Each question is reconstructed on its own from the video, the question and the prior, the known facts that come with it (an object's size or speed, or its distance to the camera). A vision-language model writes the scene as a program: which objects exist, what supports what, and which physical law governs each stretch of motion. Measurement sets the magnitudes: Physics-guided Fitting fits the program to the object masks of all frames under the prior and gravity, and marks every parameter, the metric scale and the asked quantity as determined or undetermined. A checking loop revises the program's structure where the fit shows it is wrong, and keeps an edit only when the evidence it cites improves, nothing that held is lost, and any parameters it adds pay for themselves. Each question then receives two answers: the scene answer, read strictly from the fitted program and left empty when the scene does not determine the asked quantity, and the final answer, always given by a VLM that sees the rendered program and its fitted parameters.</p>
+<div class="steps stages" aria-label="Pipeline overview">
+  <a class="s" href="pipeline.html#perception" target="_blank" rel="noopener">Input and perception</a><span class="ar">→</span>
+  <a class="s prog" href="pipeline.html#program" target="_blank" rel="noopener">Scene program</a><span class="ar">→</span>
+  <a class="s fit" href="pipeline.html#fit" target="_blank" rel="noopener">Physics-guided Fitting</a><span class="ar">→</span>
+  <a class="s loop" href="pipeline.html#loop" target="_blank" rel="noopener">Checking loop</a><span class="ar">→</span>
+  <a class="s answer" href="pipeline.html#answers" target="_blank" rel="noopener">Answers</a>
 </div>
-<p><a href="pipeline.html" target="_blank" rel="noopener">Each step in detail</a></p>
 
 <h2 id="quantitative-comparison">Quantitative Comparison</h2>
 <div class="scroll-x"><table id="quantitative-comparison-table"></table></div>
