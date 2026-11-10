@@ -8,6 +8,8 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
+  // each method's colour is --method-<key> in site.css, the same on every page
+  const dot = (key) => `<span class="mdot" style="background:var(--method-${key})"></span>`;
   const fmt = (x, d = 3) => (x == null || !isFinite(x) ? '—' : Number(x).toFixed(d));
   function fmtNum(x) {
     if (x == null || !isFinite(x)) return '—';
@@ -26,13 +28,13 @@
   function summary() {
     const qs = DATA.questions;
     $('b-stats').innerHTML = DATA.methods.map((m) =>
-      `<div><div class="muted">${esc(m.label)}</div><div class="big">${fmt(macro(qs, m.key), 3)}</div></div>`).join('');
+      `<div class="m" style="--mc:var(--method-${m.key})"><div class="muted">${esc(m.label)}</div><div class="big">${fmt(macro(qs, m.key), 3)}</div></div>`).join('');
     $('b-n').textContent = `${qs.length} questions · ${DATA.videos.length} videos · overall = mean of the four category means`;
     const head = '<tr><th>Method</th><th class="n">Overall</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') +
       '<th class="n">Reported in<br>original paper</th></tr>';
     const counts = '<tr><td class="muted">Questions</td><td class="n muted">' + qs.length + '</td>' +
       CATS.map((c) => `<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + '<td></td></tr>';
-    const rows = DATA.methods.map((m) => `<tr><td><a href="${esc(m.source)}">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
+    const rows = DATA.methods.map((m) => `<tr><td>${dot(m.key)}<a href="${esc(m.source)}">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
       CATS.map((c) => `<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') +
       `<td class="n muted">${fmt(m.paper)}</td></tr>`).join('');
     $('b-table').innerHTML = head + rows + counts;
@@ -59,7 +61,7 @@
     const lines = [q.prior, q.depth].filter(Boolean).flatMap((s) => String(s).split('\n')).map((s) => s.trim()).filter(Boolean);
     const prior = lines.length ? `<h4>prior</h4><ul class="prior">${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '';
     const table = '<h4>Answers</h4><div class="scroll-x"><table><tr><th>Method</th><th class="n">Pred</th><th class="n">GT</th><th class="n">MRA</th><th>Response</th></tr>' +
-      DATA.methods.map((m) => { const p = q.preds[m.key]; return `<tr><td>${esc(m.label)}</td><td class="n">${fmtNum(p.pred)}</td><td class="n">${fmtNum(q.answer)}</td><td class="n">${mraBadge(p.mra)}</td><td><pre>${esc(p.raw)}</pre></td></tr>`; }).join('') +
+      DATA.methods.map((m) => { const p = q.preds[m.key]; return `<tr><td>${dot(m.key)}${esc(m.label)}</td><td class="n">${fmtNum(p.pred)}</td><td class="n">${fmtNum(q.answer)}</td><td class="n">${mraBadge(p.mra)}</td><td><pre>${esc(p.raw)}</pre></td></tr>`; }).join('') +
       '</table></div>';
     return `<div class="qfull">${esc(q.q)}</div>${prior}<div class="media"><div><h4>Video</h4>${videoBlock(v)}</div><div>${table}</div></div>`;
   }

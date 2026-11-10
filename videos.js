@@ -4,7 +4,10 @@
   const CATS = ['S2', 'D2', 'S3', 'D3'];
   const SRC_LABEL = { execution_failed: 'failed' };
   const SHAPE_LABEL = { mesh: 'mesh (bounding box)' };
-  const PALETTE = ['#3b6fd8', '#d9622b', '#2e9b5f', '#b03fa8', '#c79a12', '#1b9aaa', '#d6455d', '#6d5bd0', '#7a8b2a', '#8a5a3c'];
+  // object colours: the paper palette, defined once in site.css (--c-*)
+  const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const OBJECT_ORDER = ['blue', 'orange', 'green', 'purple', 'yellow', 'teal', 'red', 'lavender', 'olive', 'pink'];
+  const PALETTE = OBJECT_ORDER.map((c) => cssVar(`--c-${c}`));
   let DATA = null;
 
   const $ = (id) => document.getElementById(id);
@@ -195,7 +198,7 @@
         '<div class="viewer"><div class="msg">Loading three.js…</div></div>' +
         '<div class="timebar"><button type="button" class="play">Play</button><span class="tq-track"><input type="range" min="0" max="1000" value="0" aria-label="Time"><span class="tq-marks"></span></span><span class="tlabel">t = 0.00 s</span></div></div>';
     } else if (jump) {
-      vid += `<div class="viewbar" style="margin-top:6px">${jump}</div>`;
+      vid += `<div class="viewbar below">${jump}</div>`;
     }
     return `<div class="media"><div>${vid}</div>${scene}</div>`;
   }
@@ -234,7 +237,7 @@
     const unobs = (name) => ((sg && sg.unobserved) || []).filter((u) => u.obj === name).map((u) =>
       `<span class="trk-uo" style="left:${pct(u.t0)};width:calc(${pct(u.t1)} - ${pct(u.t0)})" title="${esc(`unobserved ${span(u.t0, u.t1)} · ${u.why}`)}"></span>`).join('');
     const rows = Object.entries(tracks).map(([name, ivs]) => {
-      const i = order.indexOf(name), col = i >= 0 ? PALETTE[i % PALETTE.length] : 'var(--muted)';
+      const i = order.indexOf(name), col = i >= 0 ? PALETTE[i % PALETTE.length] : 'var(--undetermined)';
       const segs = (ivs || []).map(([a, b]) => `<span class="trk-seg" style="left:${pct(a)};width:calc(${pct(b)} - ${pct(a)} + 2px);background:${col}" title="${fmt(a, 2)}–${fmt(b, 2)} s"></span>`).join('');
       return `<div class="trk"><span class="trk-n" title="${esc(name)}">${esc(name)}</span><span class="trk-bar">${segs}${unobs(name)}${overlap(name)}${lines}${ticks(name)}</span></div>`;
     }).join('');
@@ -1733,7 +1736,7 @@
         const c = add(add(O, u2, c2 + i * step), u1, c1 - nStep * step), d = add(add(O, u2, c2 + i * step), u1, c1 + nStep * step);
         g.push(toW(a), toW(b), toW(c), toW(d));
       }
-      const gl = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(g), new THREE.LineBasicMaterial({ color: 0x8a919a, transparent: true, opacity: 0.45 }));
+      const gl = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(g), new THREE.LineBasicMaterial({ color: new THREE.Color(cssVar('--c-grey')), transparent: true, opacity: 0.7 }));
       scene.add(gl);
     }
 
@@ -1780,7 +1783,7 @@
     // reference objects (rule reference.size_only): one static pose per read frame, shown at the read frame nearest t
     // within the read span; drawn as outlines in the muted colour
     const refMeshes = (s.references || []).filter((r) => r.poses && r.poses.length).map((r) => {
-      const d = r.dims, col = new THREE.Color(getComputedStyle(document.body).getPropertyValue('--muted').trim() || '#888');
+      const d = r.dims, col = new THREE.Color(cssVar('--muted'));
       const geo = r.shape === 'sphere' ? new THREE.SphereGeometry(d.D / 2, 16, 12)
         : r.shape === 'cylinder' ? new THREE.CylinderGeometry(d.D / 2, d.D / 2, d.H, 16) : new THREE.BoxGeometry(d.L, d.W, d.H);
       const grp = new THREE.Group();

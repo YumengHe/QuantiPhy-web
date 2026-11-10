@@ -31,10 +31,10 @@
     <div class="igrid">
       <div class="ibox"><b>Video</b>Frames, fps, <code>is_masked</code> / <code>bg</code></div>
       <div class="ibox"><b>Question</b>The quantity, object, reference and times asked</div>
-      <div class="ibox"><b>prior</b>A size, speed, acceleration or gravity statement, or distance anchors (depth_info)</div>
+      <div class="ibox prior"><b>prior</b>A size, speed, acceleration or gravity statement, or distance anchors (depth_info)</div>
     </div>
   </div>
-  <div class="ac fc"><div class="arrow in"></div></div>
+  <div class="ac fc"><div class="arrow"></div></div>
 
   <a class="node fc" href="#s1"><b>1 Objects</b><span class="m">Names, roles, agency, locomotion; extra objects the measurement needs</span></a>
   <div class="rail top dash ret edit"><span>count / track flag</span></div>
@@ -67,7 +67,7 @@
   <div class="rail"></div>
   <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
 
-  <a class="node fc" href="#s8"><b>8 Physics-guided Fitting</b><span class="m">Camera, scale, measured slopes, motion laws per state with every impulse's agent, every measurement of the asked quantity</span>
+  <a class="node fit fc" href="#s8"><b>8 Physics-guided Fitting</b><span class="m">Camera, scale, measured slopes, motion laws per state with every impulse's agent, every measurement of the asked quantity</span>
     <span class="ck">tracked · scale · visible · fit · segfit · state · gravity · focal · contact · plane.fusion · kinematic.onset · window.impulse · agree · constraints</span></a>
   <div class="rail ret"><span>refit</span></div>
   <div class="ac fc"><div class="arrow"></div><span class="el">a check fails</span></div><div class="rail"></div>
@@ -77,7 +77,7 @@
   <div class="rail bot out"></div>
   <div class="ac fc"><div class="arrow"></div></div>
 
-  <a class="node fc" href="#s10"><b>10 Answer</b><span class="m">All checks pass → the chosen measurement; any check fails → unresolved</span>
+  <a class="node answer fc" href="#s10"><b>10 Answer</b><span class="m">All checks pass → the chosen measurement; any check fails → unresolved</span>
     <span class="ck">replay</span></a>
 </div>
 <p>Every step: an expected exception a step goes on without is recorded as <code>{where, type, msg}</code> on the record that lacks the value, and a model call that fails is retried once (<code>errors.recorded</code>); anything else stops the unit.</p>

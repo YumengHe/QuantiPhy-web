@@ -34,8 +34,11 @@ import trimesh
 
 ROOT = Path(__file__).resolve().parent.parent
 OURS_VERSION = "v1"
-# same palette as videos.js (BGR for OpenCV is converted below)
-PALETTE = ['#3b6fd8', '#d9622b', '#2e9b5f', '#b03fa8', '#c79a12', '#1b9aaa', '#d6455d', '#6d5bd0', '#7a8b2a', '#8a5a3c']
+# object colours: the paper palette defined once in site.css (--c-*), in the same order as videos.js
+# (BGR for OpenCV is converted below)
+OBJECT_ORDER = ['blue', 'orange', 'green', 'purple', 'yellow', 'teal', 'red', 'lavender', 'olive', 'pink']
+_CSS_COLOURS = dict(re.findall(r'--c-([a-z]+):\s*(#[0-9A-Fa-f]{6})', (ROOT / 'site.css').read_text()))
+PALETTE = [_CSS_COLOURS[c] for c in OBJECT_ORDER]
 
 
 def bgr(hex_colour: str) -> tuple[int, int, int]:
