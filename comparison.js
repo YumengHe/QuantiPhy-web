@@ -17,7 +17,7 @@
   function table(d, ours) {
     const qs = d.questions;
     const head = '<tr><th>Method</th><th class="n">Overall</th>' + CATS.map((c) => `<th class="n">${c}</th>`).join('') + '</tr>';
-    const rows = d.methods.map((m) => `<tr><td>${dot(m.key)}<a href="${esc(m.source)}">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
+    const rows = d.methods.map((m) => `<tr><td>${dot(m.key)}<a href="${esc(m.source)}" target="_blank" rel="noopener">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
       CATS.map((c) => `<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') + '</tr>').join('');
     const our = ours ? `<tr class="ours"><td>${dot('ours')}${esc(ours.label)} (${esc(ours.version)})</td><td class="n"><b>${fmt(ours.overall)}</b></td>` +
       CATS.map((c) => `<td class="n">${fmt(ours.cats[c])}</td>`).join('') + '</tr>' : '';

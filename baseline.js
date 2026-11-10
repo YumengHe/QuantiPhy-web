@@ -34,7 +34,7 @@
       '<th class="n">Reported in<br>original paper</th></tr>';
     const counts = '<tr><td class="muted">Questions</td><td class="n muted">' + qs.length + '</td>' +
       CATS.map((c) => `<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + '<td></td></tr>';
-    const rows = DATA.methods.map((m) => `<tr><td>${dot(m.key)}<a href="${esc(m.source)}">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
+    const rows = DATA.methods.map((m) => `<tr><td>${dot(m.key)}<a href="${esc(m.source)}" target="_blank" rel="noopener">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
       CATS.map((c) => `<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') +
       `<td class="n muted">${fmt(m.paper)}</td></tr>`).join('');
     $('b-table').innerHTML = head + rows + counts;
@@ -53,8 +53,8 @@
       `<span class="qnums">${nums}</span><span class="qm">${mraBadge(p.mra)}</span></summary>`;
   }
   function videoBlock(v) {
-    if (!v.video) return `<div class="noscene">MPEG-4 Part 2 (<code>${esc(v.codec)}</code>) does not play in browsers. <a href="${esc(v.orig)}">Original file</a></div>`;
-    const note = v.video_from !== 'val' ? `<p class="muted vnote">H.264 copy from the test set; the validation file is MPEG-4 Part 2. <a href="${esc(v.orig)}">Original file</a></p>` : '';
+    if (!v.video) return `<div class="noscene">MPEG-4 Part 2 (<code>${esc(v.codec)}</code>) does not play in browsers. <a href="${esc(v.orig)}" target="_blank" rel="noopener">Original file</a></div>`;
+    const note = v.video_from !== 'val' ? `<p class="muted vnote">H.264 copy from the test set; the validation file is MPEG-4 Part 2. <a href="${esc(v.orig)}" target="_blank" rel="noopener">Original file</a></p>` : '';
     return `<video class="orig" controls muted loop playsinline preload="metadata"></video>${note}`;
   }
   function body(q, v) {
