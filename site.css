@@ -279,42 +279,12 @@ table.ident td.bad div, table.ident td.ok div { font-size: 12px; color: var(--mu
 table.ident td.ok { color: var(--muted); }
 table.ident .isize div { white-space: nowrap; }
 
-/* pipeline: flow diagram (chain left, agent return rail right); observation steps orange, fitting and answer blue,
-   the agent loop and its returns the second blue, the prior lavender */
-.flow { display: grid; grid-template-columns: minmax(0, 1fr) 150px; margin: 20px 0 8px; }
-.flow .fc { grid-column: 1; }
-.flow a.fc { color: var(--text); text-decoration: none; display: block; }
-.flow a.fc:hover { box-shadow: 0 1px 6px rgba(31, 35, 40, .12); }
-.flow a.fc > b { font-size: 15px; }
-.node { border-radius: 8px; padding: 8px 12px; border: 1.5px solid var(--obs); border-left-width: 5px; background: var(--obs-soft); }
-.node.fit { border-color: var(--scene); background: var(--accent-soft); }
-.node.answer { border-color: var(--determined); background: var(--ok-bg); }
-.flow .m { display: block; font-size: 13px; color: var(--muted); }
-.flow .ck { display: block; font-size: 12.5px; color: var(--text); font-family: var(--mono); margin-top: 3px; }
-.ac { display: flex; justify-content: center; align-items: flex-start; gap: 10px; }
-.ac .el { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
-.arrow { width: 2px; height: 16px; background: var(--muted); position: relative; margin: 2px 0 11px; }
-.arrow::after { content: ""; position: absolute; left: -5px; bottom: -8px; border-left: 6px solid transparent;
-  border-right: 6px solid transparent; border-top: 8px solid var(--muted); }
-.rail { grid-column: 2; position: relative; }
-.rail::before { content: ""; position: absolute; right: 14px; top: 0; bottom: 0; border-right: 2px solid var(--scene-2); }
-.rail.dash::before { border-right-style: dashed; }
-.rail.top::before { top: 50%; }
-.rail.bot::before { bottom: 50%; }
-.rail.ret::after, .rail.out::after { content: ""; position: absolute; left: 0; right: 15px; top: 50%; border-top: 2px solid var(--scene-2); }
-.rail.ret.edit::after { border-top-style: dashed; }
-.rail.ret span { position: absolute; left: 12px; right: 18px; bottom: 50%; padding-bottom: 2px; font-size: 12px;
-  line-height: 1.3; color: var(--muted); }
-.rail.ret > span::before { content: ""; position: absolute; left: -12px; bottom: -6px; border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent; border-right: 8px solid var(--scene-2); }
-.loop { border: 2px dashed var(--scene-2); border-radius: 14px; padding: 10px 12px; background: var(--scene2-soft); }
-.input { border: 1.5px solid var(--border-strong); border-radius: 10px; padding: 10px 12px; background: var(--soft); }
-.input > b { font-size: 16px; }
-.igrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 8px; }
-.ibox { border: 1px solid var(--border); border-left: 4px solid var(--obs); border-radius: 6px; padding: 6px 10px; font-size: 13.5px; background: var(--panel); }
-.ibox.prior { border-left-color: var(--prior); background: var(--prior-soft); }
-.ibox b { display: block; font-size: 14px; }
-@media (max-width: 560px) { .flow { grid-template-columns: minmax(0, 1fr) 92px; } }
+/* pipeline: the paper's figure, full width; on a narrow screen it scrolls inside its box */
+.figwrap { margin: 18px 0 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); overflow-x: auto; }
+.figwrap img { display: block; width: 100%; min-width: 860px; height: auto; }
+.steps a.s { color: var(--text); text-decoration: none; }
+.steps a.s:hover { box-shadow: 0 1px 6px rgba(31, 35, 40, .12); }
+.steps .s.prog { border-left-color: var(--scene-2); }
 
 /* pipeline: one step = input / does / output / fails */
 .step { scroll-margin-top: 64px; }

@@ -12,7 +12,143 @@
 <main class="wrap">
 
 <h1>Pipeline</h1>
-<p class="lede">One question is one unit, <code>&lt;video_id&gt;_q&lt;k&gt;</code>. Each unit runs these ten steps in order, using only its own question, prior and depth_info. Units of the same video share only caches that depend on the video alone: SAM 2 propagations of a prompt box, support masks segmented by name, floor masks and depth maps. A question is answered only when every named check passes.</p>
+<p class="lede">Each question is reconstructed on its own: perception gives tracks and masks, a model writes the scene as a program, Physics-guided Fitting measures its magnitudes against the video under the prior and physical law, a checking loop revises its structure, and the program gives two answers.</p>
+<div class="figwrap"><a href="data/figures/pipeline_full.png" target="_blank" rel="noopener"><img src="data/figures/pipeline_full.png" width="2304" height="2062" alt="Every stage of the pipeline on one question: the average speed of the black car with the prior lane width = 3.66 m."></a></div>
+
+<div class="steps stages">
+  <a class="s" href="#perception">Input and perception</a><span class="ar">→</span>
+  <a class="s prog" href="#program">Scene program</a><span class="ar">→</span>
+  <a class="s fit" href="#fit">Physics-guided Fitting</a><span class="ar">→</span>
+  <a class="s loop" href="#loop">Checking loop</a><span class="ar">→</span>
+  <a class="s answer" href="#answers">Answers</a>
+</div>
+
+<section class="step" id="perception">
+<h2>Input and perception</h2>
+<p>The input is a video, a question and a prior. The prior is parsed into numbered statements, each with a quantity, an object phrase, an SI value and, where given, a time; a distance statement is the depth of the object's centre along the optical axis. The harness below gives the program its observations, which stay fixed: the object list (<a href="#s1">step 1</a>), one track with one mask per object and frame (<a href="#s4">step 4</a>), and the focal length's start value from Depth Pro (<a href="#s8">step 8.1</a>). Each object's mask noise σ<sub>o</sub>, the median boundary distance between its masks on consecutive frames after their centroids are aligned, on frames where the mask is neither cut by the image border nor shared with another track, is the unit of every pixel threshold, with a floor of √2 px. The program never re-detects an object and never changes a statement's value.</p>
+</section>
+
+<section class="step" id="program">
+<h2>Scene program</h2>
+<p class="cmd"><code>python -m pipeline.sceneprog.build --unit U --tag T --tracks-tag R</code> · <code>plan.py</code>, <code>author.py</code>, <code>structure.py</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>A grid of nine frames, each labelled with its frame index and the tracks' boxes and names</li>
+    <li>The question and the numbered prior statements</li>
+    <li>Crops of each body for its shape</li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li>Plan: the objects in build order (supports first, then what rests on them, then what is held or flies), each bound to a track or to none, with a shape kind, proportions L : W : H as ratios, the view in which the camera sees it, and its motion as a sequence of states, each with a frame range, a relation and its target, a law and a direction. The plan also binds every prior statement and the question, names the environment, and says whether the camera moves</li>
+    <li>Review: a second call may add an object or sharpen a description; it may not remove, rename, rebind or reorder objects</li>
+    <li>The plan is checked in code against fixed rules. A plan that breaks a rule is returned once with the reason; if the reply still breaks it, the rule is applied deterministically and the repair recorded. A statement binds only to a tracked object, a statement about a class binds to every tracked instance of it, and a size question binds to the axis the view shows</li>
+    <li>Every prior statement has exactly one account: a binding to a parameter or derived quantity, an image measurement, or a declaration that nothing observable carries it, with the reason</li>
+    <li>Depth groups: bodies at about the same distance from the camera, at a given frame or over their common presence; each becomes same-depth ties, and a tie that contradicts a distance statement is rejected. Class sizes: a commonsense size with its spread, a soft vote; a vote on the asked quantity is dropped. Image measurements: two end points marked on one grid frame, on the plane the feature lies on, back-projected through the current camera; for a repeated feature, the two farthest lines that can still be counted and the number of periods n between them</li>
+    <li>Authoring: one OpenSCAD module per body, CSG primitives in the body's own frame normalised to the unit box; its metric extents are scene parameters. The module must use only whitelisted primitives, compile, form one connected solid, and have extents in the order of the planned proportions; a failure is returned with its measured reason, at most three times</li>
+    <li>Structure: every number is a named parameter with a value, a unit, a σ and a source (prior, convention, class, fit, vlm). Values are set only where the prior or a convention gives them; a statement on a size or on g fixes that parameter, a statement on a derived quantity becomes a held row. The question is parsed in code into the quantity, a time or window, an aggregate, a component and the unit</li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>outputs/sceneprog/&lt;tag&gt;/&lt;unit&gt;/</code>: <code>plan.json</code>, <code>plan_grid.jpg</code>, <code>scene.scad</code>, <code>structure.json</code>, <code>shape_&lt;id&gt;.png</code></li>
+  </ul></dd>
+</dl>
+<div class="scroll-x"><table>
+  <tr><th>Relation</th><th>Placement</th></tr>
+  <tr><td><code>on</code></td><td>The target's top face; the height comes from the support</td></tr>
+  <tr><td><code>in</code>, <code>held_by</code>, <code>hangs_from</code></td><td>The target's own frame</td></tr>
+  <tr><td><code>free</code></td><td>The world</td></tr>
+</table></div>
+<div class="scroll-x"><table>
+  <tr><th>Law</th><th>Parameters</th></tr>
+  <tr><td><code>static</code></td><td>p</td></tr>
+  <tr><td><code>constant_velocity</code></td><td>p0, v</td></tr>
+  <tr><td><code>constant_acceleration</code></td><td>p0, v0, a</td></tr>
+  <tr><td><code>ballistic</code></td><td>p0, v0, with g</td></tr>
+  <tr><td><code>rolling</code></td><td>p0, v0, deceleration</td></tr>
+  <tr><td><code>pendulum</code></td><td>pivot, L, θ0, ω0, azimuth, damping</td></tr>
+  <tr><td><code>circular</code></td><td>centre, r, θ0, ω</td></tr>
+  <tr><td><code>driven</code></td><td>a pose table</td></tr>
+</table></div>
+</section>
+
+<section class="step" id="fit">
+<h2>Physics-guided Fitting</h2>
+<p class="cmd"><code>python -m pipeline.sceneprog.fit --unit U --tag T</code> · <code>fit.py</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li><code>structure.json</code>, <code>scene.scad</code>, the observed masks</li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li>Objective: the silhouette discrepancy between the rendered program and each object's mask on every frame, over σ<sub>o</sub>², symmetric, with occlusion and the image border not counted as error; the class votes; a weak pull toward the initial values. The held rows are constraints: the prior's statements on derived quantities (speed, acceleration, distance to camera, distance between objects, height above a support), image measurements, continuity of position (and of velocity where both laws imply it) across segments, same-depth ties and contacts</li>
+    <li>Statements are targets: after every change, the parameters a group of rows reads are projected onto the set where all its rows hold. A row's tolerance is read from the problem (a stated value: half a unit of its last written digit) and is used only to decide whether a row is violated, whether two statements contradict each other, and how much a statement adds to the answer's σ</li>
+    <li>Gravity: g is the environment's convention unless the prior states it; a free-flight or swinging segment makes it an anchor of the metric scale beside the prior, image measurements and class votes</li>
+    <li>Order: the focal length starts from Depth Pro and is held. The first tracked body is fitted with the camera's pitch, roll and height from each pitch start; every start within one noise unit per frame of the best, and at least three, is carried through and the lowest final objective kept. The other bodies follow in build order with the camera and the earlier bodies frozen. A joint pass frees the focal length, kept only if the fit determines it within the physical field of view; each extent the observations determine on its own is freed; segment boundaries may move by up to three frames</li>
+    <li>Gates per object: the program evaluates, its held rows hold, its relations hold, and its pose agrees with its masks: the constant part, the drift and the scatter of the per-frame alignment, each at most max(σ<sub>o</sub>, √2 px)</li>
+    <li>Identifiability: a parameter's σ is the largest of the linearised covariance, a frame-clustered sandwich covariance, a profile along the weakest directions and the spread over equally good starts. A parameter is undetermined, with a reason, if σ exceeds a quarter of its natural scale, it loads a direction of zero curvature, it affects no frame or row, or it ends at a bound. The scale is determined only if some anchor resists a common scaling of every unanchored length, speed and acceleration; each anchor is then tested alone</li>
+    <li>Scene answer: the asked quantity evaluated on the program, a size or g directly, a speed, acceleration, distance or height from the laws at the asked time or window; its σ adds the statements' precision and the misfit of the frames it is read from. It is undetermined, with a named reason, if anything it reads is undetermined, a held row is violated, the scale rests only on a class vote pulled beyond 3σ, or the program has no expression for the asked quantity</li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>scene.json</code> (every parameter with value, σ, source and determined flag), <code>fit.json</code> (starts, gates, rows, anchors, the scene answer)</li>
+  </ul></dd>
+</dl>
+</section>
+
+<section class="step" id="loop">
+<h2>Checking loop</h2>
+<p class="cmd"><code>python -m pipeline.sceneprog.loop --unit U --tag T --out-tag T2</code> · <code>loop.py</code>, <code>critic.py</code>, <code>edits.py</code></p>
+<dl class="io">
+  <dt>Input</dt>
+  <dd><ul>
+    <li>The fitted program and its numbered measurements: each pose or shape residual above its threshold, each failed gate, each held row beyond its tolerance, each statement left unused, each relation to an untracked object, each track no object models, each tracked frame outside an object's segments, and an undetermined answer or scale</li>
+  </ul></dd>
+  <dt>Does</dt>
+  <dd><ol>
+    <li>Critic: sees six frames with the observed outlines and the rendered program, the structure, the measurements and the loop's history, and returns at most five issues of a closed set of kinds; an issue that does not cite a measurement of its own object is dropped</li>
+    <li>Editor: proposes one edit for the first issue whose kind admits one. An edit carries categories, frame indices and ratios, never a metric magnitude. It is applied to the plan, rebuilt and checked by the plan's rules; an edit that would change what the prior means, turn a sphere into another shape, untrack an object or change whether the camera moves is refused. The scene is re-fitted warm, with the camera held</li>
+    <li>Accept rule, all of: (a) the cited measurement improves by more than its noise threshold, or its gate or row turns to pass; (b) no gate that passed fails; (c) no held row that held is lost; (d) the mean per-frame objective does not rise by more than two standard errors; (e) a determined answer or scale stays determined; (f) an owner whose free parameter count rises by Δk lowers its summed pose residual by more than Δk times its pose threshold; (g) an edit that moves the answer by more than its σ improves the silhouettes by more than the mask noise. Otherwise the program returns exactly to its previous state</li>
+    <li>A critic pass precedes every edit, one edit is pending at a time, and no edit is repeated. The loop converges when every gate passes and the answer stayed within its σ over the last round; it stops after four accepted edits or eight proposals, when no issue admits an edit, or when a re-fit exceeds its time limit, keeping the last accepted program</li>
+  </ol></dd>
+  <dt>Output</dt>
+  <dd><ul>
+    <li><code>outputs/sceneprog/&lt;out-tag&gt;/&lt;unit&gt;/</code>: <code>loop.json</code> (rounds, every proposal with its accept rule and decision), <code>views_r&lt;k&gt;.jpg</code>, and the final <code>plan.json</code>, <code>structure.json</code>, <code>scene.json</code>, <code>fit.json</code></li>
+  </ul></dd>
+</dl>
+<div class="scroll-x"><table>
+  <tr><th>Issue kind</th><th>Edits</th></tr>
+  <tr><td>wrong law</td><td>set a law; split a segment</td></tr>
+  <tr><td>wrong boundary</td><td>move a boundary</td></tr>
+  <tr><td>missing state</td><td>split or add a segment</td></tr>
+  <tr><td>extra state</td><td>remove a segment</td></tr>
+  <tr><td>wrong relation</td><td>set a relation; set a part's box</td></tr>
+  <tr><td>wrong shape</td><td>re-author a shape</td></tr>
+  <tr><td>wrong proportions</td><td>set proportions</td></tr>
+  <tr><td>wrong depth group</td><td>add or remove a depth group; set its frame</td></tr>
+  <tr><td>missing object</td><td>add an object for an unmodelled track</td></tr>
+  <tr><td>wrong track binding</td><td>rebind a track</td></tr>
+  <tr><td>wrong measurement</td><td>re-mark a measurement</td></tr>
+  <tr><td>moving camera</td><td>none</td></tr>
+</table></div>
+</section>
+
+<section class="step" id="answers">
+<h2>Answers</h2>
+<p class="cmd"><code>python -m pipeline.sceneprog.answer --unit U --tag T</code> · <code>answer.py</code></p>
+<dl class="io">
+  <dt>Scene answer</dt>
+  <dd>The strict read-out of the fit: a value only when the program determines it, otherwise undetermined with its reasons, scored 0</dd>
+  <dt>Final answer</dt>
+  <dd>One model call for every question, determined or not: the question, the prior, the frame grid, up to five overlays of the rendered program, and the program's parameters with value, σ, source and determined flag, its segments and laws, the camera and scale, and the statements that are held, violated, unused or unbound. It returns one number in the asked unit with a rationale and the inputs it relied on. The reported MRA is the final answer's; both answers and both MRAs are kept</dd>
+  <dt>Output</dt>
+  <dd><code>answer.json</code> beside the final <code>fit.json</code></dd>
+</dl>
+</section>
+
+<h2 id="harness">Harness</h2>
+<p>One question is one unit, <code>&lt;video_id&gt;_q&lt;k&gt;</code>. The harness runs these ten steps in order for each unit, using only its own question, prior and depth_info. Units of the same video share only caches that depend on the video alone: SAM 2 propagations of a prompt box, support masks segmented by name, floor masks and depth maps. Its own answer (step 10) is given only when every named check passes.</p>
 <p class="muted small">Entry point: <code>python -m pipeline.harness</code>, steps in <code>harness.STEP_ORDER</code>. The fit flags are in <code>pipeline/config.py</code> <code>FIT_ARGS</code>. The harness refuses to start under a Python that is not the project environment's or cannot import a step module (<code>harness.interpreter</code>), since every step runs with its interpreter.</p>
 <div class="scroll-x"><table class="small">
   <tr><th>Environment variable</th><th>Meaning</th></tr>
@@ -25,61 +161,6 @@
 </table></div>
 <p class="muted small">No environment variable selects a behaviour of any step (<code>code.no_switches</code>): each former switch is now the one behaviour. The others the steps read are run plumbing the harness sets: work root, run tag, commit and signatures, cache kinds, <code>QP_STEP_TIMEOUT</code> (<code>--step-timeout</code>), the request memo and limits, the test-split flag, and <code>QP_CHOOSE_DEBUG</code> for the chooser's contact sheets.</p>
 
-<div class="flow" id="flow">
-  <div class="input fc">
-    <b>Input</b>
-    <div class="igrid">
-      <div class="ibox"><b>Video</b>Frames, fps, <code>is_masked</code> / <code>bg</code></div>
-      <div class="ibox"><b>Question</b>The quantity, object, reference and times asked</div>
-      <div class="ibox prior"><b>prior</b>A size, speed, acceleration or gravity statement, or distance anchors (depth_info)</div>
-    </div>
-  </div>
-  <div class="ac fc"><div class="arrow"></div></div>
-
-  <a class="node fc" href="#s1"><b>1 Objects</b><span class="m">Names, roles, agency, locomotion; extra objects the measurement needs</span></a>
-  <div class="rail top dash ret edit"><span>count / track flag</span></div>
-  <div class="ac fc"><div class="arrow"></div></div><div class="rail dash"></div>
-
-  <a class="node fc" href="#s2"><b>2 Scene graph (grid)</b><span class="m">Supports, holders, rotation relations from 6 frames</span></a>
-  <div class="rail dash"></div>
-  <div class="ac fc"><div class="arrow"></div></div><div class="rail dash"></div>
-
-  <a class="node fc" href="#s3"><b>3 Observe</b><span class="m">Support masks by name on the 16 per-frame-graph frames</span></a>
-  <div class="rail dash"></div>
-  <div class="ac fc"><div class="arrow"></div></div><div class="rail dash"></div>
-
-  <a class="node fc" href="#s4"><b>4 Track</b><span class="m">GDINO candidates → model choice → SAM 2 → identity judge, or untracked; a span while visible, every end with a reason</span>
-    <span class="ck">tracked</span></a>
-  <div class="rail ret"><span>re-track</span></div>
-  <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
-
-  <a class="node fc" href="#s5"><b>5 Measure</b><span class="m">refmeasure end points and graduation units; tracked-support masks; per-frame mask extents</span>
-    <span class="ck">scale</span></a>
-  <div class="rail"></div>
-  <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
-
-  <a class="node fc" href="#s6"><b>6 Scene graph (per frame)</b><span class="m">Phases, release interval between the last contact and the first free frame, launch off a support's end, contacts; every edge tested by the builder and named by its source, a failed span absorbed or unknown, overlapping edges a conflict; untracked objects left out; agent edits keep every physical state</span>
-    <span class="ck">segfit · fit.law · contact · state · state.launch · state.grounded · held_by.agent_box</span></a>
-  <div class="rail ret edit"><span>relation / main support</span></div>
-  <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
-
-  <a class="node fc" href="#s7"><b>7 Ground</b><span class="m">Supports the final graph names, floor of the main support, walls</span></a>
-  <div class="rail"></div>
-  <div class="ac fc"><div class="arrow"></div></div><div class="rail"></div>
-
-  <a class="node fit fc" href="#s8"><b>8 Physics-guided Fitting</b><span class="m">Camera, scale, measured slopes, motion laws per state with every impulse's agent, every measurement of the asked quantity</span>
-    <span class="ck">tracked · scale · visible · fit · segfit · state · gravity · focal · contact · plane.fusion · kinematic.onset · window.impulse · agree · constraints</span></a>
-  <div class="rail ret"><span>refit</span></div>
-  <div class="ac fc"><div class="arrow"></div><span class="el">a check fails</span></div><div class="rail"></div>
-
-  <a class="loop fc" href="#s9"><b>9 Agent loop</b><span class="m">Observe (≤ 6 tools) → act (≤ 3 tools) → rebuild → accept on frozen evidence or roll back; up to 10 rounds; the kept state answers</span>
-    <span class="ck">plausible</span></a>
-  <div class="rail bot out"></div>
-  <div class="ac fc"><div class="arrow"></div></div>
-
-  <a class="node answer fc" href="#s10"><b>10 Answer</b><span class="m">All checks pass → the chosen measurement; any check fails → unresolved</span>
-    <span class="ck">replay</span></a>
-</div>
 <p>Every step: an expected exception a step goes on without is recorded as <code>{where, type, msg}</code> on the record that lacks the value, and a model call that fails is retried once (<code>errors.recorded</code>); anything else stops the unit.</p>
 
 <h2 id="time">Time per step</h2>
@@ -93,7 +174,7 @@
   <tr><td>5 Measure</td><td><code>measure</code></td><td class="n">28.4</td><td class="n">17.2</td><td class="n">124.5</td></tr>
   <tr><td>6 Scene graph (per frame)</td><td><code>scenegraph_pf</code></td><td class="n">1.8</td><td class="n">1.2</td><td class="n">15.0</td></tr>
   <tr><td>7 Ground</td><td><code>ground</code></td><td class="n">1.9</td><td class="n">1.2</td><td class="n">18.3</td></tr>
-  <tr><td>8 Physics-guided Fitting</td><td><code>scene</code></td><td class="n">52.0</td><td class="n">16.2</td><td class="n">1054.0</td></tr>
+  <tr><td>8 Scene</td><td><code>scene</code></td><td class="n">52.0</td><td class="n">16.2</td><td class="n">1054.0</td></tr>
   <tr><td>9 Agent loop</td><td><code>agent</code></td><td class="n">0.2</td><td class="n">0.0</td><td class="n">1564.0</td></tr>
   <tr><td>10 Answer</td><td><code>answer</code></td><td class="n">0.0</td><td class="n">0.0</td><td class="n">0.1</td></tr>
   <tr><td><b>Total</b></td><td><code>total_seconds</code></td><td class="n">223.1</td><td class="n">103.3</td><td class="n">2729.2</td></tr>
@@ -388,7 +469,7 @@
 
 <!-- ============================================================ 8 -->
 <section class="step" id="s8">
-<h2>8 Physics-guided Fitting</h2>
+<h2>8 Scene</h2>
 <p class="cmd"><code>python -m pipeline.scene_fit --unit U --out … $FIT_ARGS</code> · <code>scene_fit.py</code>, <code>fit3d.py</code>, <code>scene_depth.py</code>, <code>prior_scale.py</code>, <code>calibrate.py</code>, <code>solve.py</code>, <code>physics.py</code></p>
 <dl class="io">
   <dt>Input</dt>
@@ -683,7 +764,7 @@
 </dl>
 </section>
 
-<h2 id="answers">Answer sources</h2>
+<h2 id="answer-sources">Answer sources</h2>
 <div class="scroll-x"><table>
   <tr><th>Source</th><th>Meaning</th></tr>
   <tr><td>scene</td><td>The chosen measurement is the fit</td></tr>
