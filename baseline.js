@@ -53,8 +53,8 @@
       `<span class="qnums">${nums}</span><span class="qm">${mraBadge(p.mra)}</span></summary>`;
   }
   function videoBlock(v) {
-    if (!v.video) return `<div class="noscene">MPEG-4 Part 2 (<code>${esc(v.codec)}</code>) does not play in browsers. <a href="${esc(v.orig)}" target="_blank" rel="noopener">Original file</a></div>`;
-    const note = v.video_from !== 'val' ? `<p class="muted vnote">H.264 copy from the test set; the validation file is MPEG-4 Part 2. <a href="${esc(v.orig)}" target="_blank" rel="noopener">Original file</a></p>` : '';
+    if (!v.video) return `<div class="noscene">MPEG-4 Part 2 (<code>${esc(v.codec)}</code>) does not play in browsers. <a href="${esc(v.orig)}">Original file</a></div>`;
+    const note = v.video_from !== 'val' ? `<p class="muted vnote">H.264 copy from the test set; the validation file is MPEG-4 Part 2. <a href="${esc(v.orig)}">Original file</a></p>` : '';
     return `<video class="orig" controls muted loop playsinline preload="metadata"></video>${note}`;
   }
   function body(q, v) {

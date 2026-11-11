@@ -30,7 +30,7 @@
   // same question objects drawn on the same frame the same way (data/physmind/index.json, tools/render_physmind.py)
   const WHY = { sam3_video_track_labels: 'SAM 3 found no objects', sam3d_objects: 'mesh reconstruction failed' };
   function card(v) {
-    const img = (src, alt) => (src ? `<a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy"></a>` : '<div class="qc-none muted small">no overlay</div>');
+    const img = (src, alt) => (src ? `<a href="${esc(src)}"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy"></a>` : '<div class="qc-none muted small">no overlay</div>');
     const head = `<div class="qc-head"><b>${esc(v.video)}</b><span class="muted small">PhysMind: ${v.posed_question_objects} / ${v.question_objects} question objects posed` +
       `${v.failed_stage ? ` · ${esc(WHY[v.failed_stage] || v.failed_stage)}` : ''}</span></div>`;
     const rows = v.frames.map((f) => {

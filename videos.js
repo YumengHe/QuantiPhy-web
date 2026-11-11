@@ -182,10 +182,10 @@
   function mediaBlock(v, q) {
     let vid;
     if (v.video) {
-      const note = v.video_from !== 'val' ? `<p class="muted vnote">H.264 copy from the test set; the validation file is MPEG-4 Part 2. <a href="${esc(v.orig)}" target="_blank" rel="noopener">Original file</a></p>` : '';
+      const note = v.video_from !== 'val' ? `<p class="muted vnote">H.264 copy from the test set; the validation file is MPEG-4 Part 2. <a href="${esc(v.orig)}">Original file</a></p>` : '';
       vid = `<h4>Video</h4><video class="orig" controls muted loop playsinline preload="metadata"></video>${note}`;
     } else {
-      vid = `<h4>Video</h4><div class="noscene">MPEG-4 Part 2 (<code>${esc(v.codec)}</code>) does not play in browsers. <a href="${esc(v.orig)}" target="_blank" rel="noopener">Original file</a></div>`;
+      vid = `<h4>Video</h4><div class="noscene">MPEG-4 Part 2 (<code>${esc(v.codec)}</code>) does not play in browsers. <a href="${esc(v.orig)}">Original file</a></div>`;
     }
     const tl = tqLabel(q);
     const jump = tl ? `<button type="button" class="tq-btn" data-t="${q.tjump == null ? '' : q.tjump}">t = ${esc(tl)}</button>` : '';
@@ -212,7 +212,7 @@
     const rows = hc && H && hc.row_horizon != null && hc.row_plane != null
       ? `<span class="hrow hrow-horizon" style="top:${(100 * hc.row_horizon) / H}%"></span><span class="hrow hrow-plane" style="top:${(100 * hc.row_plane) / H}%"></span>` : '';
     return '<h4>Overlays</h4><div class="runtime-frames">' + ims.map((im) => im.path
-      ? `<figure class="runtime-frame"><a class="ovimg" href="${esc(im.path)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(im.path)}" alt="t = ${esc(im.t)} s">${rows}</a>` +
+      ? `<figure class="runtime-frame"><a class="ovimg" href="${esc(im.path)}"><img loading="lazy" src="${esc(im.path)}" alt="t = ${esc(im.t)} s">${rows}</a>` +
         `<figcaption>t = ${fmt(im.t, 2)} s</figcaption></figure>`
       : `<p class="fwarn">t = ${fmt(im.t, 2)} s: ${esc(im.unavailable)}</p>`).join('') + '</div>';
   }
