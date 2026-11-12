@@ -5,7 +5,7 @@ first validation run drew a question overlay); draws PhysMind's posed meshes of 
 outline of the projected mesh, its box and the object's name, t in the corner. Our side of each frame ("ours",
 "ours_unit") is written by tools/build_qualitative.py, not by this tool.
 
-  python -B tools/render_physmind.py --run ~/Desktop/temp/qp_physmind_v2_full/runs/qp_physmind_v2
+  python -B tools/render_physmind.py   # --run defaults to RUN below
 
 PhysMind run: physmind_quantiphy/run_physmind.py, variant B, with all artifacts kept. Its geometry is used as is,
 nothing is re-fitted: each object's FoundationPose mesh (mesh_path of foundationpose_poses.json, metres) is moved into
@@ -34,6 +34,7 @@ import numpy as np
 import trimesh
 
 ROOT = Path(__file__).resolve().parent.parent
+RUN = Path("/nas/yumenghe/QuantiPhy-data/physmind_result_new/quantiphy/run/runs/qp_physmind_v2")
 OURS_VERSION = "v1"
 # object colours: the paper palette defined once in site.css (--c-*), in the same order as videos.js
 # (BGR for OpenCV is converted below)
@@ -184,7 +185,7 @@ def one_video(run: Path, measure: dict, ours: dict[int, dict], out_dir: Path) ->
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--run", required=True, type=Path, help="runs/qp_physmind_v2 of a downloaded PhysMind run")
+    ap.add_argument("--run", default=RUN, type=Path, help="runs/qp_physmind_v2 of a downloaded PhysMind run")
     ap.add_argument("--out", default=ROOT / "data" / "physmind", type=Path)
     args = ap.parse_args()
     run = args.run.expanduser().resolve()

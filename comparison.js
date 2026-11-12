@@ -1,5 +1,5 @@
 // index.html: the method summary of baseline.html (same computation, without the "Reported in original paper" column), from data/baseline.json,
-// and the qualitative comparison from data/physmind/index.json.
+// and the qualitative comparison from data/qualitative/index.json.
 (function () {
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
@@ -33,27 +33,31 @@
     return head + rows + our + counts;
   }
 
-  // qualitative: PhysMind's posed meshes of the question objects (data/physmind/index.json, tools/render_physmind.py) and,
-  // on the same frame, the final scene program of one of the frame's questions (tools/build_qualitative.py)
+  // qualitative: data/qualitative/index.json (tools/build_qualitative.py): on each frame PhysMind or Thinking with Spatial Code
+  // drew, the final scene program of one of the frame's questions, PhysMind's posed meshes of the question objects and
+  // Spatial Code's encoder boxes; a method without a drawing on that frame leaves its cell empty
   const WHY = { sam3_video_track_labels: 'SAM 3 found no objects', sam3d_objects: 'mesh reconstruction failed' };
+  const BASES = [['physmind', 'PhysMind'], ['spatialcode', 'Thinking with Spatial Code']];
   function card(v, ours) {
-    const img = (src, alt) => (src ? `<a href="${esc(src)}"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy"></a>` : '<div class="qc-none muted small">no overlay</div>');
-    const head = `<div class="qc-head"><b>${esc(v.video)}</b><span class="muted small">PhysMind: ${v.posed_question_objects} / ${v.question_objects} question objects posed` +
-      `${v.failed_stage ? ` · ${esc(WHY[v.failed_stage] || v.failed_stage)}` : ''}</span></div>`;
+    const img = (src, alt) => (src ? `<a href="${esc(src)}"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy"></a>` : '<div></div>');
+    const pm = v.physmind;
+    const head = `<div class="qc-head"><b>${esc(v.video)}</b><span class="muted small">PhysMind: ${pm.posed_question_objects} / ${pm.question_objects} question objects posed` +
+      `${pm.failed_stage ? ` · ${esc(WHY[pm.failed_stage] || pm.failed_stage)}` : ''}</span></div>`;
     const rows = v.frames.map((f) => {
-      const pm = f.physmind ? img(f.physmind, `${v.video} PhysMind t = ${f.t} s`) : `<div class="qc-none muted small">${esc(WHY[v.failed_stage] || 'no reconstruction')}</div>`;
-      const miss = f.physmind && f.missing.length ? ` · PhysMind has no pose here for ${f.missing.map(esc).join(', ')}` : '';
-      return `<div class="qc-pair">${img(f.ours, `${v.video} ours t = ${f.t} s`)}${pm}</div>` +
+      const miss = BASES.filter(([k]) => f[k] && f[`${k}_missing`].length)
+        .map(([k, label]) => ` · ${label} has no ${k === 'physmind' ? 'pose' : 'box'} here for ${f[`${k}_missing`].map(esc).join(', ')}`).join('');
+      return `<div class="qc-pair">${img(f.ours, `${v.video} ours t = ${f.t} s`)}${BASES.map(([k, label]) => img(f[k], `${v.video} ${label} t = ${f.t} s`)).join('')}</div>` +
         `<div class="qc-cap muted small">t = ${fmt(f.t, 2)} s${f.questions.length ? ` · ${f.questions.map((q) => esc(q.replace(v.video + '_', ''))).join(', ')}` : ''}${miss}</div>`;
     }).join('');
-    return `<figure class="qc-card">${head}<div class="qc-pair qc-cols muted small"><span>${dot('ours')}Ours (${esc(ours.version)})</span><span>${dot('physmind')}PhysMind</span></div>${rows}</figure>`;
+    return `<figure class="qc-card">${head}<div class="qc-pair qc-cols muted small"><span>${dot('ours')}Ours (${esc(ours.version)})</span>` +
+      BASES.map(([k, label]) => `<span>${dot(k)}${label}</span>`).join('') + `</div>${rows}</figure>`;
   }
 
   if (typeof module !== 'undefined') { module.exports = { table, card, oursScores }; return; }
   const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
-  Promise.all([get('data/baseline.json'), get('data/comparison_ours.json'), get('data/physmind/index.json')])
-    .then(([d, ours, pm]) => {
+  Promise.all([get('data/baseline.json'), get('data/comparison_ours.json'), get('data/qualitative/index.json')])
+    .then(([d, ours, qual]) => {
       document.getElementById('quantitative-comparison-table').innerHTML = table(d, ours);
-      document.getElementById('qualitative-comparison-grid').innerHTML = pm.videos.map((v) => card(v, ours)).join('');
+      document.getElementById('qualitative-comparison-grid').innerHTML = qual.videos.map((v) => card(v, ours)).join('');
     });
 })();

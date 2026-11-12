@@ -1,0 +1,1187 @@
+{
+ "generated": "2026-11-12",
+ "ours": "v6valloop",
+ "videos": [
+  {
+   "video": "captured_0013",
+   "physmind": {
+    "question_objects": 7,
+    "posed_question_objects": 4,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "captured_0013_q1",
+      "captured_0013_q2",
+      "captured_0013_q3",
+      "captured_0013_q4",
+      "captured_0013_q5",
+      "captured_0013_q6",
+      "captured_0013_q7"
+     ],
+     "physmind": "data/physmind/captured_0013_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0013_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0013_q1_f0.jpg",
+     "ours_unit": "captured_0013_q1"
+    }
+   ]
+  },
+  {
+   "video": "captured_0021x",
+   "physmind": {
+    "question_objects": 2,
+    "posed_question_objects": 1,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "captured_0021x_q4",
+      "captured_0021x_q5"
+     ],
+     "physmind": "data/physmind/captured_0021x_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0021x_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0021x_q4_f0.jpg",
+     "ours_unit": "captured_0021x_q4"
+    },
+    {
+     "frame": 23,
+     "t": 0.958,
+     "questions": [
+      "captured_0021x_q3"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0021x_f23.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0021x_q3_f23.jpg",
+     "ours_unit": "captured_0021x_q3"
+    },
+    {
+     "frame": 24,
+     "t": 1.0,
+     "questions": [
+      "captured_0021x_q3"
+     ],
+     "physmind": "data/physmind/captured_0021x_f24.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0021x_q3_f24.jpg",
+     "ours_unit": "captured_0021x_q3"
+    },
+    {
+     "frame": 34,
+     "t": 1.4,
+     "questions": [
+      "captured_0021x_q2",
+      "captured_0021x_q3"
+     ],
+     "physmind": "data/physmind/captured_0021x_f34.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0021x_f34.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0021x_q2_f34.jpg",
+     "ours_unit": "captured_0021x_q2"
+    }
+   ]
+  },
+  {
+   "video": "captured_0027s",
+   "physmind": {
+    "question_objects": 1,
+    "posed_question_objects": 0,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [],
+     "physmind": "data/physmind/captured_0027s_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0027s_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0027s_q1_f0.jpg",
+     "ours_unit": "captured_0027s_q1"
+    }
+   ]
+  },
+  {
+   "video": "captured_0034as",
+   "physmind": {
+    "question_objects": 4,
+    "posed_question_objects": 2,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "captured_0034as_q3",
+      "captured_0034as_q4",
+      "captured_0034as_q5",
+      "captured_0034as_q8",
+      "captured_0034as_q9"
+     ],
+     "physmind": "data/physmind/captured_0034as_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0034as_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0034as_q3_f0.jpg",
+     "ours_unit": "captured_0034as_q3"
+    },
+    {
+     "frame": 29,
+     "t": 1.2,
+     "questions": [
+      "captured_0034as_q2"
+     ],
+     "physmind": "data/physmind/captured_0034as_f29.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0034as_f29.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0034as_q2_f29.jpg",
+     "ours_unit": "captured_0034as_q2"
+    },
+    {
+     "frame": 31,
+     "t": 1.3,
+     "questions": [
+      "captured_0034as_q6",
+      "captured_0034as_q7"
+     ],
+     "physmind": "data/physmind/captured_0034as_f31.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0034as_f31.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0034as_q6_f31.jpg",
+     "ours_unit": "captured_0034as_q6"
+    }
+   ]
+  },
+  {
+   "video": "captured_0041x",
+   "physmind": {
+    "question_objects": 2,
+    "posed_question_objects": 2,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "captured_0041x_q1"
+     ],
+     "physmind": "data/physmind/captured_0041x_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0041x_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0041x_q1_f0.jpg",
+     "ours_unit": "captured_0041x_q1"
+    },
+    {
+     "frame": 36,
+     "t": 1.5,
+     "questions": [
+      "captured_0041x_q2"
+     ],
+     "physmind": "data/physmind/captured_0041x_f36.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0041x_f36.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0041x_q2_f36.jpg",
+     "ours_unit": "captured_0041x_q2"
+    },
+    {
+     "frame": 37,
+     "t": 1.542,
+     "questions": [
+      "captured_0041x_q2"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0041x_f37.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0041x_q2_f37.jpg",
+     "ours_unit": "captured_0041x_q2"
+    },
+    {
+     "frame": 38,
+     "t": 1.6,
+     "questions": [
+      "captured_0041x_q2"
+     ],
+     "physmind": "data/physmind/captured_0041x_f38.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0041x_q2_f38.jpg",
+     "ours_unit": "captured_0041x_q2"
+    }
+   ]
+  },
+  {
+   "video": "captured_0061",
+   "physmind": {
+    "question_objects": 4,
+    "posed_question_objects": 4,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "captured_0061_q1",
+      "captured_0061_q2"
+     ],
+     "physmind": "data/physmind/captured_0061_f0.jpg",
+     "physmind_missing": [
+      "floor",
+      "soccer ball",
+      "yoga ball"
+     ],
+     "spatialcode": "data/spatialcode/captured_0061_f0.jpg",
+     "spatialcode_missing": [
+      "yoga ball",
+      "floor"
+     ],
+     "ours": "data/qualitative/v6valloop/captured_0061_q1_f0.jpg",
+     "ours_unit": "captured_0061_q1"
+    },
+    {
+     "frame": 14,
+     "t": 0.6,
+     "questions": [
+      "captured_0061_q6"
+     ],
+     "physmind": "data/physmind/captured_0061_f14.jpg",
+     "physmind_missing": [
+      "floor",
+      "yoga ball"
+     ],
+     "spatialcode": "data/spatialcode/captured_0061_f14.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0061_q6_f14.jpg",
+     "ours_unit": "captured_0061_q6"
+    },
+    {
+     "frame": 22,
+     "t": 0.9,
+     "questions": [
+      "captured_0061_q7"
+     ],
+     "physmind": "data/physmind/captured_0061_f22.jpg",
+     "physmind_missing": [
+      "floor"
+     ],
+     "spatialcode": "data/spatialcode/captured_0061_f22.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0061_q7_f22.jpg",
+     "ours_unit": "captured_0061_q7"
+    },
+    {
+     "frame": 37,
+     "t": 1.542,
+     "questions": [
+      "captured_0061_q9"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/captured_0061_f37.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0061_q9_f37.jpg",
+     "ours_unit": "captured_0061_q9"
+    },
+    {
+     "frame": 38,
+     "t": 1.6,
+     "questions": [
+      "captured_0061_q9"
+     ],
+     "physmind": "data/physmind/captured_0061_f38.jpg",
+     "physmind_missing": [
+      "floor",
+      "soccer ball"
+     ],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0061_q9_f38.jpg",
+     "ours_unit": "captured_0061_q9"
+    },
+    {
+     "frame": 48,
+     "t": 2.0,
+     "questions": [
+      "captured_0061_q3",
+      "captured_0061_q4",
+      "captured_0061_q5"
+     ],
+     "physmind": "data/physmind/captured_0061_f48.jpg",
+     "physmind_missing": [
+      "basketball",
+      "floor",
+      "soccer ball"
+     ],
+     "spatialcode": "data/spatialcode/captured_0061_f48.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/captured_0061_q3_f48.jpg",
+     "ours_unit": "captured_0061_q3"
+    }
+   ]
+  },
+  {
+   "video": "internet_0001",
+   "physmind": {
+    "question_objects": 1,
+    "posed_question_objects": 0,
+    "failed_stage": "sam3_video_track_labels"
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "internet_0001_q1",
+      "internet_0001_q2"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/internet_0001_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/internet_0001_q1_f0.jpg",
+     "ours_unit": "internet_0001_q1"
+    }
+   ]
+  },
+  {
+   "video": "internet_0004",
+   "physmind": {
+    "question_objects": 3,
+    "posed_question_objects": 1,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "internet_0004_q2",
+      "internet_0004_q3",
+      "internet_0004_q4"
+     ],
+     "physmind": "data/physmind/internet_0004_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/internet_0004_f0.jpg",
+     "spatialcode_missing": [
+      "pencil tip",
+      "saw",
+      "ruler"
+     ],
+     "ours": "data/qualitative/v6valloop/internet_0004_q2_f0.jpg",
+     "ours_unit": "internet_0004_q2"
+    }
+   ]
+  },
+  {
+   "video": "internet_0005",
+   "physmind": {
+    "question_objects": 4,
+    "posed_question_objects": 1,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "internet_0005_q1",
+      "internet_0005_q2",
+      "internet_0005_q3"
+     ],
+     "physmind": "data/physmind/internet_0005_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/internet_0005_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/internet_0005_q1_f0.jpg",
+     "ours_unit": "internet_0005_q1"
+    }
+   ]
+  },
+  {
+   "video": "internet_0013",
+   "physmind": {
+    "question_objects": 6,
+    "posed_question_objects": 3,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "internet_0013_q1",
+      "internet_0013_q2",
+      "internet_0013_q3"
+     ],
+     "physmind": "data/physmind/internet_0013_f0.jpg",
+     "physmind_missing": [
+      "black car",
+      "white car"
+     ],
+     "spatialcode": "data/spatialcode/internet_0013_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/internet_0013_q1_f0.jpg",
+     "ours_unit": "internet_0013_q1"
+    },
+    {
+     "frame": 27,
+     "t": 0.901,
+     "questions": [
+      "internet_0013_q6"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/internet_0013_f27.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/internet_0013_q6_f27.jpg",
+     "ours_unit": "internet_0013_q6"
+    },
+    {
+     "frame": 30,
+     "t": 1.0,
+     "questions": [
+      "internet_0013_q6"
+     ],
+     "physmind": "data/physmind/internet_0013_f30.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/internet_0013_q6_f30.jpg",
+     "ours_unit": "internet_0013_q6"
+    },
+    {
+     "frame": 90,
+     "t": 3.0,
+     "questions": [
+      "internet_0013_q5"
+     ],
+     "physmind": "data/physmind/internet_0013_f90.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/internet_0013_f90.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/internet_0013_q5_f90.jpg",
+     "ours_unit": "internet_0013_q5"
+    }
+   ]
+  },
+  {
+   "video": "internet_0019",
+   "physmind": {
+    "question_objects": 4,
+    "posed_question_objects": 3,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "internet_0019_q1",
+      "internet_0019_q2",
+      "internet_0019_q3",
+      "internet_0019_q5",
+      "internet_0019_q7"
+     ],
+     "physmind": "data/physmind/internet_0019_f0.jpg",
+     "physmind_missing": [
+      "ball"
+     ],
+     "spatialcode": "data/spatialcode/internet_0019_f0.jpg",
+     "spatialcode_missing": [
+      "the ball"
+     ],
+     "ours": "data/qualitative/v6valloop/internet_0019_q1_f0.jpg",
+     "ours_unit": "internet_0019_q1"
+    },
+    {
+     "frame": 30,
+     "t": 1.0,
+     "questions": [
+      "internet_0019_q6"
+     ],
+     "physmind": "data/physmind/internet_0019_f30.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/internet_0019_f30.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/internet_0019_q6_f30.jpg",
+     "ours_unit": "internet_0019_q6"
+    }
+   ]
+  },
+  {
+   "video": "internet_0027",
+   "physmind": {
+    "question_objects": 5,
+    "posed_question_objects": 4,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "internet_0027_q1",
+      "internet_0027_q4"
+     ],
+     "physmind": "data/physmind/internet_0027_f0.jpg",
+     "physmind_missing": [
+      "black ball",
+      "orange ball",
+      "white ball"
+     ],
+     "spatialcode": "data/spatialcode/internet_0027_f0.jpg",
+     "spatialcode_missing": [
+      "white ball",
+      "yellow ball on the left"
+     ],
+     "ours": "data/qualitative/v6valloop/internet_0027_q1_f0.jpg",
+     "ours_unit": "internet_0027_q1"
+    },
+    {
+     "frame": 25,
+     "t": 1.0,
+     "questions": [
+      "internet_0027_q2",
+      "internet_0027_q3"
+     ],
+     "physmind": "data/physmind/internet_0027_f25.jpg",
+     "physmind_missing": [
+      "white ball"
+     ],
+     "spatialcode": "data/spatialcode/internet_0027_f25.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/internet_0027_q2_f25.jpg",
+     "ours_unit": "internet_0027_q2"
+    },
+    {
+     "frame": 50,
+     "t": 2.0,
+     "questions": [
+      "internet_0027_q2"
+     ],
+     "physmind": "data/physmind/internet_0027_f50.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/internet_0027_f50.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/internet_0027_q2_f50.jpg",
+     "ours_unit": "internet_0027_q2"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0009",
+   "physmind": {
+    "question_objects": 7,
+    "posed_question_objects": 3,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0009_q1",
+      "simulation_0009_q2",
+      "simulation_0009_q3",
+      "simulation_0009_q4",
+      "simulation_0009_q5",
+      "simulation_0009_q7",
+      "simulation_0009_q9"
+     ],
+     "physmind": "data/physmind/simulation_0009_f0.jpg",
+     "physmind_missing": [
+      "wooden steps"
+     ],
+     "spatialcode": "data/spatialcode/simulation_0009_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0009_q1_f0.jpg",
+     "ours_unit": "simulation_0009_q1"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0015",
+   "physmind": {
+    "question_objects": 7,
+    "posed_question_objects": 3,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0015_q1",
+      "simulation_0015_q2",
+      "simulation_0015_q4",
+      "simulation_0015_q5",
+      "simulation_0015_q6",
+      "simulation_0015_q7",
+      "simulation_0015_q8",
+      "simulation_0015_q9",
+      "simulation_0015_q10",
+      "simulation_0015_q11"
+     ],
+     "physmind": "data/physmind/simulation_0015_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0015_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0015_q1_f0.jpg",
+     "ours_unit": "simulation_0015_q1"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0034_segmented",
+   "physmind": {
+    "question_objects": 3,
+    "posed_question_objects": 3,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0034_segmented_q1",
+      "simulation_0034_segmented_q2",
+      "simulation_0034_segmented_q3",
+      "simulation_0034_segmented_q4",
+      "simulation_0034_segmented_q5",
+      "simulation_0034_segmented_q6"
+     ],
+     "physmind": "data/physmind/simulation_0034_segmented_f0.jpg",
+     "physmind_missing": [
+      "eagle"
+     ],
+     "spatialcode": "data/spatialcode/simulation_0034_segmented_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0034_segmented_q1_f0.jpg",
+     "ours_unit": "simulation_0034_segmented_q1"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0060",
+   "physmind": {
+    "question_objects": 10,
+    "posed_question_objects": 6,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0060_q2",
+      "simulation_0060_q3",
+      "simulation_0060_q4",
+      "simulation_0060_q5",
+      "simulation_0060_q6",
+      "simulation_0060_q7",
+      "simulation_0060_q8",
+      "simulation_0060_q9",
+      "simulation_0060_q10",
+      "simulation_0060_q11",
+      "simulation_0060_q12",
+      "simulation_0060_q13"
+     ],
+     "physmind": "data/physmind/simulation_0060_f0.jpg",
+     "physmind_missing": [
+      "walking pedestrian",
+      "white car"
+     ],
+     "spatialcode": "data/spatialcode/simulation_0060_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0060_q2_f0.jpg",
+     "ours_unit": "simulation_0060_q2"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0089",
+   "physmind": {
+    "question_objects": 2,
+    "posed_question_objects": 1,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0089_q1",
+      "simulation_0089_q2",
+      "simulation_0089_q3",
+      "simulation_0089_q4",
+      "simulation_0089_q5"
+     ],
+     "physmind": "data/physmind/simulation_0089_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0089_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0089_q1_f0.jpg",
+     "ours_unit": "simulation_0089_q1"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0098_segmented",
+   "physmind": {
+    "question_objects": 2,
+    "posed_question_objects": 0,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0098_segmented_q1",
+      "simulation_0098_segmented_q3",
+      "simulation_0098_segmented_q4"
+     ],
+     "physmind": "data/physmind/simulation_0098_segmented_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0098_segmented_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0098_segmented_q1_f0.jpg",
+     "ours_unit": "simulation_0098_segmented_q1"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0163",
+   "physmind": {
+    "question_objects": 3,
+    "posed_question_objects": 2,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0163_q5",
+      "simulation_0163_q6"
+     ],
+     "physmind": "data/physmind/simulation_0163_f0.jpg",
+     "physmind_missing": [
+      "ball"
+     ],
+     "spatialcode": "data/spatialcode/simulation_0163_f0.jpg",
+     "spatialcode_missing": [
+      "ball"
+     ],
+     "ours": "data/qualitative/v6valloop/simulation_0163_q5_f0.jpg",
+     "ours_unit": "simulation_0163_q5"
+    },
+    {
+     "frame": 11,
+     "t": 0.458,
+     "questions": [
+      "simulation_0163_q1",
+      "simulation_0163_q2"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0163_f11.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0163_q1_f11.jpg",
+     "ours_unit": "simulation_0163_q1"
+    },
+    {
+     "frame": 12,
+     "t": 0.5,
+     "questions": [
+      "simulation_0163_q1",
+      "simulation_0163_q2"
+     ],
+     "physmind": "data/physmind/simulation_0163_f12.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0163_q1_f12.jpg",
+     "ours_unit": "simulation_0163_q1"
+    },
+    {
+     "frame": 24,
+     "t": 1.0,
+     "questions": [
+      "simulation_0163_q3",
+      "simulation_0163_q4"
+     ],
+     "physmind": "data/physmind/simulation_0163_f24.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0163_f24.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0163_q3_f24.jpg",
+     "ours_unit": "simulation_0163_q3"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0170_segmented",
+   "physmind": {
+    "question_objects": 1,
+    "posed_question_objects": 1,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 12,
+     "t": 0.5,
+     "questions": [
+      "simulation_0170_segmented_q1",
+      "simulation_0170_segmented_q2"
+     ],
+     "physmind": "data/physmind/simulation_0170_segmented_f12.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q1_f12.jpg",
+     "ours_unit": "simulation_0170_segmented_q1"
+    },
+    {
+     "frame": 13,
+     "t": 0.542,
+     "questions": [
+      "simulation_0170_segmented_q1",
+      "simulation_0170_segmented_q2"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0170_segmented_f13.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q1_f13.jpg",
+     "ours_unit": "simulation_0170_segmented_q1"
+    },
+    {
+     "frame": 23,
+     "t": 0.958,
+     "questions": [
+      "simulation_0170_segmented_q3",
+      "simulation_0170_segmented_q4"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0170_segmented_f23.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q3_f23.jpg",
+     "ours_unit": "simulation_0170_segmented_q3"
+    },
+    {
+     "frame": 24,
+     "t": 1.0,
+     "questions": [
+      "simulation_0170_segmented_q3",
+      "simulation_0170_segmented_q4"
+     ],
+     "physmind": "data/physmind/simulation_0170_segmented_f24.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q3_f24.jpg",
+     "ours_unit": "simulation_0170_segmented_q3"
+    },
+    {
+     "frame": 48,
+     "t": 2.0,
+     "questions": [
+      "simulation_0170_segmented_q5",
+      "simulation_0170_segmented_q6"
+     ],
+     "physmind": "data/physmind/simulation_0170_segmented_f48.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0170_segmented_f48.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q5_f48.jpg",
+     "ours_unit": "simulation_0170_segmented_q5"
+    },
+    {
+     "frame": 71,
+     "t": 2.958,
+     "questions": [
+      "simulation_0170_segmented_q7",
+      "simulation_0170_segmented_q8"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0170_segmented_f71.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q7_f71.jpg",
+     "ours_unit": "simulation_0170_segmented_q7"
+    },
+    {
+     "frame": 72,
+     "t": 3.0,
+     "questions": [
+      "simulation_0170_segmented_q7",
+      "simulation_0170_segmented_q8"
+     ],
+     "physmind": "data/physmind/simulation_0170_segmented_f72.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q7_f72.jpg",
+     "ours_unit": "simulation_0170_segmented_q7"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0171",
+   "physmind": {
+    "question_objects": 1,
+    "posed_question_objects": 1,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 12,
+     "t": 0.5,
+     "questions": [
+      "simulation_0171_q1",
+      "simulation_0171_q2"
+     ],
+     "physmind": "data/physmind/simulation_0171_f12.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0171_q1_f12.jpg",
+     "ours_unit": "simulation_0171_q1"
+    },
+    {
+     "frame": 13,
+     "t": 0.542,
+     "questions": [
+      "simulation_0171_q1",
+      "simulation_0171_q2"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0171_f13.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0171_q1_f13.jpg",
+     "ours_unit": "simulation_0171_q1"
+    },
+    {
+     "frame": 23,
+     "t": 0.958,
+     "questions": [
+      "simulation_0171_q3"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0171_f23.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0171_q3_f23.jpg",
+     "ours_unit": "simulation_0171_q3"
+    },
+    {
+     "frame": 24,
+     "t": 1.0,
+     "questions": [
+      "simulation_0171_q3"
+     ],
+     "physmind": "data/physmind/simulation_0171_f24.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0171_q3_f24.jpg",
+     "ours_unit": "simulation_0171_q3"
+    },
+    {
+     "frame": 48,
+     "t": 2.0,
+     "questions": [
+      "simulation_0171_q5",
+      "simulation_0171_q6"
+     ],
+     "physmind": "data/physmind/simulation_0171_f48.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0171_f48.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0171_q5_f48.jpg",
+     "ours_unit": "simulation_0171_q5"
+    },
+    {
+     "frame": 71,
+     "t": 2.958,
+     "questions": [
+      "simulation_0171_q7",
+      "simulation_0171_q8"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0171_f71.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0171_q7_f71.jpg",
+     "ours_unit": "simulation_0171_q7"
+    },
+    {
+     "frame": 72,
+     "t": 3.0,
+     "questions": [
+      "simulation_0171_q7",
+      "simulation_0171_q8"
+     ],
+     "physmind": "data/physmind/simulation_0171_f72.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0171_q7_f72.jpg",
+     "ours_unit": "simulation_0171_q7"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0193",
+   "physmind": {
+    "question_objects": 9,
+    "posed_question_objects": 0,
+    "failed_stage": "sam3_video_track_labels"
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0193_q1",
+      "simulation_0193_q2",
+      "simulation_0193_q4",
+      "simulation_0193_q5",
+      "simulation_0193_q6",
+      "simulation_0193_q7",
+      "simulation_0193_q8",
+      "simulation_0193_q9",
+      "simulation_0193_q10",
+      "simulation_0193_q11",
+      "simulation_0193_q12"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0193_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0193_q1_f0.jpg",
+     "ours_unit": "simulation_0193_q1"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0196",
+   "physmind": {
+    "question_objects": 3,
+    "posed_question_objects": 1,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0196_q1",
+      "simulation_0196_q3",
+      "simulation_0196_q4"
+     ],
+     "physmind": "data/physmind/simulation_0196_f0.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0196_f0.jpg",
+     "spatialcode_missing": [
+      "bubble in the drop"
+     ],
+     "ours": "data/qualitative/v6valloop/simulation_0196_q1_f0.jpg",
+     "ours_unit": "simulation_0196_q1"
+    }
+   ]
+  },
+  {
+   "video": "simulation_0300",
+   "physmind": {
+    "question_objects": 1,
+    "posed_question_objects": 1,
+    "failed_stage": null
+   },
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "questions": [
+      "simulation_0300_q3",
+      "simulation_0300_q4",
+      "simulation_0300_q5"
+     ],
+     "physmind": "data/physmind/simulation_0300_f0.jpg",
+     "physmind_missing": [
+      "car"
+     ],
+     "spatialcode": "data/spatialcode/simulation_0300_f0.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0300_q3_f0.jpg",
+     "ours_unit": "simulation_0300_q3"
+    },
+    {
+     "frame": 23,
+     "t": 0.958,
+     "questions": [
+      "simulation_0300_q1"
+     ],
+     "physmind": null,
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0300_f23.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0300_q1_f23.jpg",
+     "ours_unit": "simulation_0300_q1"
+    },
+    {
+     "frame": 24,
+     "t": 1.0,
+     "questions": [
+      "simulation_0300_q1"
+     ],
+     "physmind": "data/physmind/simulation_0300_f24.jpg",
+     "physmind_missing": [],
+     "spatialcode": null,
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0300_q1_f24.jpg",
+     "ours_unit": "simulation_0300_q1"
+    },
+    {
+     "frame": 48,
+     "t": 2.0,
+     "questions": [
+      "simulation_0300_q2"
+     ],
+     "physmind": "data/physmind/simulation_0300_f48.jpg",
+     "physmind_missing": [],
+     "spatialcode": "data/spatialcode/simulation_0300_f48.jpg",
+     "spatialcode_missing": [],
+     "ours": "data/qualitative/v6valloop/simulation_0300_q2_f48.jpg",
+     "ours_unit": "simulation_0300_q2"
+    }
+   ]
+  }
+ ]
+}
