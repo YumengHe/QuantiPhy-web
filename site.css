@@ -211,7 +211,7 @@ td.align-warn { background: color-mix(in srgb, var(--c-orange) 18%, white); }
 .vcount.bad { background: var(--bad-bg); }
 
 /* home: qualitative comparison cards */
-.comparison-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(480px, 100%), 1fr)); gap: 14px; min-height: 160px; }
+.comparison-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-height: 160px; }
 .qc-card { margin: 0; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--panel); }
 .qc-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; margin-bottom: 8px; }
 .qc-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
