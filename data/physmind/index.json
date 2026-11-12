@@ -1,6 +1,6 @@
 {
  "generated": "2026-11-06",
- "ours": "v1",
+ "ours": "v6valloop",
  "run": "PhysMind variant B (qp_physmind_v2, all artifacts)",
  "videos": [
   {
@@ -12,7 +12,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/captured_0013/06b2e6318dafe54f4cbfcf22_f0.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0013_q1_f0.jpg",
      "physmind": "data/physmind/captured_0013_f0.jpg",
      "questions": [
       "captured_0013_q1",
@@ -41,7 +41,8 @@
        "color": "#b03fa8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0013_q1"
     }
    ]
   },
@@ -54,7 +55,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/captured_0021x/069b44b0bb33362ee0a953ca_f0.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0021x_q4_f0.jpg",
      "physmind": "data/physmind/captured_0021x_f0.jpg",
      "questions": [
       "captured_0021x_q4",
@@ -66,12 +67,13 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0021x_q4"
     },
     {
      "frame": 24,
      "t": 1.0,
-     "ours": "data/runtime/v1/captured_0021x/4d00a054eefbeda2e1a21ce8_f24.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0021x_q3_f24.jpg",
      "physmind": "data/physmind/captured_0021x_f24.jpg",
      "questions": [
       "captured_0021x_q3"
@@ -82,12 +84,13 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0021x_q3"
     },
     {
      "frame": 34,
      "t": 1.4,
-     "ours": "data/runtime/v1/captured_0021x/49cd7f18f82cf2e733dc7dc1_f34.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0021x_q2_f34.jpg",
      "physmind": "data/physmind/captured_0021x_f34.jpg",
      "questions": [
       "captured_0021x_q2",
@@ -99,7 +102,8 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0021x_q2"
     }
    ]
   },
@@ -112,11 +116,12 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": null,
+     "ours": "data/qualitative/v6valloop/captured_0027s_q1_f0.jpg",
      "physmind": "data/physmind/captured_0027s_f0.jpg",
      "questions": [],
      "drawn": [],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0027s_q1"
     }
    ]
   },
@@ -129,7 +134,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/captured_0034as/b1c79dc30782d8513cea3dcf_f0.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0034as_q3_f0.jpg",
      "physmind": "data/physmind/captured_0034as_f0.jpg",
      "questions": [
       "captured_0034as_q3",
@@ -148,12 +153,13 @@
        "color": "#d9622b"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0034as_q3"
     },
     {
      "frame": 29,
      "t": 1.2,
-     "ours": "data/runtime/v1/captured_0034as/ba71670b6d4e0f2a9edbbed5_f29.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0034as_q2_f29.jpg",
      "physmind": "data/physmind/captured_0034as_f29.jpg",
      "questions": [
       "captured_0034as_q2"
@@ -168,12 +174,13 @@
        "color": "#d9622b"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0034as_q2"
     },
     {
      "frame": 31,
      "t": 1.3,
-     "ours": "data/runtime/v1/captured_0034as/29d5369cbcc41a201dface05_f31.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0034as_q6_f31.jpg",
      "physmind": "data/physmind/captured_0034as_f31.jpg",
      "questions": [
       "captured_0034as_q6",
@@ -189,7 +196,8 @@
        "color": "#d9622b"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0034as_q6"
     }
    ]
   },
@@ -202,7 +210,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/captured_0041x/8a1f898fde8fc36ea7d4537c_f0.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0041x_q1_f0.jpg",
      "physmind": "data/physmind/captured_0041x_f0.jpg",
      "questions": [
       "captured_0041x_q1"
@@ -217,12 +225,13 @@
        "color": "#d9622b"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0041x_q1"
     },
     {
      "frame": 36,
      "t": 1.5,
-     "ours": "data/runtime/v1/captured_0041x/a9e5fce7b1165cfa9bd23b0e_f36.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0041x_q2_f36.jpg",
      "physmind": "data/physmind/captured_0041x_f36.jpg",
      "questions": [
       "captured_0041x_q2"
@@ -237,12 +246,13 @@
        "color": "#d9622b"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0041x_q2"
     },
     {
      "frame": 38,
      "t": 1.6,
-     "ours": "data/runtime/v1/captured_0041x/f4f399f9ac8a799deb1ca8f0_f38.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0041x_q2_f38.jpg",
      "physmind": "data/physmind/captured_0041x_f38.jpg",
      "questions": [
       "captured_0041x_q2"
@@ -257,7 +267,8 @@
        "color": "#d9622b"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "captured_0041x_q2"
     }
    ]
   },
@@ -270,7 +281,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/captured_0061/4720a52efd8240b7052cd27c_f0.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0061_q1_f0.jpg",
      "physmind": "data/physmind/captured_0061_f0.jpg",
      "questions": [
       "captured_0061_q1",
@@ -286,12 +297,13 @@
       "floor",
       "soccer ball",
       "yoga ball"
-     ]
+     ],
+     "ours_unit": "captured_0061_q1"
     },
     {
      "frame": 14,
      "t": 0.6,
-     "ours": "data/runtime/v1/captured_0061/abdb8821d9627cd77d74ec84_f14.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0061_q6_f14.jpg",
      "physmind": "data/physmind/captured_0061_f14.jpg",
      "questions": [
       "captured_0061_q6"
@@ -309,12 +321,13 @@
      "missing": [
       "floor",
       "yoga ball"
-     ]
+     ],
+     "ours_unit": "captured_0061_q6"
     },
     {
      "frame": 22,
      "t": 0.9,
-     "ours": "data/runtime/v1/captured_0061/5e3e3018e6b42671f4c80f68_f22.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0061_q7_f22.jpg",
      "physmind": "data/physmind/captured_0061_f22.jpg",
      "questions": [
       "captured_0061_q7"
@@ -335,12 +348,13 @@
      ],
      "missing": [
       "floor"
-     ]
+     ],
+     "ours_unit": "captured_0061_q7"
     },
     {
      "frame": 38,
      "t": 1.6,
-     "ours": "data/runtime/v1/captured_0061/208864c151179bf574539d1b_f38.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0061_q9_f38.jpg",
      "physmind": "data/physmind/captured_0061_f38.jpg",
      "questions": [
       "captured_0061_q9"
@@ -358,12 +372,13 @@
      "missing": [
       "floor",
       "soccer ball"
-     ]
+     ],
+     "ours_unit": "captured_0061_q9"
     },
     {
      "frame": 48,
      "t": 2.0,
-     "ours": "data/runtime/v1/captured_0061/80192c5774b6f0860bec7978_f48.jpg",
+     "ours": "data/qualitative/v6valloop/captured_0061_q3_f48.jpg",
      "physmind": "data/physmind/captured_0061_f48.jpg",
      "questions": [
       "captured_0061_q3",
@@ -380,7 +395,8 @@
       "basketball",
       "floor",
       "soccer ball"
-     ]
+     ],
+     "ours_unit": "captured_0061_q3"
     }
    ]
   },
@@ -393,14 +409,15 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/internet_0001/352076cbd4da5b41ac1ea948_f0.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0001_q1_f0.jpg",
      "physmind": null,
      "questions": [
       "internet_0001_q1",
       "internet_0001_q2"
      ],
      "drawn": [],
-     "missing": []
+     "missing": [],
+     "ours_unit": "internet_0001_q1"
     }
    ]
   },
@@ -413,7 +430,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/internet_0004/d4694a369da056098f0d5f92_f0.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0004_q2_f0.jpg",
      "physmind": "data/physmind/internet_0004_f0.jpg",
      "questions": [
       "internet_0004_q2",
@@ -426,7 +443,8 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "internet_0004_q2"
     }
    ]
   },
@@ -439,7 +457,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/internet_0005/07b345efbfb08a5e05520805_f0.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0005_q1_f0.jpg",
      "physmind": "data/physmind/internet_0005_f0.jpg",
      "questions": [
       "internet_0005_q1",
@@ -452,7 +470,8 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "internet_0005_q1"
     }
    ]
   },
@@ -465,7 +484,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/internet_0013/5c62b55c352f4108fc6d6f86_f0.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0013_q1_f0.jpg",
      "physmind": "data/physmind/internet_0013_f0.jpg",
      "questions": [
       "internet_0013_q1",
@@ -481,12 +500,13 @@
      "missing": [
       "black car",
       "white car"
-     ]
+     ],
+     "ours_unit": "internet_0013_q1"
     },
     {
      "frame": 30,
      "t": 1.0,
-     "ours": "data/runtime/v1/internet_0013/8319dabed80b3ba538eb99e2_f30.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0013_q6_f30.jpg",
      "physmind": "data/physmind/internet_0013_f30.jpg",
      "questions": [
       "internet_0013_q6"
@@ -505,12 +525,13 @@
        "color": "#2e9b5f"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "internet_0013_q6"
     },
     {
      "frame": 90,
      "t": 3.0,
-     "ours": "data/runtime/v1/internet_0013/200d6c33a9207fdca013aacb_f90.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0013_q5_f90.jpg",
      "physmind": "data/physmind/internet_0013_f90.jpg",
      "questions": [
       "internet_0013_q5"
@@ -529,7 +550,8 @@
        "color": "#2e9b5f"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "internet_0013_q5"
     }
    ]
   },
@@ -542,7 +564,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/internet_0019/0745a7729b54d956881ffab6_f0.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0019_q1_f0.jpg",
      "physmind": "data/physmind/internet_0019_f0.jpg",
      "questions": [
       "internet_0019_q1",
@@ -563,12 +585,13 @@
      ],
      "missing": [
       "ball"
-     ]
+     ],
+     "ours_unit": "internet_0019_q1"
     },
     {
      "frame": 30,
      "t": 1.0,
-     "ours": "data/runtime/v1/internet_0019/d69741d173998d497ee1a89a_f30.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0019_q6_f30.jpg",
      "physmind": "data/physmind/internet_0019_f30.jpg",
      "questions": [
       "internet_0019_q6"
@@ -587,7 +610,8 @@
        "color": "#2e9b5f"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "internet_0019_q6"
     }
    ]
   },
@@ -600,7 +624,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/internet_0027/ad8c3368269b692c2466baac_f0.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0027_q1_f0.jpg",
      "physmind": "data/physmind/internet_0027_f0.jpg",
      "questions": [
       "internet_0027_q1",
@@ -616,12 +640,13 @@
       "black ball",
       "orange ball",
       "white ball"
-     ]
+     ],
+     "ours_unit": "internet_0027_q1"
     },
     {
      "frame": 25,
      "t": 1.0,
-     "ours": "data/runtime/v1/internet_0027/4d3e0639fa2647ceb08a5ed1_f25.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0027_q2_f25.jpg",
      "physmind": "data/physmind/internet_0027_f25.jpg",
      "questions": [
       "internet_0027_q2",
@@ -643,12 +668,13 @@
      ],
      "missing": [
       "white ball"
-     ]
+     ],
+     "ours_unit": "internet_0027_q2"
     },
     {
      "frame": 50,
      "t": 2.0,
-     "ours": "data/runtime/v1/internet_0027/4a79089c033530585e9ae230_f50.jpg",
+     "ours": "data/qualitative/v6valloop/internet_0027_q2_f50.jpg",
      "physmind": "data/physmind/internet_0027_f50.jpg",
      "questions": [
       "internet_0027_q2"
@@ -671,7 +697,8 @@
        "color": "#b03fa8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "internet_0027_q2"
     }
    ]
   },
@@ -684,7 +711,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0009/dcfc17a9d888451389440832_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0009_q1_f0.jpg",
      "physmind": "data/physmind/simulation_0009_f0.jpg",
      "questions": [
       "simulation_0009_q1",
@@ -707,7 +734,8 @@
      ],
      "missing": [
       "wooden steps"
-     ]
+     ],
+     "ours_unit": "simulation_0009_q1"
     }
    ]
   },
@@ -720,7 +748,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0015/aa2bda36615f80ceba6efcf7_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0015_q1_f0.jpg",
      "physmind": "data/physmind/simulation_0015_f0.jpg",
      "questions": [
       "simulation_0015_q1",
@@ -748,7 +776,8 @@
        "color": "#2e9b5f"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0015_q1"
     }
    ]
   },
@@ -761,7 +790,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0034_segmented/ff7fcfc5c5f71313997c9838_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0034_segmented_q1_f0.jpg",
      "physmind": "data/physmind/simulation_0034_segmented_f0.jpg",
      "questions": [
       "simulation_0034_segmented_q1",
@@ -783,7 +812,8 @@
      ],
      "missing": [
       "eagle"
-     ]
+     ],
+     "ours_unit": "simulation_0034_segmented_q1"
     }
    ]
   },
@@ -796,7 +826,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0060/80c0a43bdf6c9d09cd68d651_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0060_q2_f0.jpg",
      "physmind": "data/physmind/simulation_0060_f0.jpg",
      "questions": [
       "simulation_0060_q2",
@@ -833,7 +863,8 @@
      "missing": [
       "walking pedestrian",
       "white car"
-     ]
+     ],
+     "ours_unit": "simulation_0060_q2"
     }
    ]
   },
@@ -846,7 +877,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0089/d1d78c9c3f4e551c2659b001_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0089_q1_f0.jpg",
      "physmind": "data/physmind/simulation_0089_f0.jpg",
      "questions": [
       "simulation_0089_q1",
@@ -861,7 +892,8 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0089_q1"
     }
    ]
   },
@@ -874,7 +906,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0098_segmented/73133b8102871d9c204b4f90_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0098_segmented_q1_f0.jpg",
      "physmind": "data/physmind/simulation_0098_segmented_f0.jpg",
      "questions": [
       "simulation_0098_segmented_q1",
@@ -882,7 +914,8 @@
       "simulation_0098_segmented_q4"
      ],
      "drawn": [],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0098_segmented_q1"
     }
    ]
   },
@@ -895,7 +928,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0163/2be173076db37e81b6f7d255_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0163_q5_f0.jpg",
      "physmind": "data/physmind/simulation_0163_f0.jpg",
      "questions": [
       "simulation_0163_q5",
@@ -909,12 +942,13 @@
      ],
      "missing": [
       "ball"
-     ]
+     ],
+     "ours_unit": "simulation_0163_q5"
     },
     {
      "frame": 12,
      "t": 0.5,
-     "ours": "data/runtime/v1/simulation_0163/0a3dd6f54f91c2027a4b1e75_f12.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0163_q1_f12.jpg",
      "physmind": "data/physmind/simulation_0163_f12.jpg",
      "questions": [
       "simulation_0163_q1",
@@ -930,12 +964,13 @@
        "color": "#d9622b"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0163_q1"
     },
     {
      "frame": 24,
      "t": 1.0,
-     "ours": "data/runtime/v1/simulation_0163/dfacd3ead99ec2fdb7a2ad7a_f24.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0163_q3_f24.jpg",
      "physmind": "data/physmind/simulation_0163_f24.jpg",
      "questions": [
       "simulation_0163_q3",
@@ -951,7 +986,8 @@
        "color": "#d9622b"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0163_q3"
     }
    ]
   },
@@ -964,7 +1000,7 @@
     {
      "frame": 12,
      "t": 0.5,
-     "ours": "data/runtime/v1/simulation_0170_segmented/31d9cdcb355b796778970a50_f12.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q1_f12.jpg",
      "physmind": "data/physmind/simulation_0170_segmented_f12.jpg",
      "questions": [
       "simulation_0170_segmented_q1",
@@ -976,12 +1012,13 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0170_segmented_q1"
     },
     {
      "frame": 24,
      "t": 1.0,
-     "ours": "data/runtime/v1/simulation_0170_segmented/a468810124cfa82fec47261a_f24.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q3_f24.jpg",
      "physmind": "data/physmind/simulation_0170_segmented_f24.jpg",
      "questions": [
       "simulation_0170_segmented_q3",
@@ -993,12 +1030,13 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0170_segmented_q3"
     },
     {
      "frame": 48,
      "t": 2.0,
-     "ours": "data/runtime/v1/simulation_0170_segmented/72f37b7ce98255f2609732f0_f48.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q5_f48.jpg",
      "physmind": "data/physmind/simulation_0170_segmented_f48.jpg",
      "questions": [
       "simulation_0170_segmented_q5",
@@ -1010,12 +1048,13 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0170_segmented_q5"
     },
     {
      "frame": 72,
      "t": 3.0,
-     "ours": "data/runtime/v1/simulation_0170_segmented/ff729b2dbc9bc8439cbec4a2_f72.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0170_segmented_q7_f72.jpg",
      "physmind": "data/physmind/simulation_0170_segmented_f72.jpg",
      "questions": [
       "simulation_0170_segmented_q7",
@@ -1027,7 +1066,8 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0170_segmented_q7"
     }
    ]
   },
@@ -1040,7 +1080,7 @@
     {
      "frame": 12,
      "t": 0.5,
-     "ours": "data/runtime/v1/simulation_0171/c7d8fbbc3f4af62128f5eda7_f12.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0171_q1_f12.jpg",
      "physmind": "data/physmind/simulation_0171_f12.jpg",
      "questions": [
       "simulation_0171_q1",
@@ -1052,12 +1092,13 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0171_q1"
     },
     {
      "frame": 24,
      "t": 1.0,
-     "ours": "data/runtime/v1/simulation_0171/25506dccea22bc82827c49e9_f24.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0171_q3_f24.jpg",
      "physmind": "data/physmind/simulation_0171_f24.jpg",
      "questions": [
       "simulation_0171_q3"
@@ -1068,12 +1109,13 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0171_q3"
     },
     {
      "frame": 48,
      "t": 2.0,
-     "ours": "data/runtime/v1/simulation_0171/66be91114d929043b4d8d62f_f48.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0171_q5_f48.jpg",
      "physmind": "data/physmind/simulation_0171_f48.jpg",
      "questions": [
       "simulation_0171_q5",
@@ -1085,12 +1127,13 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0171_q5"
     },
     {
      "frame": 72,
      "t": 3.0,
-     "ours": "data/runtime/v1/simulation_0171/59433d451da9749b70db8d82_f72.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0171_q7_f72.jpg",
      "physmind": "data/physmind/simulation_0171_f72.jpg",
      "questions": [
       "simulation_0171_q7",
@@ -1102,7 +1145,8 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0171_q7"
     }
    ]
   },
@@ -1115,7 +1159,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0193/542fd69a728594628a499de6_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0193_q1_f0.jpg",
      "physmind": null,
      "questions": [
       "simulation_0193_q1",
@@ -1131,7 +1175,8 @@
       "simulation_0193_q12"
      ],
      "drawn": [],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0193_q1"
     }
    ]
   },
@@ -1144,7 +1189,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0196/27a4146eb384e15ed1e5071d_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0196_q1_f0.jpg",
      "physmind": "data/physmind/simulation_0196_f0.jpg",
      "questions": [
       "simulation_0196_q1",
@@ -1157,7 +1202,8 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0196_q1"
     }
    ]
   },
@@ -1170,7 +1216,7 @@
     {
      "frame": 0,
      "t": 0.0,
-     "ours": "data/runtime/v1/simulation_0300/c01e8fee2f16f42133d43dc5_f0.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0300_q3_f0.jpg",
      "physmind": "data/physmind/simulation_0300_f0.jpg",
      "questions": [
       "simulation_0300_q3",
@@ -1180,12 +1226,13 @@
      "drawn": [],
      "missing": [
       "car"
-     ]
+     ],
+     "ours_unit": "simulation_0300_q3"
     },
     {
      "frame": 24,
      "t": 1.0,
-     "ours": "data/runtime/v1/simulation_0300/bc91fb07532a9dd34bd0617c_f24.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0300_q1_f24.jpg",
      "physmind": "data/physmind/simulation_0300_f24.jpg",
      "questions": [
       "simulation_0300_q1"
@@ -1196,12 +1243,13 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0300_q1"
     },
     {
      "frame": 48,
      "t": 2.0,
-     "ours": "data/runtime/v1/simulation_0300/a12030afde3575b9be751875_f48.jpg",
+     "ours": "data/qualitative/v6valloop/simulation_0300_q2_f48.jpg",
      "physmind": "data/physmind/simulation_0300_f48.jpg",
      "questions": [
       "simulation_0300_q2"
@@ -1212,7 +1260,8 @@
        "color": "#3b6fd8"
       }
      ],
-     "missing": []
+     "missing": [],
+     "ours_unit": "simulation_0300_q2"
     }
    ]
   }

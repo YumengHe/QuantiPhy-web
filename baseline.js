@@ -34,7 +34,8 @@
       '<th class="n">Reported in<br>original paper</th></tr>';
     const counts = '<tr><td class="muted">Questions</td><td class="n muted">' + qs.length + '</td>' +
       CATS.map((c) => `<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + '<td></td></tr>';
-    const rows = DATA.methods.map((m) => `<tr><td>${dot(m.key)}<a href="${esc(m.source)}" target="_blank" rel="noopener">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
+    const link = (m) => m.key === 'ours' ? `<a href="${esc(m.source)}">${esc(m.label)}</a>` : `<a href="${esc(m.source)}" target="_blank" rel="noopener">${esc(m.label)}</a>`;
+    const rows = DATA.methods.map((m) => `<tr${m.key === 'ours' ? ' class="ours"' : ''}><td>${dot(m.key)}${link(m)}</td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
       CATS.map((c) => `<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') +
       `<td class="n muted">${fmt(m.paper)}</td></tr>`).join('');
     $('b-table').innerHTML = head + rows + counts;
@@ -112,7 +113,17 @@
   }
   function debounce(fn, ms) { let t = 0; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; }
 
-  fetch('data/baseline.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
+  // ours: answer_final of the scene-program run for every question (data/comparison_ours.json, tools/build_videos.py)
+  function addOurs(d, ours) {
+    const miss = d.questions.filter((q) => !ours.questions[q.id]).map((q) => q.id);
+    if (miss.length) throw new Error(`comparison_ours.json lacks ${miss.join(', ')}`);
+    d.methods.push({ key: 'ours', label: `${ours.label} (${ours.version})`, paper: null, source: 'evaluation.html',
+      setup: `answer_final of the scene-program run (${ours.run.join(' · ')}), as on the Evaluation page` });
+    d.questions.forEach((q) => { const o = ours.questions[q.id]; q.preds.ours = { pred: o.final, mra: o.final_mra, raw: o.final_source }; });
+  }
+  const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(`${u}: ${r.status}`); return r.json(); });
+  Promise.all([get('data/baseline.json'), get('data/comparison_ours.json')]).then(([d, ours]) => {
+    addOurs(d, ours);
     DATA = d;
     d.vmap = Object.fromEntries(d.videos.map((v) => [v.id, v]));
     d.methods.forEach((m) => { const o = document.createElement('option'); o.value = m.key; o.textContent = m.label; $('b-method').appendChild(o); });
@@ -122,6 +133,6 @@
     $('b-q').addEventListener('input', debounce(render, 200));
     render();
   }).catch((e) => {
-    $('b-list').innerHTML = `<p class="noscene">data/baseline.json: ${esc(e.message)}</p>`;
+    $('b-list').innerHTML = `<p class="noscene">${esc(e.message)}</p>`;
   });
 })();

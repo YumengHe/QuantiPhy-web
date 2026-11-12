@@ -3,8 +3,7 @@
 Reads only the runs' outputs; never runs the pipeline. The page lists one row per question; a question is the
 unit <video_id>_q<k> (k = its 1-based order among the video's rows of the split table, docs/PER_QUESTION.md).
 
-  python -B web/tools/build_videos.py --val-runs v1
-  python -B web/tools/build_videos.py --val-runs v5gpt=outputs/val_v5gpt_answers_dev20.csv v1
+  python -B web/tools/build_videos.py --val-runs v6gpt --sceneprog v6val v6valloop
 
 Runs are listed in order of preference: each question is shown from the first run whose CSV has its row, and every
 value of that question (pred, MRA, source, scene, overlays, tracks, scene graph) comes from that run alone. The page
@@ -30,7 +29,11 @@ Overlays: the record web/data/runtime/<tag>/overlays.json lists every overlay of
 (pipeline/VERSION) may render the ones it lacks, with the current code; building an older version needs every overlay
 in its record, with its image on disk.
 
-Layout: {"generated", "val": {"runs": [{"version", "unit", "csv"}], "dev", "videos", "questions"}}. Each question
+Scene program (versions whose VERSION_FORMAT has "sceneprog", --sceneprog BUILD LOOP): every question of the first
+run also carries "sp" (sceneprog_view: both answers and MRAs from outputs/sceneprog_answers_<LOOP>.json, the loop,
+the renders under media/sceneprog/<tag>/), and data/comparison_ours.json is written (write_comparison_ours).
+
+Layout: {"generated", "val": {"runs": [{"version", "unit", "csv"}], "dev", "videos", "questions", "sceneprog"}}. Each question
 names its "version". A video carries "runs": {version: {"run_at", ...}}; with unit "video" (the run fits one scene
 per video and prior group) that entry also holds the groups' scenes, the scene graph and tracks, and each question
 names its group. With unit "question" each question carries its own scene / scene graph / tracks / fit.
@@ -281,6 +284,10 @@ VERSION_FORMAT = {
            "undetermined": True, "contained": True, "unobserved": True, "rendered": True, "up": True,
            "anchored": True},
 }
+# v6: the v5 harness (batch 29 plus the kept parts of 2026-11-05) as the perception below the scene-program chain;
+# its harness artifacts have the v5 format, and every question also carries its scene-program products
+# (outputs/sceneprog/<build tag>/<unit>, outputs/sceneprog/<loop tag>/<unit>, see sceneprog_view)
+VERSION_FORMAT["v6"] = {**VERSION_FORMAT["v5"], "sceneprog": True}
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
 FMT: dict = {}     # VERSION_FORMAT entry of the version being built
@@ -990,6 +997,9 @@ def motion_law(name: str, o: dict):
         if set(law) != {"model", "why"}:
             raise ValueError(f"{AT['where']}: object {name!r} pendulum motion law keys {sorted(law)}")
         out["why"] = text(law["why"])
+    elif FMT.get("sceneprog") and set(law) == {"model", "why"}:
+        # a law with its reason only (scene_fit.motion_law: "scene graph: does not move"), no phases, no unknown span
+        out["why"] = text(law["why"])
     elif FMT.get("selftest") and rot is None:
         out["unknown"] = [[num(a, 4), None if b >= OPEN_END else num(b, 4)]
                           for a, b in req(law, "unknown", f"object {name!r} motion law")] or None
@@ -1134,14 +1144,15 @@ def measurement_row(m: dict) -> dict:
     frames = {}
     if FMT.get("unobserved"):
         # rule D31 time.one_grid: frame indices beside the seconds of the window and the piece
-        if bool(inputs.get("window")) != ("frames" in inputs) or ("piece" in inputs) != ("piece_frames" in inputs):
+        if (not FMT.get("sceneprog") and bool(inputs.get("window")) != ("frames" in inputs)) or \
+                ("piece" in inputs) != ("piece_frames" in inputs):
             raise ValueError(f"{AT['where']}: {what} inputs window / frames, piece / piece_frames {sorted(inputs)}")
         cp = inputs.get("chain_piece")
         if cp is not None and req(cp, "piece_frames", f"{what} chain_piece") != inputs.get("piece_frames"):
             raise ValueError(f"{AT['where']}: {what} chain_piece piece_frames {cp['piece_frames']} vs {inputs.get('piece_frames')}")
         if (inputs.get("piece") is None) != (inputs.get("piece_frames") is None):
             raise ValueError(f"{AT['where']}: {what} piece {inputs.get('piece')} with piece_frames {inputs.get('piece_frames')}")
-        frames = {"window_frames": frames_pair(inputs, "frames", what) if inputs.get("window") else None,
+        frames = {"window_frames": frames_pair(inputs, "frames", what) if inputs.get("window") and "frames" in inputs else None,
                   "piece_frames": frames_pair(inputs, "piece_frames", what) if inputs.get("piece_frames") is not None else None}
     if FMT.get("fused") and inputs.get("piece") is not None:
         cp = req(inputs, "chain_piece", what)
@@ -1588,9 +1599,12 @@ def partial_view(rec: dict):
         raise ValueError(f"{AT['where']}: answer record execution_status {es!r}")
     its = req(rec, "iterations", "answer record")
     last = its[-1] if its else {}
+    if FMT.get("sceneprog") and st["reason"] != "planning_failed":
+        # v6: a unit is also partial when the loop stopped with a named reason (loop.exhausted) on an unresolved scene
+        return {"round": int(req(st, "round", "answer record stop")), "why": f"{text(st['reason'])}: {text(req(st, 'why', 'answer record stop'))}"}
     if st["reason"] != "planning_failed" or set(last) != PLANNING_FAILED_KEYS or int(last["iter"]) != int(st["round"]):
         raise ValueError(f"{AT['where']}: partial record with stop {st!r}, last round keys {sorted(last)}")
-    return {"round": int(st["round"]), "why": text(last["why"])}
+    return {"round": int(st["round"]), "why": f"planning_failed: {text(last['why'])}"}
 
 
 def rounds_view(rec: dict) -> dict | None:
@@ -1906,7 +1920,7 @@ def class_reference_view(state: dict, scale_source: str) -> dict:
 
 REJECT_REASONS = ("class.unknown", "class.not_answered", "name.listed", "name.ground", "name.duplicate", "references.max",
                   "scene.rendered")   # pipeline.objects (rule C15 part 1)
-OBJECT_ROLES = ("object", "structure", "reference")
+OBJECT_ROLES = ("object", "structure", "reference", "class")   # "class": an instance of a class prior (objects.py)
 
 
 RENDER_CUES = ("synthetic_surface", "engine_overlay", "impossible_camera", "engine_objects", "clean_image",
@@ -2273,10 +2287,13 @@ def choice_view(c: dict, w: str) -> dict:
     unless the scan has the object only partly there) with the rule and why, the scan's labels per probe frame, the
     detector boxes dropped as the image itself (candidate.full_frame), and the record's binding to the accepted track
     (choose.track_binding): where the track starts, the chooser's picks it did not take, the box IoU at the start."""
-    cf, sc = req(c, "choice_frame", w), req(c, "scan", w)
+    # v6: a record whose box came from the alternative rule has no probe-frame scan
+    cf = req(c, "choice_frame", w)
+    sc = c.get("scan") if FMT.get("sceneprog") and c.get("rule") == "alternative" else req(c, "scan", w)
     if set(cf) != {"frame", "why", "shared", "shared_status", "rule"} or cf["rule"] not in CHOICE_RULES or \
             cf["shared_status"] not in ("full", "partial", "absent", None) or cf["shared"] != req(c, "shared_frame", w) or \
-            set(sc) != {"labels", "best"} or any(v not in ("full", "partial", "absent") for v in sc["labels"].values()):
+            (sc is not None and (set(sc) != {"labels", "best"} or
+                                 any(v not in ("full", "partial", "absent") for v in sc["labels"].values()))):
         raise ValueError(f"{AT['where']}: {w} choice_frame {cf!r} scan {sc!r}")
     dropped = []
     for d in c.get("dropped") or []:
@@ -2288,7 +2305,8 @@ def choice_view(c: dict, w: str) -> dict:
         raise ValueError(f"{AT['where']}: {w} rule {rule!r} untracked {untracked!r}")
     rejected = []
     for r in req(c, "rejected", w):
-        if set(r) != REJECTED_CHOICE_KEYS:
+        # v6: a chooser that boxed nothing records no choice / choices / reason
+        if set(r) != REJECTED_CHOICE_KEYS and not (FMT.get("sceneprog") and set(r) == {"frame", "box", "source", "why"}):
             raise ValueError(f"{AT['where']}: {w} rejected keys {sorted(r)}")
         rejected.append({"frame": r["frame"], "box": [round(float(x)) for x in r["box"]] if r["box"] else None,
                          "source": text(r["source"]), "why": text(r["why"])})
@@ -2307,7 +2325,8 @@ def choice_view(c: dict, w: str) -> dict:
             raise ValueError(f"{AT['where']}: {w} binding frames {binding} vs choice {cf['frame']} / start {af['frame']}")
     return {"frame": cf["frame"], "why": text(cf["why"]), "rule": cf["rule"], "shared": cf["shared"],
             "shared_status": cf["shared_status"],
-            "scan": [[int(k), v] for k, v in sorted(sc["labels"].items(), key=lambda kv: int(kv[0]))], "best": sc["best"],
+            "scan": [[int(k), v] for k, v in sorted(sc["labels"].items(), key=lambda kv: int(kv[0]))] if sc else None,
+            "best": sc["best"] if sc else None,
             "dropped": dropped, "record_rule": rule, "source": text(c["source"]),
             "start": {"frame": af["frame"], "why": text(af["why"])} if af else None,
             "rejected": rejected, "binding": binding}
@@ -2492,7 +2511,8 @@ def support_view(name: str, o: dict) -> dict:
     and what it was; an overhead structure carries its D34 test, and a failing one is a static box "static_above"."""
     w = f"scene object {name!r} support"
     sp = req(o, "support", f"scene object {name!r}")
-    if not isinstance(sp, dict) or not {"mode", "target", "airborne_part", "source"} <= set(sp) \
+    need = {"mode", "target", "airborne_part"} | (set() if FMT.get("sceneprog") else {"source"})
+    if not isinstance(sp, dict) or not need <= set(sp) \
             or not set(sp) <= {"mode", "target", "airborne_part", "source", "rel", "rule", "was", SEEN_FROM_BELOW} \
             or ("rule" in sp) != ("was" in sp):
         raise ValueError(f"{AT['where']}: {w} {sp!r}")
@@ -2727,7 +2747,8 @@ def contained_view(state: dict):
         if set(e) != CONTAINED_EDGE_KEYS:
             raise ValueError(f"{AT['where']}: {we} keys {sorted(e)}")
         plan, ct = e["plan"], e["containment"]
-        if req(plan, "mode", f"{we} plan") != "contained" or text(req(plan, "target", f"{we} plan")) != text(e["b"]):
+        # the rule rewrites only a plan "support" on B (scene_fit.contained_plans); any other plan is kept as it was
+        if req(plan, "mode", f"{we} plan") == "contained" and text(req(plan, "target", f"{we} plan")) != text(e["b"]):
             raise ValueError(f"{AT['where']}: {we} plan {plan!r}")
         if any(i not in cons for i in e["ids"]) or len(e["ids"]) != len(e["rows"]):
             raise ValueError(f"{AT['where']}: {we} ids {e['ids']} not the scene's contained constraints {sorted(cons)}")
@@ -2765,7 +2786,7 @@ REFERENCE_KEYS = ("role", "size_only", "size_reference", "read", "state", "why",
 REFERENCE_READ_KEYS = ("frames", "n_frames", "frame_set", "excluded", "n_depth", "headings", "rms_box_px", "dims",
                        "dim_source", "shape", "scale")
 REFERENCE_EXCLUDED = ("size.full_extent", "border", "extent.static")
-REFERENCE_SKIPS = ("read.frames", "support.none")
+REFERENCE_SKIPS = ("read.frames", "support.none", "track.none", "focal.undetermined")
 
 
 def references_view(state: dict) -> list:
@@ -3194,7 +3215,7 @@ def undetermined_view(state: dict, cam: dict):
         rows.append({"object": text(req(x, "object", ws)), "kind": text(req(x, "kind", ws)), "f": num(req(x, "f", ws), 4),
                      "sigma": num(req(x, "sigma", ws), 3), "verdict": v, "why": text(req(x, "why", ws)) or None})
     used = [text(x) for x in fu["sources_used"]]
-    if ok and len(used) != len([r for r in rows if r["verdict"] == "used"]):
+    if ok and len(used) != len([r for r in rows if r["verdict"] == "used"]) and not (FMT.get("sceneprog") and fu.get("repair")):
         raise ValueError(f"{AT['where']}: {w} sources_used {used} differ from the used sources")
     dm = fu["depth_model"]
     dmv = None if dm is None else {"f": num(req(dm, "f", f"{w} depth_model"), 4), "sigma": num(req(dm, "sigma", f"{w} depth_model"), 3),
@@ -3246,7 +3267,11 @@ def prior_untracked_repairs(rounds: dict | None, obj: str):
     for r in (rounds or {}).get("rounds", []):
         if r.get("planning_failed"):
             continue
-        if not any(c["for"] == "prior.untracked" and c["name"] == "track_reselect" and c["params"].get("object") == obj
+        # v6: a reselect already tried on the unchanged state is dropped before the planner ("already tried on this
+        # unchanged state"), which counts as offered
+        dropped = [c for c in r.get("dropped", []) if FMT.get("sceneprog") and c["name"] == "track_reselect"
+                   and c["params"].get("object") == obj and c["why"] == "already tried on this unchanged state"]
+        if not dropped and not any(c["for"] == "prior.untracked" and c["name"] == "track_reselect" and c["params"].get("object") == obj
                    for c in r["candidates"]):
             raise ValueError(f"{AT['where']}: agent round {r['iter']} offers no track_reselect on {obj!r} for prior.untracked")
 
@@ -3965,6 +3990,19 @@ def failed_unit(rec: dict, row: dict) -> dict:
             "measurement": None, "provenance": None, "quality": {}, "align": None, "group": None, "binding_error": None}
 
 
+def stale_row_unit(rec: dict, row: dict) -> dict:
+    """A v6 unit whose CSV row says execution_failed while its answer record is complete (a retry under another run
+    signature, docs/VAL_V6.md): the CSV's verdict, no harness answer or scene, the record's own timing."""
+    sig = json.loads(text(row["version"]))["run_signature"]
+    if sig != req(req(rec, "version", "answer record"), "run_signature", "answer record version") or \
+            text(row["status"]) != "failed" or num(row["pred"]) is not None:
+        raise ValueError(f"{AT['where']}: execution_failed CSV row with a complete record of another signature or a pred")
+    out = failed_unit({"error": "listed execution_failed in the run's CSV; the answer record of its retry is complete",
+                       "answer": None, "timing": {**req(rec, "timing", "answer record")}}, row | {"seconds": req(req(rec, "timing", "answer record"), "total_seconds", "timing")})
+    out["time"] = timing_view(req(rec, "timing", "answer record"), req(req(rec, "timing", "answer record"), "total_seconds", "timing"))
+    return out
+
+
 def timing_view(t: dict, csv_seconds, prefix: bool = False) -> dict:
     """A unit's timing ("timing" of its answer record) for the page: total seconds and one entry per step, in pipeline
     order: {"step", "s", "reused" (false | "partial" | true), "cached", "shared"}. The CSV "seconds" must be the total.
@@ -4077,6 +4115,15 @@ def build_run(tag: str, frame: pd.DataFrame, manifest: pd.DataFrame, units: list
                 exec_status = record["execution_status"]
             else:
                 rec = question_record(tag, unit, row)
+                if FMT.get("sceneprog") and text(row["source"]) == "execution_failed" and \
+                        req(rec, "execution_status", "answer record") == "complete":
+                    # docs/VAL_V6.md "Known gap": a unit retried on the bug-fix commit has a complete answer record,
+                    # but the run's CSV, written under the first pass's run signature, lists it execution_failed; the
+                    # CSV's row is shown as it is (no harness answer), with the record's timing
+                    query |= stale_row_unit(rec, row)
+                    query["tq"], query["tjump"] = question_times(query["q"], None)
+                    questions.append(query)
+                    continue
                 if FMT.get("fused") and req(rec, "execution_status", "answer record") == "failed":
                     query |= failed_unit(rec, row)
                     query["tq"], query["tjump"] = question_times(query["q"], None)
@@ -4292,6 +4339,131 @@ def unit_set(tag: str, frame: pd.DataFrame, csv_path: Path):
     return vals[0]
 
 
+# ---------- the scene-program chain of a v6 run (docs/SCENE_PROGRAM.md, docs/VAL_V6.md) ----------
+SP_ROW_KEYS = {"unit", "truth", "unit_asked", "scene", "scene_mra", "final", "final_source", "final_mra", "baseline",
+               "baseline_mra"}
+SP_SOURCES = ("scene", "agent")       # tools/sceneprog_answers.py final_source; a unit without an answer: "none"
+SP_LOOP_STOPS = ("no_edit_available", "converged", "budget")
+SP_MEDIA = "media/sceneprog"          # git-ignored symlinks media/sceneprog/<tag> -> outputs/sceneprog/<tag>
+
+
+def sp_media(tag: str, unit: str, name: str) -> str:
+    """The page path of one scene-program product; the file must exist behind the media symlink."""
+    p = WEB / SP_MEDIA / tag / unit / name
+    if not p.is_file():
+        raise ValueError(f"{unit}: {SP_MEDIA}/{tag}/{unit}/{name} missing (symlink {SP_MEDIA}/{tag} -> outputs/sceneprog/{tag})")
+    return f"{SP_MEDIA}/{tag}/{unit}/{name}"
+
+
+def sceneprog_rows(build: str, loop: str, harness: str) -> dict:
+    """The per-question table of tools/sceneprog_answers.py for loop tag `loop` (outputs/sceneprog_answers_<loop>.json):
+    {unit: row}, every row with exactly SP_ROW_KEYS."""
+    j = read_json(ROOT / "outputs" / f"sceneprog_answers_{loop}.json", "scene-program answer table")
+    if req(j, "tag", "scene-program answer table") != loop or req(j, "baseline", "scene-program answer table") != harness:
+        raise ValueError(f"sceneprog_answers_{loop}.json: tag {j['tag']!r} / baseline {j['baseline']!r}, expected {loop!r} / {harness!r}")
+    out = {}
+    for r in req(j, "rows", "scene-program answer table"):
+        if set(r) != SP_ROW_KEYS or r["final_source"] not in SP_SOURCES or r["unit"] in out:
+            raise ValueError(f"sceneprog_answers_{loop}.json: row {r.get('unit')!r} keys {sorted(r)} source {r.get('final_source')!r}")
+        out[r["unit"]] = r
+    return out
+
+
+def sceneprog_view(build: str, loop: str, q: dict, row: dict | None) -> dict:
+    """One question's scene-program products: the two answers (answer_scene, the strict read-out of the fitted program,
+    undetermined = no value; answer_final, the agent's answer, the reported one) with their MRA from the answer table,
+    the loop's stop, rounds and accepted edits, the fit's status, the time of each chain step this unit records
+    (build: plan.json timing; fit: the first fit, fit.json time_s; loop: loop.json wall_s), and the renders: overlays
+    of the final program (loop tag), the views of each loop round, the plan grid and the shapes (build tag).
+    `row` None: the unit has no answer (no loop directory may exist; MRA 0, source "none")."""
+    unit = q["id"]
+    AT["where"] = f"{loop} {unit}"
+    ld, bd = ROOT / "outputs" / "sceneprog" / loop / unit, ROOT / "outputs" / "sceneprog" / build / unit
+    if row is None:
+        if ld.exists() or (bd / "fit.json").exists():
+            raise ValueError(f"{unit}: not in the answer table but {ld.relative_to(ROOT)} or a fit exists")
+        return {"scene": None, "sigma": None, "determined": False, "reason": None, "scene_mra": 0.0,
+                "final": None, "final_source": "none", "final_mra": 0.0, "unit": None, "rationale": None,
+                "loop": None, "fit_status": None, "time": None, "renders": None}
+    if num(row["truth"]) != q["answer"]:     # both to the page's 4 significant figures
+        raise ValueError(f"{unit}: answer table truth {row['truth']} differs from the validation table's {q['answer']}")
+    a = read_json(ld / "answer.json", "scene-program answer")
+    if req(a, "schema", "scene-program answer") != "sceneprog-answer/1" or a["unit"] != unit or \
+            req(req(a, "provenance", "scene-program answer"), "tag", "provenance") != loop:
+        raise ValueError(f"{unit}: answer.json schema / unit / tag {a.get('schema')!r} {a.get('unit')!r}")
+    sc, fi = req(a, "answer_scene", "answer.json"), req(a, "answer_final", "answer.json")
+    det = req(sc, "determined", "answer_scene")
+    if (row["scene"] is None) == bool(det) or (det and num(row["scene"]) != num(req(sc, "value", "answer_scene"))):
+        raise ValueError(f"{unit}: answer table scene {row['scene']!r} vs answer_scene {sc['value']!r} determined {det}")
+    if num(row["final"]) != num(req(fi, "value", "answer_final")):
+        raise ValueError(f"{unit}: answer table final {row['final']!r} vs answer_final {fi['value']!r}")
+    lp = read_json(ld / "loop.json", "loop record")
+    if req(lp, "unit", "loop record") != unit or req(lp, "out_tag", "loop record") != loop or \
+            req(req(lp, "source", "loop record"), "tag", "loop source") != build:
+        raise ValueError(f"{unit}: loop.json unit / out_tag / source {lp.get('unit')!r} {lp.get('out_tag')!r}")
+    stop = req(lp, "status", "loop record")
+    if stop not in SP_LOOP_STOPS:
+        raise ValueError(f"{unit}: loop status {stop!r}")
+    n_rounds = len(req(lp, "rounds", "loop record"))
+    fit = read_json(ld / "fit.json", "final fit")
+    fit0 = read_json(bd / "fit.json", "first fit")
+    plan = read_json(bd / "plan.json", "plan")
+    overlays = sorted(p.name for p in ld.glob("overlay_f*.jpg"))
+    if not overlays:
+        raise ValueError(f"{unit}: no overlay_f*.jpg in {ld.relative_to(ROOT)}")
+    return {"scene": num(sc["value"]) if det else None, "sigma": num(sc.get("sigma"), 3) if det else None,
+            "determined": bool(det), "reason": text(sc.get("reason")) or None, "scene_mra": num(row["scene_mra"], 6),
+            "final": num(row["final"]), "final_source": row["final_source"], "final_mra": num(row["final_mra"], 6),
+            "unit": text(req(fi, "unit", "answer_final")), "rationale": text(fi.get("rationale")) or None,
+            "loop": {"stop": stop, "why": text(req(lp, "status_reason", "loop record")), "rounds": n_rounds,
+                     "accepted": int(req(lp, "accepted", "loop record")), "proposals": int(req(lp, "proposals", "loop record"))},
+            "fit_status": text(req(fit, "status", "final fit")),
+            "time": {"build": num(req(req(plan, "timing", "plan"), "total_s", "plan timing"), 4),
+                     "fit": num(req(fit0, "time_s", "first fit"), 4), "loop": num(req(lp, "wall_s", "loop record"), 4)},
+            "renders": {"overlays": [sp_media(loop, unit, n) for n in overlays],
+                        "views": [sp_media(loop, unit, f"views_r{k}.jpg") for k in range(1, n_rounds + 1)],
+                        "plan_grid": sp_media(build, unit, "plan_grid.jpg"), "shapes": sp_media(build, unit, "shapes.png")}}
+
+
+def add_sceneprog(questions: list[dict], harness: str, build: str, loop: str) -> dict:
+    """Attach the scene-program products of build / loop tags to every question of harness run `harness` ("sp"); a
+    question of the validation table must be in the answer table unless its harness unit failed (docs/VAL_V6.md: a
+    unit without an answer). Returns the run's {"harness", "build", "loop"} record."""
+    rows = sceneprog_rows(build, loop, harness)
+    mine = [q for q in questions if q["version"] == harness]
+    extra = set(rows) - {q["id"] for q in mine}
+    if extra:
+        raise ValueError(f"sceneprog_answers_{loop}.json: units not in the {harness} run: {sorted(extra)}")
+    for q in mine:
+        row = rows.get(q["id"])
+        if row is None and q.get("execution_status") != "failed":
+            raise ValueError(f"{q['id']}: not in sceneprog_answers_{loop}.json while its harness unit did not fail")
+        q["sp"] = sceneprog_view(build, loop, q, row)
+    return {"harness": harness, "build": build, "loop": loop}
+
+
+OURS_JSON = WEB / "data" / "comparison_ours.json"
+
+
+def write_comparison_ours(questions: list[dict], sp: dict) -> int:
+    """data/comparison_ours.json, our row of the method comparison (index.html, baseline.html): every question of the
+    baselines' set (data/baseline.json) with its category and both MRAs of the scene-program run; the pages compute
+    the scores with the baselines' own rule. Each baseline question must be one of ours."""
+    base = read_json(WEB / "data" / "baseline.json", "baseline data")
+    byid = {q["id"]: q for q in questions}
+    out = {}
+    for b in req(base, "questions", "baseline data"):
+        q = byid.get(b["id"])
+        if q is None or "sp" not in q or q["cat"] != b["cat"]:
+            raise ValueError(f"baseline question {b['id']} not among the scene-program questions (or another category)")
+        out[b["id"]] = {"cat": q["cat"], "final": q["sp"]["final"], "final_source": q["sp"]["final_source"],
+                        "final_mra": q["sp"]["final_mra"], "scene_mra": q["sp"]["scene_mra"]}
+    OURS_JSON.write_text(json.dumps({"label": "Ours", "version": base_version(sp["harness"]),
+                                     "run": [sp["harness"], sp["build"], sp["loop"]], "questions": out},
+                                    ensure_ascii=False, separators=(",", ":")))
+    return len(out)
+
+
 PIPELINE_HTML = WEB / "pipeline.html"
 CLASS_TABLE_MARKS = ("<!-- class_sizes: generated by tools/build_videos.py from pipeline/class_sizes.py -->",
                      "<!-- /class_sizes -->")
@@ -4336,13 +4508,25 @@ STEP_LABELS = {"objects": "1 Objects", "scenegraph_grid": "2 Scene graph (grid)"
 
 def write_time_table(questions: list[dict], tag: str) -> int:
     """Regenerate the time-per-step table of pipeline.html between TIME_TABLE_MARKS from the answer records' timing of
-    run `tag` (the questions' "time"): median / min / max seconds per step and of the total, over the questions that
-    ran every step (a failed chain's prefix is left out). Returns the number of questions."""
+    run `tag` (outputs/harness/<tag>/answers/<unit>.json, "timing"): median / min / max seconds per step and of the
+    total, over the questions whose record ran every step (a failed chain's prefix is left out). Read from the records
+    themselves, not the run's CSV (docs/VAL_V6.md: the CSV lists four retried units as failed). Returns the number."""
     page = PIPELINE_HTML.read_text()
     a, b = TIME_TABLE_MARKS
     if page.count(a) != 1 or page.count(b) != 1 or page.index(a) > page.index(b):
         raise ValueError(f"{PIPELINE_HTML.name}: step-time table marks missing or out of order")
-    qs = [q for q in questions if q["version"] == tag and q.get("execution_status") != "failed"]
+    FMT.clear()
+    FMT.update(version_format(tag))
+    qs = []
+    for q in questions:
+        if q["version"] != tag:
+            continue
+        AT["where"] = f"{tag} {q['id']}"
+        rec = read_json(ROOT / "outputs/harness" / tag / "answers" / f"{q['id']}.json", "answer record")
+        if req(rec, "execution_status", "answer record") == "failed":
+            continue
+        t = req(rec, "timing", "answer record")
+        qs.append({"time": timing_view(t, req(t, "total_seconds", "timing"))})
     if not qs:
         raise ValueError(f"{tag}: no question ran every step")
     steps = [x["step"] for x in qs[0]["time"]["steps"]]
@@ -4375,11 +4559,22 @@ def main():
     ap.add_argument("--val-runs", nargs="+", default=[CURRENT], metavar="TAG[=CSV]",
                     help="completed harness validation runs, in order of preference: a question is shown from the "
                          "first run that has it (default: pipeline/VERSION, %(default)s)")
+    ap.add_argument("--sceneprog", nargs=2, metavar=("BUILD", "LOOP"),
+                    help="scene-program tags of the first run (outputs/sceneprog/<BUILD>, outputs/sceneprog/<LOOP>, "
+                         "outputs/sceneprog_answers_<LOOP>.json); required when its version has the scene program")
     ap.add_argument("--rethumb", action="store_true", help="regenerate thumbnails that already exist")
     args = ap.parse_args()
     THUMBS.mkdir(parents=True, exist_ok=True)
-    data = {"generated": date.today().isoformat(),
-            "val": build_harness_val([parse_run(s) for s in args.val_runs], args.rethumb)}
+    runs = [parse_run(s) for s in args.val_runs]
+    has_sp = [t for t, _ in runs if version_format(t).get("sceneprog")]
+    if has_sp and (has_sp != [runs[0][0]] or not args.sceneprog):
+        raise ValueError(f"runs with the scene program {has_sp}: only the first run, and --sceneprog BUILD LOOP is required")
+    if args.sceneprog and not has_sp:
+        raise ValueError("--sceneprog given, but the first run's version has no scene program")
+    data = {"generated": date.today().isoformat(), "val": build_harness_val(runs, args.rethumb)}
+    if has_sp:
+        data["val"]["sceneprog"] = add_sceneprog(data["val"]["questions"], runs[0][0], *args.sceneprog)
+        print(f"comparison_ours.json: {write_comparison_ours(data['val']['questions'], data['val']['sceneprog'])} baseline questions")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
     used = {Path(v["thumb"]).name for v in data["val"]["videos"]}

@@ -2,23 +2,16 @@
 (function () {
   'use strict';
   const CATS = ['S2', 'D2', 'S3', 'D3'];
-  const SRC_LABEL = { execution_failed: 'failed' };
   const SHAPE_LABEL = { mesh: 'mesh (bounding box)' };
   // object colours: the paper palette, defined once in site.css (--c-*)
   const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const OBJECT_ORDER = ['blue', 'orange', 'green', 'purple', 'yellow', 'teal', 'red', 'lavender', 'olive', 'pink'];
   const PALETTE = OBJECT_ORDER.map((c) => cssVar(`--c-${c}`));
-  let DATA = null;
+  let DATA = null, OURS = null;
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
-  // seconds as m:ss (under a minute: "N s")
-  function fmtSec(x) {
-    if (x == null || !isFinite(x)) return '';
-    const r = Math.round(x);
-    return r < 60 ? `${r} s` : `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`;
-  }
   const fmt = (x, d = 3) => (x == null || !isFinite(x) ? '—' : Number(x).toFixed(d));
   function fmtNum(x) {
     if (x == null || !isFinite(x)) return '—';
@@ -28,32 +21,41 @@
   }
   function mraClass(m) { return m >= 0.8 ? 'm4' : m >= 0.6 ? 'm3' : m >= 0.4 ? 'm2' : m >= 0.2 ? 'm1' : 'm0'; }
   function mraBadge(m) { return isFinite(m) ? `<span class="mra ${mraClass(m)}">${fmt(m, 2)}</span>` : '<span class="muted">—</span>'; }
-  // the benchmark's overall score: mean over its four categories of the per-category mean (same as pipeline/metrics.evaluate)
-  function macro(qs) {
-    const vals = CATS.map((c) => mean(qs.filter((q) => q.cat === c).map((q) => q.mra))).filter((v) => isFinite(v));
-    return mean(vals);
-  }
   // questions of the selected set : DEV20 = docs/DEV20.md in its order, All = every question of the run
   function setQuestions() {
     if ($('v-set').value !== 'dev') return DATA.val.questions;
     const byId = Object.fromEntries(DATA.val.questions.map((q) => [q.id, q]));
     return DATA.val.dev.map((id) => byId[id]);
   }
-  // the first questions of DEV20 are the earlier 10-question set (docs/DEV20.md): their mean continues its record
-  const FIRST = 10;
-  // ---------- summary of the selected set: DEV20 mean MRA and the mean of its first 10, All the benchmark's overall (macro) MRA ----------
+  // the two answers of the scene-program run (q.sp): answer_scene, the strict read-out (undetermined = 0), and
+  // answer_final, the agent's answer (the reported one); a unit without an answer scores 0 in both
+  const fMRA = (q) => q.sp.final_mra, sMRA = (q) => q.sp.scene_mra;
+  const SP_SOURCES = ['scene', 'agent', 'none'];
+  const SP_STOPS = ['no_edit_available', 'converged', 'budget'];
+  // the per-question mean of both MRAs and the determined count of a set of questions
+  const spCells = (qs) => `<td class="n">${qs.length}</td><td class="n">${fmt(mean(qs.map(sMRA)), 3)}</td>` +
+    `<td class="n"><b>${fmt(mean(qs.map(fMRA)), 3)}</b></td><td class="n">${qs.filter((q) => q.sp.determined).length}</td>`;
+  const SP_HEAD = '<th class="n">n</th><th class="n">answer_scene</th><th class="n">answer_final</th><th class="n">determined</th>';
+  // ---------- summary of the selected set: both MRAs, the set shared with the baselines, categories, sources, loop stops ----------
   function valSummary() {
     const all = setQuestions(), dev = $('v-set').value === 'dev';
-    $('val-label').textContent = dev ? 'Mean MRA' : 'Overall MRA';
-    $('val-head').textContent = dev ? fmt(mean(all.map((q) => q.mra)), 3) : fmt(macro(all), 4);
-    $('val-first').hidden = !dev;
-    if (dev) {
-      $('val-first-label').textContent = `First ${FIRST}`;
-      $('val-first-head').textContent = fmt(mean(all.slice(0, FIRST).map((q) => q.mra)), 3);
-    }
-    const counts = DATA.val.runs.map((r) => [r.version, all.filter((q) => q.version === r.version).length]).filter(([, n]) => n);
-    const vers = counts.length > 1 ? counts.map(([t, n]) => `${t} ${n}`) : counts.map(([t]) => t);
-    $('val-n').textContent = [`${all.length} questions`, `${new Set(all.map((q) => q.video)).size} videos`, ...vers].join(' · ');
+    $('val-final').textContent = fmt(mean(all.map(fMRA)), 3);
+    $('val-scene').textContent = fmt(mean(all.map(sMRA)), 3);
+    const r = DATA.val.sceneprog;
+    $('val-n').textContent = [`${all.length} questions`, `${new Set(all.map((q) => q.video)).size} videos`, `${r.harness} · ${r.build} · ${r.loop}`].join(' · ');
+    const shared = all.filter((q) => OURS.questions[q.id]);
+    $('t-sets').innerHTML = `<tr><th>Set</th>${SP_HEAD}</tr><tr><td>${dev ? 'DEV20' : 'Validation'}</td>${spCells(all)}</tr>` +
+      (shared.length !== all.length ? `<tr><td>Shared with the baselines</td>${spCells(shared)}</tr>` : '');
+    $('t-cats').innerHTML = `<tr><th>Category</th>${SP_HEAD}</tr>` +
+      CATS.map((c) => all.filter((q) => q.cat === c)).map((qs, i) => qs.length ? `<tr><td>${CATS[i]}</td>${spCells(qs)}</tr>` : '').join('');
+    $('t-src').innerHTML = '<tr><th>answer_final from</th><th class="n">n</th><th class="n">MRA</th></tr>' +
+      SP_SOURCES.map((k) => all.filter((q) => q.sp.final_source === k)).map((qs, i) => qs.length
+        ? `<tr><td>${SP_SOURCES[i]}</td><td class="n">${qs.length}</td><td class="n">${fmt(mean(qs.map(fMRA)), 3)}</td></tr>` : '').join('');
+    const loops = all.filter((q) => q.sp.loop);
+    $('t-loop').innerHTML = '<tr><th>Loop stop</th><th class="n">n</th></tr>' +
+      SP_STOPS.map((k) => [k, loops.filter((q) => q.sp.loop.stop === k).length]).filter(([, n]) => n)
+        .map(([k, n]) => `<tr><td><code>${k}</code></td><td class="n">${n}</td></tr>`).join('') +
+      (loops.length ? `<tr><td>rounds, mean / max</td><td class="n">${fmt(mean(loops.map((q) => q.sp.loop.rounds)), 1)} / ${Math.max(...loops.map((q) => q.sp.loop.rounds))}</td></tr>` : '');
   }
 
   // ---------- one question ----------
@@ -69,13 +71,14 @@
     return { scene: group ? group.scene : null, sgraph: run.sgraph, tracks: run.tracks };
   }
   function summaryRow(q, v) {
+    const sp = q.sp;
     const nums = `<span class="qv" data-k="GT">${fmtNum(q.answer)}</span>` +
-      `<span class="qv pred" data-k="Pred">${q.failed && q.failed.length ? '' : fmtNum(q.pred)}</span>` +
-      (q.failed && q.failed.length ? `<span class="qsrc qfailed">${q.failed.map(esc).join(' · ')}</span>`
-        : `<span class="qsrc">${esc(SRC_LABEL[q.src] || q.src)}</span>`) +
-      `<span class="qv qt"${q.time ? ' data-k="Time"' : ''}>${q.time ? fmtSec(q.time.total) : ''}</span>`;
-    return `<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}<span class="qver">${esc(q.version)}</span></span><span class="qtext">${esc(q.q)}</span></span>` +
-      `<span class="qnums">${nums}</span><span class="qm">${mraBadge(q.mra)}</span></summary>`;
+      `<span class="qv" data-k="Scene">${sp.determined ? fmtNum(sp.scene) : ''}</span>` +
+      `<span class="qv qsm" data-k="Scene MRA">${mraBadge(sp.scene_mra)}</span>` +
+      `<span class="qv pred" data-k="Final">${fmtNum(sp.final)}</span>` +
+      `<span class="qsrc${sp.final_source === 'none' ? ' qfailed' : ''}">${esc(sp.final_source)}</span>`;
+    return `<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}<span class="qver">${esc(q.cat)}</span></span><span class="qtext">${esc(q.q)}</span></span>` +
+      `<span class="qnums sp">${nums}</span><span class="qm">${mraBadge(sp.final_mra)}</span></summary>`;
   }
   function questionCard(q, v) {
     const d = document.createElement('details');
@@ -90,7 +93,7 @@
         view = { ...v, scene: a.scene };
         const body = document.createElement('div');
         body.className = 'qbody';
-        body.innerHTML = priorBlock(q) + depthBindings(q.depth_bindings) + mediaBlock(view, q) + overlayBlock(q, view) + trackBlock(a.tracks, view, q, a.sgraph) +
+        body.innerHTML = priorBlock(q) + spBlock(q) + '<h3 class="harness">Harness</h3>' + depthBindings(q.depth_bindings) + mediaBlock(view, q) + overlayBlock(q, view) + trackBlock(a.tracks, view, q, a.sgraph) +
           sceneGraphTree(a.sgraph) + refmeasureBlock(q.refmeasure) + fitBlock(q, view) + roundsBlock(q.rounds) + timeBlock(q);
         d.appendChild(body);
         video = body.querySelector('video');
@@ -118,10 +121,33 @@
     return d;
   }
 
+  // the scene-program products of the question: both answers, the loop's stop, the final program's overlays, each
+  // loop round's views, the plan grid and the shapes
+  function spBlock(q) {
+    const sp = q.sp;
+    if (!sp.loop) return '<h4>Scene program</h4><p class="fwarn">no answer</p>';
+    const u = sp.unit ? ` ${esc(sp.unit)}` : '';
+    const ans = '<div class="scroll-x"><table class="spans"><tr><th></th><th class="n">Value</th><th class="n">GT</th><th class="n">MRA</th><th></th></tr>' +
+      `<tr><td><code>answer_scene</code></td><td class="n">${sp.determined ? `${fmtNum(sp.scene)}${sp.sigma != null ? ` ± ${fmtNum(sp.sigma)}` : ''}${u}` : 'undetermined'}</td>` +
+      `<td class="n">${fmtNum(q.answer)}</td><td class="n">${mraBadge(sp.scene_mra)}</td><td>${esc(sp.reason || '')}</td></tr>` +
+      `<tr><td><code>answer_final</code></td><td class="n"><b>${fmtNum(sp.final)}</b>${u}</td><td class="n">${fmtNum(q.answer)}</td>` +
+      `<td class="n">${mraBadge(sp.final_mra)}</td><td>${esc(sp.final_source)}</td></tr></table></div>` +
+      (sp.rationale ? `<p class="sprat">${esc(sp.rationale)}</p>` : '');
+    const img = (src, alt) => `<a class="ovimg" href="${esc(src)}"><img loading="lazy" src="${esc(src)}" alt="${esc(alt)}"></a>`;
+    const r = sp.renders, L = sp.loop;
+    const frames = r.overlays.map((p) => `<figure class="runtime-frame">${img(p, p.split('/').pop())}<figcaption>${esc(p.match(/overlay_f(\d+)/)[1].replace(/^0+(?=\d)/, ''))}</figcaption></figure>`).join('');
+    const views = r.views.map((p, i) => `<a href="${esc(p)}"${i === r.views.length - 1 ? ' aria-current="true"' : ''}>r${i + 1}</a>`).join(' ');
+    return '<h4>Scene program</h4>' + ans +
+      `<h4>Loop</h4><p><code>${esc(L.stop)}</code> · ${L.rounds} rounds · ${L.accepted} / ${L.proposals} edits accepted · fit <code>${esc(sp.fit_status)}</code></p>` +
+      `<div class="runtime-frames spframes">${frames}</div>` +
+      `<div class="spviews">${img(r.views[r.views.length - 1], `views round ${r.views.length}`)}<p class="spr">${views}</p></div>` +
+      `<div class="spplan">${img(r.plan_grid, 'plan grid')}${img(r.shapes, 'shapes')}</div>`;
+  }
+
   // the question's own prior: text facts and distance anchors, one per line
   function priorBlock(q) {
     const lines = [q.prior, q.depth].filter(Boolean).flatMap((s) => String(s).split('\n')).map((s) => s.trim()).filter(Boolean);
-    return `<div class="qfull">${esc(q.q)}<span class="qver">${esc(q.version)}</span></div>` + (lines.length ? `<h4>prior</h4><ul class="prior">${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '');
+    return `<div class="qfull">${esc(q.q)}<span class="qver">${esc(q.cat)}</span></div>` + (lines.length ? `<h4>prior</h4><ul class="prior">${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '');
   }
 
   // the depth statements of the prior (rule C14): each bound one's node and what the scene used it for, each
@@ -335,7 +361,7 @@
   function choiceTable(idt) {
     const es = Object.entries(idt).filter(([, v]) => v.choice);
     if (!es.length) return '';
-    const scan = (c) => c.scan.map(([f, l]) => `<span class="scan scan-${esc(l)}${f === c.frame ? ' chosen' : ''}">${f} ${esc(l)}</span>`).join(' ');
+    const scan = (c) => (c.scan || []).map(([f, l]) => `<span class="scan scan-${esc(l)}${f === c.frame ? ' chosen' : ''}">${f} ${esc(l)}</span>`).join(' ');
     const bind = (b) => (b ? `<span class="${b.pass ? 'ok' : 'bad'}" title="${esc(b.why)}">${fmtNum(b.iou)} ${b.pass ? '≥' : '<'} ${fmtNum(b.bound)}${b.start_kept ? '' : ' · start not kept'}</span>` : '');
     return '<div class="scroll-x"><table class="ident choice"><tr><th>Object</th><th class="n">Choice frame</th><th class="n">Shared</th><th>Scan</th>' +
       '<th class="n">Track start</th><th class="n"><code>choose.track_binding</code></th><th></th></tr>' +
@@ -1237,7 +1263,7 @@
     let h = '<h4>Reconstruction</h4>';
     if (q.binding_error) h += `<p class="fwarn">${esc(q.binding_error)}</p>`;
     if (q.error) return h + `<p class="fwarn">${esc(q.error)}</p>`;
-    if (q.partial) h += `<p class="fwarn"><code>planning_failed</code> round ${q.partial.round} · ${esc(q.partial.why)}</p>`;
+    if (q.partial) h += `<p class="fwarn">round ${q.partial.round} · ${esc(q.partial.why)}</p>`;
     if (q.direct_only) {
       const x = q.direct_only;
       h += `<p class="fwarn"><code>fit</code> ${esc(x.fit)}</p>` +
@@ -1660,13 +1686,17 @@
       : sh.ground_floor === 'shared' ? ' (floor)' : sh.support_masks === 'shared' ? ' (support masks)' : '';
     return (x.reused === true ? 'reused' : 'partly reused') + hits;
   }
+  // harness steps (answer record timing) and the scene-program steps this unit records (build, first fit, loop)
+  const SP_STEP_LABEL = { build: 'Scene program', fit: 'Physics-guided Fitting', loop: 'Checking loop' };
   function timeBlock(q) {
-    if (!q.time) return '';
-    const marks = q.time.steps.map(reuseText), any = marks.some(Boolean);
-    const rows = q.time.steps.map((x, i) => `<tr${marks[i] ? ' class="reused"' : ''}><td>${esc(STEP_LABEL[x.step] || x.step)}</td><td class="n">${fmt(x.s, 1)}</td>` +
-      (any ? `<td>${esc(marks[i])}</td>` : '') + '</tr>').join('');
-    return '<h4>Time</h4><div class="scroll-x"><table class="tsteps"><tr><th>Step</th><th class="n">s</th>' + (any ? '<th></th>' : '') + `</tr>${rows}` +
-      `<tr class="ttotal"><td>Total</td><td class="n">${fmt(q.time.total, 1)}</td>${any ? '<td></td>' : ''}</tr></table></div>`;
+    const t = q.sp.time;
+    if (!q.time && !t) return '';
+    const marks = q.time ? q.time.steps.map(reuseText) : [], any = marks.some(Boolean);
+    const rows = q.time ? q.time.steps.map((x, i) => `<tr${marks[i] ? ' class="reused"' : ''}><td>${esc(STEP_LABEL[x.step] || x.step)}</td><td class="n">${fmt(x.s, 1)}</td>` +
+      (any ? `<td>${esc(marks[i])}</td>` : '') + '</tr>').join('') +
+      `<tr class="ttotal"><td>Harness</td><td class="n">${fmt(q.time.total, 1)}</td>${any ? '<td></td>' : ''}</tr>` : '';
+    const sprows = t ? Object.keys(SP_STEP_LABEL).map((k) => `<tr><td>${SP_STEP_LABEL[k]}</td><td class="n">${fmt(t[k], 1)}</td>${any ? '<td></td>' : ''}</tr>`).join('') : '';
+    return '<h4>Time</h4><div class="scroll-x"><table class="tsteps"><tr><th>Step</th><th class="n">s</th>' + (any ? '<th></th>' : '') + `</tr>${rows}${sprows}</table></div>`;
   }
   // ---------- three.js scene viewer ----------
   let threeP = null;
@@ -1915,7 +1945,7 @@
     const list = $('val-list'); list.innerHTML = '';
     const head = document.createElement('div');
     head.className = 'qhead';
-    head.innerHTML = '<span></span><span>Question</span><span class="qnums"><span class="qv">GT</span><span class="qv">Pred</span><span>Source</span><span class="qv">Time</span></span><span class="qm">MRA</span>';
+    head.innerHTML = '<span></span><span>Question</span><span class="qnums sp"><span class="qv">GT</span><span class="qv">Scene</span><span class="qv">MRA</span><span class="qv">Final</span><span>Source</span></span><span class="qm">MRA</span>';
     if (items.length) list.appendChild(head);
     const frag = document.createDocumentFragment();
     items.forEach(({ q, v }) => frag.appendChild(questionCard(q, v)));
@@ -1930,19 +1960,19 @@
     const needle = $('v-q').value.trim().toLowerCase(), vids = DATA.val.vmap;
     const okM = (m) => !mf || (mf === 'lt0.2' ? m < 0.2 : mf === 'lt0.5' ? m < 0.5 : m >= 0.8);
     // setQuestions() is already in set order (DEV20 order, or video then k)
-    const items = setQuestions().filter((q) => (!src || q.src === src) &&
-      (!vsrc || vids[q.video].source === vsrc) && okM(q.mra) && matchText(q, needle)).map((q) => ({ q, v: vids[q.video] }));
-    const nanLast = (f) => (a, b) => (isNaN(a.q.mra) ? 1 : 0) - (isNaN(b.q.mra) ? 1 : 0) || f(a, b);
-    if (sort === 'mra-asc') items.sort(nanLast((a, b) => a.q.mra - b.q.mra));
-    else if (sort === 'mra-desc') items.sort(nanLast((a, b) => b.q.mra - a.q.mra));
-    $('v-status').textContent = `${items.length} questions` + (items.length ? ` · mean MRA ${fmt(mean(items.map((x) => x.q.mra)), 2)}` : '');
+    const items = setQuestions().filter((q) => (!src || q.sp.final_source === src) &&
+      (!vsrc || vids[q.video].source === vsrc) && okM(fMRA(q)) && matchText(q, needle)).map((q) => ({ q, v: vids[q.video] }));
+    const key = { 'mra-asc': fMRA, 'mra-desc': fMRA, 'smra-asc': sMRA, 'smra-desc': sMRA }[sort];
+    if (key) items.sort((a, b) => (sort.endsWith('asc') ? 1 : -1) * (key(a.q) - key(b.q)));
+    $('v-status').textContent = `${items.length} questions` + (items.length ? ` · answer_scene ${fmt(mean(items.map((x) => sMRA(x.q))), 3)} · answer_final ${fmt(mean(items.map((x) => fMRA(x.q))), 3)}` : '');
     renderList(items);
   }
   const renderAll = () => { valSummary(); renderVal(); };
   function debounce(fn, ms) { let t = 0; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; }
 
-  fetch('data/videos.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((d) => {
-    DATA = d;
+  const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(`${u}: ${r.status}`); return r.json(); });
+  Promise.all([get('data/videos.json'), get('data/comparison_ours.json')]).then(([d, ours]) => {
+    DATA = d; OURS = ours;
     d.val.vmap = Object.fromEntries(d.val.videos.map((v) => [v.id, v]));
     d.val.runmap = Object.fromEntries(d.val.runs.map((r) => [r.version, r]));
     fillSourceSelect($('v-vsrc'), d.val.videos);
@@ -1963,6 +1993,6 @@
     openFromHash();
     addEventListener('hashchange', openFromHash);
   }).catch((e) => {
-    $('val-list').innerHTML = `<p class="noscene">data/videos.json: ${esc(e.message)}</p>`;
+    $('val-list').innerHTML = `<p class="noscene">${esc(e.message)}</p>`;
   });
 })();

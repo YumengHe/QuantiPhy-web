@@ -1,0 +1,103 @@
+"""Our side of Home > Qualitative Comparison: the final scene program of a question drawn on the frames of
+data/physmind/index.json (the frames PhysMind's posed meshes are drawn on, tools/render_physmind.py; PhysMind's images
+are not touched).
+
+  python -B web/tools/build_qualitative.py --loop v6valloop
+
+For every frame of the index, the first of its questions that has a final scene program
+(outputs/sceneprog/<loop>/<unit>/scene.json; a frame without questions: the video's first question with one) is drawn at that frame exactly as pipeline.sceneprog.evaluate draws its
+overlays: the program rendered from its camera (visible outline 2 px, occluded silhouette 1 px, object colour), the
+observed masks of the tracks it is bound to (white), each object's IoU on that frame, the unit and frame in the corner.
+Reads saved programs only (no fitting, no model calls). A frame none of whose questions has a program raises.
+
+Writes data/qualitative/<loop>/<unit>_f<frame>.jpg and, in data/physmind/index.json, each frame's "ours" (that image)
+and "ours_unit", and the index's "ours" (the loop tag); images of an earlier build that no frame references are removed.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+WEB = Path(__file__).resolve().parents[1]
+ROOT = WEB.parent
+sys.path.insert(0, str(ROOT))
+
+import cv2  # noqa: E402
+
+from pipeline.data import Video  # noqa: E402
+from pipeline.sceneprog.masks import ObservedMasks  # noqa: E402
+from pipeline.sceneprog.metric import frame_record  # noqa: E402
+from pipeline.sceneprog.poses import camera  # noqa: E402
+from pipeline.sceneprog.program import load  # noqa: E402
+from pipeline.sceneprog.render import overlay, render  # noqa: E402
+from pipeline.sceneprog.shapes import compile_scene  # noqa: E402
+
+INDEX = WEB / "data" / "physmind" / "index.json"
+
+
+def draw(directory: Path, frame: int, out: Path) -> None:
+    """One overlay of the program in `directory` at `frame` (pipeline.sceneprog.evaluate._write_overlays)."""
+    program, scad = load(directory)
+    observed = ObservedMasks(program["observations"]["tracks_tag"], program["unit"], program["split"])
+    meshes = compile_scene(program, scad)
+    fps = float(program["video"]["fps"])
+    cam = camera(program)
+    if (cam["height"], cam["width"]) != observed.shape:
+        raise ValueError(f"{directory}: camera image {cam['height']}x{cam['width']} differs from the masks' {observed.shape}")
+    modelled = {o["id"]: o["track"] for o in program["objects"] if o["kind"] == "body" and o.get("track") is not None}
+    r = render(program, meshes, frame / fps, cam)
+    labels, obs = {}, {}
+    for oid, name in modelled.items():
+        o = observed.get(name, frame)
+        obs[oid] = o
+        if o is None:
+            labels[oid] = f"{oid} untracked"
+            continue
+        others = [observed.get(n, frame) for n in observed.names() if n != name]
+        rec = frame_record(r.get(oid), o, [x for x in others if x is not None])
+        labels[oid] = f"{oid} IoU {rec['iou']:.2f}"
+    video = Video(Path(program["video"]["path"]), fps=fps)
+    try:
+        image = overlay(video.frame(frame), r, obs, labels, f"{program['unit']}  frame {frame}  t={frame / fps:.2f}s")
+    finally:
+        video.close()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if not cv2.imwrite(str(out), cv2.cvtColor(image, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 86]):
+        raise ValueError(f"{out}: not written")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--loop", required=True, help="scene-program loop tag (outputs/sceneprog/<loop>/<unit>)")
+    args = ap.parse_args()
+    index = json.loads(INDEX.read_text())
+    out_dir = WEB / "data" / "qualitative" / args.loop
+    written = set()
+    for v in index["videos"]:
+        for f in v["frames"]:
+            # a frame without a question of ours (PhysMind's frame with most posed objects) takes the video's questions
+            qs = f["questions"] or sorted((p.parent.name for p in (ROOT / "outputs" / "sceneprog" / args.loop).glob(f"{v['video']}_q*/scene.json")
+                                           if re.fullmatch(rf"{re.escape(v['video'])}_q\d+", p.parent.name)),
+                                          key=lambda u: int(u.rsplit("_q", 1)[1]))
+            units = [u for u in qs if (ROOT / "outputs" / "sceneprog" / args.loop / u / "scene.json").is_file()]
+            if not units:
+                raise ValueError(f"{v['video']} frame {f['frame']}: none of {f['questions']} has a program in {args.loop}")
+            unit, frame = units[0], int(f["frame"])
+            out = out_dir / f"{unit}_f{frame}.jpg"
+            if not out.exists():
+                draw(ROOT / "outputs" / "sceneprog" / args.loop / unit, frame, out)
+            f["ours"], f["ours_unit"] = str(out.relative_to(WEB)), unit
+            written.add(out)
+    stale = [p for p in out_dir.glob("*.jpg") if p not in written]
+    for p in stale:
+        p.unlink()
+    index["ours"] = args.loop
+    INDEX.write_text(json.dumps(index, ensure_ascii=False, indent=1))
+    print(f"{len(written)} frames, {len(stale)} stale images removed; {INDEX.relative_to(WEB)} updated")
+
+
+if __name__ == "__main__":
+    main()

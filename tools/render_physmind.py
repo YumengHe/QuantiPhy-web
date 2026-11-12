@@ -1,8 +1,9 @@
-"""Render PhysMind's 3D reconstruction back onto the video, next to ours, for Home > Qualitative Comparison.
+"""Render PhysMind's 3D reconstruction back onto the video for Home > Qualitative Comparison.
 
-For every frame where our v1 run has a question overlay (data/videos.json, val questions of version v1, image
-data/runtime/v1/<video>/<hash>_f<frame>.jpg), draws PhysMind's posed meshes of the question objects on the same frame
-in the same manner: outline of the projected mesh, its box and the object's name, t in the corner.
+The frames are the ones of data/physmind/index.json (chosen, when this was run on 2026-11-06, from the frames where our
+first validation run drew a question overlay); draws PhysMind's posed meshes of the question objects on each frame:
+outline of the projected mesh, its box and the object's name, t in the corner. Our side of each frame ("ours",
+"ours_unit") is written by tools/build_qualitative.py, not by this tool.
 
   python -B tools/render_physmind.py --run ~/Desktop/temp/qp_physmind_v2_full/runs/qp_physmind_v2
 

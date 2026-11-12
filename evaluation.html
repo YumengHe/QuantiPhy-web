@@ -19,17 +19,23 @@
 <div id="pane-val">
   <div class="panel">
     <div class="stats">
-      <div class="m"><div class="muted" id="val-label"></div><div class="big" id="val-head">…</div></div>
-      <div id="val-first" class="m" hidden><div class="muted" id="val-first-label"></div><div class="big" id="val-first-head"></div></div>
+      <div class="m"><div class="muted">answer_final</div><div class="big" id="val-final">…</div></div>
+      <div class="m"><div class="muted">answer_scene</div><div class="big" id="val-scene"></div></div>
     </div>
     <div class="muted" id="val-n"></div>
+    <div class="sptables">
+      <div class="scroll-x"><table id="t-sets"></table></div>
+      <div class="scroll-x"><table id="t-cats"></table></div>
+      <div class="scroll-x"><table id="t-src"></table></div>
+      <div class="scroll-x"><table id="t-loop"></table></div>
+    </div>
   </div>
   <div class="controls">
-    <label>Set <select id="v-set"><option value="dev" selected>DEV20</option><option value="">All</option></select></label>
-    <label>Source <select id="v-src"><option value="">All</option><option>scene</option><option>measurement</option><option>prior</option><option>unresolved</option><option value="execution_failed">failed</option></select></label>
+    <label>Set <select id="v-set"><option value="" selected>All</option><option value="dev">DEV20</option></select></label>
+    <label>Source <select id="v-src"><option value="">All</option><option>scene</option><option>agent</option><option>none</option></select></label>
     <label>Video source <select id="v-vsrc"><option value="">All</option></select></label>
     <label>MRA <select id="v-mra"><option value="">All</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
-    <label>Sort <select id="v-sort"><option value="" selected>Set order</option><option value="mra-asc">MRA ascending</option><option value="mra-desc">MRA descending</option></select></label>
+    <label>Sort <select id="v-sort"><option value="" selected>Set order</option><option value="mra-asc">answer_final MRA ascending</option><option value="mra-desc">answer_final MRA descending</option><option value="smra-asc">answer_scene MRA ascending</option><option value="smra-desc">answer_scene MRA descending</option></select></label>
     <label><input type="search" id="v-q" placeholder="ID or question"></label>
   </div>
   <div class="status" id="v-status"></div>
