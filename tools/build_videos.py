@@ -4489,9 +4489,12 @@ def write_class_table() -> int:
                     f'<td>{escape(c["primary"].replace("_", " "))}{" (part)" if c["primary"] in PART_DIMS else ""}</td>'
                     f'<td>{escape(c["role"])}</td><td>{escape(c["observe"].replace("_", " "))}</td>'
                     f'<td class="small">{escape(c["source"])}</td></tr>')
-    table = (f'\n<details class="classtable"><summary><code>pipeline/class_sizes.py</code> · {len(CLASSES)} classes'
+    # data-i18n: the UI text is translated in i18n.js (the class descriptions and sources are data and stay English)
+    table = (f'\n<details class="classtable"><summary><code>pipeline/class_sizes.py</code> · '
+             f'<span data-i18n="pl.classes" data-i18n-args=\'{{"n": {len(CLASSES)}}}\'>{len(CLASSES)} classes</span>'
              f'</summary>\n<div class="scroll-x"><table class="small classsizes">\n'
-             '  <tr><th>Class</th><th>What</th><th>Dims (m)</th><th>Primary</th><th>Role</th><th>Observe</th><th>Source</th></tr>\n'
+             '  <tr><th data-i18n>Class</th><th data-i18n>What</th><th data-i18n>Dims (m)</th><th data-i18n>Primary</th>'
+             '<th data-i18n>Role</th><th data-i18n>Observe</th><th data-i18n>Source</th></tr>\n'
              + "\n".join(rows) + '\n</table></div>\n</details>\n')
     new = page[:page.index(a) + len(a)] + table + page[page.index(b):]
     if new != page:
@@ -4533,14 +4536,16 @@ def write_time_table(questions: list[dict], tag: str) -> int:
     if list(STEP_LABELS) != steps or any([x["step"] for x in q["time"]["steps"]] != steps for q in qs):
         raise ValueError(f"{tag}: timing steps {steps}, expected {list(STEP_LABELS)}")
     cells = lambda v: "".join(f'<td class="n">{x:.1f}</td>' for x in (float(np.median(v)), min(v), max(v)))
-    rows = [f'  <tr><td>{STEP_LABELS[k]}</td><td><code>{k}</code></td>{cells([q["time"]["steps"][i]["s"] for q in qs])}</tr>'
+    rows = [f'  <tr><td data-i18n>{STEP_LABELS[k]}</td><td><code>{k}</code></td>{cells([q["time"]["steps"][i]["s"] for q in qs])}</tr>'
             for i, k in enumerate(steps)]
-    rows.append(f'  <tr><td><b>Total</b></td><td><code>total_seconds</code></td>{cells([q["time"]["total"] for q in qs])}</tr>')
+    rows.append(f'  <tr><td data-i18n><b>Total</b></td><td><code>total_seconds</code></td>{cells([q["time"]["total"] for q in qs])}</tr>')
     n_all = len([q for q in questions if q["version"] == tag])
     table = ('\n<div class="scroll-x"><table class="tt">\n'
-             '  <tr><th>Step</th><th>Timing key</th><th class="n">Median (s)</th><th class="n">Min</th><th class="n">Max</th></tr>\n'
+             '  <tr><th data-i18n>Step</th><th data-i18n>Timing key</th><th class="n" data-i18n>Median (s)</th>'
+             '<th class="n" data-i18n>Min</th><th class="n" data-i18n>Max</th></tr>\n'
              + "\n".join(rows) + '\n</table></div>\n'
-             f'<p class="muted small">The {len(qs)} of the {n_all} questions that ran every step '
+             f'<p class="muted small" data-i18n="pl.time.ran" data-i18n-args=\'{{"n": {len(qs)}, "all": {n_all}}}\'>'
+             f'The {len(qs)} of the {n_all} questions that ran every step '
              f'(<code>timing.steps</code> of their answer records).</p>\n')
     new = page[:page.index(a) + len(a)] + table + page[page.index(b):]
     if new != page:

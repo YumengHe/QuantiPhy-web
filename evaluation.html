@@ -12,9 +12,9 @@
 </script>
 </head>
 <body>
-<nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html">Home</a><a href="pipeline.html">Pipeline</a><a href="evaluation.html" aria-current="page">Evaluation</a><a href="baseline.html">Baseline</a></div></nav>
+<nav class="topbar" aria-label="Site" data-i18n-aria-label><div class="topbar-in"><a href="index.html" data-i18n>Home</a><a href="pipeline.html" data-i18n>Pipeline</a><a href="evaluation.html" aria-current="page" data-i18n>Evaluation</a><a href="baseline.html" data-i18n>Baseline</a></div></nav>
 <main class="wrap">
-<h1>Evaluation</h1>
+<h1 data-i18n>Evaluation</h1>
 
 <div id="pane-val">
   <div class="panel">
@@ -31,18 +31,19 @@
     </div>
   </div>
   <div class="controls">
-    <label>Set <select id="v-set"><option value="" selected>All</option><option value="dev">DEV20</option></select></label>
-    <label>Source <select id="v-src"><option value="">All</option><option>scene</option><option>agent</option><option>none</option></select></label>
-    <label>Video source <select id="v-vsrc"><option value="">All</option></select></label>
-    <label>MRA <select id="v-mra"><option value="">All</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
-    <label>Sort <select id="v-sort"><option value="" selected>Set order</option><option value="mra-asc">answer_final MRA ascending</option><option value="mra-desc">answer_final MRA descending</option><option value="smra-asc">answer_scene MRA ascending</option><option value="smra-desc">answer_scene MRA descending</option></select></label>
-    <label><input type="search" id="v-q" placeholder="ID or question"></label>
+    <label><span data-i18n>Set</span> <select id="v-set"><option value="" selected data-i18n>All</option><option value="dev">DEV20</option></select></label>
+    <label><span data-i18n>Source</span> <select id="v-src"><option value="" data-i18n>All</option><option>scene</option><option>agent</option><option>none</option></select></label>
+    <label><span data-i18n>Video source</span> <select id="v-vsrc"><option value="" data-i18n>All</option></select></label>
+    <label>MRA <select id="v-mra"><option value="" data-i18n>All</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
+    <label><span data-i18n>Sort</span> <select id="v-sort"><option value="" selected data-i18n>Set order</option><option value="mra-asc" data-i18n>answer_final MRA ascending</option><option value="mra-desc" data-i18n>answer_final MRA descending</option><option value="smra-asc" data-i18n>answer_scene MRA ascending</option><option value="smra-desc" data-i18n>answer_scene MRA descending</option></select></label>
+    <label><input type="search" id="v-q" placeholder="ID or question" data-i18n-placeholder></label>
   </div>
   <div class="status" id="v-status"></div>
   <div id="val-list"></div>
 </div>
 
 </main>
+<script src="i18n.js"></script>
 <script src="videos.js"></script>
 </body>
 </html>

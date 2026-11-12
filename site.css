@@ -43,7 +43,11 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(
   border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .topbar a:hover { color: var(--text); }
 .topbar a[aria-current="page"] { color: var(--text); font-weight: 600; border-bottom-color: var(--scene); }
-@media (max-width: 480px) { .topbar-in { padding: 0 4px; } .topbar a { padding: 0 7px; font-size: 13.5px; } }
+.topbar .lang-btn { margin-left: auto; display: flex; align-items: center; padding: 0 12px; border: 0; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; background: none; font: inherit; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.topbar .lang-btn:hover { color: var(--text); }
+.topbar .lang-btn:focus-visible, .topbar a:focus-visible { outline: 2px solid var(--scene); outline-offset: -4px; border-radius: 4px; }
+@media (max-width: 480px) { .topbar-in { padding: 0 4px; } .topbar a, .topbar .lang-btn { padding: 0 7px; font-size: 13.5px; } }
 
 /* type scale: 28 / 20 / 16.5 / 15 / 13 */
 h1 { font-size: 28px; line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 12px; }

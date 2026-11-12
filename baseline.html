@@ -8,9 +8,9 @@
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html">Home</a><a href="pipeline.html">Pipeline</a><a href="evaluation.html">Evaluation</a><a href="baseline.html" aria-current="page">Baseline</a></div></nav>
+<nav class="topbar" aria-label="Site" data-i18n-aria-label><div class="topbar-in"><a href="index.html" data-i18n>Home</a><a href="pipeline.html" data-i18n>Pipeline</a><a href="evaluation.html" data-i18n>Evaluation</a><a href="baseline.html" aria-current="page" data-i18n>Baseline</a></div></nav>
 <main class="wrap">
-<h1>Baseline</h1>
+<h1 data-i18n>Baseline</h1>
 
 <div class="panel">
   <div class="stats" id="b-stats"></div>
@@ -19,26 +19,27 @@
   <p class="muted small" id="b-notes"></p>
 </div>
 <div class="controls">
-  <label>Method <select id="b-method"></select></label>
-  <label>Category <select id="b-cat"><option value="">All</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
-  <label>Video source <select id="b-vsrc"><option value="">All</option></select></label>
-  <label>MRA <select id="b-mra"><option value="">All</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
-  <label>Sort <select id="b-sort"><option value="" selected>Set order</option><option value="mra-asc">MRA ascending</option><option value="mra-desc">MRA descending</option></select></label>
-  <label><input type="search" id="b-q" placeholder="ID or question"></label>
+  <label><span data-i18n>Method</span> <select id="b-method"></select></label>
+  <label><span data-i18n>Category</span> <select id="b-cat"><option value="" data-i18n>All</option><option>S2</option><option>D2</option><option>S3</option><option>D3</option></select></label>
+  <label><span data-i18n>Video source</span> <select id="b-vsrc"><option value="" data-i18n>All</option></select></label>
+  <label>MRA <select id="b-mra"><option value="" data-i18n>All</option><option value="lt0.2">&lt; 0.2</option><option value="lt0.5">&lt; 0.5</option><option value="ge0.8">≥ 0.8</option></select></label>
+  <label><span data-i18n>Sort</span> <select id="b-sort"><option value="" selected data-i18n>Set order</option><option value="mra-asc" data-i18n>MRA ascending</option><option value="mra-desc" data-i18n>MRA descending</option></select></label>
+  <label><input type="search" id="b-q" placeholder="ID or question" data-i18n-placeholder></label>
 </div>
 <div class="status" id="b-status"></div>
 <div id="b-list" class="qlist-b"></div>
 
 <div class="panel mt-l">
-  <h3 class="mt0">Why PhysMind performs poorly</h3>
+  <h3 class="mt0" data-i18n>Why PhysMind performs poorly</h3>
   <ul class="small flat">
-    <li><b>Domain shift is part of the reason:</b> PhysMind is designed for CLEVRER-style synthetic scenes and does best on the simulation videos (60% measurable, MRA 0.398); real videos are worse (captured 54% / 0.280, internet 52% / 0.260). Parts and static structures have no mesh and cannot be measured.</li>
-    <li><b>The main reason is that it does not use the prior:</b> the scale comes from monocular depth alone and has large errors (median prediction / GT 1.13, but only 50 of 89 within a factor of 2); on the same questions, even on simulation it loses to Gemini answering directly (0.398 vs 0.518).</li>
-    <li><b>15 questions (2 videos) where SAM 3 found no object:</b> simulation_0193 (none of its 9 object names found) and internet_0001 ("black car"); the later annotation step fails and the answer falls back to the VLM.</li>
+    <li data-i18n="base.why1"><b>Domain shift is part of the reason:</b> PhysMind is designed for CLEVRER-style synthetic scenes and does best on the simulation videos (60% measurable, MRA 0.398); real videos are worse (captured 54% / 0.280, internet 52% / 0.260). Parts and static structures have no mesh and cannot be measured.</li>
+    <li data-i18n="base.why2"><b>The main reason is that it does not use the prior:</b> the scale comes from monocular depth alone and has large errors (median prediction / GT 1.13, but only 50 of 89 within a factor of 2); on the same questions, even on simulation it loses to Gemini answering directly (0.398 vs 0.518).</li>
+    <li data-i18n="base.why3"><b>15 questions (2 videos) where SAM 3 found no object:</b> simulation_0193 (none of its 9 object names found) and internet_0001 ("black car"); the later annotation step fails and the answer falls back to the VLM.</li>
   </ul>
 </div>
 
 </main>
+<script src="i18n.js"></script>
 <script src="baseline.js"></script>
 </body>
 </html>
