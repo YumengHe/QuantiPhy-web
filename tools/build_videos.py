@@ -20,7 +20,7 @@ Inputs of a run <tag> (relative to the repo root):
   outputs/tracks_<tag>/<key>.json                      track cache (visible intervals per object)
   outputs/objects_<tag>/<key>.json                     object inventory (unit "question": identity checked)
   web/data/runtime/<tag>/overlays.json                 overlays rendered for that version (images beside it)
-A run tag is a version, optionally with the model backend ("v5gpt": v5 run with --model-backend gpt) and "_control";
+A run tag is a version, optionally with the model backend ("v6gpt": v6 run with --model-backend gpt) and "_control";
 its format is the version's. <key> is the video for unit "video" and the question's unit <video_id>_q<k> for unit "question"; a unit-question file
 whose "unit" (or video) is not that question's raises. Answer records of unit "question" have schema "unit-1", with
 the question's timing. Also docs/DEV20.md, the development question set -> val "dev"; each of its units must be in some run.
@@ -4474,7 +4474,7 @@ def write_class_table() -> int:
     CLASS_TABLE_MARKS: one row per class with what it is, every dim's range lo-hi (m) and sigma, the primary dim, role,
     observe and source, under the module's TABLE_VERSION. Nothing is copied by hand; the marks must be there."""
     from html import escape
-    from pipeline.class_sizes import CLASSES, PART_DIMS, TABLE_VERSION, size_reference
+    from pipeline.class_sizes import CLASSES, PART_DIMS, size_reference
     page = PIPELINE_HTML.read_text()
     a, b = CLASS_TABLE_MARKS
     if page.count(a) != 1 or page.count(b) != 1 or page.index(a) > page.index(b):
@@ -4489,8 +4489,8 @@ def write_class_table() -> int:
                     f'<td>{escape(c["primary"].replace("_", " "))}{" (part)" if c["primary"] in PART_DIMS else ""}</td>'
                     f'<td>{escape(c["role"])}</td><td>{escape(c["observe"].replace("_", " "))}</td>'
                     f'<td class="small">{escape(c["source"])}</td></tr>')
-    table = (f'\n<details class="classtable"><summary><code>pipeline/class_sizes.py</code> · {len(CLASSES)} classes · '
-             f'<code>TABLE_VERSION</code> {TABLE_VERSION}</summary>\n<div class="scroll-x"><table class="small classsizes">\n'
+    table = (f'\n<details class="classtable"><summary><code>pipeline/class_sizes.py</code> · {len(CLASSES)} classes'
+             f'</summary>\n<div class="scroll-x"><table class="small classsizes">\n'
              '  <tr><th>Class</th><th>What</th><th>Dims (m)</th><th>Primary</th><th>Role</th><th>Observe</th><th>Source</th></tr>\n'
              + "\n".join(rows) + '\n</table></div>\n</details>\n')
     new = page[:page.index(a) + len(a)] + table + page[page.index(b):]
@@ -4540,8 +4540,8 @@ def write_time_table(questions: list[dict], tag: str) -> int:
     table = ('\n<div class="scroll-x"><table class="tt">\n'
              '  <tr><th>Step</th><th>Timing key</th><th class="n">Median (s)</th><th class="n">Min</th><th class="n">Max</th></tr>\n'
              + "\n".join(rows) + '\n</table></div>\n'
-             f'<p class="muted small">The {len(qs)} of the {n_all} questions of the {tag} run that ran every step '
-             f'(<code>outputs/harness/{tag}/answers</code>, <code>timing.steps</code>).</p>\n')
+             f'<p class="muted small">The {len(qs)} of the {n_all} questions that ran every step '
+             f'(<code>timing.steps</code> of their answer records).</p>\n')
     new = page[:page.index(a) + len(a)] + table + page[page.index(b):]
     if new != page:
         PIPELINE_HTML.write_text(new)

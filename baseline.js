@@ -117,8 +117,8 @@
   function addOurs(d, ours) {
     const miss = d.questions.filter((q) => !ours.questions[q.id]).map((q) => q.id);
     if (miss.length) throw new Error(`comparison_ours.json lacks ${miss.join(', ')}`);
-    d.methods.push({ key: 'ours', label: `${ours.label} (${ours.version})`, paper: null, source: 'evaluation.html',
-      setup: `answer_final of the scene-program run (${ours.run.join(' · ')}), as on the Evaluation page` });
+    d.methods.push({ key: 'ours', label: ours.label, paper: null, source: 'evaluation.html',
+      setup: 'answer_final of every question, as on the Evaluation page' });
     d.questions.forEach((q) => { const o = ours.questions[q.id]; q.preds.ours = { pred: o.final, mra: o.final_mra, raw: o.final_source }; });
   }
   const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(`${u}: ${r.status}`); return r.json(); });

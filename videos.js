@@ -42,7 +42,7 @@
     $('val-final').textContent = fmt(mean(all.map(fMRA)), 3);
     $('val-scene').textContent = fmt(mean(all.map(sMRA)), 3);
     const r = DATA.val.sceneprog;
-    $('val-n').textContent = [`${all.length} questions`, `${new Set(all.map((q) => q.video)).size} videos`, `${r.harness} · ${r.build} · ${r.loop}`].join(' · ');
+    $('val-n').textContent = [`${all.length} questions`, `${new Set(all.map((q) => q.video)).size} videos`].join(' · ');
     const shared = all.filter((q) => OURS.questions[q.id]);
     $('t-sets').innerHTML = `<tr><th>Set</th>${SP_HEAD}</tr><tr><td>${dev ? 'DEV20' : 'Validation'}</td>${spCells(all)}</tr>` +
       (shared.length !== all.length ? `<tr><td>Shared with the baselines</td>${spCells(shared)}</tr>` : '');
@@ -59,7 +59,7 @@
   }
 
   // ---------- one question ----------
-  // the artifacts of the question, all from the run of its version (val.runs): with unit "video" the scene of its prior
+  // the artifacts of the question, all from its run (val.runs): with unit "video" the scene of its prior
   // group and the video's scene graph and tracks of that run, with unit "question" its own
   function artifacts(q, v) {
     const unit = DATA.val.runmap[q.version].unit, run = v.runs[q.version];
@@ -1454,7 +1454,7 @@
       (ev ? '<div class="scroll-x"><table class="gev"><tr><th>Object</th><th>Piece</th><th class="n">n</th><th class="n">g (m/s²)</th><th>Law residual</th><th>Admissible</th><th></th></tr>' + ev + '</table></div>' : '') +
       checksTable(g.checks, et);
   }
-  // ---------- v5: every measurement of the asked quantity, the checks agree / constraints ----------
+  // ---------- every measurement of the asked quantity, the checks agree / constraints ----------
   const span = (a, b) => (a != null && a === b ? `${fmt(a, 2)} s` : `${a == null ? '…' : fmt(a, 2)}–${b == null ? '…' : fmt(b, 2)} s`);
   const span3 = ([a, b]) => `${fmt(a, 3)}–${fmt(b, 3)} s`;
   // rule D31 time.one_grid: the frame indices a window or piece is compared on, beside its seconds
@@ -1655,7 +1655,7 @@
         `<td class="n">${r.hi === r.lo ? fmtNum(r.lo) : interval(r.lo, r.hi)}</td>` +
         `<td class="n">${r.range ? interval(r.range[0], r.range[1]) : '<span class="muted">—</span>'}</td></tr>`).join('') + '</table>';
   }
-  // a scene object's motion law (v5 motion_law): the law, its rotation relation and pieces, or its state phases
+  // a scene object's motion law (motion_law): the law, its rotation relation and pieces, or its state phases
   function lawText(l) {
     if (!l) return '<span class="muted">—</span>';
     const parts = [esc(l.model)];

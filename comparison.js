@@ -26,7 +26,7 @@
     const rows = d.methods.map((m) => `<tr><td>${dot(m.key)}<a href="${esc(m.source)}" target="_blank" rel="noopener">${esc(m.label)}</a></td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
       CATS.map((c) => `<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') + '</tr>').join('');
     const o = oursScores(d, ours);
-    const our = `<tr class="ours"><td>${dot('ours')}${esc(ours.label)} (${esc(ours.version)})</td><td class="n"><b>${fmt(o.overall)}</b></td>` +
+    const our = `<tr class="ours"><td>${dot('ours')}${esc(ours.label)}</td><td class="n"><b>${fmt(o.overall)}</b></td>` +
       CATS.map((c) => `<td class="n">${fmt(o.cats[c])}</td>`).join('') + '</tr>';
     const counts = '<tr><td class="muted">Questions</td><td class="n muted">' + qs.length + '</td>' +
       CATS.map((c) => `<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + '</tr>';
@@ -49,7 +49,7 @@
       return `<div class="qc-pair">${img(f.ours, `${v.video} ours t = ${f.t} s`)}${BASES.map(([k, label]) => img(f[k], `${v.video} ${label} t = ${f.t} s`)).join('')}</div>` +
         `<div class="qc-cap muted small">t = ${fmt(f.t, 2)} s${f.questions.length ? ` · ${f.questions.map((q) => esc(q.replace(v.video + '_', ''))).join(', ')}` : ''}${miss}</div>`;
     }).join('');
-    return `<figure class="qc-card">${head}<div class="qc-pair qc-cols muted small"><span>${dot('ours')}Ours (${esc(ours.version)})</span>` +
+    return `<figure class="qc-card">${head}<div class="qc-pair qc-cols muted small"><span>${dot('ours')}${esc(ours.label)}</span>` +
       BASES.map(([k, label]) => `<span>${dot(k)}${label}</span>`).join('') + `</div>${rows}</figure>`;
   }
 

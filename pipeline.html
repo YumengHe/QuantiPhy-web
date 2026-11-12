@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html">Home</a><a href="pipeline.html" aria-current="page">Pipeline</a><a href="evaluation.html">Evaluation</a><a href="baseline.html">Baseline</a><a href="versions.html">Versions</a></div></nav>
+<nav class="topbar" aria-label="Site"><div class="topbar-in"><a href="index.html">Home</a><a href="pipeline.html" aria-current="page">Pipeline</a><a href="evaluation.html">Evaluation</a><a href="baseline.html">Baseline</a></div></nav>
 <main class="wrap">
 
 <h1>Pipeline</h1>
@@ -179,18 +179,18 @@
   <tr><td>10 Answer</td><td><code>answer</code></td><td class="n">0.0</td><td class="n">0.0</td><td class="n">0.1</td></tr>
   <tr><td><b>Total</b></td><td><code>total_seconds</code></td><td class="n">1671.0</td><td class="n">223.9</td><td class="n">16219.0</td></tr>
 </table></div>
-<p class="muted small">The 158 of the 159 questions of the v6gpt run that ran every step (<code>outputs/harness/v6gpt/answers</code>, <code>timing.steps</code>).</p>
+<p class="muted small">The 158 of the 159 questions that ran every step (<code>timing.steps</code> of their answer records).</p>
 <!-- /step_times -->
 <div class="scroll-x"><table class="tt">
   <tr><th>Step</th><th>Timing key</th><th class="n">Median</th><th class="n">Max</th><th class="n">Total</th></tr>
-  <tr><td>Harness products in</td><td><code>from_v6</code></td><td class="n">1 s</td><td class="n">5 s</td><td class="n">0.1 h</td></tr>
+  <tr><td>Harness products in</td><td></td><td class="n">1 s</td><td class="n">5 s</td><td class="n">0.1 h</td></tr>
   <tr><td>Masks</td><td><code>masks</code></td><td class="n">50 s</td><td class="n">143 s</td><td class="n">2.3 h</td></tr>
   <tr><td><a href="#program">Scene program</a></td><td><code>build</code></td><td class="n">92 s</td><td class="n">252 s</td><td class="n">4.2 h</td></tr>
   <tr><td><a href="#fit">Physics-guided Fitting</a></td><td><code>fit</code></td><td class="n">20 min</td><td class="n">3.1 h</td><td class="n">89.9 h</td></tr>
   <tr><td><a href="#loop">Checking loop</a></td><td><code>loop</code></td><td class="n">9.5 min</td><td class="n">84 min</td><td class="n">39.4 h</td></tr>
   <tr><td><a href="#answers">Answers</a></td><td><code>answer</code></td><td class="n">6 s</td><td class="n">42 s</td><td class="n">0.3 h</td></tr>
 </table></div>
-<p class="muted small">The scene-program chain of the same 158 questions (<code>v6val</code>, <code>v6valloop</code>; docs/VAL_V6.md).</p>
+<p class="muted small">The scene-program chain of the same 158 questions.</p>
 
 <!-- ============================================================ 1 -->
 <section class="step" id="s1">
@@ -566,7 +566,7 @@
 <p>A reference object is only its size read (<code>reference.size_only</code>): it is no scene object — no plan, motion, law, contact, segfit, fit.object, state or visibility, no gravity hop or collision partner — and no gating check names it. <code>fit3d.PosedPlanarFit</code> reads it on at most 24 frames of its frame set, evenly spaced, after the frames outside an agent's <code>size.full_extent</code>, border and motion-blurred frames are left out: one body of one size at a free position per frame on the scene's support plane, f and plane fixed, a frame's depth sample adding a depth row; the heading is the tangent of its own path where its box bottom moves more than 0.2 × its size within ±0.25 s, else one shared yaw; no class prior on the size. A dimension seen on ≥ 3 read frames is observed. No support plane or fewer than 3 frames: no read, and its vote skips with <code>support.none</code> / <code>read.frames</code>. Skipped with a reason: <code>self_reference</code>, <code>observe.line_spacing</code>, <code>prior.stated</code>, <code>part.unmeasured</code>, <code>track.none</code>, <code>presence.absent</code>, <code>support.plane</code>, <code>support.none</code>, <code>read.frames</code>, <code>dims.agent_lateral</code>, <code>dims.agent_height</code>, <code>size.full_extent</code>, <code>fit.none</code>, <code>fit.object</code>, <code>dim.unobserved</code>, <code>extent.frames</code>, <code>dim.truncated</code>, <code>dim.occluded</code>. The class range is read as its central ~95 % interval: value = midpoint, σ = (hi − lo) / 4.</p>
 <p>A sphere's diameter or a height seen at a time the prior states the object's depth Z is an anchored vote (<code>focal.anchored_class_vote</code>): f = extent<sub>px</sub> × Z / D per stated depth, read from no fitted body and no stage-A f, so it joins the first focal fusion and every refit pass. The stated depth's frame must show the object whole (the scene graph's visibility test): on the border or a sliver → <code>dim.truncated</code>, another tracked object's mask touching it while its own loses area → <code>dim.occluded</code>, no box → <code>track.none</code>; the extent is the static extent at that frame over fully seen frames only. σ per reading = extent ⊕ the depth's stated precision; the vote is the median of the readings, σ = class ⊕ median reading ⊕ spread. A length or width projects by the unknown heading and stays fit-read. Record per vote <code>anchored{t, Z, source, f[], readings[{t, Z, frame, f, rel, px, frames, how} | {t, Z, frame, skip, why}]}</code> (null when fit-read; <code>extent</code> null when anchored); a skipped object keeps its <code>anchored_readings</code>.</p>
 <!-- class_sizes: generated by tools/build_videos.py from pipeline/class_sizes.py -->
-<details class="classtable"><summary><code>pipeline/class_sizes.py</code> · 35 classes · <code>TABLE_VERSION</code> 1</summary>
+<details class="classtable"><summary><code>pipeline/class_sizes.py</code> · 35 classes</summary>
 <div class="scroll-x"><table class="small classsizes">
   <tr><th>Class</th><th>What</th><th>Dims (m)</th><th>Primary</th><th>Role</th><th>Observe</th><th>Source</th></tr>
   <tr><td><code>adult_person</code></td><td>an adult person standing or walking upright (not a child, not a statue, not a mannequin)</td><td class="dims"><span class="dim">height 1.6–1.85 <span class="muted">σ 0.0625</span></span></td><td>height</td><td>object</td><td>extent</td><td class="small">adult standing height, central range of men and women (NCD-RisC adult height surveys); user rule 2026-11-01</td></tr>
@@ -769,7 +769,7 @@
   <dd><ul>
     <li><code>outputs/harness/&lt;tag&gt;/answers/&lt;unit&gt;.json</code> (<code>schema: unit-1</code>): <code>execution_status</code>, <code>error</code>, <code>answer{pred, source, method, scene_value, checks, failed, measurement.constraint_residuals, status}</code>, <code>timing</code>, <code>iterations</code>, <code>kept_state</code>, <code>paths</code></li>
     <li><code>outputs/logs/harness_&lt;tag&gt;/&lt;unit&gt;.log</code>: one log per run (<code>harness.log_per_run</code>). A chain that starts from its first step starts the log fresh with the line <code># run &lt;run signature&gt; commit … tag … unit_set … python … &lt;time&gt;</code>; a resumed chain appends a <code># resume …</code> line. <code>--fresh</code> also clears the unit's agent-loop directories (<code>fresh: removed …</code>)</li>
-    <li><code>outputs/&lt;split&gt;_&lt;tag&gt;_answers_&lt;unit set&gt;.csv</code>, named by its unit set (the 20 questions of <code>docs/DEV20.md</code>: <code>dev20</code>; the whole split: no suffix), with <code>failed</code>, <code>seconds</code>, <code>version</code>, <code>unit_set</code> and, on val, <code>mra</code></li>
+    <li><code>outputs/&lt;split&gt;_&lt;tag&gt;_answers_&lt;unit set&gt;.csv</code>, named by its unit set (the 20 questions of <code>docs/DEV20.md</code>: <code>dev20</code>; the whole split: no suffix), with <code>failed</code>, <code>seconds</code>, <code>unit_set</code> and, on val, <code>mra</code></li>
   </ul></dd>
 </dl>
 </section>
