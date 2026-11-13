@@ -69,6 +69,14 @@ METHODS = {
                  "questions, question, 'directly tell me the number'); default reasoning; openai/gpt-5.6-luna via "
                  "OpenRouter (provider OpenAI), physmind_quantiphy/run_gpt.py; 2026-11-06",
     },
+    "gpt61_sol": {
+        "label": "GPT-6.1-sol",
+        "source": "https://openrouter.ai/openai/gpt-6.1-sol",
+        "setup": "pure model inference, no tools, same frames and prompt as GPT-5.6-luna (16 frames, long side 768 px, "
+                 "timestamps; expert persona, prior, depth info for 3D questions, question, 'directly tell me the "
+                 "number'); default reasoning; openai/gpt-6.1-sol via OpenRouter pinned to OpenAI, "
+                 "physmind_quantiphy/run_gpt.py on Google Colab; 2026-11-12",
+    },
     "qwen35_27b": {
         "label": "Qwen3.5-27B",
         "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
