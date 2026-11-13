@@ -1,4 +1,4 @@
-// index.html: the method summary of baseline.html (same computation, without the "Reported in original paper" column), from data/baseline.json,
+// index.html: the method summary of baseline.html (same computation), from data/baseline.json,
 // and the qualitative comparison from data/qualitative/index.json.
 (function () {
   'use strict';

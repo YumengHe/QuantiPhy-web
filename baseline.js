@@ -35,18 +35,16 @@
     $('b-stats').innerHTML = DATA.methods.map((m) =>
       Ht`<div class="m" style="--mc:var(--method-${m.key})"><div class="muted">${esc(lab(m))}</div><div class="big">${fmt(macro(qs, m.key), 3)}</div></div>`).join('');
     $('b-n').textContent = Ht`${qs.length} questions · ${DATA.videos.length} videos · overall = mean of the four category means`;
-    const head = Ht`<tr><th>Method</th><th class="n">Overall</th>` + CATS.map((c) => Ht`<th class="n">${c}</th>`).join('') +
-      Ht`<th class="n">Reported in<br>original paper</th></tr>`;
+    const head = Ht`<tr><th>Method</th><th class="n">Overall</th>` + CATS.map((c) => Ht`<th class="n">${c}</th>`).join('') + Ht`</tr>`;
     const counts = Ht`<tr><td class="muted">Questions</td><td class="n muted">` + qs.length + Ht`</td>` +
-      CATS.map((c) => Ht`<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + Ht`<td></td></tr>`;
+      CATS.map((c) => Ht`<td class="n muted">${qs.filter((q) => q.cat === c).length}</td>`).join('') + Ht`</tr>`;
     const link = (m) => m.key === 'ours' ? Ht`<a href="${esc(m.source)}">${esc(lab(m))}</a>` : Ht`<a href="${esc(m.source)}" target="_blank" rel="noopener">${esc(lab(m))}</a>`;
     const rows = DATA.methods.map((m) => Ht`<tr${m.key === 'ours' ? ' class="ours"' : ''}><td>${dot(m.key)}${link(m)}</td><td class="n"><b>${fmt(macro(qs, m.key))}</b></td>` +
-      CATS.map((c) => Ht`<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') +
-      Ht`<td class="n muted">${fmt(m.paper)}</td></tr>`).join('');
+      CATS.map((c) => Ht`<td class="n">${fmt(catMean(qs, m.key, c))}</td>`).join('') + Ht`</tr>`).join('');
     $('b-table').innerHTML = head + rows + counts;
     const left = DATA.left_out.length ? Ht` Not in the HF validation release, so not run: ${DATA.left_out.map((x) => Ht`<code>${esc(x)}</code>`).join(', ')}.` : '';
     $('b-notes').innerHTML = Ht`Ground truth and questions from the HF validation release (<code>PaulineLi/QuantiPhy-validation</code>); ` +
-      tr('MRA as on the Evaluation page. Reported in original paper = the validation score published by the method’s authors; the other columns are our re-run of their released code.') + left + Ht`<br>` +
+      tr('MRA as on the Evaluation page.') + left + Ht`<br>` +
       DATA.methods.map((m) => Ht`${esc(lab(m))}: ${esc(tr(m.setup))}`).join(Ht`<br>`);
   }
 
@@ -132,7 +130,7 @@
   function addOurs(d, ours) {
     const miss = d.questions.filter((q) => !ours.questions[q.id]).map((q) => q.id);
     if (miss.length) throw new Error(Ht`comparison_ours.json lacks ${miss.join(', ')}`);
-    d.methods.push({ key: 'ours', label: ours.label, paper: null, source: 'evaluation.html',
+    d.methods.push({ key: 'ours', label: ours.label, source: 'evaluation.html',
       setup: 'answer_final of every question, as on the Evaluation page' });
     d.questions.forEach((q) => { const o = ours.questions[q.id]; q.preds.ours = { pred: o.final, mra: o.final_mra, raw: o.final_source }; });
   }

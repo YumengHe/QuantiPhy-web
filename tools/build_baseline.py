@@ -32,31 +32,27 @@ from pathlib import Path
 WEB = Path(__file__).resolve().parents[1]
 TH = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
 
-# What each run is; "paper" is the score its authors report on the QuantiPhy validation set (macro MRA).
+# What each run is.
 METHODS = {
     "caw_4b": {
         "label": "Code-as-World-VL-4B",
-        "paper": 0.506,
         "source": "https://github.com/MirroS-Lab/Code-as-World",
         "setup": "released evaluator code_as_world.evaluation @1353bf0, 16 frames, temperature 0.01, seed 1, "
                  "no thinking; gpu_memory_utilization 0.85 (released 0.2 is sized for 80 GB); 1× L40S, 2026-11-03",
     },
     "caw_9b": {
         "label": "Code-as-World-VL-9B",
-        "paper": 0.554,
         "source": "https://github.com/MirroS-Lab/Code-as-World",
         "setup": "released evaluator code_as_world.evaluation @1353bf0, 16 frames, temperature 0.01, seed 1, "
                  "no thinking; gpu_memory_utilization 0.85 (released 0.5 is sized for 80 GB); 1× L40S, 2026-11-03",
     },
     "physmind": {
         "label": "PhysMind",
-        "paper": None,
         "source": "https://github.com/ccyydd/PhysMind",
         "setup": "PhysMind @8c106b7 stages 1-3 (SAM 3 tracks from VLM concept prompts naming the question objects, PhysMind's own vlm-concept-prompts route; MoGe-2, Metric Video Depth Anything, SAM 3D Objects, FoundationPose, GeoCalib), quantity measured on the posed metric meshes (no prior used, as in PhysMind); adapter: one SAM 3 session per prompt, untagged tracks matched to question objects by Gemini; 90 of 158 measured, the other 68 (no posed track 46, SAM 3 found nothing 15, no poses 7) fall back to the VLM's direct answer on the whole video, as PhysMind's own pipeline does (FAIL-001); VLM gemini-3-flash-preview via OpenRouter; 1× L40S, 2026-11-04",
     },
     "spatialcode": {
         "label": "Thinking with Spatial Code",
-        "paper": None,
         "source": "https://github.com/Beckschen/spatialcode",
         "setup": "spatialcode @cf7fffc (arXiv 2603.05591): object boxes by Gemini 3 Flash, each object boxed on the "
                  "earliest of 8 shown frames where it is visible; Spatial Encoder with the released weights "
@@ -67,7 +63,6 @@ METHODS = {
     },
     "gpt56_luna": {
         "label": "GPT-5.6-luna",
-        "paper": None,
         "source": "https://openrouter.ai/openai/gpt-5.6-luna",
         "setup": "pure model inference, no tools: 16 frames sampled uniformly over the video (long side 768 px, each "
                  "labelled with its timestamp) + one prompt (expert persona, prior, the dataset's depth info for 3D "
@@ -76,7 +71,6 @@ METHODS = {
     },
     "qwen35_27b": {
         "label": "Qwen3.5-27B",
-        "paper": None,
         "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
         "setup": "pure model inference, no tools, same frames and prompt as GPT-5.6-luna (16 frames, long side 768 px, "
                  "timestamps; expert persona, prior, depth info for 3D questions, question, 'directly tell me the "
