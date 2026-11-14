@@ -1,0 +1,1693 @@
+{
+ "generated": "2026-11-14",
+ "run": "Thinking with Spatial Code (spatialcode @cf7fffc, 32 frames, Gemini 3 Flash boxes)",
+ "videos": [
+  {
+   "video": "1_robot_soccer_kick_outdoor",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    4673.7,
+    3241.6
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 108,
+     "t": 2.16,
+     "drawn_frame": 105,
+     "drawn_t": 2.1,
+     "spatialcode": "data/spatialcode_wild/1_robot_soccer_kick_outdoor_f105.jpg",
+     "questions": [
+      "1_robot_soccer_kick_outdoor_q2"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0001_q2"
+     ]
+    },
+    {
+     "frame": 150,
+     "t": 3.0,
+     "drawn_frame": 153,
+     "drawn_t": 3.06,
+     "spatialcode": "data/spatialcode_wild/1_robot_soccer_kick_outdoor_f153.jpg",
+     "questions": [
+      "1_robot_soccer_kick_outdoor_q1"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0001_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "2_robot_soccer_kick_outdoor_2",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    3204.5,
+    1836.7
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 120,
+     "t": 2.002,
+     "drawn_frame": 123,
+     "drawn_t": 2.052,
+     "spatialcode": "data/spatialcode_wild/2_robot_soccer_kick_outdoor_2_f123.jpg",
+     "questions": [
+      "2_robot_soccer_kick_outdoor_2_q1",
+      "2_robot_soccer_kick_outdoor_2_q2"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0002_q1",
+      "robot_0002_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "3_robot_soccer_dribble_shoot_outdoor",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    3079.5,
+    2043.5
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 155,
+     "t": 2.586,
+     "drawn_frame": 159,
+     "drawn_t": 2.653,
+     "spatialcode": "data/spatialcode_wild/3_robot_soccer_dribble_shoot_outdoor_f159.jpg",
+     "questions": [
+      "3_robot_soccer_dribble_shoot_outdoor_q2"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer goal",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0003_q2"
+     ]
+    },
+    {
+     "frame": 204,
+     "t": 3.403,
+     "drawn_frame": 199,
+     "drawn_t": 3.32,
+     "spatialcode": "data/spatialcode_wild/3_robot_soccer_dribble_shoot_outdoor_f199.jpg",
+     "questions": [
+      "3_robot_soccer_dribble_shoot_outdoor_q1"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer goal",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0003_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "4_robot_soccer_dribble_outdoor_2",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    2545.5,
+    1383.5
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 90,
+     "t": 1.502,
+     "drawn_frame": 91,
+     "drawn_t": 1.518,
+     "spatialcode": "data/spatialcode_wild/4_robot_soccer_dribble_outdoor_2_f91.jpg",
+     "questions": [
+      "4_robot_soccer_dribble_outdoor_2_q1"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0004_q1"
+     ]
+    },
+    {
+     "frame": 129,
+     "t": 2.152,
+     "drawn_frame": 133,
+     "drawn_t": 2.219,
+     "spatialcode": "data/spatialcode_wild/4_robot_soccer_dribble_outdoor_2_f133.jpg",
+     "questions": [
+      "4_robot_soccer_dribble_outdoor_2_q2"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0004_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "5_robot_soccer_pass_with_human",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    3968.0,
+    2435.6
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 144,
+     "t": 2.402,
+     "drawn_frame": 148,
+     "drawn_t": 2.469,
+     "spatialcode": "data/spatialcode_wild/5_robot_soccer_pass_with_human_f148.jpg",
+     "questions": [
+      "5_robot_soccer_pass_with_human_q1"
+     ],
+     "drawn": [
+      {
+       "label": "the soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the man in the white shirt",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0005_q1"
+     ]
+    },
+    {
+     "frame": 177,
+     "t": 2.953,
+     "drawn_frame": 171,
+     "drawn_t": 2.853,
+     "spatialcode": "data/spatialcode_wild/5_robot_soccer_pass_with_human_f171.jpg",
+     "questions": [
+      "5_robot_soccer_pass_with_human_q2"
+     ],
+     "drawn": [
+      {
+       "label": "the soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the man in the white shirt",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0005_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "6_robot_goalkeeper_save_kick",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    1506.2,
+    831.0
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 61,
+     "t": 2.099,
+     "drawn_frame": 60,
+     "drawn_t": 2.064,
+     "spatialcode": "data/spatialcode_wild/6_robot_goalkeeper_save_kick_f60.jpg",
+     "questions": [
+      "6_robot_goalkeeper_save_kick_q1"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "goal crossbar",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0006_q1"
+     ]
+    },
+    {
+     "frame": 62,
+     "t": 2.133,
+     "drawn_frame": 60,
+     "drawn_t": 2.064,
+     "spatialcode": "data/spatialcode_wild/6_robot_goalkeeper_save_kick_f60.jpg",
+     "questions": [
+      "6_robot_goalkeeper_save_kick_q2"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "goal crossbar",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0006_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "7_robot_basketball_dribble",
+   "boxed_objects": 3,
+   "coded_objects": 3,
+   "focal_px": [
+    863.0,
+    1753.2
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 43,
+     "t": 1.433,
+     "drawn_frame": 43,
+     "drawn_t": 1.433,
+     "spatialcode": "data/spatialcode_wild/7_robot_basketball_dribble_f43.jpg",
+     "questions": [
+      "7_robot_basketball_dribble_q1"
+     ],
+     "drawn": [
+      {
+       "label": "basketball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "basketball rim",
+       "color": "#E09A6E"
+      },
+      {
+       "label": "floor",
+       "color": "#C0564F"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0007_q1"
+     ]
+    },
+    {
+     "frame": 48,
+     "t": 1.6,
+     "drawn_frame": 49,
+     "drawn_t": 1.633,
+     "spatialcode": "data/spatialcode_wild/7_robot_basketball_dribble_f49.jpg",
+     "questions": [
+      "7_robot_basketball_dribble_q2"
+     ],
+     "drawn": [
+      {
+       "label": "basketball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "basketball rim",
+       "color": "#E09A6E"
+      },
+      {
+       "label": "floor",
+       "color": "#C0564F"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0007_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "11_robot_dog_leap_gap_indoor",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    598.3,
+    277.3
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 93,
+     "t": 1.55,
+     "drawn_frame": 95,
+     "drawn_t": 1.583,
+     "spatialcode": "data/spatialcode_wild/11_robot_dog_leap_gap_indoor_f95.jpg",
+     "questions": [
+      "11_robot_dog_leap_gap_indoor_q1"
+     ],
+     "drawn": [
+      {
+       "label": "robot dog",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the two platforms",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0011_q1"
+     ]
+    },
+    {
+     "frame": 134,
+     "t": 2.233,
+     "drawn_frame": 131,
+     "drawn_t": 2.183,
+     "spatialcode": "data/spatialcode_wild/11_robot_dog_leap_gap_indoor_f131.jpg",
+     "questions": [
+      "11_robot_dog_leap_gap_indoor_q2"
+     ],
+     "drawn": [
+      {
+       "label": "robot dog",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the two platforms",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0011_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "12_robot_dog_leap_between_tables",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    973.0,
+    550.0
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 51,
+     "t": 1.7,
+     "drawn_frame": 52,
+     "drawn_t": 1.733,
+     "spatialcode": "data/spatialcode_wild/12_robot_dog_leap_between_tables_f52.jpg",
+     "questions": [
+      "12_robot_dog_leap_between_tables_q1"
+     ],
+     "drawn": [
+      {
+       "label": "the two tables",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0012_q1"
+     ]
+    },
+    {
+     "frame": 73,
+     "t": 2.433,
+     "drawn_frame": 72,
+     "drawn_t": 2.4,
+     "spatialcode": "data/spatialcode_wild/12_robot_dog_leap_between_tables_f72.jpg",
+     "questions": [
+      "12_robot_dog_leap_between_tables_q2"
+     ],
+     "drawn": [
+      {
+       "label": "the two tables",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0012_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "13_robot_dog_crawl_under_cart_outdoor",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    1012.5,
+    574.3
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 35,
+     "t": 0.583,
+     "drawn_frame": 38,
+     "drawn_t": 0.633,
+     "spatialcode": "data/spatialcode_wild/13_robot_dog_crawl_under_cart_outdoor_f38.jpg",
+     "questions": [
+      "13_robot_dog_crawl_under_cart_outdoor_q2"
+     ],
+     "drawn": [
+      {
+       "label": "the underside of the wagon",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0013_q2"
+     ]
+    },
+    {
+     "frame": 196,
+     "t": 3.267,
+     "drawn_frame": 190,
+     "drawn_t": 3.167,
+     "spatialcode": "data/spatialcode_wild/13_robot_dog_crawl_under_cart_outdoor_f190.jpg",
+     "questions": [
+      "13_robot_dog_crawl_under_cart_outdoor_q1"
+     ],
+     "drawn": [
+      {
+       "label": "the underside of the wagon",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0013_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "14_robot_dog_walk_around_sign",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    1026.3,
+    511.5
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 29,
+     "t": 1.16,
+     "drawn_frame": 29,
+     "drawn_t": 1.16,
+     "spatialcode": "data/spatialcode_wild/14_robot_dog_walk_around_sign_f29.jpg",
+     "questions": [
+      "14_robot_dog_walk_around_sign_q2"
+     ],
+     "drawn": [
+      {
+       "label": "caution sign",
+       "color": "#E5B455"
+      },
+      {
+       "label": "robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0014_q2"
+     ]
+    },
+    {
+     "frame": 41,
+     "t": 1.64,
+     "drawn_frame": 40,
+     "drawn_t": 1.6,
+     "spatialcode": "data/spatialcode_wild/14_robot_dog_walk_around_sign_f40.jpg",
+     "questions": [
+      "14_robot_dog_walk_around_sign_q1"
+     ],
+     "drawn": [
+      {
+       "label": "caution sign",
+       "color": "#E5B455"
+      },
+      {
+       "label": "robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0014_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "15_robot_dog_crawl_under_sofa",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    1475.1,
+    973.5
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 151,
+     "t": 2.517,
+     "drawn_frame": 150,
+     "drawn_t": 2.5,
+     "spatialcode": "data/spatialcode_wild/15_robot_dog_crawl_under_sofa_f150.jpg",
+     "questions": [
+      "15_robot_dog_crawl_under_sofa_q2"
+     ],
+     "drawn": [
+      {
+       "label": "the robot dog",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the sofa seat",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0015_q2"
+     ]
+    },
+    {
+     "frame": 167,
+     "t": 2.783,
+     "drawn_frame": 172,
+     "drawn_t": 2.867,
+     "spatialcode": "data/spatialcode_wild/15_robot_dog_crawl_under_sofa_f172.jpg",
+     "questions": [
+      "15_robot_dog_crawl_under_sofa_q1"
+     ],
+     "drawn": [
+      {
+       "label": "the robot dog",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the sofa seat",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0015_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "16_robot_dog_climb_ledge_outdoor",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    1251.4,
+    787.2
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 75,
+     "t": 1.25,
+     "drawn_frame": 73,
+     "drawn_t": 1.217,
+     "spatialcode": "data/spatialcode_wild/16_robot_dog_climb_ledge_outdoor_f73.jpg",
+     "questions": [
+      "16_robot_dog_climb_ledge_outdoor_q2"
+     ],
+     "drawn": [
+      {
+       "label": "ledge",
+       "color": "#E5B455"
+      },
+      {
+       "label": "robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0016_q2"
+     ]
+    },
+    {
+     "frame": 104,
+     "t": 1.733,
+     "drawn_frame": 107,
+     "drawn_t": 1.783,
+     "spatialcode": "data/spatialcode_wild/16_robot_dog_climb_ledge_outdoor_f107.jpg",
+     "questions": [
+      "16_robot_dog_climb_ledge_outdoor_q1"
+     ],
+     "drawn": [
+      {
+       "label": "ledge",
+       "color": "#E5B455"
+      },
+      {
+       "label": "robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0016_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "17_robot_soccer_dribble_walkway",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    4244.8,
+    2988.5
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 100,
+     "t": 2.0,
+     "drawn_frame": 101,
+     "drawn_t": 2.02,
+     "spatialcode": "data/spatialcode_wild/17_robot_soccer_dribble_walkway_f101.jpg",
+     "questions": [
+      "17_robot_soccer_dribble_walkway_q1"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0017_q1"
+     ]
+    },
+    {
+     "frame": 112,
+     "t": 2.24,
+     "drawn_frame": 116,
+     "drawn_t": 2.32,
+     "spatialcode": "data/spatialcode_wild/17_robot_soccer_dribble_walkway_f116.jpg",
+     "questions": [
+      "17_robot_soccer_dribble_walkway_q2"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0017_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "18_robot_soccer_dribble_to_goal",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    3193.7,
+    1861.5
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 61,
+     "t": 1.018,
+     "drawn_frame": 65,
+     "drawn_t": 1.084,
+     "spatialcode": "data/spatialcode_wild/18_robot_soccer_dribble_to_goal_f65.jpg",
+     "questions": [
+      "18_robot_soccer_dribble_to_goal_q1"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer goal",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0018_q1"
+     ]
+    },
+    {
+     "frame": 169,
+     "t": 2.819,
+     "drawn_frame": 174,
+     "drawn_t": 2.903,
+     "spatialcode": "data/spatialcode_wild/18_robot_soccer_dribble_to_goal_f174.jpg",
+     "questions": [
+      "18_robot_soccer_dribble_to_goal_q2"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "soccer goal",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0018_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "19_robot_basketball_fake_with_human",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    909.2,
+    1854.2
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 75,
+     "t": 2.5,
+     "drawn_frame": 77,
+     "drawn_t": 2.567,
+     "spatialcode": "data/spatialcode_wild/19_robot_basketball_fake_with_human_f77.jpg",
+     "questions": [
+      "19_robot_basketball_fake_with_human_q2"
+     ],
+     "drawn": [
+      {
+       "label": "basketball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "man in the white sweater",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0019_q2"
+     ]
+    },
+    {
+     "frame": 121,
+     "t": 4.033,
+     "drawn_frame": 120,
+     "drawn_t": 4.0,
+     "spatialcode": "data/spatialcode_wild/19_robot_basketball_fake_with_human_f120.jpg",
+     "questions": [
+      "19_robot_basketball_fake_with_human_q1"
+     ],
+     "drawn": [
+      {
+       "label": "basketball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "man in the white sweater",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0019_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "20_robot_soccer_dribble_field",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    2640.1,
+    1406.1
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 31,
+     "t": 0.517,
+     "drawn_frame": 33,
+     "drawn_t": 0.551,
+     "spatialcode": "data/spatialcode_wild/20_robot_soccer_dribble_field_f33.jpg",
+     "questions": [
+      "20_robot_soccer_dribble_field_q1"
+     ],
+     "drawn": [
+      {
+       "label": "the soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the man standing in the goal",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0020_q1"
+     ]
+    },
+    {
+     "frame": 173,
+     "t": 2.886,
+     "drawn_frame": 178,
+     "drawn_t": 2.97,
+     "spatialcode": "data/spatialcode_wild/20_robot_soccer_dribble_field_f178.jpg",
+     "questions": [
+      "20_robot_soccer_dribble_field_q2"
+     ],
+     "drawn": [
+      {
+       "label": "the soccer ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the man standing in the goal",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0020_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "11_nonrobot_desk_pushed_by_foot",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    744.8,
+    482.4
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "drawn_frame": 139,
+     "drawn_t": 4.633,
+     "spatialcode": "data/spatialcode_wild/11_nonrobot_desk_pushed_by_foot_f139.jpg",
+     "questions": [
+      "11_nonrobot_desk_pushed_by_foot_q2"
+     ],
+     "drawn": [
+      {
+       "label": "the ceiling light panel",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the desk",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0011_q2"
+     ]
+    },
+    {
+     "frame": 171,
+     "t": 5.7,
+     "drawn_frame": 174,
+     "drawn_t": 5.8,
+     "spatialcode": "data/spatialcode_wild/11_nonrobot_desk_pushed_by_foot_f174.jpg",
+     "questions": [
+      "11_nonrobot_desk_pushed_by_foot_q1"
+     ],
+     "drawn": [
+      {
+       "label": "the ceiling light panel",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the desk",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0011_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "12_nonrobot_desk_tipped_over",
+   "boxed_objects": 3,
+   "coded_objects": 3,
+   "focal_px": [
+    900.8,
+    614.8
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "drawn_frame": 0,
+     "drawn_t": 0.0,
+     "spatialcode": "data/spatialcode_wild/12_nonrobot_desk_tipped_over_f0.jpg",
+     "questions": [
+      "12_nonrobot_desk_tipped_over_q2"
+     ],
+     "drawn": [
+      {
+       "label": "ceiling light panel",
+       "color": "#E5B455"
+      },
+      {
+       "label": "desk top",
+       "color": "#E09A6E"
+      },
+      {
+       "label": "height of the desk",
+       "color": "#C0564F"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0012_q2"
+     ]
+    },
+    {
+     "frame": 127,
+     "t": 4.233,
+     "drawn_frame": 131,
+     "drawn_t": 4.367,
+     "spatialcode": "data/spatialcode_wild/12_nonrobot_desk_tipped_over_f131.jpg",
+     "questions": [
+      "12_nonrobot_desk_tipped_over_q1"
+     ],
+     "drawn": [
+      {
+       "label": "ceiling light panel",
+       "color": "#E5B455"
+      },
+      {
+       "label": "desk top",
+       "color": "#E09A6E"
+      },
+      {
+       "label": "height of the desk",
+       "color": "#C0564F"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0012_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "13_nonrobot_laptop_cart_pushed",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    866.3,
+    579.5
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "drawn_frame": 135,
+     "drawn_t": 4.5,
+     "spatialcode": "data/spatialcode_wild/13_nonrobot_laptop_cart_pushed_f135.jpg",
+     "questions": [
+      "13_nonrobot_laptop_cart_pushed_q1"
+     ],
+     "drawn": [
+      {
+       "label": "laptop cart",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0013_q1"
+     ]
+    },
+    {
+     "frame": 150,
+     "t": 5.0,
+     "drawn_frame": 154,
+     "drawn_t": 5.133,
+     "spatialcode": "data/spatialcode_wild/13_nonrobot_laptop_cart_pushed_f154.jpg",
+     "questions": [
+      "13_nonrobot_laptop_cart_pushed_q2"
+     ],
+     "drawn": [
+      {
+       "label": "laptop cart",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0013_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "14_nonrobot_box_pushed",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    901.5,
+    616.6
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 48,
+     "t": 1.6,
+     "drawn_frame": 52,
+     "drawn_t": 1.733,
+     "spatialcode": "data/spatialcode_wild/14_nonrobot_box_pushed_f52.jpg",
+     "questions": [
+      "14_nonrobot_box_pushed_q2"
+     ],
+     "drawn": [
+      {
+       "label": "cardboard box",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0014_q2"
+     ]
+    },
+    {
+     "frame": 135,
+     "t": 4.5,
+     "drawn_frame": 139,
+     "drawn_t": 4.633,
+     "spatialcode": "data/spatialcode_wild/14_nonrobot_box_pushed_f139.jpg",
+     "questions": [
+      "14_nonrobot_box_pushed_q1"
+     ],
+     "drawn": [
+      {
+       "label": "cardboard box",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0014_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "15_nonrobot_skateboard_pushed_by_foot",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    866.5,
+    581.9
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "drawn_frame": 139,
+     "drawn_t": 4.633,
+     "spatialcode": "data/spatialcode_wild/15_nonrobot_skateboard_pushed_by_foot_f139.jpg",
+     "questions": [
+      "15_nonrobot_skateboard_pushed_by_foot_q1"
+     ],
+     "drawn": [
+      {
+       "label": "the skateboard",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0015_q1"
+     ]
+    },
+    {
+     "frame": 171,
+     "t": 5.7,
+     "drawn_frame": 174,
+     "drawn_t": 5.8,
+     "spatialcode": "data/spatialcode_wild/15_nonrobot_skateboard_pushed_by_foot_f174.jpg",
+     "questions": [
+      "15_nonrobot_skateboard_pushed_by_foot_q2"
+     ],
+     "drawn": [
+      {
+       "label": "the skateboard",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0015_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "16_nonrobot_skateboard_ride",
+   "boxed_objects": 3,
+   "coded_objects": 3,
+   "focal_px": [
+    890.1,
+    604.1
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 120,
+     "t": 4.0,
+     "drawn_frame": 121,
+     "drawn_t": 4.033,
+     "spatialcode": "data/spatialcode_wild/16_nonrobot_skateboard_ride_f121.jpg",
+     "questions": [
+      "16_nonrobot_skateboard_ride_q1"
+     ],
+     "drawn": [
+      {
+       "label": "skateboard",
+       "color": "#E5B455"
+      },
+      {
+       "label": "man",
+       "color": "#E09A6E"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#C0564F"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0016_q1"
+     ]
+    },
+    {
+     "frame": 135,
+     "t": 4.5,
+     "drawn_frame": 139,
+     "drawn_t": 4.633,
+     "spatialcode": "data/spatialcode_wild/16_nonrobot_skateboard_ride_f139.jpg",
+     "questions": [
+      "16_nonrobot_skateboard_ride_q2"
+     ],
+     "drawn": [
+      {
+       "label": "skateboard",
+       "color": "#E5B455"
+      },
+      {
+       "label": "man",
+       "color": "#E09A6E"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#C0564F"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0016_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "17_nonrobot_box_toss",
+   "boxed_objects": 3,
+   "coded_objects": 3,
+   "focal_px": [
+    868.7,
+    601.3
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "drawn_frame": 139,
+     "drawn_t": 4.633,
+     "spatialcode": "data/spatialcode_wild/17_nonrobot_box_toss_f139.jpg",
+     "questions": [
+      "17_nonrobot_box_toss_q2"
+     ],
+     "drawn": [
+      {
+       "label": "snack box",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      },
+      {
+       "label": "floor",
+       "color": "#C0564F"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0017_q2"
+     ]
+    },
+    {
+     "frame": 195,
+     "t": 6.5,
+     "drawn_frame": 191,
+     "drawn_t": 6.367,
+     "spatialcode": "data/spatialcode_wild/17_nonrobot_box_toss_f191.jpg",
+     "questions": [
+      "17_nonrobot_box_toss_q1"
+     ],
+     "drawn": [
+      {
+       "label": "snack box",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      },
+      {
+       "label": "floor",
+       "color": "#C0564F"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0017_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "18_nonrobot_toy_plane_rolled_by_foot",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    787.7,
+    506.0
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 73,
+     "t": 2.433,
+     "drawn_frame": 69,
+     "drawn_t": 2.3,
+     "spatialcode": "data/spatialcode_wild/18_nonrobot_toy_plane_rolled_by_foot_f69.jpg",
+     "questions": [
+      "18_nonrobot_toy_plane_rolled_by_foot_q1"
+     ],
+     "drawn": [
+      {
+       "label": "toy airplane",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0018_q1"
+     ]
+    },
+    {
+     "frame": 135,
+     "t": 4.5,
+     "drawn_frame": 139,
+     "drawn_t": 4.633,
+     "spatialcode": "data/spatialcode_wild/18_nonrobot_toy_plane_rolled_by_foot_f139.jpg",
+     "questions": [
+      "18_nonrobot_toy_plane_rolled_by_foot_q2"
+     ],
+     "drawn": [
+      {
+       "label": "toy airplane",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0018_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "19_nonrobot_crate_slide",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    827.1,
+    551.8
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "drawn_frame": 139,
+     "drawn_t": 4.633,
+     "spatialcode": "data/spatialcode_wild/19_nonrobot_crate_slide_f139.jpg",
+     "questions": [
+      "19_nonrobot_crate_slide_q1"
+     ],
+     "drawn": [
+      {
+       "label": "the wooden crate",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0019_q1"
+     ]
+    },
+    {
+     "frame": 146,
+     "t": 4.867,
+     "drawn_frame": 148,
+     "drawn_t": 4.933,
+     "spatialcode": "data/spatialcode_wild/19_nonrobot_crate_slide_f148.jpg",
+     "questions": [
+      "19_nonrobot_crate_slide_q2"
+     ],
+     "drawn": [
+      {
+       "label": "the wooden crate",
+       "color": "#E5B455"
+      },
+      {
+       "label": "the ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0019_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "20_nonrobot_yoga_ball_roll",
+   "boxed_objects": 2,
+   "coded_objects": 2,
+   "focal_px": [
+    842.4,
+    558.1
+   ],
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 120,
+     "t": 4.0,
+     "drawn_frame": 121,
+     "drawn_t": 4.033,
+     "spatialcode": "data/spatialcode_wild/20_nonrobot_yoga_ball_roll_f121.jpg",
+     "questions": [
+      "20_nonrobot_yoga_ball_roll_q2"
+     ],
+     "drawn": [
+      {
+       "label": "yoga ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0020_q2"
+     ]
+    },
+    {
+     "frame": 135,
+     "t": 4.5,
+     "drawn_frame": 139,
+     "drawn_t": 4.633,
+     "spatialcode": "data/spatialcode_wild/20_nonrobot_yoga_ball_roll_f139.jpg",
+     "questions": [
+      "20_nonrobot_yoga_ball_roll_q1"
+     ],
+     "drawn": [
+      {
+       "label": "yoga ball",
+       "color": "#E5B455"
+      },
+      {
+       "label": "ceiling light panel",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0020_q1"
+     ]
+    }
+   ]
+  }
+ ],
+ "units": {
+  "robot_0001_q2": "1_robot_soccer_kick_outdoor",
+  "robot_0001_q1": "1_robot_soccer_kick_outdoor",
+  "robot_0002_q1": "2_robot_soccer_kick_outdoor_2",
+  "robot_0002_q2": "2_robot_soccer_kick_outdoor_2",
+  "robot_0003_q2": "3_robot_soccer_dribble_shoot_outdoor",
+  "robot_0003_q1": "3_robot_soccer_dribble_shoot_outdoor",
+  "robot_0004_q1": "4_robot_soccer_dribble_outdoor_2",
+  "robot_0004_q2": "4_robot_soccer_dribble_outdoor_2",
+  "robot_0005_q1": "5_robot_soccer_pass_with_human",
+  "robot_0005_q2": "5_robot_soccer_pass_with_human",
+  "robot_0006_q1": "6_robot_goalkeeper_save_kick",
+  "robot_0006_q2": "6_robot_goalkeeper_save_kick",
+  "robot_0007_q1": "7_robot_basketball_dribble",
+  "robot_0007_q2": "7_robot_basketball_dribble",
+  "robot_0011_q1": "11_robot_dog_leap_gap_indoor",
+  "robot_0011_q2": "11_robot_dog_leap_gap_indoor",
+  "robot_0012_q1": "12_robot_dog_leap_between_tables",
+  "robot_0012_q2": "12_robot_dog_leap_between_tables",
+  "robot_0013_q2": "13_robot_dog_crawl_under_cart_outdoor",
+  "robot_0013_q1": "13_robot_dog_crawl_under_cart_outdoor",
+  "robot_0014_q2": "14_robot_dog_walk_around_sign",
+  "robot_0014_q1": "14_robot_dog_walk_around_sign",
+  "robot_0015_q2": "15_robot_dog_crawl_under_sofa",
+  "robot_0015_q1": "15_robot_dog_crawl_under_sofa",
+  "robot_0016_q2": "16_robot_dog_climb_ledge_outdoor",
+  "robot_0016_q1": "16_robot_dog_climb_ledge_outdoor",
+  "robot_0017_q1": "17_robot_soccer_dribble_walkway",
+  "robot_0017_q2": "17_robot_soccer_dribble_walkway",
+  "robot_0018_q1": "18_robot_soccer_dribble_to_goal",
+  "robot_0018_q2": "18_robot_soccer_dribble_to_goal",
+  "robot_0019_q2": "19_robot_basketball_fake_with_human",
+  "robot_0019_q1": "19_robot_basketball_fake_with_human",
+  "robot_0020_q1": "20_robot_soccer_dribble_field",
+  "robot_0020_q2": "20_robot_soccer_dribble_field",
+  "nonrobot_0011_q2": "11_nonrobot_desk_pushed_by_foot",
+  "nonrobot_0011_q1": "11_nonrobot_desk_pushed_by_foot",
+  "nonrobot_0012_q2": "12_nonrobot_desk_tipped_over",
+  "nonrobot_0012_q1": "12_nonrobot_desk_tipped_over",
+  "nonrobot_0013_q1": "13_nonrobot_laptop_cart_pushed",
+  "nonrobot_0013_q2": "13_nonrobot_laptop_cart_pushed",
+  "nonrobot_0014_q2": "14_nonrobot_box_pushed",
+  "nonrobot_0014_q1": "14_nonrobot_box_pushed",
+  "nonrobot_0015_q1": "15_nonrobot_skateboard_pushed_by_foot",
+  "nonrobot_0015_q2": "15_nonrobot_skateboard_pushed_by_foot",
+  "nonrobot_0016_q1": "16_nonrobot_skateboard_ride",
+  "nonrobot_0016_q2": "16_nonrobot_skateboard_ride",
+  "nonrobot_0017_q2": "17_nonrobot_box_toss",
+  "nonrobot_0017_q1": "17_nonrobot_box_toss",
+  "nonrobot_0018_q1": "18_nonrobot_toy_plane_rolled_by_foot",
+  "nonrobot_0018_q2": "18_nonrobot_toy_plane_rolled_by_foot",
+  "nonrobot_0019_q1": "19_nonrobot_crate_slide",
+  "nonrobot_0019_q2": "19_nonrobot_crate_slide",
+  "nonrobot_0020_q2": "20_nonrobot_yoga_ball_roll",
+  "nonrobot_0020_q1": "20_nonrobot_yoga_ball_roll"
+ },
+ "style": "web/tools/restyle_baselines.py"
+}

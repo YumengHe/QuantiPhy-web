@@ -7,6 +7,7 @@
   /* roles, as in the paper figures */
   --obs: var(--c-orange); --scene: var(--c-blue); --scene-2: var(--c-sky); --prior: var(--c-lavender);
   --determined: var(--c-green); --undetermined: var(--c-grey); --reverted: var(--c-red); --asked: var(--c-purple);
+  --check: var(--c-teal);
   /* one colour per method, the same on every page */
   --method-ours: var(--c-blue); --method-caw_4b: var(--c-yellow); --method-caw_9b: var(--c-olive);
   --method-physmind: var(--c-purple); --method-spatialcode: var(--c-orange); --method-gemini4_carbon_video: var(--c-lavender); --method-qwen35_27b: var(--c-pink);
@@ -286,7 +287,7 @@ table.ident .isize div { white-space: nowrap; }
 .figwrap { margin: 18px 0 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); overflow-x: auto; }
 .figwrap img { display: block; width: 100%; min-width: 860px; height: auto; }
 .steps a.s { color: var(--text); text-decoration: none; }
-.steps a.s:hover { box-shadow: 0 1px 6px rgba(31, 35, 40, .12); }
+.steps a.s:hover { box-shadow: 0 1px 6px color-mix(in srgb, var(--text) 12%, transparent); }
 .steps .s.prog { border-left-color: var(--scene-2); }
 
 /* pipeline: one step = input / does / output / fails */
@@ -497,3 +498,7 @@ table.wq td.wstat { text-align: center; color: var(--muted); }
   .wstrip, .wplan { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .wplan > div { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* a stage that checks its product and redoes it */
+span.redo { color: var(--check); font-weight: 700; margin-left: .35em; }
+li.redo::before { content: "↻"; color: var(--check); font-weight: 700; margin-right: .35em; }

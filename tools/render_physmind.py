@@ -1,9 +1,13 @@
-"""Render PhysMind's 3D reconstruction back onto the video for Home > Qualitative Comparison.
+"""Render PhysMind's 3D reconstruction back onto the video for Home > Qualitative Comparison, from its meshes.
 
-The frames are the ones of data/physmind/index.json (chosen, when this was run on 2026-11-06, from the frames where our
-first validation run drew a question overlay); draws PhysMind's posed meshes of the question objects on each frame:
-outline of the projected mesh, its box and the object's name, t in the corner. Our side of each frame ("ours",
-"ours_unit") is written by tools/build_qualitative.py, not by this tool.
+The frames are the ones of the run's own reconstructions/index.json; draws PhysMind's posed meshes of the question
+objects on each frame in the site's style (tools/overlay_style.py): light fill and outline of the projected mesh, its
+box and the object's name on a tinted tag, t on a white tag. Our side of each frame is written by
+tools/build_qualitative.py, not by this tool.
+
+Needs the run's full artifacts (meshes, poses, frames: about 2 GB of the 7 GB under run/runs/qp_physmind_v2/artifacts);
+the copy on this machine holds two scenes only, and the site's images are redrawn from the run's published images by
+tools/restyle_baselines.py instead (same file names, same style).
 
   python -B tools/render_physmind.py   # --run defaults to RUN below
 
@@ -17,7 +21,7 @@ labelled with the question object's name. A video without one of our overlays ge
 
 Writes data/physmind/<video>_f<frame>.jpg and data/physmind/index.json:
 {"generated", "run", "videos": [{"video", "question_objects", "posed_question_objects", "failed_stage",
-"frames": [{"frame", "t", "ours", "physmind", "questions", "drawn", "missing"}]}]}.
+"frames": [{"frame", "t", "physmind", "questions", "drawn", "missing"}]}]}.
 Needs numpy, opencv, trimesh (for this tool only, not for the site).
 """
 from __future__ import annotations
@@ -25,8 +29,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
-import re
-from collections import defaultdict
+import sys
 from pathlib import Path
 
 import cv2
@@ -35,38 +38,20 @@ import trimesh
 
 ROOT = Path(__file__).resolve().parent.parent
 RUN = Path("/nas/yumenghe/QuantiPhy-data/physmind_result_new/quantiphy/run/runs/qp_physmind_v2")
-OURS_VERSION = "v1"
-# object colours: the paper palette defined once in site.css (--c-*), in the same order as videos.js
-# (BGR for OpenCV is converted below)
-OBJECT_ORDER = ['blue', 'orange', 'green', 'purple', 'yellow', 'teal', 'red', 'lavender', 'olive', 'pink']
-_CSS_COLOURS = dict(re.findall(r'--c-([a-z]+):\s*(#[0-9A-Fa-f]{6})', (ROOT / 'site.css').read_text()))
-PALETTE = [_CSS_COLOURS[c] for c in OBJECT_ORDER]
+FRAMES = RUN.parents[2] / "reconstructions" / "index.json"  # the frames the run drew
 
-
-def bgr(hex_colour: str) -> tuple[int, int, int]:
-    h = hex_colour.lstrip('#')
-    return int(h[4:6], 16), int(h[2:4], 16), int(h[0:2], 16)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import overlay_style as S  # noqa: E402
 
 
 def read_json(path: Path) -> dict:
     return json.loads(path.read_text()) if path.exists() else {}
 
 
-def ours_frames() -> dict[str, dict[int, dict]]:
-    """video -> frame -> {"t", "ours" (path), "questions" [ids]} from our v1 overlays."""
-    val = read_json(ROOT / "data" / "videos.json")["val"]
-    out: dict[str, dict[int, dict]] = defaultdict(dict)
-    for q in val["questions"]:
-        if q["version"] != OURS_VERSION:
-            continue
-        for o in q.get("overlays", []):
-            m = re.search(r"_f(\d+)\.jpg$", o.get("path") or "")
-            if not m:
-                continue
-            rec = out[q["video"]].setdefault(int(m.group(1)), {"t": o["t"], "ours": o["path"], "questions": []})
-            if q["id"] not in rec["questions"]:
-                rec["questions"].append(q["id"])
-    return out
+def run_frames() -> dict[str, dict[int, dict]]:
+    """video -> frame -> {"t", "questions"} of the run's reconstructions/index.json."""
+    return {v["video"]: {int(f["frame"]): {"t": f["t"], "questions": f["questions"]} for f in v["frames"]}
+            for v in read_json(FRAMES).get("videos", [])}
 
 
 def question_objects(world: Path, plan_q: dict, match: dict) -> dict[str, tuple[str, dict]]:
@@ -99,7 +84,7 @@ def question_objects(world: Path, plan_q: dict, match: dict) -> dict[str, tuple[
 
 def draw(frame: np.ndarray, K: np.ndarray, items: list[tuple[str, np.ndarray, np.ndarray, str]], t: float) -> np.ndarray:
     """items: (label, camera-frame vertices, faces, colour). Rasterises object ids far to near, then per object:
-    light fill, outline, box, name."""
+    light fill, outline, box, name tag."""
     h, w = frame.shape[:2]
     ids = np.zeros((h, w), np.int32)  # 0 = background, i+1 = items[i]
     polys = []
@@ -117,23 +102,18 @@ def draw(frame: np.ndarray, K: np.ndarray, items: list[tuple[str, np.ndarray, np
         if np.abs(pts).max() < 1e5:
             cv2.fillConvexPoly(ids, np.round(pts * 4).astype(np.int32), i, shift=2)
     out = frame.copy()
+    labels = [S.time_tag(t)]
     for i, (label, _, _, col) in enumerate(items):
         m = (ids == i + 1).astype(np.uint8)
         if not m.any():
             continue
-        c = bgr(col)
-        sel = m > 0
-        out[sel] = (0.75 * out[sel] + 0.25 * np.array(c)).astype(np.uint8)
-        contours, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        cv2.drawContours(out, contours, -1, c, 2, cv2.LINE_AA)
-        x, y, bw, bh = cv2.boundingRect(m)
-        cv2.rectangle(out, (x, y), (x + bw, y + bh), c, 1, cv2.LINE_AA)
-        cv2.putText(out, label, (x, max(12, y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, c, 1, cv2.LINE_AA)
-    cv2.putText(out, f"t={t:.2f}s", (6, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-    return out
+        S.fill_and_outline(out, m, col, box=True)
+        x, y, _, _ = cv2.boundingRect(m)
+        labels.append((label, x, y - 2, col))
+    return S.tags(out, labels)
 
 
-def one_video(run: Path, measure: dict, ours: dict[int, dict], out_dir: Path) -> dict:
+def one_video(run: Path, measure: dict, wanted: dict[int, dict], out_dir: Path) -> dict:
     vid = measure["video_id"]
     world = run / "artifacts" / f"scene_{measure['scene_index']}" / "world-modeling"
     plan_q = read_json(run / "plans" / f"{vid}.json")
@@ -144,22 +124,21 @@ def one_video(run: Path, measure: dict, ours: dict[int, dict], out_dir: Path) ->
     frames = sorted(frame_dir.glob("frame_*.jpg"))
     objs = question_objects(world, plan_q, measure.get("match")) if frames else {}
     fps = read_json(world / "pose-estimation-and-tracking/pose_frames/pose_frames.json").get("video_metadata", {}).get("fps")
-    wanted = dict(sorted(ours.items()))
-    if not wanted and frames:  # no overlay of ours: the frame with most posed question objects
+    wanted = dict(sorted(wanted.items()))
+    if not wanted and frames:  # a video the run drew no frame of: the frame with most posed question objects
         count = np.zeros(len(frames), int)
         for _, o in objs.values():
             for p in o["poses"]:
                 if p["frame_index"] < len(frames):
                     count[p["frame_index"]] += 1
         fi = int(np.argmax(count))
-        wanted = {fi: {"t": fi / fps if fps else 0.0, "ours": None, "questions": []}}
+        wanted = {fi: {"t": fi / fps if fps else 0.0, "questions": []}}
     poses = read_json(world / "pose-estimation-and-tracking/foundationpose/foundationpose_poses.json")
     K = np.asarray(poses["fixed_intrinsics"], float) if poses.get("fixed_intrinsics") else None
     meshes = {}
-    colour = {label: PALETTE[i % len(PALETTE)] for i, label in enumerate(sorted(objs))}
+    colour = {label: S.BASELINE[i % len(S.BASELINE)] for i, label in enumerate(sorted(objs))}
     for fi, o in wanted.items():
-        fr = {"frame": fi, "t": o["t"], "ours": o["ours"], "physmind": None, "questions": o["questions"],
-              "drawn": [], "missing": []}
+        fr = {"frame": fi, "t": o["t"], "physmind": None, "questions": o["questions"], "drawn": [], "missing": []}
         if frames and fi < len(frames):
             img = cv2.imread(str(frames[fi]))
             items = []
@@ -177,7 +156,7 @@ def one_video(run: Path, measure: dict, ours: dict[int, dict], out_dir: Path) ->
                 fr["drawn"].append({"label": label, "color": colour[label]})
             name = f"{vid}_f{fi}.jpg"
             cv2.imwrite(str(out_dir / name), draw(img, K, items, o["t"]) if K is not None else img,
-                        [cv2.IMWRITE_JPEG_QUALITY, 82])
+                        [cv2.IMWRITE_JPEG_QUALITY, 86])
             fr["physmind"] = f"data/physmind/{name}"
         rec["frames"].append(fr)
     return rec
@@ -192,14 +171,14 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     for old in args.out.glob("*.jpg"):  # outputs of this tool only
         old.unlink()
-    ours = ours_frames()
+    chosen = run_frames()
     videos = []
     for f in sorted((run / "measure").glob("*.json")):
         m = json.loads(f.read_text())
-        rec = one_video(run, m, ours.get(m["video_id"], {}), args.out)
+        rec = one_video(run, m, chosen.get(m["video_id"], {}), args.out)
         videos.append(rec)
         print(rec["video"], [(fr["frame"], len(fr["drawn"]), len(fr["missing"])) for fr in rec["frames"]], rec["failed_stage"] or "")
-    index = {"generated": datetime.date.today().isoformat(), "ours": OURS_VERSION,
+    index = {"generated": datetime.date.today().isoformat(),
              "run": "PhysMind variant B (qp_physmind_v2, all artifacts)", "videos": videos}
     (args.out / "index.json").write_text(json.dumps(index, indent=1))
 

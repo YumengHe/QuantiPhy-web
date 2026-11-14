@@ -16,8 +16,8 @@
 <div class="figwrap"><img src="data/figures/pipeline_full.png" width="2198" height="2135" alt="Every stage of the pipeline on one question: the initial distance between the black ball and the purple ball, with the prior billiard ball diameter = 57.2 mm."></div>
 
 <div class="steps stages">
-  <a class="s" href="#perception" data-i18n="pl.top.3">Input and perception</a><span class="ar">→</span>
-  <a class="s prog" href="#program" data-i18n="pl.top.4">Scene program</a><span class="ar">→</span>
+  <a class="s" href="#perception"><span data-i18n="pl.top.3">Input and perception</span><span class="redo" aria-hidden="true">↻</span></a><span class="ar">→</span>
+  <a class="s prog" href="#program"><span data-i18n="pl.top.4">Scene program</span><span class="redo" aria-hidden="true">↻</span></a><span class="ar">→</span>
   <a class="s fit" href="#fit" data-i18n="pl.top.5">Physics-guided Fitting</a><span class="ar">→</span>
   <a class="s answer" href="#answers" data-i18n="pl.top.7">Read-out and answer</a>
 </div>
@@ -41,10 +41,11 @@
   <dd><ol>
     <li data-i18n="pl.program.7">Plan: the objects in build order (supports first, then what rests on them, then what is held or flies), each bound to a track or to none, with a shape kind, proportions L : W : H as ratios, the view in which the camera sees it, and its motion as a sequence of states, each with a frame range, a relation and its target, a law and a direction. The plan also binds every prior statement and the question, names the environment, and says whether the camera moves</li>
     <li data-i18n="pl.program.8">Review: a second call may add an object or sharpen a description; it may not remove, rename, rebind or reorder objects</li>
-    <li data-i18n="pl.program.9">The plan is checked in code against fixed rules. A plan that breaks a rule is returned once with the reason; if the reply still breaks it, the rule is applied deterministically and the repair recorded. A statement binds only to a tracked object, a statement about a class binds to every tracked instance of it, and a size question binds to the axis the view shows</li>
+    <li class="redo" data-i18n="pl.program.9">The plan is checked in code against fixed rules. A plan that breaks a rule is returned once with the reason; if the reply still breaks it, the rule is applied deterministically and the repair recorded. A statement binds only to a tracked object, a statement about a class binds to every tracked instance of it, and a size question binds to the axis the view shows</li>
     <li data-i18n="pl.program.10">Every prior statement has exactly one account: a binding to a parameter or derived quantity, an image measurement, or a declaration that nothing observable carries it, with the reason</li>
     <li data-i18n="pl.program.11">Depth groups: bodies at about the same distance from the camera, at a given frame or over their common presence; each becomes same-depth ties, and a tie that contradicts a distance statement is rejected. Class sizes: a commonsense size with its spread, a soft vote; a vote on the asked quantity is dropped. Image measurements: two end points marked on one grid frame, on the plane the feature lies on, back-projected through the current camera; for a repeated feature, the two farthest lines that can still be counted and the number of periods n between them</li>
     <li data-i18n="pl.program.12">Authoring: one OpenSCAD module per body, CSG primitives in the body's own frame normalised to the unit box; its metric extents are scene parameters. The module must use only whitelisted primitives, compile, form one connected solid, and have extents in the order of the planned proportions; a failure is returned with its measured reason, at most three times</li>
+    <li class="redo" data-i18n="pl.program.12b">Shape check: each authored body is aligned to its masks over a sweep of viewing directions, and the model judges it from the aligned outlines and the boundary distance. A body judged wrong is re-authored or given new proportions; the change is kept only when the boundary distance falls by more than the mask noise, otherwise reverted, at most three rounds per body. Spheres and the person template are measured, not judged</li>
     <li data-i18n="pl.program.13">Structure: every number is a named parameter with a value, a unit, a σ and a source (prior, convention, class, fit, vlm). Values are set only where the prior or a convention gives them; a statement on a size or on g fixes that parameter, a statement on a derived quantity becomes a held row. The question is parsed in code into the quantity, a time or window, an aggregate, a component and the unit</li>
   </ol></dd>
   <dt data-i18n="pl.program.14">Output</dt>
@@ -130,6 +131,7 @@
     <li data-i18n="pl.fit.9">Gates per object: the program evaluates, its held rows hold, its relations hold, and its pose agrees with its masks: the constant part, the drift and the scatter of the per-frame alignment, each at most max(σ<sub>o</sub>, √2 px)</li>
     <li data-i18n="pl.fit.10">Identifiability: a parameter's σ is the largest of the linearised covariance, a frame-clustered sandwich covariance, a profile along the weakest directions and the spread over equally good starts. A parameter is undetermined, with a reason, if σ exceeds a quarter of its natural scale, it loads a direction of zero curvature, it affects no frame or row, or it ends at a bound. The scale is determined only if some anchor resists a common scaling of every unanchored length, speed and acceleration; each anchor is then tested alone</li>
     <li data-i18n="pl.fit.11">Read-out: the asked quantity evaluated on the program, a size or g directly, a speed, acceleration, distance or height from the laws at the asked time or window; its σ adds the statements' precision and the misfit of the frames it is read from. It is undetermined, with a named reason, if anything it reads is undetermined, a held row is violated, the scale rests only on a class vote pulled beyond 3σ, or the program has no expression for the asked quantity</li>
+    <li data-i18n="pl.fit.14">The fit reports its gates and which parameters it determines; it does not revise the program. The checks that redo a product (tracks, plan, shapes) all run before it, and nothing after the fit goes back to them</li>
   </ol></dd>
   <dt data-i18n="pl.fit.12">Output</dt>
   <dd><ul>
@@ -243,7 +245,7 @@
   <dd><ol>
     <li data-i18n="pl.h4.3">Detector boxes on six probe frames; a model grid labels each body full, partial or absent per frame and the model picks one numbered candidate on the body's choice frame</li>
     <li data-i18n="pl.h4.4">SAM 2 propagates the box forward and backward; each mask keeps one connected object</li>
-    <li data-i18n="pl.h4.5">An identity judge passes every candidate track through the same named checks (it moves where its motion is asserted, a verify vote, its size against its class, its presence over the span, not only on the image border); the first candidate that passes all of them is the track, and none passing leaves the body untracked with the reason</li>
+    <li class="redo" data-i18n="pl.h4.5">An identity judge passes every candidate track through the same named checks (it moves where its motion is asserted, a verify vote, its size against its class, its presence over the span, not only on the image border); a rejected candidate is replaced by the next (the re-check's and the motion check's replacements, then the alternatives after a rejection), the first that passes all of them is the track, and none passing leaves the body untracked with the reason, every candidate's checks and outcome kept in the track's identity record</li>
     <li data-i18n="pl.h4.6">A track runs while its body is visible, and each end names its reason (out of frame, occluded, absent, clip end); a coverage record says whether the plan's window lies inside the tracked span</li>
   </ol></dd>
   <dt data-i18n="pl.h.out">Output</dt>
