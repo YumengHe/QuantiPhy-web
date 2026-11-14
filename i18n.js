@@ -474,6 +474,25 @@
     "visible: objects with a track box in this frame; in view: objects whose fitted position projects into the camera image, in front of the camera": "可见：本帧有跟踪框的物体；在画面内：拟合位置投影落在相机图像内且位于相机前方的物体",
     "plan grid": "规划帧网格",
     "shapes": "形状",
+    "In the Wild": "真实视频",
+    "Videos": "视频数",
+    "Answered": "已作答",
+    "Unfinished": "未完成",
+    "unfinished": "未完成",
+    "Scene answer determined": "场景答案已定",
+    "Group": "组",
+    "Prior": "先验",
+    "Ball videos": "球类视频",
+    "Quadruped robots": "四足机器人",
+    "Lab recordings": "实验室录像",
+    "regulation ball diameter": "标准球直径",
+    "published body length": "公开的机身长度",
+    "standard ceiling light panel length": "标准吊顶灯板长度",
+    "Plan grid and shapes": "规划帧网格与形状",
+    "IoU": "IoU",
+    "answer_final": "answer_final",
+    "answer_scene": "answer_scene",
+    "Could not load data/wild.json: {e}": "无法加载 data/wild.json：{e}",
   };
   /* ZH:END */
   /* ZH_ID:BEGIN */
@@ -1016,6 +1035,7 @@
     "pl.time.ran": "{all} 道题中跑完全部步骤的 {n} 道（取自其答案记录的 <code>timing.steps</code>）。",
     "pl.classes": "{n} 个类别",
     "pl.s4.15b": "若所有候选都未通过，且其中一些只在 <code>static</code> 上失败、而该物体的运动又是确定的（题目问其运动、先验陈述其运动或其移动方式表明会动），则这些候选按运动量从大到小、不再以静止为由拒绝地重新判定；verify 与 presence 仍是硬性拒绝（<code>identity.whole_set</code>）。所有候选都被拒 → 该物体在本题中为 <code>untracked</code>：没有轨迹，也不退回检测器或前景。",
+    "wild.lede": "基准之外的真实视频，每个两道题，由同一流程作答。这些视频没有真值，因此不对答案评分。运行在截止时停止：失败或未完成的题没有答案。",
   };
   /* ZH_ID:END */
 

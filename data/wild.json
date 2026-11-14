@@ -1,0 +1,1571 @@
+{
+ "generated": "2026-11-13T21:25:44",
+ "groups": [
+  {
+   "key": "ball",
+   "videos": 11,
+   "priors": [
+    "diameter of the basketball = 0.24 m",
+    "diameter of the soccer ball = 0.22 m"
+   ]
+  },
+  {
+   "key": "quadruped",
+   "videos": 6,
+   "priors": [
+    "length of the robot dog = 0.50 m",
+    "length of the robot dog = 0.645 m"
+   ]
+  },
+  {
+   "key": "lab",
+   "videos": 10,
+   "priors": [
+    "length of the ceiling light panel = 1.22 m"
+   ]
+  }
+ ],
+ "counts": {
+  "videos": 27,
+  "questions": 54,
+  "answered": 45,
+  "failed": 6,
+  "stopped": 3,
+  "determined": 14
+ },
+ "videos": [
+  {
+   "video": "nonrobot_0011",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0011_q1",
+     "q": "What is the speed of the desk at 5.70s in m/s?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.0,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": 0.0,
+      "sigma": 0.07339173253279531,
+      "unit": "m/s",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.5898412458099387,
+     "overlays": [
+      "data/wild/nonrobot_0011_q1/overlay_f0000.jpg",
+      "data/wild/nonrobot_0011_q1/overlay_f0067.jpg",
+      "data/wild/nonrobot_0011_q1/overlay_f0134.jpg",
+      "data/wild/nonrobot_0011_q1/overlay_f0202.jpg",
+      "data/wild/nonrobot_0011_q1/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0011_q1/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0011_q1/shapes.jpg"
+    },
+    {
+     "unit": "nonrobot_0011_q2",
+     "q": "What is the height of the desk in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.3131,
+      "unit": "m"
+     },
+     "scene": {
+      "value": 1.3130933197776797,
+      "sigma": 0.24272491554776254,
+      "unit": "m",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.7659849336410522,
+     "overlays": [
+      "data/wild/nonrobot_0011_q2/overlay_f0000.jpg",
+      "data/wild/nonrobot_0011_q2/overlay_f0067.jpg",
+      "data/wild/nonrobot_0011_q2/overlay_f0134.jpg",
+      "data/wild/nonrobot_0011_q2/overlay_f0202.jpg",
+      "data/wild/nonrobot_0011_q2/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0011_q2/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0011_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0007",
+   "group": "ball",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "robot_0007_q1",
+     "q": "What is the speed of the basketball at 1.43s in m/s?",
+     "prior": "diameter of the basketball = 0.24 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.53,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 3.034932624255491,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "rests on fit variables the observations leave open: basketball.s0.pose[0].x, basketball.s0.pose[0].z, basketball.s0.pose[1].x, basketball.s0.pose[1].z, basketball.s0.pose[2].x, basketball.s0.pose[2].z"
+     },
+     "iou": 0.7559711090160586,
+     "overlays": [
+      "data/wild/robot_0007_q1/overlay_f0000.jpg",
+      "data/wild/robot_0007_q1/overlay_f0024.jpg",
+      "data/wild/robot_0007_q1/overlay_f0048.jpg",
+      "data/wild/robot_0007_q1/overlay_f0071.jpg",
+      "data/wild/robot_0007_q1/overlay_f0095.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0007_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0007_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0007_q2",
+     "q": "What is the height of the basketball rim above the floor in meters?",
+     "prior": "diameter of the basketball = 0.24 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.8,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 2015.2061354227667,
+      "unit": "m",
+      "determined": false,
+      "reason": "no time in the question: rim, floor static over [0.000, 3.167] s, read at 1.583 s; rests on fit variables the observations leave open: basketball.s0.pose[0].x, basketball.s0.pose[0].z, basketball.s0.pose[1].x, basketball.s0.pose[1].z, basketball.s0.pose[2].x, basketball.s0.pose[2].z"
+     },
+     "iou": 0.4626302732840424,
+     "overlays": [
+      "data/wild/robot_0007_q2/overlay_f0000.jpg",
+      "data/wild/robot_0007_q2/overlay_f0024.jpg",
+      "data/wild/robot_0007_q2/overlay_f0048.jpg",
+      "data/wild/robot_0007_q2/overlay_f0071.jpg",
+      "data/wild/robot_0007_q2/overlay_f0095.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0007_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0007_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "nonrobot_0016",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0016_q1",
+     "q": "What is the speed of the skateboard at 4.00s in m/s?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.13,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the motion it is read from is described by a table, not by a law (skateboard.s0 is the pose table skateboard.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
+     },
+     "iou": 0.6823289781222863,
+     "overlays": [
+      "data/wild/nonrobot_0016_q1/overlay_f0000.jpg",
+      "data/wild/nonrobot_0016_q1/overlay_f0067.jpg",
+      "data/wild/nonrobot_0016_q1/overlay_f0134.jpg",
+      "data/wild/nonrobot_0016_q1/overlay_f0202.jpg",
+      "data/wild/nonrobot_0016_q1/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0016_q1/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0016_q1/shapes.jpg"
+    },
+    {
+     "unit": "nonrobot_0016_q2",
+     "q": "What is the height of the man in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "stopped",
+     "step": null
+    }
+   ]
+  },
+  {
+   "video": "robot_0014",
+   "group": "quadruped",
+   "fps": 25.0,
+   "questions": [
+    {
+     "unit": "robot_0014_q1",
+     "q": "What is the height of the caution sign in meters?",
+     "prior": "length of the robot dog = 0.645 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.52959,
+      "unit": "m"
+     },
+     "scene": {
+      "value": 0.5295892105946907,
+      "sigma": 0.10171483467995968,
+      "unit": "m",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.6449326520866107,
+     "overlays": [
+      "data/wild/robot_0014_q1/overlay_f0000.jpg",
+      "data/wild/robot_0014_q1/overlay_f0020.jpg",
+      "data/wild/robot_0014_q1/overlay_f0041.jpg",
+      "data/wild/robot_0014_q1/overlay_f0062.jpg",
+      "data/wild/robot_0014_q1/overlay_f0082.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0014_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0014_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0014_q2",
+     "q": "What is the speed of the robot dog at 1.16s in m/s?",
+     "prior": "length of the robot dog = 0.645 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.17,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the motion it is read from is described by a table, not by a law (robot_dog.s0 is the pose table robot_dog.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
+     },
+     "iou": 0.4583405502852145,
+     "overlays": [
+      "data/wild/robot_0014_q2/overlay_f0000.jpg",
+      "data/wild/robot_0014_q2/overlay_f0020.jpg",
+      "data/wild/robot_0014_q2/overlay_f0040.jpg",
+      "data/wild/robot_0014_q2/overlay_f0061.jpg",
+      "data/wild/robot_0014_q2/overlay_f0082.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0014_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0014_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "nonrobot_0015",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0015_q1",
+     "q": "What is the length of the skateboard in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.543,
+      "unit": "m"
+     },
+     "scene": {
+      "value": 1.543039825146037,
+      "sigma": 0.4621649111002279,
+      "unit": "m",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.6401889740580412,
+     "overlays": [
+      "data/wild/nonrobot_0015_q1/overlay_f0000.jpg",
+      "data/wild/nonrobot_0015_q1/overlay_f0067.jpg",
+      "data/wild/nonrobot_0015_q1/overlay_f0134.jpg",
+      "data/wild/nonrobot_0015_q1/overlay_f0202.jpg",
+      "data/wild/nonrobot_0015_q1/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0015_q1/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0015_q1/shapes.jpg"
+    },
+    {
+     "unit": "nonrobot_0015_q2",
+     "q": "What is the speed of the skateboard at 5.70s in m/s?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.068,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 0.12372884930723727,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the scale rests on a class vote in tension: person.H (fitted 1.116 against 1.7 +- 0.17, +3.44 sigma), skateboard.L (fitted 0.4916 against 0.8 +- 0.1, +3.08 sigma); rests on fit variables the observations leave open: skateboard.s1.v0[0], skateboard.s1.v0[1]"
+     },
+     "iou": 0.48945078675343107,
+     "overlays": [
+      "data/wild/nonrobot_0015_q2/overlay_f0000.jpg",
+      "data/wild/nonrobot_0015_q2/overlay_f0067.jpg",
+      "data/wild/nonrobot_0015_q2/overlay_f0134.jpg",
+      "data/wild/nonrobot_0015_q2/overlay_f0202.jpg",
+      "data/wild/nonrobot_0015_q2/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0015_q2/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0015_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "nonrobot_0013",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0013_q1",
+     "q": "What is the speed of the laptop cart at 4.50s in m/s?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.0012392,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the motion it is read from is described by a table, not by a law (laptop_cart.s0 is the pose table laptop_cart.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
+     },
+     "iou": 0.5734873691484506,
+     "overlays": [
+      "data/wild/nonrobot_0013_q1/overlay_f0000.jpg",
+      "data/wild/nonrobot_0013_q1/overlay_f0075.jpg",
+      "data/wild/nonrobot_0013_q1/overlay_f0150.jpg",
+      "data/wild/nonrobot_0013_q1/overlay_f0224.jpg",
+      "data/wild/nonrobot_0013_q1/overlay_f0299.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0013_q1/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0013_q1/shapes.jpg"
+    },
+    {
+     "unit": "nonrobot_0013_q2",
+     "q": "What is the height of the laptop cart in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.85,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 0.23355491966381137,
+      "unit": "m",
+      "determined": false,
+      "reason": "the scale rests on a class vote in tension: basketball.D (fitted 0.0296 against 0.24 +- 0.024, +8.77 sigma), person.H (fitted 0.7853 against 1.7 +- 0.17, +5.38 sigma); rests on laptop_cart.H, which the observations leave open (sigma 0.314 natural units > 0.25)"
+     },
+     "iou": 0.6370335930045882,
+     "overlays": [
+      "data/wild/nonrobot_0013_q2/overlay_f0000.jpg",
+      "data/wild/nonrobot_0013_q2/overlay_f0075.jpg",
+      "data/wild/nonrobot_0013_q2/overlay_f0150.jpg",
+      "data/wild/nonrobot_0013_q2/overlay_f0224.jpg",
+      "data/wild/nonrobot_0013_q2/overlay_f0299.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0013_q2/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0013_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "nonrobot_0017",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0017_q1",
+     "q": "What is the height of the snack box above the floor at 6.50s in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.6977,
+      "unit": "m"
+     },
+     "scene": {
+      "value": 1.697693330507379,
+      "sigma": 0.4014184681935956,
+      "unit": "m",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.6346016904484314,
+     "overlays": [
+      "data/wild/nonrobot_0017_q1/overlay_f0000.jpg",
+      "data/wild/nonrobot_0017_q1/overlay_f0067.jpg",
+      "data/wild/nonrobot_0017_q1/overlay_f0136.jpg",
+      "data/wild/nonrobot_0017_q1/overlay_f0202.jpg",
+      "data/wild/nonrobot_0017_q1/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0017_q1/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0017_q1/shapes.jpg"
+    },
+    {
+     "unit": "nonrobot_0017_q2",
+     "q": "What is the length of the snack box in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.41,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "the scale rests on a class vote in tension: desk.H (fitted 1.403 against 0.75 +- 0.1, -6.53 sigma), person.H (fitted 3.763 against 1.7 +- 0.17, -12.14 sigma); the observations do not determine this extent: the model's ratio L : scale 1 (vlm) times the object's fitted scale"
+     },
+     "iou": 0.6195475858039811,
+     "overlays": [
+      "data/wild/nonrobot_0017_q2/overlay_f0000.jpg",
+      "data/wild/nonrobot_0017_q2/overlay_f0067.jpg",
+      "data/wild/nonrobot_0017_q2/overlay_f0136.jpg",
+      "data/wild/nonrobot_0017_q2/overlay_f0202.jpg",
+      "data/wild/nonrobot_0017_q2/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0017_q2/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0017_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0001",
+   "group": "ball",
+   "fps": 50.0,
+   "questions": [
+    {
+     "unit": "robot_0001_q1",
+     "q": "What is the speed of the soccer ball at 3.00s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.994,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": 1.994012919276936,
+      "sigma": 4.545937875241218,
+      "unit": "m/s",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.6279798602548294,
+     "overlays": [
+      "data/wild/robot_0001_q1/overlay_f0000.jpg",
+      "data/wild/robot_0001_q1/overlay_f0054.jpg",
+      "data/wild/robot_0001_q1/overlay_f0108.jpg",
+      "data/wild/robot_0001_q1/overlay_f0162.jpg",
+      "data/wild/robot_0001_q1/overlay_f0216.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0001_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0001_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0001_q2",
+     "q": "What is the height of the humanoid robot in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.53,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "the observations do not determine this extent: the model's ratio H : scale 1 (vlm) times the object's fitted scale"
+     },
+     "iou": 0.5607760999455506,
+     "overlays": [
+      "data/wild/robot_0001_q2/overlay_f0000.jpg",
+      "data/wild/robot_0001_q2/overlay_f0054.jpg",
+      "data/wild/robot_0001_q2/overlay_f0108.jpg",
+      "data/wild/robot_0001_q2/overlay_f0162.jpg",
+      "data/wild/robot_0001_q2/overlay_f0216.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0001_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0001_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "nonrobot_0018",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0018_q1",
+     "q": "What is the speed of the toy airplane at 2.43s in m/s?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.13429,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the motion it is read from is described by a table, not by a law (toy_airplane.s0 is the pose table toy_airplane.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
+     },
+     "iou": 0.6193904031311019,
+     "overlays": [
+      "data/wild/nonrobot_0018_q1/overlay_f0000.jpg",
+      "data/wild/nonrobot_0018_q1/overlay_f0067.jpg",
+      "data/wild/nonrobot_0018_q1/overlay_f0134.jpg",
+      "data/wild/nonrobot_0018_q1/overlay_f0202.jpg",
+      "data/wild/nonrobot_0018_q1/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0018_q1/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0018_q1/shapes.jpg"
+    },
+    {
+     "unit": "nonrobot_0018_q2",
+     "q": "What is the wingspan of the toy airplane in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.36,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 0.21176583606050986,
+      "unit": "m",
+      "determined": false,
+      "reason": "the scale rests on a class vote in tension: left_chair.H (fitted 1.716 against 1 +- 0.15, -4.77 sigma), left_desk.H (fitted 1.479 against 0.74 +- 0.1, -7.39 sigma), right_desk.H (fitted 1.109 against 0.74 +- 0.1, -3.69 sigma), woman.H (fitted 4.033 against 1.65 +- 0.17, -14.02 sigma)"
+     },
+     "iou": 0.5576783459821517,
+     "overlays": [
+      "data/wild/nonrobot_0018_q2/overlay_f0000.jpg",
+      "data/wild/nonrobot_0018_q2/overlay_f0067.jpg",
+      "data/wild/nonrobot_0018_q2/overlay_f0134.jpg",
+      "data/wild/nonrobot_0018_q2/overlay_f0202.jpg",
+      "data/wild/nonrobot_0018_q2/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0018_q2/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0018_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0019",
+   "group": "ball",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "robot_0019_q1",
+     "q": "What is the speed of the basketball at 4.03s in m/s?",
+     "prior": "diameter of the basketball = 0.24 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 3.7041,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": 3.7041334594095883,
+      "sigma": 13.709451545191035,
+      "unit": "m/s",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.5617539343899963,
+     "overlays": [
+      "data/wild/robot_0019_q1/overlay_f0000.jpg",
+      "data/wild/robot_0019_q1/overlay_f0034.jpg",
+      "data/wild/robot_0019_q1/overlay_f0067.jpg",
+      "data/wild/robot_0019_q1/overlay_f0103.jpg",
+      "data/wild/robot_0019_q1/overlay_f0149.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0019_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0019_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0019_q2",
+     "q": "What is the height of the man in the white sweater in meters?",
+     "prior": "diameter of the basketball = 0.24 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.9,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 19.667471806740384,
+      "unit": "m",
+      "determined": false,
+      "reason": "rests on man.H, which the observations leave open (sigma 3.58 natural units > 0.25)"
+     },
+     "iou": 0.5756310915192482,
+     "overlays": [
+      "data/wild/robot_0019_q2/overlay_f0000.jpg",
+      "data/wild/robot_0019_q2/overlay_f0037.jpg",
+      "data/wild/robot_0019_q2/overlay_f0074.jpg",
+      "data/wild/robot_0019_q2/overlay_f0112.jpg",
+      "data/wild/robot_0019_q2/overlay_f0149.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0019_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0019_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "nonrobot_0012",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0012_q1",
+     "q": "What is the length of the desk top in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.94,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "the observations do not determine this extent: the model's ratio L : scale 1 (vlm) times the object's fitted scale"
+     },
+     "iou": 0.5722119161428136,
+     "overlays": [
+      "data/wild/nonrobot_0012_q1/overlay_f0000.jpg",
+      "data/wild/nonrobot_0012_q1/overlay_f0064.jpg",
+      "data/wild/nonrobot_0012_q1/overlay_f0127.jpg",
+      "data/wild/nonrobot_0012_q1/overlay_f0190.jpg",
+      "data/wild/nonrobot_0012_q1/overlay_f0254.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0012_q1/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0012_q1/shapes.jpg"
+    },
+    {
+     "unit": "nonrobot_0012_q2",
+     "q": "What is the height of the desk at 0.00s in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "failed",
+     "step": "fit: code"
+    }
+   ]
+  },
+  {
+   "video": "robot_0018",
+   "group": "ball",
+   "fps": 59.94,
+   "questions": [
+    {
+     "unit": "robot_0018_q1",
+     "q": "What is the speed of the soccer ball at 1.02s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.0521,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": 1.052093925706652,
+      "sigma": 0.8294759857861641,
+      "unit": "m/s",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.3217605486187356,
+     "overlays": [
+      "data/wild/robot_0018_q1/overlay_f0000.jpg",
+      "data/wild/robot_0018_q1/overlay_f0085.jpg",
+      "data/wild/robot_0018_q1/overlay_f0169.jpg",
+      "data/wild/robot_0018_q1/overlay_f0253.jpg",
+      "data/wild/robot_0018_q1/overlay_f0337.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0018_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0018_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0018_q2",
+     "q": "What is the width of the soccer goal in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 3.0,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 6478401735931.169,
+      "unit": "m",
+      "determined": false,
+      "reason": "rests on fit variables the observations leave open: adult.H, adult.s0.pose[0].x, adult.s0.pose[0].y, adult.s0.pose[12].x, adult.s0.pose[12].y, adult.s0.pose[15].x"
+     },
+     "iou": 0.5372296601009267,
+     "overlays": [
+      "data/wild/robot_0018_q2/overlay_f0000.jpg",
+      "data/wild/robot_0018_q2/overlay_f0084.jpg",
+      "data/wild/robot_0018_q2/overlay_f0168.jpg",
+      "data/wild/robot_0018_q2/overlay_f0253.jpg",
+      "data/wild/robot_0018_q2/overlay_f0337.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0018_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0018_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0017",
+   "group": "ball",
+   "fps": 50.0,
+   "questions": [
+    {
+     "unit": "robot_0017_q1",
+     "q": "What is the speed of the humanoid robot at 2.00s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.5,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the motion it is read from is described by a table, not by a law (robot.s0 is the pose table robot.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
+     },
+     "iou": 0.5370287117428653,
+     "overlays": [
+      "data/wild/robot_0017_q1/overlay_f0000.jpg",
+      "data/wild/robot_0017_q1/overlay_f0056.jpg",
+      "data/wild/robot_0017_q1/overlay_f0112.jpg",
+      "data/wild/robot_0017_q1/overlay_f0168.jpg",
+      "data/wild/robot_0017_q1/overlay_f0224.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0017_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0017_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0017_q2",
+     "q": "What is the height of the humanoid robot in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.35,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "the observations do not determine this extent: the model's ratio H : scale 1 (vlm) times the object's fitted scale"
+     },
+     "iou": 0.5077119669948171,
+     "overlays": [
+      "data/wild/robot_0017_q2/overlay_f0000.jpg",
+      "data/wild/robot_0017_q2/overlay_f0056.jpg",
+      "data/wild/robot_0017_q2/overlay_f0112.jpg",
+      "data/wild/robot_0017_q2/overlay_f0168.jpg",
+      "data/wild/robot_0017_q2/overlay_f0224.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0017_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0017_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "nonrobot_0020",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0020_q1",
+     "q": "What is the diameter of the yoga ball in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.65,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 0.35752200750817587,
+      "unit": "m",
+      "determined": false,
+      "reason": "rests on yoga_ball.D, which the observations leave open (sigma 0.4 natural units > 0.25)"
+     },
+     "iou": 0.5025814626783761,
+     "overlays": [
+      "data/wild/nonrobot_0020_q1/overlay_f0000.jpg",
+      "data/wild/nonrobot_0020_q1/overlay_f0067.jpg",
+      "data/wild/nonrobot_0020_q1/overlay_f0134.jpg",
+      "data/wild/nonrobot_0020_q1/overlay_f0202.jpg",
+      "data/wild/nonrobot_0020_q1/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0020_q1/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0020_q1/shapes.jpg"
+    },
+    {
+     "unit": "nonrobot_0020_q2",
+     "q": "What is the speed of the yoga ball at 4.00s in m/s?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.0,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": 0.0,
+      "sigma": 0.17517609077887583,
+      "unit": "m/s",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.5335154323042878,
+     "overlays": [
+      "data/wild/nonrobot_0020_q2/overlay_f0000.jpg",
+      "data/wild/nonrobot_0020_q2/overlay_f0067.jpg",
+      "data/wild/nonrobot_0020_q2/overlay_f0134.jpg",
+      "data/wild/nonrobot_0020_q2/overlay_f0202.jpg",
+      "data/wild/nonrobot_0020_q2/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0020_q2/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0020_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0015",
+   "group": "quadruped",
+   "fps": 60.0,
+   "questions": [
+    {
+     "unit": "robot_0015_q1",
+     "q": "What is the height of the gap under the sofa seat in meters?",
+     "prior": "length of the robot dog = 0.645 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.25,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 12.66898959546027,
+      "unit": "m",
+      "determined": false,
+      "reason": "rests on fit variables the observations leave open: cam.pitch, cam.position[2], robot_dog.s0.pose[11].x, robot_dog.s0.pose[132].x, robot_dog.s0.pose[13].x, robot_dog.s0.pose[15].x"
+     },
+     "iou": 0.31380798673938043,
+     "overlays": [
+      "data/wild/robot_0015_q1/overlay_f0000.jpg",
+      "data/wild/robot_0015_q1/overlay_f0083.jpg",
+      "data/wild/robot_0015_q1/overlay_f0166.jpg",
+      "data/wild/robot_0015_q1/overlay_f0250.jpg",
+      "data/wild/robot_0015_q1/overlay_f0333.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0015_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0015_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0015_q2",
+     "q": "What is the speed of the robot dog at 2.52s in m/s?",
+     "prior": "length of the robot dog = 0.645 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.08,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the motion it is read from is described by a table, not by a law (robot_dog.s0 is the pose table robot_dog.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
+     },
+     "iou": 0.5019432240004441,
+     "overlays": [
+      "data/wild/robot_0015_q2/overlay_f0000.jpg",
+      "data/wild/robot_0015_q2/overlay_f0083.jpg",
+      "data/wild/robot_0015_q2/overlay_f0166.jpg",
+      "data/wild/robot_0015_q2/overlay_f0250.jpg",
+      "data/wild/robot_0015_q2/overlay_f0333.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0015_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0015_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0011",
+   "group": "quadruped",
+   "fps": 60.0,
+   "questions": [
+    {
+     "unit": "robot_0011_q1",
+     "q": "What is the width of the gap between the two platforms in meters?",
+     "prior": "length of the robot dog = 0.50 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.4398,
+      "unit": "m"
+     },
+     "scene": {
+      "value": 1.4398256284214512,
+      "sigma": 0.543226482301355,
+      "unit": "m",
+      "determined": true,
+      "reason": "no time in the question: left_platform, right_platform static over [0.000, 3.083] s, read at 1.542 s"
+     },
+     "iou": 0.48504526052177527,
+     "overlays": [
+      "data/wild/robot_0011_q1/overlay_f0000.jpg",
+      "data/wild/robot_0011_q1/overlay_f0046.jpg",
+      "data/wild/robot_0011_q1/overlay_f0092.jpg",
+      "data/wild/robot_0011_q1/overlay_f0139.jpg",
+      "data/wild/robot_0011_q1/overlay_f0185.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0011_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0011_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0011_q2",
+     "q": "What is the speed of the robot dog at 2.23s in m/s?",
+     "prior": "length of the robot dog = 0.50 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.1,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 2562442113036.0703,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "rests on fit variables the observations leave open: cam.f, cam.pitch, cam.position[2], cam.roll, robot_dog.s0.p[0], robot_dog.s0.p[1]"
+     },
+     "iou": 0.04275179033572371,
+     "overlays": [
+      "data/wild/robot_0011_q2/overlay_f0000.jpg",
+      "data/wild/robot_0011_q2/overlay_f0046.jpg",
+      "data/wild/robot_0011_q2/overlay_f0092.jpg",
+      "data/wild/robot_0011_q2/overlay_f0139.jpg",
+      "data/wild/robot_0011_q2/overlay_f0185.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0011_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0011_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0004",
+   "group": "ball",
+   "fps": 59.94,
+   "questions": [
+    {
+     "unit": "robot_0004_q1",
+     "q": "What is the speed of the humanoid robot at 1.50s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 3.06,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the motion it is read from is described by a table, not by a law (humanoid_robot.s0 is the pose table humanoid_robot.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
+     },
+     "iou": 0.4601581683907935,
+     "overlays": [
+      "data/wild/robot_0004_q1/overlay_f0000.jpg",
+      "data/wild/robot_0004_q1/overlay_f0064.jpg",
+      "data/wild/robot_0004_q1/overlay_f0128.jpg",
+      "data/wild/robot_0004_q1/overlay_f0193.jpg",
+      "data/wild/robot_0004_q1/overlay_f0257.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0004_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0004_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0004_q2",
+     "q": "What is the height of the humanoid robot in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.3,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "the observations do not determine this extent: the model's ratio H : scale 1 (vlm) times the object's fitted scale"
+     },
+     "iou": 0.34738606494337426,
+     "overlays": [
+      "data/wild/robot_0004_q2/overlay_f0000.jpg",
+      "data/wild/robot_0004_q2/overlay_f0064.jpg",
+      "data/wild/robot_0004_q2/overlay_f0128.jpg",
+      "data/wild/robot_0004_q2/overlay_f0193.jpg",
+      "data/wild/robot_0004_q2/overlay_f0257.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0004_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0004_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0006",
+   "group": "ball",
+   "fps": 29.985,
+   "questions": [
+    {
+     "unit": "robot_0006_q1",
+     "q": "What is the speed of the soccer ball at 2.10s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 4.4862,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": 4.4862489068565585,
+      "sigma": 4.316381260972003,
+      "unit": "m/s",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.2390568256446342,
+     "overlays": [
+      "data/wild/robot_0006_q1/overlay_f0000.jpg",
+      "data/wild/robot_0006_q1/overlay_f0030.jpg",
+      "data/wild/robot_0006_q1/overlay_f0060.jpg",
+      "data/wild/robot_0006_q1/overlay_f0089.jpg",
+      "data/wild/robot_0006_q1/overlay_f0119.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0006_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0006_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0006_q2",
+     "q": "What is the height of the goal crossbar above the ground in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 2.0,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "no time in the question: crossbar, ground static over [0.000, 3.969] s, read at 1.984 s; rests on crossbar.H (the observations do not determine this extent: the model's ratio H : scale 0.025 (vlm) times the object's fitted scale); rests on fit variables the observations leave open: ball.s1.v0[0], ball.s1.v0[1], ball.s1.v0[2], ball.s2.p0[0], ball.s2.p0[2], ball.s2.v0[0]"
+     },
+     "iou": 0.4527853251031491,
+     "overlays": [
+      "data/wild/robot_0006_q2/overlay_f0000.jpg",
+      "data/wild/robot_0006_q2/overlay_f0030.jpg",
+      "data/wild/robot_0006_q2/overlay_f0060.jpg",
+      "data/wild/robot_0006_q2/overlay_f0089.jpg",
+      "data/wild/robot_0006_q2/overlay_f0119.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0006_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0006_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0013",
+   "group": "quadruped",
+   "fps": 60.0,
+   "questions": [
+    {
+     "unit": "robot_0013_q1",
+     "q": "What is the height of the underside of the wagon above the ground in meters?",
+     "prior": "length of the robot dog = 0.50 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.2,
+      "unit": "m"
+     },
+     "scene": {
+      "value": 0.30649257052169077,
+      "sigma": 7.548500301195736,
+      "unit": "m",
+      "determined": true,
+      "reason": "no time in the question: wagon_underside, ground static over [0.000, 6.533] s, read at 3.267 s"
+     },
+     "iou": 0.029821463606042767,
+     "overlays": [
+      "data/wild/robot_0013_q1/overlay_f0000.jpg",
+      "data/wild/robot_0013_q1/overlay_f0098.jpg",
+      "data/wild/robot_0013_q1/overlay_f0196.jpg",
+      "data/wild/robot_0013_q1/overlay_f0294.jpg",
+      "data/wild/robot_0013_q1/overlay_f0392.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0013_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0013_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0013_q2",
+     "q": "What is the speed of the robot dog at 0.58s in m/s?",
+     "prior": "length of the robot dog = 0.50 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.5,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the motion it is read from is described by a table, not by a law (robot_dog.s0 is the pose table robot_dog.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
+     },
+     "iou": 0.44763359471159353,
+     "overlays": [
+      "data/wild/robot_0013_q2/overlay_f0000.jpg",
+      "data/wild/robot_0013_q2/overlay_f0079.jpg",
+      "data/wild/robot_0013_q2/overlay_f0158.jpg",
+      "data/wild/robot_0013_q2/overlay_f0267.jpg",
+      "data/wild/robot_0013_q2/overlay_f0392.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0013_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0013_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0005",
+   "group": "ball",
+   "fps": 59.94,
+   "questions": [
+    {
+     "unit": "robot_0005_q1",
+     "q": "What is the speed of the soccer ball at 2.40s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.88,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 0.3337167600097658,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the fit violates held statements: d1 (relative residual -0.0476 > 0.000163), soccer_ball.s0|s1.p[0] (relative residual 1.94 > 0.00379), soccer_ball.s0|s1.p[1] (relative residual 1.41 > 0.00379), soccer_ball.s0|s1.v[0] (relative residual -2.16 > 0.00516), soccer_ball.s0|s1.v[1] (relative residual -0.598 > 0.00516), soccer_ball.s1|s2.p[0] (relative residual 1.43 > 0.0048) and 3 more; jointly infeasible: soccer_ball.s0|s1.v[1]"
+     },
+     "iou": 0.3845802009244444,
+     "overlays": [
+      "data/wild/robot_0005_q1/overlay_f0000.jpg",
+      "data/wild/robot_0005_q1/overlay_f0087.jpg",
+      "data/wild/robot_0005_q1/overlay_f0174.jpg",
+      "data/wild/robot_0005_q1/overlay_f0260.jpg",
+      "data/wild/robot_0005_q1/overlay_f0354.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0005_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0005_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0005_q2",
+     "q": "What is the height of the man in the white shirt in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "failed",
+     "step": "fit: timeout"
+    }
+   ]
+  },
+  {
+   "video": "robot_0020",
+   "group": "ball",
+   "fps": 59.94,
+   "questions": [
+    {
+     "unit": "robot_0020_q1",
+     "q": "What is the speed of the soccer ball at 0.52s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 2.2874,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": 2.287360619652746,
+      "sigma": 7.68030696258993,
+      "unit": "m/s",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.25663428298770385,
+     "overlays": [
+      "data/wild/robot_0020_q1/overlay_f0000.jpg",
+      "data/wild/robot_0020_q1/overlay_f0086.jpg",
+      "data/wild/robot_0020_q1/overlay_f0172.jpg",
+      "data/wild/robot_0020_q1/overlay_f0259.jpg",
+      "data/wild/robot_0020_q1/overlay_f0345.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0020_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0020_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0020_q2",
+     "q": "What is the height of the man standing in the goal in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.65,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "the observations do not determine this extent: the model's ratio H : scale 1 (vlm) times the object's fitted scale"
+     },
+     "iou": 0.37115307412484017,
+     "overlays": [
+      "data/wild/robot_0020_q2/overlay_f0000.jpg",
+      "data/wild/robot_0020_q2/overlay_f0086.jpg",
+      "data/wild/robot_0020_q2/overlay_f0172.jpg",
+      "data/wild/robot_0020_q2/overlay_f0259.jpg",
+      "data/wild/robot_0020_q2/overlay_f0345.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0020_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0020_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0002",
+   "group": "ball",
+   "fps": 59.94,
+   "questions": [
+    {
+     "unit": "robot_0002_q1",
+     "q": "What is the speed of the humanoid robot at 2.00s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.43,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the motion it is read from is described by a table, not by a law (robot.s0 is the pose table robot.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
+     },
+     "iou": 0.28847667465300986,
+     "overlays": [
+      "data/wild/robot_0002_q1/overlay_f0000.jpg",
+      "data/wild/robot_0002_q1/overlay_f0060.jpg",
+      "data/wild/robot_0002_q1/overlay_f0120.jpg",
+      "data/wild/robot_0002_q1/overlay_f0179.jpg",
+      "data/wild/robot_0002_q1/overlay_f0239.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0002_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0002_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0002_q2",
+     "q": "What is the height of the humanoid robot in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.2,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "the observations do not determine this extent: the model's ratio H : scale 1 (vlm) times the object's fitted scale"
+     },
+     "iou": 0.3260916340269735,
+     "overlays": [
+      "data/wild/robot_0002_q2/overlay_f0000.jpg",
+      "data/wild/robot_0002_q2/overlay_f0060.jpg",
+      "data/wild/robot_0002_q2/overlay_f0120.jpg",
+      "data/wild/robot_0002_q2/overlay_f0179.jpg",
+      "data/wild/robot_0002_q2/overlay_f0239.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0002_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0002_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0012",
+   "group": "quadruped",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "robot_0012_q1",
+     "q": "What is the width of the gap between the two tables in meters?",
+     "prior": "length of the robot dog = 0.645 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.35,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "the measurement table_gap_width: no plane to back-project onto"
+     },
+     "iou": 0.22245227483078975,
+     "overlays": [
+      "data/wild/robot_0012_q1/overlay_f0000.jpg",
+      "data/wild/robot_0012_q1/overlay_f0025.jpg",
+      "data/wild/robot_0012_q1/overlay_f0050.jpg",
+      "data/wild/robot_0012_q1/overlay_f0076.jpg",
+      "data/wild/robot_0012_q1/overlay_f0101.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0012_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0012_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0012_q2",
+     "q": "What is the speed of the robot dog at 2.43s in m/s?",
+     "prior": "length of the robot dog = 0.645 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.66,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 3454474740035.348,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "rests on fit variables the observations leave open: cam.f, cam.pitch, cam.position[2], cam.roll, robot_dog.s0.pose[0].y, robot_dog.s0.pose[0].z"
+     },
+     "iou": 0.0,
+     "overlays": [
+      "data/wild/robot_0012_q2/overlay_f0000.jpg",
+      "data/wild/robot_0012_q2/overlay_f0025.jpg",
+      "data/wild/robot_0012_q2/overlay_f0050.jpg",
+      "data/wild/robot_0012_q2/overlay_f0076.jpg",
+      "data/wild/robot_0012_q2/overlay_f0101.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0012_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0012_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0003",
+   "group": "ball",
+   "fps": 59.94,
+   "questions": [
+    {
+     "unit": "robot_0003_q1",
+     "q": "What is the speed of the soccer ball at 3.40s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 5.5,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": 17.979109139481615,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the fit violates held statements: soccer_ball.s1|s2.p[2] (relative residual -6.77 > 0.0192), soccer_ball.s1|s2.v[2] (relative residual -6.33 > 0.0281), soccer_ball.s2|s3.p[2] (relative residual -6.77 > 0.0449); jointly infeasible: soccer_ball.s1|s2.p[2], soccer_ball.s1|s2.v[2], soccer_ball.s2|s3.p[2]"
+     },
+     "iou": 0.15304941309295023,
+     "overlays": [
+      "data/wild/robot_0003_q1/overlay_f0000.jpg",
+      "data/wild/robot_0003_q1/overlay_f0077.jpg",
+      "data/wild/robot_0003_q1/overlay_f0154.jpg",
+      "data/wild/robot_0003_q1/overlay_f0232.jpg",
+      "data/wild/robot_0003_q1/overlay_f0309.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0003_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0003_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0003_q2",
+     "q": "What is the width of the soccer goal in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.84856,
+      "unit": "m"
+     },
+     "scene": {
+      "value": 0.8485554355892813,
+      "sigma": 0.5760299306629006,
+      "unit": "m",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.15415243528863437,
+     "overlays": [
+      "data/wild/robot_0003_q2/overlay_f0000.jpg",
+      "data/wild/robot_0003_q2/overlay_f0077.jpg",
+      "data/wild/robot_0003_q2/overlay_f0154.jpg",
+      "data/wild/robot_0003_q2/overlay_f0232.jpg",
+      "data/wild/robot_0003_q2/overlay_f0309.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0003_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0003_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0016",
+   "group": "quadruped",
+   "fps": 60.0,
+   "questions": [
+    {
+     "unit": "robot_0016_q1",
+     "q": "What is the height of the ledge in meters?",
+     "prior": "length of the robot dog = 0.50 m",
+     "status": "failed",
+     "step": "harness: timeout"
+    },
+    {
+     "unit": "robot_0016_q2",
+     "q": "What is the speed of the robot dog at 1.25s in m/s?",
+     "prior": "length of the robot dog = 0.50 m",
+     "status": "failed",
+     "step": "harness: timeout"
+    }
+   ],
+   "frames": [
+    "data/wild/robot_0016/frame_f0000.jpg",
+    "data/wild/robot_0016/frame_f0052.jpg",
+    "data/wild/robot_0016/frame_f0104.jpg",
+    "data/wild/robot_0016/frame_f0155.jpg",
+    "data/wild/robot_0016/frame_f0207.jpg"
+   ]
+  },
+  {
+   "video": "nonrobot_0014",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0014_q1",
+     "q": "What is the length of the cardboard box in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "failed",
+     "step": "fit: timeout"
+    },
+    {
+     "unit": "nonrobot_0014_q2",
+     "q": "What is the speed of the cardboard box at 1.60s in m/s?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "stopped",
+     "step": null
+    }
+   ],
+   "frames": [
+    "data/wild/nonrobot_0014/frame_f0000.jpg",
+    "data/wild/nonrobot_0014/frame_f0067.jpg",
+    "data/wild/nonrobot_0014/frame_f0134.jpg",
+    "data/wild/nonrobot_0014/frame_f0202.jpg",
+    "data/wild/nonrobot_0014/frame_f0269.jpg"
+   ]
+  },
+  {
+   "video": "nonrobot_0019",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0019_q1",
+     "q": "What is the width of the wooden crate in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "failed",
+     "step": "fit: code"
+    },
+    {
+     "unit": "nonrobot_0019_q2",
+     "q": "What is the speed of the wooden crate at 4.87s in m/s?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "stopped",
+     "step": null
+    }
+   ],
+   "frames": [
+    "data/wild/nonrobot_0019/frame_f0000.jpg",
+    "data/wild/nonrobot_0019/frame_f0067.jpg",
+    "data/wild/nonrobot_0019/frame_f0134.jpg",
+    "data/wild/nonrobot_0019/frame_f0202.jpg",
+    "data/wild/nonrobot_0019/frame_f0269.jpg"
+   ]
+  }
+ ]
+}

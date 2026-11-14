@@ -480,3 +480,23 @@ table.contract th, table.contract td { padding: 1px 8px 1px 0; }
 .spplan { max-width: 1000px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; margin-top: 8px; }
 .qbody h3.harness { margin: 28px 0 4px; padding-top: 12px; border-top: 1px solid var(--border); }
 .spans td:first-child { white-space: nowrap; }
+
+/* wild.html: one block per video */
+.wv { margin: 0 0 18px; padding: 14px 16px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+.wv h3 { margin: 0 0 8px; font: 600 15px/1.4 var(--mono); }
+.wv ul.prior { margin-bottom: 10px; }
+table.wq td.qid, .wstrip .qid, .wplan .qid { font: 600 13px/1.4 var(--mono); color: var(--muted); }
+table.wq td.qid { width: 2.5em; }
+table.wq td.n { white-space: nowrap; }
+table.wq th.n { width: 9.5em; }
+table.wq th.n:last-child { width: 3.5em; }
+table.wq td.wstat { text-align: center; color: var(--muted); }
+.wstrip, .wplan { display: grid; grid-template-columns: 2.5em minmax(0, 1fr); gap: 8px; align-items: start; margin-top: 10px; }
+.wframes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.wframes img, .wplan img { display: block; width: 100%; height: auto; border-radius: 4px; }
+.wplan > div { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px; align-items: start; }
+@media (max-width: 720px) {
+  .wframes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .wstrip, .wplan { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .wplan > div { grid-template-columns: minmax(0, 1fr); }
+}
