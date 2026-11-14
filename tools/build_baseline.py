@@ -64,15 +64,12 @@ METHODS = {
     "gemini4_carbon_video": {
         "label": "Gemini-4-Carbon",
         "source": "https://openrouter.ai/google/gemini-4-carbon",
-        "setup": "pure model inference, no tools, whole video as input: the mp4 file itself is sent (no frame sampling on our side), same prompt as Qwen3.5-27B with 'You are given a video.' in place of the frames sentence; default reasoning; google/gemini-4-carbon via OpenRouter (Google's own hosts), physmind_quantiphy/run_gpt.py --input video on Google Colab; 11 of 158 questions returned no answer and score 0; 2026-11-13",
+        "setup": "pure model inference, no tools, whole video as input: the mp4 file itself is sent (no frame sampling on our side) + one prompt (expert persona, 'You are given a video.', prior, the dataset's depth info for 3D questions, question, 'directly tell me the number'); default reasoning; google/gemini-4-carbon via OpenRouter (Google's own hosts), physmind_quantiphy/run_gpt.py --input video on Google Colab; 11 of 158 questions returned no answer and score 0; 2026-11-13",
     },
-    "qwen35_27b": {
+    "qwen35_27b": {  # video input since 2026-11-14 (the 16-frame run of 2026-11-07 scored 0.548)
         "label": "Qwen3.5-27B",
         "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
-        "setup": "pure model inference, no tools: 16 frames sampled uniformly over the video (long side 768 px, each "
-                 "labelled with its timestamp) + one prompt (expert persona, prior, the dataset's depth info for 3D "
-                 "questions, question, 'directly tell me the number'); thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no "
-                 "fallback), physmind_quantiphy/run_gpt.py; 2026-11-07",
+        "setup": "pure model inference, no tools, same video input and prompt as Gemini-4-Carbon; thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no fallback), physmind_quantiphy/run_gpt.py --input video on Google Colab; 2026-11-13",
     },
 }
 
