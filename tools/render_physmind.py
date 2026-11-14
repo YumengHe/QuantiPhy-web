@@ -20,7 +20,10 @@ Only objects matched to a question object are drawn (the matching of run_physmin
 concept carried by the SAM 3 track, else the VLM match; several tracks for one concept: the longest pose track),
 labelled with the question object's name. A video without one of our overlays gets the frame with most posed objects.
 
-Writes data/physmind/<video>_f<frame>.jpg and data/physmind/index.json:
+Writes data/physmind/<video>_f<frame>.jpg, the label-free geometry of each image to --masks (default
+/nas/yumenghe/QuantiPhy-data/physmind_masks: <video>_f<frame>.npz with one boolean mask per drawn object name, the
+visible part of its projected mesh after occlusion, at the frame's resolution; <video>_f<frame>.json with the names),
+and data/physmind/index.json:
 {"generated", "run", "videos": [{"video", "question_objects", "posed_question_objects", "failed_stage",
 "frames": [{"frame", "t", "physmind", "questions", "drawn", "missing"}]}]}.
 Needs numpy, opencv, trimesh (for this tool only, not for the site).
@@ -38,6 +41,7 @@ import numpy as np
 import trimesh
 
 ROOT = Path(__file__).resolve().parent.parent
+MASKS = Path("/nas/yumenghe/QuantiPhy-data/physmind_masks")
 QUALITATIVE = ROOT / "data" / "qualitative" / "index.json"
 RUN = Path("/nas/yumenghe/QuantiPhy-data/physmind_result/quantiphy/run/runs/qp_physmind_v2")
 
@@ -83,11 +87,11 @@ def question_objects(world: Path, plan_q: dict, match: dict) -> dict[str, tuple[
     return {concepts[c]: v for c, v in best.items()}
 
 
-def draw(frame: np.ndarray, K: np.ndarray, items: list[tuple[str, np.ndarray, np.ndarray, str]], t: float) -> np.ndarray:
-    """items: (label, camera-frame vertices, faces, colour). Rasterises object ids far to near, then per object:
-    light fill, outline, box, name tag."""
-    h, w = frame.shape[:2]
-    ids = np.zeros((h, w), np.int32)  # 0 = background, i+1 = items[i]
+def rasterise(shape: tuple[int, int], K: np.ndarray, items: list[tuple[str, np.ndarray, np.ndarray, str]]) -> np.ndarray:
+    """items: (label, camera-frame vertices, faces, colour). Object ids per pixel (0 = background, i+1 = items[i]),
+    faces drawn far to near so nearer objects occlude."""
+    h, w = shape
+    ids = np.zeros((h, w), np.int32)
     polys = []
     for i, (_, verts, faces, _) in enumerate(items):
         tri = verts[faces]
@@ -102,6 +106,11 @@ def draw(frame: np.ndarray, K: np.ndarray, items: list[tuple[str, np.ndarray, np
     for _, pts, i in polys:
         if np.abs(pts).max() < 1e5:
             cv2.fillConvexPoly(ids, np.round(pts * 4).astype(np.int32), i, shift=2)
+    return ids
+
+
+def draw(frame: np.ndarray, ids: np.ndarray, items: list[tuple[str, np.ndarray, np.ndarray, str]], t: float) -> np.ndarray:
+    """Per object of `items` (rasterised to `ids`): light fill, outline, box, name tag."""
     out = frame.copy()
     labels = [S.time_tag(t)]
     for i, (label, _, _, col) in enumerate(items):
@@ -115,7 +124,7 @@ def draw(frame: np.ndarray, K: np.ndarray, items: list[tuple[str, np.ndarray, np
 
 
 def one_video(run: Path, measure: dict, wanted: dict[int, dict], out_dir: Path,
-              colours: dict[int, dict[str, str]]) -> dict:
+              colours: dict[int, dict[str, str]], masks_dir: Path | None = None) -> dict:
     vid = measure["video_id"]
     world = run / "artifacts" / f"scene_{measure['scene_index']}" / "world-modeling"
     plan_q = read_json(run / "plans" / f"{vid}.json")
@@ -159,8 +168,17 @@ def one_video(run: Path, measure: dict, wanted: dict[int, dict], out_dir: Path,
                 items.append((label, v @ T[:3, :3].T + T[:3, 3], f, colour[label]))
                 fr["drawn"].append({"label": label, "color": colour[label]})
             name = f"{vid}_f{fi}.jpg"
-            cv2.imwrite(str(out_dir / name), draw(img, K, items, o["t"]) if K is not None else img,
+            ids = rasterise(img.shape[:2], K, items) if K is not None else None
+            cv2.imwrite(str(out_dir / name), draw(img, ids, items, o["t"]) if K is not None else img,
                         [cv2.IMWRITE_JPEG_QUALITY, 86])
+            if masks_dir is not None and ids is not None:
+                stem = f"{vid}_f{fi}"
+                np.savez_compressed(masks_dir / f"{stem}.npz",
+                                    **{label: ids == i + 1 for i, (label, *_) in enumerate(items)})
+                (masks_dir / f"{stem}.json").write_text(json.dumps(
+                    {"video": vid, "frame": fi, "t": o["t"], "height": img.shape[0], "width": img.shape[1],
+                     "names": [it[0] for it in items], "missing": fr["missing"], "image": f"data/physmind/{name}"},
+                    indent=1))
             fr["physmind"] = f"data/physmind/{name}"
         rec["frames"].append(fr)
     return rec
@@ -170,10 +188,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", default=RUN, type=Path, help="runs/qp_physmind_v2 of a downloaded PhysMind run")
     ap.add_argument("--out", default=ROOT / "data" / "physmind", type=Path)
+    ap.add_argument("--masks", default=MASKS, type=Path,
+                    help="where each frame's visible mesh masks go (<video>_f<frame>.npz: one boolean array per drawn "
+                         "object name, after occlusion; <video>_f<frame>.json: names, missing names, size)")
     args = ap.parse_args()
     run = args.run.expanduser().resolve()
     args.out.mkdir(parents=True, exist_ok=True)
-    for old in args.out.glob("*.jpg"):  # outputs of this tool only
+    args.masks.mkdir(parents=True, exist_ok=True)
+    for old in [*args.out.glob("*.jpg"), *args.masks.glob("*.npz"), *args.masks.glob("*.json")]:  # this tool's only
         old.unlink()
     chosen = run_frames(run)
     comparison = {v["video"]: {int(f["frame"]): f["colours"] for f in v["frames"]}
@@ -181,7 +203,7 @@ def main() -> None:
     videos = []
     for f in sorted((run / "measure").glob("*.json")):
         m = json.loads(f.read_text())
-        rec = one_video(run, m, chosen.get(m["video_id"], {}), args.out, comparison.get(m["video_id"], {}))
+        rec = one_video(run, m, chosen.get(m["video_id"], {}), args.out, comparison.get(m["video_id"], {}), args.masks)
         videos.append(rec)
         print(rec["video"], [(fr["frame"], len(fr["drawn"]), len(fr["missing"])) for fr in rec["frames"]], rec["failed_stage"] or "")
     index = {"generated": datetime.date.today().isoformat(),
