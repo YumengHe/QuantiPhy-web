@@ -77,6 +77,11 @@ METHODS = {
                  "number'); default reasoning; openai/gpt-6.1-sol via OpenRouter pinned to OpenAI, "
                  "physmind_quantiphy/run_gpt.py on Google Colab; 2026-11-12",
     },
+    "gemini4_carbon_video": {
+        "label": "Gemini-4-Carbon",
+        "source": "https://openrouter.ai/google/gemini-4-carbon",
+        "setup": "pure model inference, no tools, whole video as input: the mp4 file itself is sent (no frame sampling on our side), same prompt as GPT-5.6-luna with 'You are given a video.' in place of the frames sentence; default reasoning; google/gemini-4-carbon via OpenRouter (Google's own hosts), physmind_quantiphy/run_gpt.py --input video on Google Colab; 11 of 158 questions returned no answer and score 0; 2026-11-13",
+    },
     "qwen35_27b": {
         "label": "Qwen3.5-27B",
         "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
