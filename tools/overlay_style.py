@@ -19,31 +19,47 @@ _CSS = (WEB / "site.css").read_text()
 CSS_COLOURS = dict(re.findall(r"--c-([a-z]+):\s*(#[0-9A-Fa-f]{6})", _CSS))
 TEXT = re.search(r"--text:\s*(#[0-9A-Fa-f]{6})", _CSS).group(1)
 # the order objects take the palette in: the asked object blue, then orange, green, ...
-OBJECT_ORDER = ["blue", "orange", "green", "purple", "yellow", "teal", "red", "lavender", "olive", "pink", "sky", "grey"]
+OBJECT_ORDER = ["blue", "orange", "green", "purple", "yellow", "teal", "red", "lavender", "pink", "olive", "sky", "grey"]
 OBJECTS = [CSS_COLOURS[c] for c in OBJECT_ORDER]
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FILL = 0.28          # weight of the object colour in its fill
 TAG_TINT = 0.45      # weight of the object colour in its label tag (rest white)
-EDGE = 0.75          # an outline is the object colour scaled by this (a little darker than the fill)
+EDGE = 0.72          # an outline is the object colour scaled by this (a little darker than the fill)
 
 
 def name_key(name: str) -> str:
     """An object's name as compared across methods: lower case, no article, letters and digits only."""
-    n = name.lower().strip()
-    n = re.sub(r"^(the|a|an) ", "", n)
+    n = re.sub(r"^(the|a|an) ", "", name.replace("_", " ").lower().strip())
     return re.sub(r"[^a-z0-9]", "", n)
 
 
+FILLERS = {"the", "a", "an", "on", "in", "of", "at", "to", "with", "standing", "model"}
+
+
+def name_words(name: str) -> frozenset:
+    return frozenset(w for w in re.findall(r"[a-z0-9]+", name.lower().replace("_", " ")) if w not in FILLERS)
+
+
 def object_colours(ordered: list[str], *others: list[str]) -> dict[str, str]:
-    """name key -> colour. `ordered`: one method's objects, asked object first; `others`: the names other methods
-    drew in the same comparison, in their own order. A name met again keeps its colour; a new name takes the next
-    colour. More objects than colours wrap around."""
+    """name key -> colour, for every name given. `ordered`: one method's objects, asked object first; `others`: the
+    names other methods drew in the same comparison, in their own order. A name is a known one when its key is the
+    same, else when exactly one known name's words (fillers aside) contain its words or are contained in them; it then
+    takes that name's colour, otherwise the next colour (wrapping around). The paper's figures use the same rule
+    (paper/figures/src/overlays.py)."""
+    known: dict[str, tuple[str, frozenset]] = {}  # key -> (colour, words) of the names that opened a colour
     out: dict[str, str] = {}
     for names in (ordered, *others):
         for n in names:
-            k = name_key(n)
-            if k not in out:
-                out[k] = OBJECTS[len(out) % len(OBJECTS)]
+            k, w = name_key(n), name_words(n)
+            if k in known:
+                out[k] = known[k][0]
+                continue
+            near = [c for c, (_, cw) in known.items() if w and cw and (w <= cw or cw <= w)]
+            if len(near) == 1:
+                out[k] = known[near[0]][0]
+                continue
+            known[k] = (OBJECTS[len(known) % len(OBJECTS)], w)
+            out[k] = known[k][0]
     return out
 
 

@@ -366,11 +366,11 @@
       },
       {
        "label": "basketball rim",
-       "color": "#E09A6E"
+       "color": "#5B8DB8"
       },
       {
        "label": "floor",
-       "color": "#92B573"
+       "color": "#E09A6E"
       }
      ],
      "missing": [],
@@ -394,11 +394,11 @@
       },
       {
        "label": "basketball rim",
-       "color": "#E09A6E"
+       "color": "#5B8DB8"
       },
       {
        "label": "floor",
-       "color": "#92B573"
+       "color": "#E09A6E"
       }
      ],
      "missing": [],

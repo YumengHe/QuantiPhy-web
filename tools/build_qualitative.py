@@ -16,10 +16,10 @@ tracks it is bound to (white on dark), each object's IoU on that frame on a tag 
 frame on a white tag. Reads saved programs only (no fitting, no model calls). A frame none of whose questions has a
 program raises.
 
-Colours, one per object and per frame (overlay_style.object_colours): the program's asked object (query.object) first,
-then its other bodies by id, then the names PhysMind and Thinking with Spatial Code drew on that frame that none of ours
-matches. A name of theirs matching one of our objects' ids or track names takes that object's colour. The map is
-written to the frame's "colours" and tools/render_physmind.py and tools/restyle_baselines.py draw with it, so run
+Colours, one per object and per frame (overlay_style.object_colours, the rule of the paper's figures): the program's
+bodies posed at the frame in program order with the asked object (query.object) first, then the names PhysMind and
+Thinking with Spatial Code gave that frame's objects; a name that matches a known one takes its colour. The map (every
+name's key -> colour) is written to the frame's "colours" and tools/render_physmind.py and tools/restyle_baselines.py draw with it, so run
 this tool first.
 
 Writes data/qualitative/<tag>/<unit>_f<frame>.jpg and data/qualitative/index.json:
@@ -49,7 +49,7 @@ import overlay_style as S  # noqa: E402
 from pipeline.data import Video  # noqa: E402
 from pipeline.sceneprog.masks import ObservedMasks  # noqa: E402
 from pipeline.sceneprog.metric import frame_record  # noqa: E402
-from pipeline.sceneprog.poses import camera  # noqa: E402
+from pipeline.sceneprog.poses import camera, poses_at  # noqa: E402
 from pipeline.sceneprog.program import load  # noqa: E402
 from pipeline.sceneprog.render import render  # noqa: E402
 from pipeline.sceneprog.shapes import compile_scene  # noqa: E402
@@ -116,18 +116,16 @@ def overlay(bgr: np.ndarray, rendered: dict, observed: dict, labels: dict, colou
     return S.tags(image, tags)
 
 
-def comparison_colours(program: dict, theirs: list[str]) -> dict[str, str]:
-    """name key -> colour for one frame: the program's asked object, its other bodies by id, then the baselines'
-    names that match none of ours (a name matching a body's id or track name is that body)."""
-    bodies = sorted(o["id"] for o in program["objects"] if o["kind"] == "body")
+def comparison_colours(program: dict, frame: int, theirs: list[str]) -> dict[str, str]:
+    """name key -> colour for one frame, as the paper's figures colour a row (paper/figures/src/overlays.py): the
+    program's bodies posed at the frame in program order with the asked object first, then the baselines' names;
+    bodies not posed at the frame come last (they have a tag but no outline)."""
+    posed = poses_at(program, frame / float(program["video"]["fps"]))
+    bodies = [o["id"] for o in program["objects"] if o["kind"] == "body"]
+    present = [b for b in bodies if posed.get(b) is not None]
     asked = (program.get("query") or {}).get("object")
-    ordered = ([asked] if asked in bodies else []) + [b for b in bodies if b != asked]
-    alias = {S.name_key(o["track"]): o["id"] for o in program["objects"]
-             if o["kind"] == "body" and o.get("track") is not None}
-    colours = S.object_colours(ordered, [alias.get(S.name_key(n), n) for n in theirs])
-    for n in theirs:  # their own spelling of a name of ours
-        colours.setdefault(S.name_key(n), colours[S.name_key(alias.get(S.name_key(n), n))])
-    return colours
+    present.sort(key=lambda b: b != asked)
+    return S.object_colours(present, theirs, [b for b in bodies if b not in present])
 
 
 def frames(pm: dict, sc: dict) -> list[dict]:
@@ -172,7 +170,7 @@ def main():
                 raise ValueError(f"{v['video']} frame {f['frame']}: none of {f['questions']} has a program in {args.tag}")
             unit, frame = units[0], int(f["frame"])
             directory = ROOT / "outputs" / "sceneprog" / args.tag / unit
-            f["colours"] = comparison_colours(json.loads((directory / "scene.json").read_text()), f.pop("names", []))
+            f["colours"] = comparison_colours(json.loads((directory / "scene.json").read_text()), frame, f.pop("names", []))
             out = out_dir / f"{unit}_f{frame}.jpg"
             draw(directory, frame, out, f["colours"])
             drawn += 1

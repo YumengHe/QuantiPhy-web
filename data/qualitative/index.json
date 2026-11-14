@@ -28,12 +28,12 @@
      "spatialcode_missing": [],
      "colours": {
       "cup": "#5B8DB8",
-      "ball": "#E09A6E",
-      "cookie": "#92B573",
-      "desk": "#C58BC0",
-      "notebook": "#E5B455",
-      "pen": "#6FB5AE",
-      "slope": "#C0564F"
+      "desk": "#E09A6E",
+      "slope": "#92B573",
+      "pen": "#C58BC0",
+      "cookie": "#E5B455",
+      "notebook": "#6FB5AE",
+      "ball": "#C0564F"
      },
      "ours": "data/qualitative/v6val/captured_0013_q1_f0.jpg",
      "ours_unit": "captured_0013_q1"
@@ -79,7 +79,7 @@
      "colours": {
       "pingpongball": "#5B8DB8",
       "woodentable": "#E09A6E",
-      "table": "#92B573"
+      "table": "#E09A6E"
      },
      "ours": "data/qualitative/v6val/captured_0021x_q3_f23.jpg",
      "ours_unit": "captured_0021x_q3"
@@ -170,9 +170,9 @@
      "spatialcode_missing": [],
      "colours": {
       "pencilbag": "#5B8DB8",
-      "lefttennisball": "#E09A6E",
-      "righttennisball": "#92B573",
-      "soccerball": "#C58BC0"
+      "soccerball": "#E09A6E",
+      "lefttennisball": "#92B573",
+      "righttennisball": "#C58BC0"
      },
      "ours": "data/qualitative/v6val/captured_0034as_q3_f0.jpg",
      "ours_unit": "captured_0034as_q3"
@@ -189,8 +189,8 @@
      "spatialcode_missing": [],
      "colours": {
       "righttennisball": "#5B8DB8",
-      "lefttennisball": "#E09A6E",
-      "pencilbag": "#92B573",
+      "pencilbag": "#E09A6E",
+      "lefttennisball": "#92B573",
       "soccerball": "#C58BC0"
      },
      "ours": "data/qualitative/v6val/captured_0034as_q2_f29.jpg",
@@ -323,11 +323,11 @@
       "floor"
      ],
      "colours": {
-      "yogaball": "#5B8DB8",
+      "person": "#5B8DB8",
       "basketball": "#E09A6E",
-      "person": "#92B573",
-      "soccerball": "#C58BC0",
-      "floor": "#E5B455"
+      "soccerball": "#92B573",
+      "floor": "#C58BC0",
+      "yogaball": "#E5B455"
      },
      "ours": "data/qualitative/v6val/captured_0061_q1_f0.jpg",
      "ours_unit": "captured_0061_q1"
@@ -347,9 +347,9 @@
      "spatialcode_missing": [],
      "colours": {
       "soccerball": "#5B8DB8",
-      "basketball": "#E09A6E",
-      "person": "#92B573",
-      "yogaball": "#C58BC0",
+      "person": "#E09A6E",
+      "yogaball": "#92B573",
+      "basketball": "#C58BC0",
       "floor": "#E5B455"
      },
      "ours": "data/qualitative/v6val/captured_0061_q6_f14.jpg",
@@ -369,9 +369,9 @@
      "spatialcode_missing": [],
      "colours": {
       "soccerball": "#5B8DB8",
-      "basketball": "#E09A6E",
-      "person": "#92B573",
-      "yogaball": "#C58BC0",
+      "person": "#E09A6E",
+      "yogaball": "#92B573",
+      "basketball": "#C58BC0",
       "floor": "#E5B455"
      },
      "ours": "data/qualitative/v6val/captured_0061_q7_f22.jpg",
@@ -390,8 +390,8 @@
      "colours": {
       "basketball": "#5B8DB8",
       "person": "#E09A6E",
-      "soccerball": "#92B573",
-      "yogaball": "#C58BC0",
+      "yogaball": "#92B573",
+      "soccerball": "#C58BC0",
       "floor": "#E5B455"
      },
      "ours": "data/qualitative/v6val/captured_0061_q9_f37.jpg",
@@ -413,9 +413,9 @@
      "colours": {
       "basketball": "#5B8DB8",
       "person": "#E09A6E",
-      "soccerball": "#92B573",
-      "yogaball": "#C58BC0",
-      "floor": "#E5B455"
+      "yogaball": "#92B573",
+      "floor": "#C58BC0",
+      "soccerball": "#E5B455"
      },
      "ours": "data/qualitative/v6val/captured_0061_q9_f38.jpg",
      "ours_unit": "captured_0061_q9"
@@ -438,9 +438,9 @@
      "spatialcode_missing": [],
      "colours": {
       "soccerball": "#5B8DB8",
-      "basketball": "#E09A6E",
-      "person": "#92B573",
-      "yogaball": "#C58BC0",
+      "person": "#E09A6E",
+      "yogaball": "#92B573",
+      "basketball": "#C58BC0",
       "floor": "#E5B455"
      },
      "ours": "data/qualitative/v6val/captured_0061_q3_f48.jpg",
@@ -502,9 +502,9 @@
      ],
      "colours": {
       "woodblock": "#5B8DB8",
-      "ruler": "#E09A6E",
-      "penciltip": "#92B573",
-      "saw": "#C58BC0"
+      "penciltip": "#E09A6E",
+      "saw": "#92B573",
+      "ruler": "#C58BC0"
      },
      "ours": "data/qualitative/v6val/internet_0004_q2_f0.jpg",
      "ours_unit": "internet_0004_q2"
@@ -534,13 +534,13 @@
      "colours": {
       "leftsign": "#5B8DB8",
       "leftsignpost": "#E09A6E",
-      "person": "#92B573",
+      "rightsignpost": "#92B573",
       "rightsign": "#C58BC0",
-      "rightsignpost": "#E5B455",
+      "person": "#E5B455",
       "womaninyellow": "#6FB5AE",
-      "lightrightabovethewomanshead": "#C0564F",
-      "floortiles": "#9B93C9",
-      "twoblackroadsigns": "#5B8DB8"
+      "twoblackroadsigns": "#C0564F",
+      "lightrightabovethewomanshead": "#9B93C9",
+      "floortiles": "#DE8C9D"
      },
      "ours": "data/qualitative/v6val/internet_0005_q1_f0.jpg",
      "ours_unit": "internet_0005_q1"
@@ -572,18 +572,18 @@
      "spatialcode_missing": [],
      "colours": {
       "straightthroughlane": "#5B8DB8",
-      "darkcarabove": "#E09A6E",
-      "darkcarbelow": "#92B573",
-      "silvercar": "#C58BC0",
-      "walkingperson": "#E5B455",
-      "whitecar": "#6FB5AE",
+      "walkingperson": "#E09A6E",
+      "whitecar": "#92B573",
+      "darkcarabove": "#C58BC0",
+      "silvercar": "#E5B455",
+      "darkcarbelow": "#6FB5AE",
       "roundaboutlane": "#C0564F",
       "blackcar": "#9B93C9",
-      "centerislandplanter": "#C2BB66",
-      "whitecarintheroundabout": "#DE8C9D",
-      "bicycleontheupperleftcorner": "#7FA6CF",
-      "twoblackcarsintheroundabout": "#B9BEC4",
-      "pedestrian": "#5B8DB8"
+      "centerislandplanter": "#DE8C9D",
+      "whitecarintheroundabout": "#92B573",
+      "bicycleontheupperleftcorner": "#C2BB66",
+      "twoblackcarsintheroundabout": "#7FA6CF",
+      "pedestrian": "#B9BEC4"
      },
      "ours": "data/qualitative/v6val/internet_0013_q1_f0.jpg",
      "ours_unit": "internet_0013_q1"
@@ -602,15 +602,15 @@
       "blackcarone": "#5B8DB8",
       "blackcartwo": "#E09A6E",
       "pedestrian": "#92B573",
-      "silvercarentrance": "#C58BC0",
+      "whitecarright": "#C58BC0",
       "whitecarbottom": "#E5B455",
-      "whitecarright": "#6FB5AE",
-      "straightthroughlane": "#C0564F",
-      "roundaboutlane": "#9B93C9",
-      "centerislandplanter": "#C2BB66",
+      "straightthroughlane": "#6FB5AE",
+      "roundaboutlane": "#C0564F",
+      "centerislandplanter": "#9B93C9",
       "whitecarintheroundabout": "#DE8C9D",
-      "bicycleontheupperleftcorner": "#7FA6CF",
-      "twoblackcarsintheroundabout": "#5B8DB8"
+      "bicycleontheupperleftcorner": "#C2BB66",
+      "twoblackcarsintheroundabout": "#7FA6CF",
+      "silvercarentrance": "#B9BEC4"
      },
      "ours": "data/qualitative/v6val/internet_0013_q6_f27.jpg",
      "ours_unit": "internet_0013_q6"
@@ -629,12 +629,12 @@
       "blackcarone": "#5B8DB8",
       "blackcartwo": "#E09A6E",
       "pedestrian": "#92B573",
-      "silvercarentrance": "#C58BC0",
+      "whitecarright": "#C58BC0",
       "whitecarbottom": "#E5B455",
-      "whitecarright": "#6FB5AE",
-      "blackcar": "#C0564F",
-      "roundaboutlane": "#9B93C9",
-      "whitecar": "#C2BB66"
+      "blackcar": "#6FB5AE",
+      "roundaboutlane": "#C0564F",
+      "whitecar": "#9B93C9",
+      "silvercarentrance": "#DE8C9D"
      },
      "ours": "data/qualitative/v6val/internet_0013_q6_f30.jpg",
      "ours_unit": "internet_0013_q6"
@@ -652,17 +652,17 @@
      "colours": {
       "bicycle": "#5B8DB8",
       "darkcar": "#E09A6E",
-      "silvercar": "#92B573",
-      "walkingperson": "#C58BC0",
-      "whitecar": "#E5B455",
-      "blackcar": "#6FB5AE",
-      "roundaboutlane": "#C0564F",
-      "straightthroughlane": "#9B93C9",
-      "centerislandplanter": "#C2BB66",
-      "whitecarintheroundabout": "#DE8C9D",
-      "bicycleontheupperleftcorner": "#7FA6CF",
-      "twoblackcarsintheroundabout": "#B9BEC4",
-      "pedestrian": "#5B8DB8"
+      "whitecar": "#92B573",
+      "silvercar": "#C58BC0",
+      "blackcar": "#E5B455",
+      "roundaboutlane": "#6FB5AE",
+      "straightthroughlane": "#C0564F",
+      "centerislandplanter": "#9B93C9",
+      "whitecarintheroundabout": "#92B573",
+      "bicycleontheupperleftcorner": "#5B8DB8",
+      "twoblackcarsintheroundabout": "#DE8C9D",
+      "pedestrian": "#C2BB66",
+      "walkingperson": "#7FA6CF"
      },
      "ours": "data/qualitative/v6val/internet_0013_q5_f90.jpg",
      "ours_unit": "internet_0013_q5"
@@ -696,13 +696,13 @@
       "the ball"
      ],
      "colours": {
-      "ball": "#5B8DB8",
-      "middleperson": "#E09A6E",
-      "rightperson": "#92B573",
-      "personontheright": "#C58BC0",
-      "personstandinginthemiddle": "#E5B455",
-      "personontheleftthepasser": "#6FB5AE",
-      "personontherightthereceiver": "#C0564F"
+      "middleperson": "#5B8DB8",
+      "rightperson": "#E09A6E",
+      "personontheright": "#E09A6E",
+      "personstandinginthemiddle": "#5B8DB8",
+      "ball": "#92B573",
+      "personontheleftthepasser": "#C58BC0",
+      "personontherightthereceiver": "#E09A6E"
      },
      "ours": "data/qualitative/v6val/internet_0019_q1_f0.jpg",
      "ours_unit": "internet_0019_q1"
@@ -721,10 +721,10 @@
       "ball": "#5B8DB8",
       "middleperson": "#E09A6E",
       "rightperson": "#92B573",
-      "personontheright": "#C58BC0",
-      "personstandinginthemiddle": "#E5B455",
-      "personontheleftthepasser": "#6FB5AE",
-      "personontherightthereceiver": "#C0564F"
+      "personontheright": "#92B573",
+      "personstandinginthemiddle": "#E09A6E",
+      "personontheleftthepasser": "#C58BC0",
+      "personontherightthereceiver": "#92B573"
      },
      "ours": "data/qualitative/v6val/internet_0019_q6_f30.jpg",
      "ours_unit": "internet_0019_q6"
@@ -759,13 +759,13 @@
      ],
      "colours": {
       "blackball": "#5B8DB8",
-      "blueball": "#E09A6E",
+      "purpleball": "#E09A6E",
       "orangeball": "#92B573",
-      "purpleball": "#C58BC0",
+      "blueball": "#C58BC0",
+      "whiteball": "#E5B455",
+      "yellowballontheleft": "#6FB5AE",
       "whitecueball": "#E5B455",
-      "yellowball": "#6FB5AE",
-      "whiteball": "#C0564F",
-      "yellowballontheleft": "#9B93C9"
+      "yellowball": "#6FB5AE"
      },
      "ours": "data/qualitative/v6val/internet_0027_q1_f0.jpg",
      "ours_unit": "internet_0027_q1"
@@ -785,12 +785,12 @@
      "spatialcode_missing": [],
      "colours": {
       "whiteball": "#5B8DB8",
-      "blackball": "#E09A6E",
-      "blueball": "#92B573",
-      "purpleball": "#C58BC0",
+      "purpleball": "#E09A6E",
+      "blackball": "#92B573",
+      "blueball": "#C58BC0",
       "yellowball": "#E5B455",
       "orangeball": "#6FB5AE",
-      "yellowballontheleft": "#C0564F"
+      "yellowballontheleft": "#E5B455"
      },
      "ours": "data/qualitative/v6val/internet_0027_q2_f25.jpg",
      "ours_unit": "internet_0027_q2"
@@ -807,12 +807,12 @@
      "spatialcode_missing": [],
      "colours": {
       "whiteball": "#5B8DB8",
-      "blackball": "#E09A6E",
-      "blueball": "#92B573",
-      "purpleball": "#C58BC0",
+      "purpleball": "#E09A6E",
+      "blackball": "#92B573",
+      "blueball": "#C58BC0",
       "yellowball": "#E5B455",
       "orangeball": "#6FB5AE",
-      "yellowballontheleft": "#C0564F"
+      "yellowballontheleft": "#E5B455"
      },
      "ours": "data/qualitative/v6val/internet_0027_q2_f50.jpg",
      "ours_unit": "internet_0027_q2"
@@ -849,9 +849,9 @@
       "boat": "#5B8DB8",
       "pier": "#E09A6E",
       "stairs": "#92B573",
-      "woodenpier": "#C58BC0",
-      "woodensteps": "#E5B455",
-      "cabinfloor": "#6FB5AE"
+      "woodenpier": "#E09A6E",
+      "woodensteps": "#C58BC0",
+      "cabinfloor": "#E5B455"
      },
      "ours": "data/qualitative/v6val/simulation_0009_q1_f0.jpg",
      "ours_unit": "simulation_0009_q1"
@@ -887,15 +887,15 @@
      "spatialcode_missing": [],
      "colours": {
       "sculpture": "#5B8DB8",
-      "displaypanel": "#E09A6E",
-      "pedestal": "#92B573",
-      "person": "#C58BC0",
-      "centralsculpture": "#E5B455",
-      "freestandingartdisplaypanel": "#6FB5AE",
-      "pedestalsquarebase": "#C0564F",
-      "pedestalsquarebaseofthecentralsculpture": "#9B93C9",
-      "benchseatintheatrium": "#C2BB66",
-      "openroofframelattice": "#DE8C9D"
+      "pedestal": "#E09A6E",
+      "person": "#92B573",
+      "displaypanel": "#C58BC0",
+      "centralsculpture": "#5B8DB8",
+      "freestandingartdisplaypanel": "#C58BC0",
+      "pedestalsquarebase": "#E09A6E",
+      "pedestalsquarebaseofthecentralsculpture": "#E5B455",
+      "benchseatintheatrium": "#6FB5AE",
+      "openroofframelattice": "#C0564F"
      },
      "ours": "data/qualitative/v6val/simulation_0015_q1_f0.jpg",
      "ours_unit": "simulation_0015_q1"
@@ -929,8 +929,8 @@
      "spatialcode_missing": [],
      "colours": {
       "boat": "#5B8DB8",
-      "eagle": "#E09A6E",
-      "person": "#92B573"
+      "person": "#E09A6E",
+      "eagle": "#92B573"
      },
      "ours": "data/qualitative/v6val/simulation_0034_segmented_q1_f0.jpg",
      "ours_unit": "simulation_0034_segmented_q1"
@@ -970,18 +970,18 @@
      "spatialcode": "data/spatialcode/simulation_0060_f0.jpg",
      "spatialcode_missing": [],
      "colours": {
-      "bike": "#5B8DB8",
-      "human": "#E09A6E",
-      "whitecar": "#92B573",
-      "yellowcar": "#C58BC0",
+      "whitecar": "#5B8DB8",
+      "yellowcar": "#E09A6E",
+      "bike": "#92B573",
+      "human": "#C58BC0",
       "bicycle": "#E5B455",
-      "bicyclewheel": "#6FB5AE",
-      "trashcan": "#C0564F",
-      "walkingpedestrian": "#9B93C9",
-      "lane": "#C2BB66",
-      "turningyellowcar": "#DE8C9D",
-      "greencar": "#7FA6CF",
-      "threestackedtrashbags": "#B9BEC4"
+      "bicyclewheel": "#E5B455",
+      "trashcan": "#6FB5AE",
+      "walkingpedestrian": "#C0564F",
+      "lane": "#9B93C9",
+      "turningyellowcar": "#E09A6E",
+      "greencar": "#DE8C9D",
+      "threestackedtrashbags": "#C2BB66"
      },
      "ours": "data/qualitative/v6val/simulation_0060_q2_f0.jpg",
      "ours_unit": "simulation_0060_q2"
@@ -1074,7 +1074,7 @@
      "colours": {
       "bowlingpin": "#5B8DB8",
       "ball": "#E09A6E",
-      "ballreturnopening": "#92B573"
+      "ballreturnopening": "#E09A6E"
      },
      "ours": "data/qualitative/v6val/simulation_0163_q5_f0.jpg",
      "ours_unit": "simulation_0163_q5"
@@ -1093,7 +1093,7 @@
      "colours": {
       "ball": "#5B8DB8",
       "bowlingpin": "#E09A6E",
-      "ballreturnopening": "#92B573"
+      "ballreturnopening": "#5B8DB8"
      },
      "ours": "data/qualitative/v6val/simulation_0163_q1_f11.jpg",
      "ours_unit": "simulation_0163_q1"
@@ -1130,7 +1130,7 @@
      "colours": {
       "ball": "#5B8DB8",
       "bowlingpin": "#E09A6E",
-      "ballreturnopening": "#92B573"
+      "ballreturnopening": "#5B8DB8"
      },
      "ours": "data/qualitative/v6val/simulation_0163_q3_f24.jpg",
      "ours_unit": "simulation_0163_q3"
@@ -1423,11 +1423,11 @@
      "spatialcode_missing": [],
      "colours": {
       "callistomodel": "#5B8DB8",
+      "modelofcallisto": "#5B8DB8",
       "modelofjupitertheoneatthecenter": "#E09A6E",
       "modelofio": "#92B573",
       "modelofeuropa": "#C58BC0",
-      "modelofganymede": "#E5B455",
-      "modelofcallisto": "#5B8DB8"
+      "modelofganymede": "#E5B455"
      },
      "ours": "data/qualitative/v6val/simulation_0193_q1_f0.jpg",
      "ours_unit": "simulation_0193_q1"
@@ -1458,12 +1458,12 @@
      ],
      "colours": {
       "plungetube": "#5B8DB8",
-      "bubble": "#E09A6E",
-      "liquiddrop": "#92B573",
-      "droplet": "#C58BC0",
-      "skynovatextonthebottle": "#E5B455",
-      "skynovaletteringonthebottle": "#6FB5AE",
-      "bubbleinthedrop": "#E09A6E"
+      "liquiddrop": "#E09A6E",
+      "droplet": "#92B573",
+      "skynovatextonthebottle": "#C58BC0",
+      "skynovaletteringonthebottle": "#E5B455",
+      "bubbleinthedrop": "#6FB5AE",
+      "bubble": "#6FB5AE"
      },
      "ours": "data/qualitative/v6val/simulation_0196_q1_f0.jpg",
      "ours_unit": "simulation_0196_q1"

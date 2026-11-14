@@ -30,27 +30,27 @@
       },
       {
        "label": "pen",
-       "color": "#6FB5AE"
-      },
-      {
-       "label": "cookie",
-       "color": "#92B573"
-      },
-      {
-       "label": "note book",
-       "color": "#E5B455"
-      },
-      {
-       "label": "desk",
        "color": "#C58BC0"
       },
       {
+       "label": "cookie",
+       "color": "#E5B455"
+      },
+      {
+       "label": "note book",
+       "color": "#6FB5AE"
+      },
+      {
+       "label": "desk",
+       "color": "#E09A6E"
+      },
+      {
        "label": "slope",
-       "color": "#C0564F"
+       "color": "#92B573"
       },
       {
        "label": "ball",
-       "color": "#E09A6E"
+       "color": "#C0564F"
       }
      ],
      "missing": []
@@ -101,7 +101,7 @@
       },
       {
        "label": "table",
-       "color": "#92B573"
+       "color": "#E09A6E"
       }
      ],
      "missing": []
@@ -175,11 +175,11 @@
      "drawn": [
       {
        "label": "left tennis ball",
-       "color": "#E09A6E"
+       "color": "#92B573"
       },
       {
        "label": "right tennis ball",
-       "color": "#92B573"
+       "color": "#C58BC0"
       },
       {
        "label": "pencil bag",
@@ -187,7 +187,7 @@
       },
       {
        "label": "soccer ball",
-       "color": "#C58BC0"
+       "color": "#E09A6E"
       }
      ],
      "missing": []
@@ -204,7 +204,7 @@
      "drawn": [
       {
        "label": "left tennis ball",
-       "color": "#E09A6E"
+       "color": "#92B573"
       },
       {
        "label": "right tennis ball",
@@ -212,7 +212,7 @@
       },
       {
        "label": "pencil bag",
-       "color": "#92B573"
+       "color": "#E09A6E"
       },
       {
        "label": "soccer ball",
@@ -343,7 +343,7 @@
      "drawn": [
       {
        "label": "soccer ball",
-       "color": "#C58BC0"
+       "color": "#92B573"
       },
       {
        "label": "basketball",
@@ -367,7 +367,7 @@
      "drawn": [
       {
        "label": "yoga ball",
-       "color": "#C58BC0"
+       "color": "#92B573"
       },
       {
        "label": "soccer ball",
@@ -375,7 +375,7 @@
       },
       {
        "label": "basketball",
-       "color": "#E09A6E"
+       "color": "#C58BC0"
       },
       {
        "label": "floor",
@@ -396,7 +396,7 @@
      "drawn": [
       {
        "label": "yoga ball",
-       "color": "#C58BC0"
+       "color": "#92B573"
       },
       {
        "label": "soccer ball",
@@ -404,7 +404,7 @@
       },
       {
        "label": "basketball",
-       "color": "#E09A6E"
+       "color": "#C58BC0"
       },
       {
        "label": "floor",
@@ -425,11 +425,11 @@
      "drawn": [
       {
        "label": "yoga ball",
-       "color": "#C58BC0"
+       "color": "#92B573"
       },
       {
        "label": "soccer ball",
-       "color": "#92B573"
+       "color": "#C58BC0"
       },
       {
        "label": "basketball",
@@ -456,7 +456,7 @@
      "drawn": [
       {
        "label": "yoga ball",
-       "color": "#C58BC0"
+       "color": "#92B573"
       },
       {
        "label": "soccer ball",
@@ -464,7 +464,7 @@
       },
       {
        "label": "basketball",
-       "color": "#E09A6E"
+       "color": "#C58BC0"
       },
       {
        "label": "floor",
@@ -552,7 +552,7 @@
      "drawn": [
       {
        "label": "the two black road signs",
-       "color": "#5B8DB8"
+       "color": "#C0564F"
       },
       {
        "label": "the woman in yellow",
@@ -560,11 +560,11 @@
       },
       {
        "label": "the light right above the woman's head",
-       "color": "#C0564F"
+       "color": "#9B93C9"
       },
       {
        "label": "the floor tiles",
-       "color": "#9B93C9"
+       "color": "#DE8C9D"
       }
      ],
      "missing": []
@@ -599,23 +599,23 @@
       },
       {
        "label": "center island planter",
-       "color": "#C2BB66"
-      },
-      {
-       "label": "white car in the roundabout",
        "color": "#DE8C9D"
       },
       {
+       "label": "white car in the roundabout",
+       "color": "#92B573"
+      },
+      {
        "label": "bicycle on the upper left corner",
-       "color": "#7FA6CF"
+       "color": "#C2BB66"
       },
       {
        "label": "two black cars in the round about",
-       "color": "#B9BEC4"
+       "color": "#7FA6CF"
       },
       {
        "label": "pedestrian",
-       "color": "#5B8DB8"
+       "color": "#B9BEC4"
       }
      ],
      "missing": []
@@ -632,15 +632,15 @@
      "drawn": [
       {
        "label": "straight-through lane",
-       "color": "#C0564F"
+       "color": "#6FB5AE"
       },
       {
        "label": "roundabout lane",
-       "color": "#9B93C9"
+       "color": "#C0564F"
       },
       {
        "label": "center island planter",
-       "color": "#C2BB66"
+       "color": "#9B93C9"
       },
       {
        "label": "white car in the roundabout",
@@ -648,11 +648,11 @@
       },
       {
        "label": "bicycle on the upper left corner",
-       "color": "#7FA6CF"
+       "color": "#C2BB66"
       },
       {
        "label": "two black cars in the round about",
-       "color": "#5B8DB8"
+       "color": "#7FA6CF"
       },
       {
        "label": "pedestrian",
@@ -673,31 +673,31 @@
      "drawn": [
       {
        "label": "straight-through lane",
-       "color": "#9B93C9"
-      },
-      {
-       "label": "roundabout lane",
        "color": "#C0564F"
       },
       {
+       "label": "roundabout lane",
+       "color": "#6FB5AE"
+      },
+      {
        "label": "center island planter",
-       "color": "#C2BB66"
+       "color": "#9B93C9"
       },
       {
        "label": "white car in the roundabout",
-       "color": "#DE8C9D"
+       "color": "#92B573"
       },
       {
        "label": "bicycle on the upper left corner",
-       "color": "#7FA6CF"
+       "color": "#5B8DB8"
       },
       {
        "label": "two black cars in the round about",
-       "color": "#B9BEC4"
+       "color": "#DE8C9D"
       },
       {
        "label": "pedestrian",
-       "color": "#5B8DB8"
+       "color": "#C2BB66"
       }
      ],
      "missing": []
@@ -726,15 +726,15 @@
      "drawn": [
       {
        "label": "the person standing in the middle",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the person on the left (the passer)",
-       "color": "#6FB5AE"
+       "color": "#C58BC0"
       },
       {
        "label": "the person on the right (the receiver)",
-       "color": "#C0564F"
+       "color": "#E09A6E"
       }
      ],
      "missing": [
@@ -757,15 +757,15 @@
       },
       {
        "label": "the person standing in the middle",
-       "color": "#E5B455"
+       "color": "#E09A6E"
       },
       {
        "label": "the person on the left (the passer)",
-       "color": "#6FB5AE"
+       "color": "#C58BC0"
       },
       {
        "label": "the person on the right (the receiver)",
-       "color": "#C0564F"
+       "color": "#92B573"
       }
      ],
      "missing": []
@@ -795,7 +795,7 @@
       },
       {
        "label": "purple ball",
-       "color": "#C58BC0"
+       "color": "#E09A6E"
       },
       {
        "label": "orange ball",
@@ -820,11 +820,11 @@
      "drawn": [
       {
        "label": "black ball",
-       "color": "#E09A6E"
+       "color": "#92B573"
       },
       {
        "label": "purple ball",
-       "color": "#C58BC0"
+       "color": "#E09A6E"
       },
       {
        "label": "white ball",
@@ -836,7 +836,7 @@
       },
       {
        "label": "yellow ball on the left",
-       "color": "#C0564F"
+       "color": "#E5B455"
       }
      ],
      "missing": []
@@ -853,11 +853,11 @@
      "drawn": [
       {
        "label": "black ball",
-       "color": "#E09A6E"
+       "color": "#92B573"
       },
       {
        "label": "purple ball",
-       "color": "#C58BC0"
+       "color": "#E09A6E"
       },
       {
        "label": "white ball",
@@ -869,7 +869,7 @@
       },
       {
        "label": "yellow ball on the left",
-       "color": "#C0564F"
+       "color": "#E5B455"
       }
      ],
      "missing": []
@@ -904,15 +904,15 @@
       },
       {
        "label": "wooden pier",
-       "color": "#C58BC0"
+       "color": "#E09A6E"
       },
       {
        "label": "wooden steps",
-       "color": "#E5B455"
+       "color": "#C58BC0"
       },
       {
        "label": "cabin floor",
-       "color": "#6FB5AE"
+       "color": "#E5B455"
       }
      ],
      "missing": []
@@ -946,27 +946,27 @@
      "drawn": [
       {
        "label": "central sculpture",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "pedestal (square base) of the central sculpture",
-       "color": "#9B93C9"
+       "color": "#E5B455"
       },
       {
        "label": "freestanding art display panel",
-       "color": "#6FB5AE"
+       "color": "#C58BC0"
       },
       {
        "label": "bench seat in the atrium",
-       "color": "#C2BB66"
+       "color": "#6FB5AE"
       },
       {
        "label": "open roof frame (lattice)",
-       "color": "#DE8C9D"
+       "color": "#C0564F"
       },
       {
        "label": "person",
-       "color": "#C58BC0"
+       "color": "#92B573"
       }
      ],
      "missing": []
@@ -1000,11 +1000,11 @@
       },
       {
        "label": "person",
-       "color": "#92B573"
+       "color": "#E09A6E"
       },
       {
        "label": "eagle",
-       "color": "#E09A6E"
+       "color": "#92B573"
       }
      ],
      "missing": []
@@ -1040,19 +1040,19 @@
      "drawn": [
       {
        "label": "yellow car",
-       "color": "#C58BC0"
+       "color": "#E09A6E"
       },
       {
        "label": "lane",
-       "color": "#C2BB66"
+       "color": "#9B93C9"
       },
       {
        "label": "white car",
-       "color": "#92B573"
+       "color": "#5B8DB8"
       },
       {
        "label": "turning yellow car",
-       "color": "#DE8C9D"
+       "color": "#E09A6E"
       },
       {
        "label": "bicycle",
@@ -1060,19 +1060,19 @@
       },
       {
        "label": "walking pedestrian",
-       "color": "#9B93C9"
+       "color": "#C0564F"
       },
       {
        "label": "green car",
-       "color": "#7FA6CF"
+       "color": "#DE8C9D"
       },
       {
        "label": "three stacked trash bags",
-       "color": "#B9BEC4"
+       "color": "#C2BB66"
       },
       {
        "label": "trash can",
-       "color": "#C0564F"
+       "color": "#6FB5AE"
       }
      ],
      "missing": []
@@ -1166,7 +1166,7 @@
       },
       {
        "label": "ball return opening",
-       "color": "#92B573"
+       "color": "#E09A6E"
       }
      ],
      "missing": [
@@ -1194,7 +1194,7 @@
       },
       {
        "label": "ball return opening",
-       "color": "#92B573"
+       "color": "#5B8DB8"
       }
      ],
      "missing": []
@@ -1220,7 +1220,7 @@
       },
       {
        "label": "ball return opening",
-       "color": "#92B573"
+       "color": "#5B8DB8"
       }
      ],
      "missing": []
@@ -1461,15 +1461,15 @@
       },
       {
        "label": "droplet",
-       "color": "#C58BC0"
+       "color": "#92B573"
       },
       {
        "label": "“skynova” text on the bottle",
-       "color": "#E5B455"
+       "color": "#C58BC0"
       },
       {
        "label": "“skynova” lettering on the bottle",
-       "color": "#6FB5AE"
+       "color": "#E5B455"
       }
      ],
      "missing": [
