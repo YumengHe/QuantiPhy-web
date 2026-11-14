@@ -10,7 +10,12 @@ Needs the run's full artifacts (meshes, poses, frames under run/runs/qp_physmind
 /nas/yumenghe/QuantiPhy-data/physmind_result/quantiphy. The geometry and the frames are the ones the run's own
 reconstructions/*.jpg were drawn from; only colours, line weights and labels follow the site.
 
-  python -B tools/render_physmind.py   # --run defaults to RUN below
+  python -B tools/render_physmind.py          # validation: RUN below, colours of the comparison
+  python -B tools/render_physmind.py --wild   # in the wild: WILD_RUN, data/physmind_wild, fixed colour order
+
+The in-the-wild run (VideoScene/PhysMind_Result, videoscene/) is used from a partial download: the jsons of every
+scene, and the frames and meshes of the frames its reconstructions/ drew (frame k is video_metric_frames/
+frame_<k>.jpg).
 
 PhysMind run: physmind_quantiphy/run_physmind.py, variant B, with all artifacts kept. Its geometry is used as is,
 nothing is re-fitted: each object's FoundationPose mesh (mesh_path of foundationpose_poses.json, metres) is moved into
@@ -44,6 +49,7 @@ ROOT = Path(__file__).resolve().parent.parent
 MASKS = Path("/nas/yumenghe/QuantiPhy-data/physmind_masks")
 QUALITATIVE = ROOT / "data" / "qualitative" / "index.json"
 RUN = Path("/nas/yumenghe/QuantiPhy-data/physmind_result/quantiphy/run/runs/qp_physmind_v2")
+WILD_RUN = Path("/nas/yumenghe/QuantiPhy-data/physmind_result/videoscene/run/runs/vs_physmind")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import overlay_style as S  # noqa: E402
@@ -124,7 +130,8 @@ def draw(frame: np.ndarray, ids: np.ndarray, items: list[tuple[str, np.ndarray, 
 
 
 def one_video(run: Path, measure: dict, wanted: dict[int, dict], out_dir: Path,
-              colours: dict[int, dict[str, str]], masks_dir: Path | None = None) -> dict:
+              colours: dict[int, dict[str, str]] | None, masks_dir: Path | None = None) -> dict:
+    """colours: frame -> name key -> colour of the comparison; None: the fixed object order over the names."""
     vid = measure["video_id"]
     world = run / "artifacts" / f"scene_{measure['scene_index']}" / "world-modeling"
     plan_q = read_json(run / "plans" / f"{vid}.json")
@@ -147,13 +154,18 @@ def one_video(run: Path, measure: dict, wanted: dict[int, dict], out_dir: Path,
     poses = read_json(world / "pose-estimation-and-tracking/foundationpose/foundationpose_poses.json")
     K = np.asarray(poses["fixed_intrinsics"], float) if poses.get("fixed_intrinsics") else None
     meshes = {}
+    rel = out_dir.resolve().relative_to(ROOT).as_posix()
     for fi, o in wanted.items():
         fr = {"frame": fi, "t": o["t"], "physmind": None, "questions": o["questions"], "drawn": [], "missing": []}
-        if frames and fi < len(frames):
-            img = cv2.imread(str(frames[fi]))
-            if fi not in colours:
+        if (frame_dir / f"frame_{fi:05d}.jpg").is_file():
+            img = cv2.imread(str(frame_dir / f"frame_{fi:05d}.jpg"))
+            if colours is None:
+                table = S.object_colours(sorted(objs))
+            elif fi in colours:
+                table = colours[fi]
+            else:
                 raise ValueError(f"{vid} frame {fi}: no colours in {QUALITATIVE}; run tools/build_qualitative.py")
-            colour = {label: colours[fi][S.name_key(label)] for label in objs}
+            colour = {label: table[S.name_key(label)] for label in objs}
             items = []
             for label, (oid, obj) in sorted(objs.items()):
                 pose = next((p for p in obj["poses"] if p["frame_index"] == fi), None)
@@ -177,37 +189,48 @@ def one_video(run: Path, measure: dict, wanted: dict[int, dict], out_dir: Path,
                                     **{label: ids == i + 1 for i, (label, *_) in enumerate(items)})
                 (masks_dir / f"{stem}.json").write_text(json.dumps(
                     {"video": vid, "frame": fi, "t": o["t"], "height": img.shape[0], "width": img.shape[1],
-                     "names": [it[0] for it in items], "missing": fr["missing"], "image": f"data/physmind/{name}"},
+                     "names": [it[0] for it in items], "missing": fr["missing"], "image": f"{rel}/{name}"},
                     indent=1))
-            fr["physmind"] = f"data/physmind/{name}"
+            fr["physmind"] = f"{rel}/{name}"
         rec["frames"].append(fr)
     return rec
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--run", default=RUN, type=Path, help="runs/qp_physmind_v2 of a downloaded PhysMind run")
-    ap.add_argument("--out", default=ROOT / "data" / "physmind", type=Path)
-    ap.add_argument("--masks", default=MASKS, type=Path,
+    ap.add_argument("--wild", action="store_true", help="the in-the-wild run (VideoScene): WILD_RUN into "
+                    "data/physmind_wild and physmind_masks_wild, colours in the fixed order, our unit names added")
+    ap.add_argument("--run", type=Path, help="runs/<run> of a downloaded PhysMind run (default RUN, or WILD_RUN)")
+    ap.add_argument("--out", type=Path)
+    ap.add_argument("--masks", type=Path,
                     help="where each frame's visible mesh masks go (<video>_f<frame>.npz: one boolean array per drawn "
                          "object name, after occlusion; <video>_f<frame>.json: names, missing names, size)")
     args = ap.parse_args()
-    run = args.run.expanduser().resolve()
+    run = (args.run or (WILD_RUN if args.wild else RUN)).expanduser().resolve()
+    args.out = args.out or ROOT / "data" / ("physmind_wild" if args.wild else "physmind")
+    args.masks = args.masks or MASKS.with_name(MASKS.name + ("_wild" if args.wild else ""))
     args.out.mkdir(parents=True, exist_ok=True)
     args.masks.mkdir(parents=True, exist_ok=True)
     for old in [*args.out.glob("*.jpg"), *args.masks.glob("*.npz"), *args.masks.glob("*.json")]:  # this tool's only
         old.unlink()
     chosen = run_frames(run)
-    comparison = {v["video"]: {int(f["frame"]): f["colours"] for f in v["frames"]}
-                  for v in json.loads(QUALITATIVE.read_text())["videos"]}
+    comparison = None if args.wild else {v["video"]: {int(f["frame"]): f["colours"] for f in v["frames"]}
+                                         for v in json.loads(QUALITATIVE.read_text())["videos"]}
     videos = []
     for f in sorted((run / "measure").glob("*.json")):
         m = json.loads(f.read_text())
-        rec = one_video(run, m, chosen.get(m["video_id"], {}), args.out, comparison.get(m["video_id"], {}), args.masks)
+        rec = one_video(run, m, chosen.get(m["video_id"], {}), args.out,
+                        None if comparison is None else comparison.get(m["video_id"], {}), args.masks)
         videos.append(rec)
         print(rec["video"], [(fr["frame"], len(fr["drawn"]), len(fr["missing"])) for fr in rec["frames"]], rec["failed_stage"] or "")
-    index = {"generated": datetime.date.today().isoformat(),
-             "run": str(run), "videos": videos}
+    index = {"generated": datetime.date.today().isoformat(), "run": str(run), "videos": videos}
+    if args.wild:  # our unit names (wild.json) of the run's questions
+        from restyle_baselines import wild_units
+        units = wild_units()
+        for v in videos:
+            for fr in v["frames"]:
+                fr["units"] = [units[q] for q in fr["questions"]]
+        index["units"] = {u: v["video"] for v in videos for fr in v["frames"] for u in fr["units"]}
     (args.out / "index.json").write_text(json.dumps(index, indent=1))
 
 

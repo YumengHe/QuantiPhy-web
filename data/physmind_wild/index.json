@@ -1,0 +1,1266 @@
+{
+ "generated": "2026-11-14",
+ "run": "/nas/yumenghe/QuantiPhy-data/physmind_result/videoscene/run/runs/vs_physmind",
+ "videos": [
+  {
+   "video": "11_nonrobot_desk_pushed_by_foot",
+   "question_objects": 1,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "physmind": "data/physmind_wild/11_nonrobot_desk_pushed_by_foot_f135.jpg",
+     "questions": [
+      "11_nonrobot_desk_pushed_by_foot_q2"
+     ],
+     "drawn": [
+      {
+       "label": "desk",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0011_q2"
+     ]
+    },
+    {
+     "frame": 171,
+     "t": 5.7,
+     "physmind": "data/physmind_wild/11_nonrobot_desk_pushed_by_foot_f171.jpg",
+     "questions": [
+      "11_nonrobot_desk_pushed_by_foot_q1"
+     ],
+     "drawn": [
+      {
+       "label": "desk",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0011_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "11_robot_dog_leap_gap_indoor",
+   "question_objects": 2,
+   "posed_question_objects": 0,
+   "failed_stage": "sam3_video_track_labels",
+   "frames": [
+    {
+     "frame": 93,
+     "t": 1.55,
+     "physmind": null,
+     "questions": [
+      "11_robot_dog_leap_gap_indoor_q1"
+     ],
+     "drawn": [],
+     "missing": [],
+     "units": [
+      "robot_0011_q1"
+     ]
+    },
+    {
+     "frame": 134,
+     "t": 2.233,
+     "physmind": null,
+     "questions": [
+      "11_robot_dog_leap_gap_indoor_q2"
+     ],
+     "drawn": [],
+     "missing": [],
+     "units": [
+      "robot_0011_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "12_nonrobot_desk_tipped_over",
+   "question_objects": 2,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "physmind": "data/physmind_wild/12_nonrobot_desk_tipped_over_f0.jpg",
+     "questions": [
+      "12_nonrobot_desk_tipped_over_q2"
+     ],
+     "drawn": [
+      {
+       "label": "desk",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "desk top",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0012_q2"
+     ]
+    },
+    {
+     "frame": 127,
+     "t": 4.233,
+     "physmind": "data/physmind_wild/12_nonrobot_desk_tipped_over_f127.jpg",
+     "questions": [
+      "12_nonrobot_desk_tipped_over_q1"
+     ],
+     "drawn": [
+      {
+       "label": "desk",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "desk top",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0012_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "12_robot_dog_leap_between_tables",
+   "question_objects": 3,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 51,
+     "t": 1.7,
+     "physmind": "data/physmind_wild/12_robot_dog_leap_between_tables_f51.jpg",
+     "questions": [
+      "12_robot_dog_leap_between_tables_q1"
+     ],
+     "drawn": [
+      {
+       "label": "robot dog",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0012_q1"
+     ]
+    },
+    {
+     "frame": 73,
+     "t": 2.433,
+     "physmind": "data/physmind_wild/12_robot_dog_leap_between_tables_f73.jpg",
+     "questions": [
+      "12_robot_dog_leap_between_tables_q2"
+     ],
+     "drawn": [
+      {
+       "label": "robot dog",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0012_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "13_nonrobot_laptop_cart_pushed",
+   "question_objects": 1,
+   "posed_question_objects": 0,
+   "failed_stage": "sam3_video_track_labels",
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "physmind": null,
+     "questions": [
+      "13_nonrobot_laptop_cart_pushed_q1"
+     ],
+     "drawn": [],
+     "missing": [],
+     "units": [
+      "nonrobot_0013_q1"
+     ]
+    },
+    {
+     "frame": 150,
+     "t": 5.0,
+     "physmind": null,
+     "questions": [
+      "13_nonrobot_laptop_cart_pushed_q2"
+     ],
+     "drawn": [],
+     "missing": [],
+     "units": [
+      "nonrobot_0013_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "13_robot_dog_crawl_under_cart_outdoor",
+   "question_objects": 3,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 35,
+     "t": 0.583,
+     "physmind": "data/physmind_wild/13_robot_dog_crawl_under_cart_outdoor_f35.jpg",
+     "questions": [
+      "13_robot_dog_crawl_under_cart_outdoor_q2"
+     ],
+     "drawn": [
+      {
+       "label": "wagon",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [
+      "robot dog"
+     ],
+     "units": [
+      "robot_0013_q2"
+     ]
+    },
+    {
+     "frame": 196,
+     "t": 3.267,
+     "physmind": "data/physmind_wild/13_robot_dog_crawl_under_cart_outdoor_f196.jpg",
+     "questions": [
+      "13_robot_dog_crawl_under_cart_outdoor_q1"
+     ],
+     "drawn": [
+      {
+       "label": "robot dog",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "wagon",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0013_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "14_nonrobot_box_pushed",
+   "question_objects": 1,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 48,
+     "t": 1.6,
+     "physmind": "data/physmind_wild/14_nonrobot_box_pushed_f48.jpg",
+     "questions": [
+      "14_nonrobot_box_pushed_q2"
+     ],
+     "drawn": [
+      {
+       "label": "cardboard box",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0014_q2"
+     ]
+    },
+    {
+     "frame": 135,
+     "t": 4.5,
+     "physmind": "data/physmind_wild/14_nonrobot_box_pushed_f135.jpg",
+     "questions": [
+      "14_nonrobot_box_pushed_q1"
+     ],
+     "drawn": [
+      {
+       "label": "cardboard box",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0014_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "14_robot_dog_walk_around_sign",
+   "question_objects": 2,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 29,
+     "t": 1.16,
+     "physmind": "data/physmind_wild/14_robot_dog_walk_around_sign_f29.jpg",
+     "questions": [
+      "14_robot_dog_walk_around_sign_q2"
+     ],
+     "drawn": [
+      {
+       "label": "caution sign",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0014_q2"
+     ]
+    },
+    {
+     "frame": 41,
+     "t": 1.64,
+     "physmind": "data/physmind_wild/14_robot_dog_walk_around_sign_f41.jpg",
+     "questions": [
+      "14_robot_dog_walk_around_sign_q1"
+     ],
+     "drawn": [
+      {
+       "label": "caution sign",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0014_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "15_nonrobot_skateboard_pushed_by_foot",
+   "question_objects": 1,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "physmind": "data/physmind_wild/15_nonrobot_skateboard_pushed_by_foot_f135.jpg",
+     "questions": [
+      "15_nonrobot_skateboard_pushed_by_foot_q1"
+     ],
+     "drawn": [
+      {
+       "label": "skateboard",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0015_q1"
+     ]
+    },
+    {
+     "frame": 171,
+     "t": 5.7,
+     "physmind": "data/physmind_wild/15_nonrobot_skateboard_pushed_by_foot_f171.jpg",
+     "questions": [
+      "15_nonrobot_skateboard_pushed_by_foot_q2"
+     ],
+     "drawn": [
+      {
+       "label": "skateboard",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0015_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "15_robot_dog_crawl_under_sofa",
+   "question_objects": 2,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 151,
+     "t": 2.517,
+     "physmind": "data/physmind_wild/15_robot_dog_crawl_under_sofa_f151.jpg",
+     "questions": [
+      "15_robot_dog_crawl_under_sofa_q2"
+     ],
+     "drawn": [
+      {
+       "label": "robot dog",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0015_q2"
+     ]
+    },
+    {
+     "frame": 167,
+     "t": 2.783,
+     "physmind": "data/physmind_wild/15_robot_dog_crawl_under_sofa_f167.jpg",
+     "questions": [
+      "15_robot_dog_crawl_under_sofa_q1"
+     ],
+     "drawn": [
+      {
+       "label": "robot dog",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0015_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "16_nonrobot_skateboard_ride",
+   "question_objects": 2,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 120,
+     "t": 4.0,
+     "physmind": "data/physmind_wild/16_nonrobot_skateboard_ride_f120.jpg",
+     "questions": [
+      "16_nonrobot_skateboard_ride_q1"
+     ],
+     "drawn": [
+      {
+       "label": "man",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "skateboard",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0016_q1"
+     ]
+    },
+    {
+     "frame": 135,
+     "t": 4.5,
+     "physmind": "data/physmind_wild/16_nonrobot_skateboard_ride_f135.jpg",
+     "questions": [
+      "16_nonrobot_skateboard_ride_q2"
+     ],
+     "drawn": [
+      {
+       "label": "man",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "skateboard",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0016_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "16_robot_dog_climb_ledge_outdoor",
+   "question_objects": 2,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 75,
+     "t": 1.25,
+     "physmind": "data/physmind_wild/16_robot_dog_climb_ledge_outdoor_f75.jpg",
+     "questions": [
+      "16_robot_dog_climb_ledge_outdoor_q2"
+     ],
+     "drawn": [
+      {
+       "label": "ledge",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [
+      "robot dog"
+     ],
+     "units": [
+      "robot_0016_q2"
+     ]
+    },
+    {
+     "frame": 104,
+     "t": 1.733,
+     "physmind": "data/physmind_wild/16_robot_dog_climb_ledge_outdoor_f104.jpg",
+     "questions": [
+      "16_robot_dog_climb_ledge_outdoor_q1"
+     ],
+     "drawn": [
+      {
+       "label": "ledge",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "robot dog",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0016_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "17_nonrobot_box_toss",
+   "question_objects": 2,
+   "posed_question_objects": 0,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "physmind": "data/physmind_wild/17_nonrobot_box_toss_f135.jpg",
+     "questions": [
+      "17_nonrobot_box_toss_q2"
+     ],
+     "drawn": [],
+     "missing": [],
+     "units": [
+      "nonrobot_0017_q2"
+     ]
+    },
+    {
+     "frame": 195,
+     "t": 6.5,
+     "physmind": "data/physmind_wild/17_nonrobot_box_toss_f195.jpg",
+     "questions": [
+      "17_nonrobot_box_toss_q1"
+     ],
+     "drawn": [],
+     "missing": [],
+     "units": [
+      "nonrobot_0017_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "17_robot_soccer_dribble_walkway",
+   "question_objects": 1,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 100,
+     "t": 2.0,
+     "physmind": "data/physmind_wild/17_robot_soccer_dribble_walkway_f100.jpg",
+     "questions": [
+      "17_robot_soccer_dribble_walkway_q1"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0017_q1"
+     ]
+    },
+    {
+     "frame": 112,
+     "t": 2.24,
+     "physmind": "data/physmind_wild/17_robot_soccer_dribble_walkway_f112.jpg",
+     "questions": [
+      "17_robot_soccer_dribble_walkway_q2"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0017_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "18_nonrobot_toy_plane_rolled_by_foot",
+   "question_objects": 1,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 73,
+     "t": 2.433,
+     "physmind": "data/physmind_wild/18_nonrobot_toy_plane_rolled_by_foot_f73.jpg",
+     "questions": [
+      "18_nonrobot_toy_plane_rolled_by_foot_q1"
+     ],
+     "drawn": [
+      {
+       "label": "toy airplane",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0018_q1"
+     ]
+    },
+    {
+     "frame": 135,
+     "t": 4.5,
+     "physmind": "data/physmind_wild/18_nonrobot_toy_plane_rolled_by_foot_f135.jpg",
+     "questions": [
+      "18_nonrobot_toy_plane_rolled_by_foot_q2"
+     ],
+     "drawn": [
+      {
+       "label": "toy airplane",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0018_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "18_robot_soccer_dribble_to_goal",
+   "question_objects": 2,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 61,
+     "t": 1.018,
+     "physmind": "data/physmind_wild/18_robot_soccer_dribble_to_goal_f61.jpg",
+     "questions": [
+      "18_robot_soccer_dribble_to_goal_q1"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "soccer goal",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0018_q1"
+     ]
+    },
+    {
+     "frame": 169,
+     "t": 2.819,
+     "physmind": "data/physmind_wild/18_robot_soccer_dribble_to_goal_f169.jpg",
+     "questions": [
+      "18_robot_soccer_dribble_to_goal_q2"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "soccer goal",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0018_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "19_nonrobot_crate_slide",
+   "question_objects": 1,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 135,
+     "t": 4.5,
+     "physmind": "data/physmind_wild/19_nonrobot_crate_slide_f135.jpg",
+     "questions": [
+      "19_nonrobot_crate_slide_q1"
+     ],
+     "drawn": [
+      {
+       "label": "wooden crate",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0019_q1"
+     ]
+    },
+    {
+     "frame": 146,
+     "t": 4.867,
+     "physmind": "data/physmind_wild/19_nonrobot_crate_slide_f146.jpg",
+     "questions": [
+      "19_nonrobot_crate_slide_q2"
+     ],
+     "drawn": [
+      {
+       "label": "wooden crate",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0019_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "19_robot_basketball_fake_with_human",
+   "question_objects": 2,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 75,
+     "t": 2.5,
+     "physmind": "data/physmind_wild/19_robot_basketball_fake_with_human_f75.jpg",
+     "questions": [
+      "19_robot_basketball_fake_with_human_q2"
+     ],
+     "drawn": [
+      {
+       "label": "basketball",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [
+      "man in the white sweater"
+     ],
+     "units": [
+      "robot_0019_q2"
+     ]
+    },
+    {
+     "frame": 121,
+     "t": 4.033,
+     "physmind": "data/physmind_wild/19_robot_basketball_fake_with_human_f121.jpg",
+     "questions": [
+      "19_robot_basketball_fake_with_human_q1"
+     ],
+     "drawn": [
+      {
+       "label": "basketball",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [
+      "man in the white sweater"
+     ],
+     "units": [
+      "robot_0019_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "1_robot_soccer_kick_outdoor",
+   "question_objects": 2,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 108,
+     "t": 2.16,
+     "physmind": "data/physmind_wild/1_robot_soccer_kick_outdoor_f108.jpg",
+     "questions": [
+      "1_robot_soccer_kick_outdoor_q2"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0001_q2"
+     ]
+    },
+    {
+     "frame": 150,
+     "t": 3.0,
+     "physmind": "data/physmind_wild/1_robot_soccer_kick_outdoor_f150.jpg",
+     "questions": [
+      "1_robot_soccer_kick_outdoor_q1"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0001_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "20_nonrobot_yoga_ball_roll",
+   "question_objects": 1,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 120,
+     "t": 4.0,
+     "physmind": "data/physmind_wild/20_nonrobot_yoga_ball_roll_f120.jpg",
+     "questions": [
+      "20_nonrobot_yoga_ball_roll_q2"
+     ],
+     "drawn": [
+      {
+       "label": "yoga ball",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0020_q2"
+     ]
+    },
+    {
+     "frame": 135,
+     "t": 4.5,
+     "physmind": "data/physmind_wild/20_nonrobot_yoga_ball_roll_f135.jpg",
+     "questions": [
+      "20_nonrobot_yoga_ball_roll_q1"
+     ],
+     "drawn": [
+      {
+       "label": "yoga ball",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "nonrobot_0020_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "20_robot_soccer_dribble_field",
+   "question_objects": 2,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 31,
+     "t": 0.517,
+     "physmind": "data/physmind_wild/20_robot_soccer_dribble_field_f31.jpg",
+     "questions": [
+      "20_robot_soccer_dribble_field_q1"
+     ],
+     "drawn": [
+      {
+       "label": "man standing in the goal",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0020_q1"
+     ]
+    },
+    {
+     "frame": 173,
+     "t": 2.886,
+     "physmind": "data/physmind_wild/20_robot_soccer_dribble_field_f173.jpg",
+     "questions": [
+      "20_robot_soccer_dribble_field_q2"
+     ],
+     "drawn": [
+      {
+       "label": "man standing in the goal",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0020_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "2_robot_soccer_kick_outdoor_2",
+   "question_objects": 1,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 120,
+     "t": 2.002,
+     "physmind": "data/physmind_wild/2_robot_soccer_kick_outdoor_2_f120.jpg",
+     "questions": [
+      "2_robot_soccer_kick_outdoor_2_q1",
+      "2_robot_soccer_kick_outdoor_2_q2"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0002_q1",
+      "robot_0002_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "3_robot_soccer_dribble_shoot_outdoor",
+   "question_objects": 2,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 155,
+     "t": 2.586,
+     "physmind": "data/physmind_wild/3_robot_soccer_dribble_shoot_outdoor_f155.jpg",
+     "questions": [
+      "3_robot_soccer_dribble_shoot_outdoor_q2"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0003_q2"
+     ]
+    },
+    {
+     "frame": 204,
+     "t": 3.403,
+     "physmind": "data/physmind_wild/3_robot_soccer_dribble_shoot_outdoor_f204.jpg",
+     "questions": [
+      "3_robot_soccer_dribble_shoot_outdoor_q1"
+     ],
+     "drawn": [
+      {
+       "label": "soccer ball",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0003_q1"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "4_robot_soccer_dribble_outdoor_2",
+   "question_objects": 1,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 90,
+     "t": 1.502,
+     "physmind": "data/physmind_wild/4_robot_soccer_dribble_outdoor_2_f90.jpg",
+     "questions": [
+      "4_robot_soccer_dribble_outdoor_2_q1"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0004_q1"
+     ]
+    },
+    {
+     "frame": 129,
+     "t": 2.152,
+     "physmind": "data/physmind_wild/4_robot_soccer_dribble_outdoor_2_f129.jpg",
+     "questions": [
+      "4_robot_soccer_dribble_outdoor_2_q2"
+     ],
+     "drawn": [
+      {
+       "label": "humanoid robot",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0004_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "5_robot_soccer_pass_with_human",
+   "question_objects": 2,
+   "posed_question_objects": 2,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 144,
+     "t": 2.402,
+     "physmind": "data/physmind_wild/5_robot_soccer_pass_with_human_f144.jpg",
+     "questions": [
+      "5_robot_soccer_pass_with_human_q1"
+     ],
+     "drawn": [
+      {
+       "label": "man in the white shirt",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0005_q1"
+     ]
+    },
+    {
+     "frame": 177,
+     "t": 2.953,
+     "physmind": "data/physmind_wild/5_robot_soccer_pass_with_human_f177.jpg",
+     "questions": [
+      "5_robot_soccer_pass_with_human_q2"
+     ],
+     "drawn": [
+      {
+       "label": "man in the white shirt",
+       "color": "#5B8DB8"
+      },
+      {
+       "label": "soccer ball",
+       "color": "#E09A6E"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0005_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "6_robot_goalkeeper_save_kick",
+   "question_objects": 2,
+   "posed_question_objects": 0,
+   "failed_stage": "moge2_intrinsics",
+   "frames": [
+    {
+     "frame": 61,
+     "t": 2.099,
+     "physmind": null,
+     "questions": [
+      "6_robot_goalkeeper_save_kick_q1"
+     ],
+     "drawn": [],
+     "missing": [],
+     "units": [
+      "robot_0006_q1"
+     ]
+    },
+    {
+     "frame": 62,
+     "t": 2.133,
+     "physmind": null,
+     "questions": [
+      "6_robot_goalkeeper_save_kick_q2"
+     ],
+     "drawn": [],
+     "missing": [],
+     "units": [
+      "robot_0006_q2"
+     ]
+    }
+   ]
+  },
+  {
+   "video": "7_robot_basketball_dribble",
+   "question_objects": 3,
+   "posed_question_objects": 1,
+   "failed_stage": null,
+   "frames": [
+    {
+     "frame": 43,
+     "t": 1.433,
+     "physmind": "data/physmind_wild/7_robot_basketball_dribble_f43.jpg",
+     "questions": [
+      "7_robot_basketball_dribble_q1"
+     ],
+     "drawn": [
+      {
+       "label": "basketball",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0007_q1"
+     ]
+    },
+    {
+     "frame": 48,
+     "t": 1.6,
+     "physmind": "data/physmind_wild/7_robot_basketball_dribble_f48.jpg",
+     "questions": [
+      "7_robot_basketball_dribble_q2"
+     ],
+     "drawn": [
+      {
+       "label": "basketball",
+       "color": "#5B8DB8"
+      }
+     ],
+     "missing": [],
+     "units": [
+      "robot_0007_q2"
+     ]
+    }
+   ]
+  }
+ ],
+ "units": {
+  "nonrobot_0011_q2": "11_nonrobot_desk_pushed_by_foot",
+  "nonrobot_0011_q1": "11_nonrobot_desk_pushed_by_foot",
+  "robot_0011_q1": "11_robot_dog_leap_gap_indoor",
+  "robot_0011_q2": "11_robot_dog_leap_gap_indoor",
+  "nonrobot_0012_q2": "12_nonrobot_desk_tipped_over",
+  "nonrobot_0012_q1": "12_nonrobot_desk_tipped_over",
+  "robot_0012_q1": "12_robot_dog_leap_between_tables",
+  "robot_0012_q2": "12_robot_dog_leap_between_tables",
+  "nonrobot_0013_q1": "13_nonrobot_laptop_cart_pushed",
+  "nonrobot_0013_q2": "13_nonrobot_laptop_cart_pushed",
+  "robot_0013_q2": "13_robot_dog_crawl_under_cart_outdoor",
+  "robot_0013_q1": "13_robot_dog_crawl_under_cart_outdoor",
+  "nonrobot_0014_q2": "14_nonrobot_box_pushed",
+  "nonrobot_0014_q1": "14_nonrobot_box_pushed",
+  "robot_0014_q2": "14_robot_dog_walk_around_sign",
+  "robot_0014_q1": "14_robot_dog_walk_around_sign",
+  "nonrobot_0015_q1": "15_nonrobot_skateboard_pushed_by_foot",
+  "nonrobot_0015_q2": "15_nonrobot_skateboard_pushed_by_foot",
+  "robot_0015_q2": "15_robot_dog_crawl_under_sofa",
+  "robot_0015_q1": "15_robot_dog_crawl_under_sofa",
+  "nonrobot_0016_q1": "16_nonrobot_skateboard_ride",
+  "nonrobot_0016_q2": "16_nonrobot_skateboard_ride",
+  "robot_0016_q2": "16_robot_dog_climb_ledge_outdoor",
+  "robot_0016_q1": "16_robot_dog_climb_ledge_outdoor",
+  "nonrobot_0017_q2": "17_nonrobot_box_toss",
+  "nonrobot_0017_q1": "17_nonrobot_box_toss",
+  "robot_0017_q1": "17_robot_soccer_dribble_walkway",
+  "robot_0017_q2": "17_robot_soccer_dribble_walkway",
+  "nonrobot_0018_q1": "18_nonrobot_toy_plane_rolled_by_foot",
+  "nonrobot_0018_q2": "18_nonrobot_toy_plane_rolled_by_foot",
+  "robot_0018_q1": "18_robot_soccer_dribble_to_goal",
+  "robot_0018_q2": "18_robot_soccer_dribble_to_goal",
+  "nonrobot_0019_q1": "19_nonrobot_crate_slide",
+  "nonrobot_0019_q2": "19_nonrobot_crate_slide",
+  "robot_0019_q2": "19_robot_basketball_fake_with_human",
+  "robot_0019_q1": "19_robot_basketball_fake_with_human",
+  "robot_0001_q2": "1_robot_soccer_kick_outdoor",
+  "robot_0001_q1": "1_robot_soccer_kick_outdoor",
+  "nonrobot_0020_q2": "20_nonrobot_yoga_ball_roll",
+  "nonrobot_0020_q1": "20_nonrobot_yoga_ball_roll",
+  "robot_0020_q1": "20_robot_soccer_dribble_field",
+  "robot_0020_q2": "20_robot_soccer_dribble_field",
+  "robot_0002_q1": "2_robot_soccer_kick_outdoor_2",
+  "robot_0002_q2": "2_robot_soccer_kick_outdoor_2",
+  "robot_0003_q2": "3_robot_soccer_dribble_shoot_outdoor",
+  "robot_0003_q1": "3_robot_soccer_dribble_shoot_outdoor",
+  "robot_0004_q1": "4_robot_soccer_dribble_outdoor_2",
+  "robot_0004_q2": "4_robot_soccer_dribble_outdoor_2",
+  "robot_0005_q1": "5_robot_soccer_pass_with_human",
+  "robot_0005_q2": "5_robot_soccer_pass_with_human",
+  "robot_0006_q1": "6_robot_goalkeeper_save_kick",
+  "robot_0006_q2": "6_robot_goalkeeper_save_kick",
+  "robot_0007_q1": "7_robot_basketball_dribble",
+  "robot_0007_q2": "7_robot_basketball_dribble"
+ }
+}
