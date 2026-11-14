@@ -30,13 +30,13 @@
     const byId = Object.fromEntries(DATA.val.questions.map((q) => [q.id, q]));
     return DATA.val.dev.map((id) => byId[id]);
   }
-  // the two answers of the scene-program run (q.sp): answer_scene, the strict read-out (undetermined = 0), and
+  // the read-out and the answer of the scene-program run (q.sp): answer_scene, the strict read-out (undetermined = 0), and
   // answer_final, the agent's answer (the reported one); a unit without an answer scores 0 in both
   const fMRA = (q) => q.sp.final_mra, sMRA = (q) => q.sp.scene_mra;
   // the per-question mean of both MRAs and the determined count of a set of questions
   const spCells = (qs) => Ht`<td class="n">${qs.length}</td><td class="n">${fmt(mean(qs.map(sMRA)), 3)}</td>` +
     Ht`<td class="n"><b>${fmt(mean(qs.map(fMRA)), 3)}</b></td><td class="n">${qs.filter((q) => q.sp.determined).length}</td>`;
-  const SP_HEAD = Ht`<th class="n">n</th><th class="n">answer_scene</th><th class="n">answer_final</th><th class="n">determined</th>`;
+  const SP_HEAD = Ht`<th class="n">n</th><th class="n">Read-out</th><th class="n">Answer</th><th class="n">determined</th>`;
   // ---------- summary of the selected set: both MRAs, the set shared with the baselines, categories ----------
   function valSummary() {
     const all = setQuestions(), dev = $('v-set').value === 'dev';
@@ -66,9 +66,9 @@
   function summaryRow(q, v) {
     const sp = q.sp;
     const nums = Ht`<span class="qv" data-k="GT">${fmtNum(q.answer)}</span>` +
-      Ht`<span class="qv" data-k="Scene">${sp.determined ? fmtNum(sp.scene) : ''}</span>` +
-      Ht`<span class="qv qsm" data-k="Scene MRA">${mraBadge(sp.scene_mra)}</span>` +
-      Ht`<span class="qv pred" data-k="Final">${fmtNum(sp.final)}</span>`;
+      Ht`<span class="qv" data-k="Read-out">${sp.determined ? fmtNum(sp.scene) : ''}</span>` +
+      Ht`<span class="qv qsm" data-k="Read-out MRA">${mraBadge(sp.scene_mra)}</span>` +
+      Ht`<span class="qv pred" data-k="Answer">${fmtNum(sp.final)}</span>`;
     return Ht`<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}<span class="qver">${esc(q.cat)}</span></span><span class="qtext">${esc(q.q)}</span></span>` +
       Ht`<span class="qnums sp">${nums}</span><span class="qm">${mraBadge(sp.final_mra)}</span></summary>`;
   }
@@ -113,7 +113,7 @@
     return d;
   }
 
-  // the scene-program products of the question: both answers, the fitted program's overlays, the plan grid and the shapes
+  // the scene-program products of the question: the read-out and the answer, the fitted program's overlays, the plan grid and the shapes
   function spBlock(q) {
     const sp = q.sp;
     const u = sp.unit ? Ht` ${esc(sp.unit)}` : '';
@@ -1263,7 +1263,7 @@
       // decided by named checks: an unresolved question shows the scene value its record kept, never as the answer
       const unres = q.status === 'unresolved';
       const val = unres ? (q.scene_value != null ? Ht`<span class="notans">${fmtNum(q.scene_value)}</span>` : '—') : fmtNum(f && f.pred);
-      h += Ht`<div class="scroll-x"><table class="fit"><tr><th>Object</th><th>Method</th><th class="n">Scene value</th>` +
+      h += Ht`<div class="scroll-x"><table class="fit"><tr><th>Object</th><th>Method</th><th class="n">Read-out</th>` +
         Ht`<th class="n">t_q alignment</th><th>Status</th></tr>` +
         Ht`<tr><td>${f ? esc(f.obj) : '—'}</td><td><code>${esc(q.method)}</code></td><td class="n">${val}</td>` +
         Ht`${alignCell(q.align)}<td><code>${esc(q.status)}</code></td></tr></table></div>` +
@@ -1271,7 +1271,7 @@
         q.checks.map((c) => Ht`<tr class="${c.pass ? 'ok' : 'bad'}"><td><code>${esc(c.name)}</code></td>` +
           Ht`<td>${c.pass ? tr('pass') : tr('fail')}</td><td>${esc(c.reason)}</td></tr>`).join('') + Ht`</table></div>`;
     } else if (f || q.method || q.status) {
-      h += Ht`<div class="scroll-x"><table class="fit"><tr><th>Object</th><th>Method</th><th class="n">Scene value</th>` +
+      h += Ht`<div class="scroll-x"><table class="fit"><tr><th>Object</th><th>Method</th><th class="n">Read-out</th>` +
         Ht`<th class="n">t_q alignment</th><th>Status</th></tr>` +
         Ht`<tr><td>${f ? esc(f.obj) : '—'}</td><td><code>${esc(q.method)}</code></td>` +
         Ht`<td class="n">${fmtNum(f && f.pred)}</td>${alignCell(q.align)}<td><code>${esc(q.status)}</code></td></tr></table></div>`;
@@ -1932,7 +1932,7 @@
     const list = $('val-list'); list.innerHTML = '';
     const head = document.createElement('div');
     head.className = 'qhead';
-    head.innerHTML = Ht`<span></span><span>Question</span><span class="qnums sp"><span class="qv">GT</span><span class="qv">Scene</span><span class="qv">MRA</span><span class="qv">Final</span></span><span class="qm">MRA</span>`;
+    head.innerHTML = Ht`<span></span><span>Question</span><span class="qnums sp"><span class="qv">GT</span><span class="qv">Read-out</span><span class="qv">MRA</span><span class="qv">Answer</span></span><span class="qm">MRA</span>`;
     if (items.length) list.appendChild(head);
     const frag = document.createDocumentFragment();
     items.forEach(({ q, v }) => frag.appendChild(questionCard(q, v)));
@@ -1950,7 +1950,7 @@
     const items = setQuestions().filter((q) => (!vsrc || vids[q.video].source === vsrc) && okM(fMRA(q)) && matchText(q, needle)).map((q) => ({ q, v: vids[q.video] }));
     const key = { 'mra-asc': fMRA, 'mra-desc': fMRA, 'smra-asc': sMRA, 'smra-desc': sMRA }[sort];
     if (key) items.sort((a, b) => (sort.endsWith('asc') ? 1 : -1) * (key(a.q) - key(b.q)));
-    $('v-status').textContent = Ht`${items.length} questions` + (items.length ? Ht` · answer_scene ${fmt(mean(items.map((x) => sMRA(x.q))), 3)} · answer_final ${fmt(mean(items.map((x) => fMRA(x.q))), 3)}` : '');
+    $('v-status').textContent = Ht`${items.length} questions` + (items.length ? Ht` · Read-out ${fmt(mean(items.map((x) => sMRA(x.q))), 3)} · Answer ${fmt(mean(items.map((x) => fMRA(x.q))), 3)}` : '');
     renderList(items);
   }
   const renderAll = () => { valSummary(); renderVal(); };

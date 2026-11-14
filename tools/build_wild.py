@@ -15,7 +15,7 @@ Inputs (relative to the repo root):
   --answers JSON                                        the answer step on the fitted programs: {unit: {final, unit,
                                                         scene_value, sigma, determined, reason, ...}}, one entry per
                                                         answered unit; the directory of the same stem holds each
-                                                        unit's answer record (<unit>.json, the scene answer's reason)
+                                                        unit's answer record (<unit>.json, the read-out's reason)
   outputs/sceneprog_wild/<BUILD>/<unit>/metric.json     alignment of the fitted program (unit_summary.iou_median_mean)
   outputs/sceneprog_wild/<BUILD>/<unit>/overlay_f*.jpg  the fitted program rendered over frames
   outputs/sceneprog_wild/<BUILD>/<unit>/plan_grid.jpg, shapes.png

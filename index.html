@@ -16,12 +16,12 @@
 <p data-i18n="home.keywords"><strong>Keywords:</strong> Minimal Sufficient Reconstruction</p>
 
 <h2 id="pipeline" data-i18n>Pipeline</h2>
-<p data-i18n="home.pipeline">Each question is reconstructed on its own from the video, the question and the prior, the known facts that come with it (an object's size or speed, or its distance to the camera). A vision-language model writes the scene as a program: which objects exist, what supports what, and which physical law governs each stretch of motion. Measurement sets the magnitudes: Physics-guided Fitting fits the program to the object masks of all frames under the prior and gravity, and marks every parameter, the metric scale and the asked quantity as determined or undetermined. Each question then receives two answers: the scene answer, read strictly from the fitted program and left empty when the scene does not determine the asked quantity, and the final answer, given by a vision-language model that sees frames of the video beside the rendered program and the reconstruction as evidence, and judges whether the reconstruction is credible.</p>
+<p data-i18n="home.pipeline">Each question is reconstructed on its own from the video, the question and the prior, the known facts that come with it (an object's size or speed, or its distance to the camera). A vision-language model writes the scene as a program: which objects exist, what supports what, and which physical law governs each stretch of motion. Measurement sets the magnitudes: Physics-guided Fitting fits the program to the object masks of all frames under the prior and gravity, and marks every parameter, the metric scale and the asked quantity as determined or undetermined. Each question then yields a read-out from the fitted program, left empty when the scene does not determine the asked quantity, and an answer given by a vision-language model that sees frames of the video beside the rendered program and the reconstruction as evidence, and judges whether the reconstruction is credible.</p>
 <div class="steps stages" aria-label="Pipeline overview" data-i18n-aria-label>
   <a class="s" href="pipeline.html#perception" data-i18n>Input and perception</a><span class="ar">→</span>
   <a class="s prog" href="pipeline.html#program" data-i18n>Scene program</a><span class="ar">→</span>
   <a class="s fit" href="pipeline.html#fit" data-i18n>Physics-guided Fitting</a><span class="ar">→</span>
-  <a class="s answer" href="pipeline.html#answers" data-i18n>Answers</a>
+  <a class="s answer" href="pipeline.html#answers" data-i18n>Read-out and answer</a>
 </div>
 
 <h2 id="quantitative-comparison" data-i18n>Quantitative Comparison</h2>

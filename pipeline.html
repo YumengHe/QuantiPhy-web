@@ -12,14 +12,14 @@
 <main class="wrap">
 
 <h1 data-i18n="pl.top.1">Pipeline</h1>
-<p class="lede" data-i18n="pl.top.2">Each question is reconstructed on its own: perception gives tracks and masks, a model writes the scene as a program, Physics-guided Fitting measures its magnitudes against the video under the prior and physical law, and the fitted program gives two answers.</p>
+<p class="lede" data-i18n="pl.top.2">Each question is reconstructed on its own: perception gives tracks and masks, a model writes the scene as a program, Physics-guided Fitting measures its magnitudes against the video under the prior and physical law, the fitted program gives a read-out, and a model gives the answer with the reconstruction as evidence.</p>
 <div class="figwrap"><img src="data/figures/pipeline_full.png" width="2198" height="2135" alt="Every stage of the pipeline on one question: the initial distance between the black ball and the purple ball, with the prior billiard ball diameter = 57.2 mm."></div>
 
 <div class="steps stages">
   <a class="s" href="#perception" data-i18n="pl.top.3">Input and perception</a><span class="ar">→</span>
   <a class="s prog" href="#program" data-i18n="pl.top.4">Scene program</a><span class="ar">→</span>
   <a class="s fit" href="#fit" data-i18n="pl.top.5">Physics-guided Fitting</a><span class="ar">→</span>
-  <a class="s answer" href="#answers" data-i18n="pl.top.7">Answers</a>
+  <a class="s answer" href="#answers" data-i18n="pl.top.7">Read-out and answer</a>
 </div>
 
 <section class="step" id="perception">
@@ -129,23 +129,23 @@
     <li data-i18n="pl.fit.8">Order: the focal length starts from Depth Pro and is held. The first tracked body is fitted with the camera's pitch, roll and height from each pitch start; every start within one noise unit per frame of the best, and at least three, is carried through and the lowest final objective kept. The other bodies follow in build order with the camera and the earlier bodies frozen. A joint pass frees the focal length, kept only if the fit determines it within the physical field of view; each extent the observations determine on its own is freed; segment boundaries may move by up to three frames</li>
     <li data-i18n="pl.fit.9">Gates per object: the program evaluates, its held rows hold, its relations hold, and its pose agrees with its masks: the constant part, the drift and the scatter of the per-frame alignment, each at most max(σ<sub>o</sub>, √2 px)</li>
     <li data-i18n="pl.fit.10">Identifiability: a parameter's σ is the largest of the linearised covariance, a frame-clustered sandwich covariance, a profile along the weakest directions and the spread over equally good starts. A parameter is undetermined, with a reason, if σ exceeds a quarter of its natural scale, it loads a direction of zero curvature, it affects no frame or row, or it ends at a bound. The scale is determined only if some anchor resists a common scaling of every unanchored length, speed and acceleration; each anchor is then tested alone</li>
-    <li data-i18n="pl.fit.11">Scene answer: the asked quantity evaluated on the program, a size or g directly, a speed, acceleration, distance or height from the laws at the asked time or window; its σ adds the statements' precision and the misfit of the frames it is read from. It is undetermined, with a named reason, if anything it reads is undetermined, a held row is violated, the scale rests only on a class vote pulled beyond 3σ, or the program has no expression for the asked quantity</li>
+    <li data-i18n="pl.fit.11">Read-out: the asked quantity evaluated on the program, a size or g directly, a speed, acceleration, distance or height from the laws at the asked time or window; its σ adds the statements' precision and the misfit of the frames it is read from. It is undetermined, with a named reason, if anything it reads is undetermined, a held row is violated, the scale rests only on a class vote pulled beyond 3σ, or the program has no expression for the asked quantity</li>
   </ol></dd>
   <dt data-i18n="pl.fit.12">Output</dt>
   <dd><ul>
-    <li data-i18n="pl.fit.13"><code>scene.json</code> (every parameter with value, σ, source and determined flag), <code>fit.json</code> (starts, gates, rows, anchors, the scene answer)</li>
+    <li data-i18n="pl.fit.13"><code>scene.json</code> (every parameter with value, σ, source and determined flag), <code>fit.json</code> (starts, gates, rows, anchors, the read-out)</li>
   </ul></dd>
 </dl>
 </section>
 
 <section class="step" id="answers">
-<h2 data-i18n="pl.answers.1">Answers</h2>
+<h2 data-i18n="pl.answers.1">Read-out and answer</h2>
 <p class="cmd"><code>python -m pipeline.sceneprog.answer --unit U --tag T</code> · <code>answer.py</code></p>
 <dl class="io">
-  <dt data-i18n="pl.answers.2">Scene answer</dt>
-  <dd data-i18n="pl.answers.3">The strict read-out of the fit: a value only when the program determines it, otherwise undetermined with its reasons, scored 0</dd>
-  <dt data-i18n="pl.answers.4">Final answer</dt>
-  <dd data-i18n="pl.answers.5">One model call for every question, determined or not, with the reconstruction shown as evidence: the question and the prior, 16 frames sampled uniformly over the video, each preceded by its frame index and time, up to five overlays of the fitted program, and the reconstruction in words: the objects with their sizes and where each came from (the prior, the fit, a class size), their laws, gravity, the camera, the scale source, each prior statement beside the reconstruction's value for it, and the reconstruction's value for the question in the asked unit. No verdict, σ or determined flag is shown; the model judges from the images whether the reconstruction is credible. It returns one number in the asked unit with a rationale and the inputs it relied on. The reported MRA is the final answer's; both answers and both MRAs are kept</dd>
+  <dt data-i18n="pl.answers.2">Read-out</dt>
+  <dd data-i18n="pl.answers.3">The fit's read-out of the asked quantity: a value only when the program determines it, otherwise empty with its reasons, scored 0</dd>
+  <dt data-i18n="pl.answers.4">Answer</dt>
+  <dd data-i18n="pl.answers.5">One model call for every question, determined or not, with the reconstruction shown as evidence: the question and the prior, 16 frames sampled uniformly over the video, each preceded by its frame index and time, up to five overlays of the fitted program, and the reconstruction in words: the objects with their sizes and where each came from (the prior, the fit, a class size), their laws, gravity, the camera, the scale source, each prior statement beside the reconstruction's value for it, and the reconstruction's value for the question in the asked unit. No verdict, σ or determined flag is shown; the model judges from the images whether the reconstruction is credible. It returns one number in the asked unit with a rationale and the inputs it relied on. The reported MRA is the answer's; the read-out, the answer and both MRAs are kept</dd>
   <dt data-i18n="pl.answers.6">Output</dt>
   <dd data-i18n="pl.answers.7"><code>answer.json</code> beside <code>fit.json</code></dd>
 </dl>
@@ -182,7 +182,7 @@
   <tr><td data-i18n="pl.time.8">Masks</td><td><code>masks</code></td><td class="n">50 s</td><td class="n">143 s</td><td class="n">2.3 h</td></tr>
   <tr><td data-i18n="pl.time.9"><a href="#program">Scene program</a></td><td><code>build</code></td><td class="n">92 s</td><td class="n">252 s</td><td class="n">4.2 h</td></tr>
   <tr><td data-i18n="pl.time.10"><a href="#fit">Physics-guided Fitting</a></td><td><code>fit</code></td><td class="n" data-i18n="pl.time.11">20 min</td><td class="n">3.1 h</td><td class="n">89.9 h</td></tr>
-  <tr><td data-i18n="pl.time.15"><a href="#answers">Answers</a></td><td><code>answer</code></td><td class="n">18 s</td><td class="n">106 s</td><td class="n">1.0 h</td></tr>
+  <tr><td data-i18n="pl.time.15"><a href="#answers">Read-out and answer</a></td><td><code>answer</code></td><td class="n">18 s</td><td class="n">106 s</td><td class="n">1.0 h</td></tr>
 </table></div>
 <p class="muted small" data-i18n="pl.time.16">The scene-program chain of the same 158 questions.</p>
 

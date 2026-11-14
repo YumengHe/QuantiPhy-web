@@ -131,7 +131,7 @@
     const miss = d.questions.filter((q) => !ours.questions[q.id]).map((q) => q.id);
     if (miss.length) throw new Error(Ht`comparison_ours.json lacks ${miss.join(', ')}`);
     d.methods.push({ key: 'ours', label: ours.label, source: 'evaluation.html',
-      setup: 'answer_final of every question, as on the Evaluation page' });
+      setup: 'the answer of every question, as on the Evaluation page' });
     d.questions.forEach((q) => { const o = ours.questions[q.id]; q.preds.ours = { pred: o.final, mra: o.final_mra, raw: o.final_source }; });
   }
   const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(Ht`${u}: ${r.status}`); return r.json(); });

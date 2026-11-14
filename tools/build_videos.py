@@ -4378,7 +4378,7 @@ def sceneprog_answers(path: Path) -> dict:
 
 
 def sceneprog_view(build: str, rec_dir: Path, q: dict, e: dict) -> dict:
-    """One question's scene-program products: the two answers (answer_scene, the strict read-out of the fitted program,
+    """One question's scene-program products: the read-out and the answer (answer_scene, the strict read-out of the fitted program,
     undetermined = no value; answer_final, the answer step's, the reported one) with their MRA against the question's
     ground truth, the fit's status, the time of each chain step (build: plan.json timing; fit: fit.json time_s;
     answer: the answer table's seconds), and the renders of the build tag: the fitted program's overlays, the plan

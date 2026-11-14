@@ -27,7 +27,7 @@
     const c = DATA.counts;
     const stat = (label, n) => Ht`<div class="m"><div class="muted">${label}</div><div class="big">${n}</div></div>`;
     $('w-stats').innerHTML = stat(tr('Videos'), c.videos) + stat(tr('Questions'), c.questions) + stat(tr('Answered'), c.answered) +
-      stat(tr('Failed'), c.failed) + stat(tr('Unfinished'), c.stopped) + stat(tr('Scene answer determined'), c.determined);
+      stat(tr('Failed'), c.failed) + stat(tr('Unfinished'), c.stopped) + stat(tr('Read-out determined'), c.determined);
     $('w-groups').innerHTML = Ht`<tr><th>Group</th><th class="n">Videos</th><th>Prior</th></tr>` +
       DATA.groups.map((g) => Ht`<tr><td>${tr(GROUPS[g.key][0])}</td><td class="n">${g.videos}</td>` +
         Ht`<td>${tr(GROUPS[g.key][1])}: ${g.priors.map(esc).join(' · ')}</td></tr>`).join('');
@@ -46,8 +46,8 @@
   function block(v) {
     const priors = [...new Set(v.questions.map((q) => q.prior))];
     const prior = Ht`<ul class="prior">${priors.map((p) => Ht`<li>${esc(p)}</li>`).join('')}</ul>`;
-    const table = Ht`<div class="scroll-x"><table class="wq"><tr><th></th><th>Question</th><th class="n">answer_final</th>` +
-      Ht`<th class="n">answer_scene</th><th class="n">IoU</th></tr>` +
+    const table = Ht`<div class="scroll-x"><table class="wq"><tr><th></th><th>Question</th><th class="n">Answer</th>` +
+      Ht`<th class="n">Read-out</th><th class="n">IoU</th></tr>` +
       v.questions.map((q) => Ht`<tr><td class="qid">${qk(q)}</td><td>${esc(q.q)}</td>${answers(q)}</tr>`).join('') + Ht`</table></div>`;
     const done = v.questions.filter((q) => q.status === 'answered');
     const strips = done.length
