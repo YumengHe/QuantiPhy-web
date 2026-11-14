@@ -3,7 +3,8 @@
 Reads only the runs' outputs; never runs the pipeline. The page lists one row per question; a question is the
 unit <video_id>_q<k> (k = its 1-based order among the video's rows of the split table, docs/PER_QUESTION.md).
 
-  python -B web/tools/build_videos.py --val-runs v6gpt --sceneprog v6val v6valloop
+  python -B web/tools/build_videos.py --val-runs v6gpt --sceneprog v6val \
+      --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_noloop.json
 
 Runs are listed in order of preference: each question is shown from the first run whose CSV has its row, and every
 value of that question (pred, MRA, source, scene, overlays, tracks, scene graph) comes from that run alone. The page
@@ -29,9 +30,10 @@ Overlays: the record web/data/runtime/<tag>/overlays.json lists every overlay of
 (pipeline/VERSION) may render the ones it lacks, with the current code; building an older version needs every overlay
 in its record, with its image on disk.
 
-Scene program (versions whose VERSION_FORMAT has "sceneprog", --sceneprog BUILD LOOP): every question of the first
-run also carries "sp" (sceneprog_view: both answers and MRAs from outputs/sceneprog_answers_<LOOP>.json, the loop,
-the renders under media/sceneprog/<tag>/), and data/comparison_ours.json is written (write_comparison_ours).
+Scene program (versions whose VERSION_FORMAT has "sceneprog", --sceneprog BUILD --answers JSON): every question of the
+first run also carries "sp" (sceneprog_view: both answers from the answer step's table, their MRA against the ground
+truth with the baselines' rule, the renders under media/sceneprog/<BUILD>/), and data/comparison_ours.json is written
+(write_comparison_ours).
 
 Layout: {"generated", "val": {"runs": [{"version", "unit", "csv"}], "dev", "videos", "questions", "sceneprog"}}. Each question
 names its "version". A video carries "runs": {version: {"run_at", ...}}; with unit "video" (the run fits one scene
@@ -40,7 +42,7 @@ names its group. With unit "question" each question carries its own scene / scen
 
 The page plays the original videos from media/val (git-ignored symlinks, see video_info).
 
-Also regenerates the class-size table of pipeline.html (step 8.3) from pipeline/class_sizes.py (write_class_table).
+Also regenerates the class-size table of pipeline.html (scene program section) from pipeline/class_sizes.py (write_class_table).
 
 Note: the "v0" keys below (and o.v0 / p.v0 in videos.js) are the initial-velocity field of the scene json written by
 the pipeline, not a version label; do not rename or remove them.
@@ -286,7 +288,7 @@ VERSION_FORMAT = {
 }
 # v6: the v5 harness (batch 29 plus the kept parts of 2026-11-05) as the perception below the scene-program chain;
 # its harness artifacts have the v5 format, and every question also carries its scene-program products
-# (outputs/sceneprog/<build tag>/<unit>, outputs/sceneprog/<loop tag>/<unit>, see sceneprog_view)
+# (outputs/sceneprog/<build tag>/<unit> and the answer step's table, see sceneprog_view)
 VERSION_FORMAT["v6"] = {**VERSION_FORMAT["v5"], "sceneprog": True}
 CHECK_SOURCES = ("scene", "measurement")   # sources of a resolved answer under "checks"; unresolved: "unresolved"
 MOTION_KEYS = ("ballistic", "physics")
@@ -4339,12 +4341,14 @@ def unit_set(tag: str, frame: pd.DataFrame, csv_path: Path):
     return vals[0]
 
 
-# ---------- the scene-program chain of a v6 run (docs/SCENE_PROGRAM.md, docs/VAL_V6.md) ----------
-SP_ROW_KEYS = {"unit", "truth", "unit_asked", "scene", "scene_mra", "final", "final_source", "final_mra", "baseline",
-               "baseline_mra"}
-SP_SOURCES = ("scene", "agent")       # tools/sceneprog_answers.py final_source; a unit without an answer: "none"
-SP_LOOP_STOPS = ("no_edit_available", "converged", "budget")
+# ---------- the scene-program chain of a v6 run (docs/SCENE_PROGRAM.md, docs/CHAIN_NO_LOOP.md) ----------
+# masks -> build -> fit -> answer: the answer step reads the fit's directory outputs/sceneprog/<BUILD>/<unit>/; its
+# answers are one JSON {unit: {final, unit, scene_value, sigma, determined, seconds, reason, ...}} beside a directory
+# of the same stem holding each unit's answer record (<unit>.json, schema sceneprog-answer/1)
+SP_ANSWER_KEYS = {"final", "unit", "scene_value", "sigma", "determined", "prompt_tokens", "completion_tokens", "calls",
+                  "memo_hit", "seconds", "reason", "inputs_cited"}
 SP_MEDIA = "media/sceneprog"          # git-ignored symlinks media/sceneprog/<tag> -> outputs/sceneprog/<tag>
+SP_RAW: dict[str, tuple] = {}         # unit -> (answer_final, answer_scene or None) unrounded, for comparison_ours
 
 
 def sp_media(tag: str, unit: str, name: str) -> str:
@@ -4355,91 +4359,71 @@ def sp_media(tag: str, unit: str, name: str) -> str:
     return f"{SP_MEDIA}/{tag}/{unit}/{name}"
 
 
-def sceneprog_rows(build: str, loop: str, harness: str) -> dict:
-    """The per-question table of tools/sceneprog_answers.py for loop tag `loop` (outputs/sceneprog_answers_<loop>.json):
-    {unit: row}, every row with exactly SP_ROW_KEYS."""
-    j = read_json(ROOT / "outputs" / f"sceneprog_answers_{loop}.json", "scene-program answer table")
-    if req(j, "tag", "scene-program answer table") != loop or req(j, "baseline", "scene-program answer table") != harness:
-        raise ValueError(f"sceneprog_answers_{loop}.json: tag {j['tag']!r} / baseline {j['baseline']!r}, expected {loop!r} / {harness!r}")
-    out = {}
-    for r in req(j, "rows", "scene-program answer table"):
-        if set(r) != SP_ROW_KEYS or r["final_source"] not in SP_SOURCES or r["unit"] in out:
-            raise ValueError(f"sceneprog_answers_{loop}.json: row {r.get('unit')!r} keys {sorted(r)} source {r.get('final_source')!r}")
-        out[r["unit"]] = r
-    return out
+def sp_mra(pred, truth) -> float:
+    """MRA of one answer: the baselines' rule (tools/build_baseline.py mra), so our row and theirs are scored alike."""
+    from build_baseline import mra
+    return mra(None if pred is None else float(pred), float(truth))
 
 
-def sceneprog_view(build: str, loop: str, q: dict, row: dict | None) -> dict:
+def sceneprog_answers(path: Path) -> dict:
+    """The answer step's table {unit: entry} (every entry with exactly SP_ANSWER_KEYS) and its records directory."""
+    j = read_json(path, "scene-program answers")
+    for u, e in j.items():
+        if set(e) != SP_ANSWER_KEYS:
+            raise ValueError(f"{path.name}: {u} keys {sorted(e)}")
+    rec_dir = path.with_suffix("")
+    if not rec_dir.is_dir():
+        raise ValueError(f"{path.name}: no records directory {rec_dir}")
+    return j
+
+
+def sceneprog_view(build: str, rec_dir: Path, q: dict, e: dict) -> dict:
     """One question's scene-program products: the two answers (answer_scene, the strict read-out of the fitted program,
-    undetermined = no value; answer_final, the agent's answer, the reported one) with their MRA from the answer table,
-    the loop's stop, rounds and accepted edits, the fit's status, the time of each chain step this unit records
-    (build: plan.json timing; fit: the first fit, fit.json time_s; loop: loop.json wall_s), and the renders: overlays
-    of the final program (loop tag), the views of each loop round, the plan grid and the shapes (build tag).
-    `row` None: the unit has no answer (no loop directory may exist; MRA 0, source "none")."""
+    undetermined = no value; answer_final, the answer step's, the reported one) with their MRA against the question's
+    ground truth, the fit's status, the time of each chain step (build: plan.json timing; fit: fit.json time_s;
+    answer: the answer table's seconds), and the renders of the build tag: the fitted program's overlays, the plan
+    grid and the shapes."""
     unit = q["id"]
-    AT["where"] = f"{loop} {unit}"
-    ld, bd = ROOT / "outputs" / "sceneprog" / loop / unit, ROOT / "outputs" / "sceneprog" / build / unit
-    if row is None:
-        if ld.exists() or (bd / "fit.json").exists():
-            raise ValueError(f"{unit}: not in the answer table but {ld.relative_to(ROOT)} or a fit exists")
-        return {"scene": None, "sigma": None, "determined": False, "reason": None, "scene_mra": 0.0,
-                "final": None, "final_source": "none", "final_mra": 0.0, "unit": None, "rationale": None,
-                "loop": None, "fit_status": None, "time": None, "renders": None}
-    if num(row["truth"]) != q["answer"]:     # both to the page's 4 significant figures
-        raise ValueError(f"{unit}: answer table truth {row['truth']} differs from the validation table's {q['answer']}")
-    a = read_json(ld / "answer.json", "scene-program answer")
-    if req(a, "schema", "scene-program answer") != "sceneprog-answer/1" or a["unit"] != unit or \
-            req(req(a, "provenance", "scene-program answer"), "tag", "provenance") != loop:
-        raise ValueError(f"{unit}: answer.json schema / unit / tag {a.get('schema')!r} {a.get('unit')!r}")
-    sc, fi = req(a, "answer_scene", "answer.json"), req(a, "answer_final", "answer.json")
-    det = req(sc, "determined", "answer_scene")
-    if (row["scene"] is None) == bool(det) or (det and num(row["scene"]) != num(req(sc, "value", "answer_scene"))):
-        raise ValueError(f"{unit}: answer table scene {row['scene']!r} vs answer_scene {sc['value']!r} determined {det}")
-    if num(row["final"]) != num(req(fi, "value", "answer_final")):
-        raise ValueError(f"{unit}: answer table final {row['final']!r} vs answer_final {fi['value']!r}")
-    lp = read_json(ld / "loop.json", "loop record")
-    if req(lp, "unit", "loop record") != unit or req(lp, "out_tag", "loop record") != loop or \
-            req(req(lp, "source", "loop record"), "tag", "loop source") != build:
-        raise ValueError(f"{unit}: loop.json unit / out_tag / source {lp.get('unit')!r} {lp.get('out_tag')!r}")
-    stop = req(lp, "status", "loop record")
-    if stop not in SP_LOOP_STOPS:
-        raise ValueError(f"{unit}: loop status {stop!r}")
-    n_rounds = len(req(lp, "rounds", "loop record"))
-    fit = read_json(ld / "fit.json", "final fit")
-    fit0 = read_json(bd / "fit.json", "first fit")
+    AT["where"] = f"{build} {unit}"
+    bd = ROOT / "outputs" / "sceneprog" / build / unit
+    a = read_json(rec_dir / f"{unit}.json", "scene-program answer")
+    if req(a, "schema", "scene-program answer") != "sceneprog-answer/1" or a["unit"] != unit:
+        raise ValueError(f"{unit}: answer record schema / unit {a.get('schema')!r} {a.get('unit')!r}")
+    sc, fi = req(a, "answer_scene", "answer record"), req(a, "answer_final", "answer record")
+    det = bool(e["determined"])
+    if det != bool(req(sc, "determined", "answer_scene")) or num(fi.get("value")) != num(e["final"]) or \
+            (det and num(sc.get("value")) != num(e["scene_value"])):
+        raise ValueError(f"{unit}: answer table and record differ (final {e['final']!r} / {fi.get('value')!r})")
+    fit = read_json(bd / "fit.json", "fit")
     plan = read_json(bd / "plan.json", "plan")
-    overlays = sorted(p.name for p in ld.glob("overlay_f*.jpg"))
+    overlays = sorted(p.name for p in bd.glob("overlay_f*.jpg"))
     if not overlays:
-        raise ValueError(f"{unit}: no overlay_f*.jpg in {ld.relative_to(ROOT)}")
-    return {"scene": num(sc["value"]) if det else None, "sigma": num(sc.get("sigma"), 3) if det else None,
-            "determined": bool(det), "reason": text(sc.get("reason")) or None, "scene_mra": num(row["scene_mra"], 6),
-            "final": num(row["final"]), "final_source": row["final_source"], "final_mra": num(row["final_mra"], 6),
-            "unit": text(req(fi, "unit", "answer_final")), "rationale": text(fi.get("rationale")) or None,
-            "loop": {"stop": stop, "why": text(req(lp, "status_reason", "loop record")), "rounds": n_rounds,
-                     "accepted": int(req(lp, "accepted", "loop record")), "proposals": int(req(lp, "proposals", "loop record"))},
-            "fit_status": text(req(fit, "status", "final fit")),
+        raise ValueError(f"{unit}: no overlay_f*.jpg in {bd.relative_to(ROOT)}")
+    scene = num(e["scene_value"]) if det else None
+    SP_RAW[unit] = (e["final"], e["scene_value"] if det else None)
+    return {"scene": scene, "sigma": num(e["sigma"], 3) if det else None, "determined": det,
+            "reason": text(sc.get("reason")) or None, "scene_mra": sp_mra(e["scene_value"] if det else None, q["answer"]),
+            "final": num(e["final"]), "final_mra": sp_mra(e["final"], q["answer"]),
+            "unit": text(e["unit"]), "rationale": text(fi.get("rationale") or e["reason"]) or None,
+            "fit_status": text(req(fit, "status", "fit")),
             "time": {"build": num(req(req(plan, "timing", "plan"), "total_s", "plan timing"), 4),
-                     "fit": num(req(fit0, "time_s", "first fit"), 4), "loop": num(req(lp, "wall_s", "loop record"), 4)},
-            "renders": {"overlays": [sp_media(loop, unit, n) for n in overlays],
-                        "views": [sp_media(loop, unit, f"views_r{k}.jpg") for k in range(1, n_rounds + 1)],
+                     "fit": num(req(fit, "time_s", "fit"), 4), "answer": num(e["seconds"], 4)},
+            "renders": {"overlays": [sp_media(build, unit, n) for n in overlays],
                         "plan_grid": sp_media(build, unit, "plan_grid.jpg"), "shapes": sp_media(build, unit, "shapes.png")}}
 
 
-def add_sceneprog(questions: list[dict], harness: str, build: str, loop: str) -> dict:
-    """Attach the scene-program products of build / loop tags to every question of harness run `harness` ("sp"); a
-    question of the validation table must be in the answer table unless its harness unit failed (docs/VAL_V6.md: a
-    unit without an answer). Returns the run's {"harness", "build", "loop"} record."""
-    rows = sceneprog_rows(build, loop, harness)
+def add_sceneprog(questions: list[dict], harness: str, build: str, answers: Path) -> dict:
+    """Attach the scene-program products of build tag `build` and the answer table `answers` to every question of
+    harness run `harness` ("sp"); every question of the run must have an answer entry and no other unit may.
+    Returns the run's {"harness", "build", "answers"} record."""
+    table = sceneprog_answers(answers)
     mine = [q for q in questions if q["version"] == harness]
-    extra = set(rows) - {q["id"] for q in mine}
-    if extra:
-        raise ValueError(f"sceneprog_answers_{loop}.json: units not in the {harness} run: {sorted(extra)}")
+    if set(table) != {q["id"] for q in mine}:
+        raise ValueError(f"{answers.name}: units differ from the {harness} run: "
+                         f"{sorted(set(table) ^ {q['id'] for q in mine})}")
     for q in mine:
-        row = rows.get(q["id"])
-        if row is None and q.get("execution_status") != "failed":
-            raise ValueError(f"{q['id']}: not in sceneprog_answers_{loop}.json while its harness unit did not fail")
-        q["sp"] = sceneprog_view(build, loop, q, row)
-    return {"harness": harness, "build": build, "loop": loop}
+        q["sp"] = sceneprog_view(build, answers.with_suffix(""), q, table[q["id"]])
+    return {"harness": harness, "build": build, "answers": answers.name}
 
 
 OURS_JSON = WEB / "data" / "comparison_ours.json"
@@ -4447,8 +4431,8 @@ OURS_JSON = WEB / "data" / "comparison_ours.json"
 
 def write_comparison_ours(questions: list[dict], sp: dict) -> int:
     """data/comparison_ours.json, our row of the method comparison (index.html, baseline.html): every question of the
-    baselines' set (data/baseline.json) with its category and both MRAs of the scene-program run; the pages compute
-    the scores with the baselines' own rule. Each baseline question must be one of ours."""
+    baselines' set (data/baseline.json) with its category and both MRAs of the scene-program run against that set's
+    ground truth (the baselines' rule, sp_mra); the pages compute the scores with the baselines' own rule. Each baseline question must be one of ours."""
     base = read_json(WEB / "data" / "baseline.json", "baseline data")
     byid = {q["id"]: q for q in questions}
     out = {}
@@ -4456,10 +4440,11 @@ def write_comparison_ours(questions: list[dict], sp: dict) -> int:
         q = byid.get(b["id"])
         if q is None or "sp" not in q or q["cat"] != b["cat"]:
             raise ValueError(f"baseline question {b['id']} not among the scene-program questions (or another category)")
-        out[b["id"]] = {"cat": q["cat"], "final": q["sp"]["final"], "final_source": q["sp"]["final_source"],
-                        "final_mra": q["sp"]["final_mra"], "scene_mra": q["sp"]["scene_mra"]}
+        final, scene = SP_RAW[b["id"]]
+        out[b["id"]] = {"cat": q["cat"], "final": q["sp"]["final"], "final_mra": sp_mra(final, b["answer"]),
+                        "scene_mra": sp_mra(scene, b["answer"])}
     OURS_JSON.write_text(json.dumps({"label": "Ours", "version": base_version(sp["harness"]),
-                                     "run": [sp["harness"], sp["build"], sp["loop"]], "questions": out},
+                                     "run": [sp["harness"], sp["build"], sp["answers"]], "questions": out},
                                     ensure_ascii=False, separators=(",", ":")))
     return len(out)
 
@@ -4470,7 +4455,7 @@ CLASS_TABLE_MARKS = ("<!-- class_sizes: generated by tools/build_videos.py from 
 
 
 def write_class_table() -> int:
-    """Regenerate the class-size table of pipeline.html (step 8.3, rule C15) from pipeline.class_sizes itself, between
+    """Regenerate the class-size table of pipeline.html (scene program section, rule C15) from pipeline.class_sizes itself, between
     CLASS_TABLE_MARKS: one row per class with what it is, every dim's range lo-hi (m) and sigma, the primary dim, role,
     observe and source, under the module's TABLE_VERSION. Nothing is copied by hand; the marks must be there."""
     from html import escape
@@ -4507,12 +4492,15 @@ TIME_TABLE_MARKS = ("<!-- step_times: generated by tools/build_videos.py from th
 STEP_LABELS = {"objects": "1 Objects", "scenegraph_grid": "2 Scene graph (grid)", "observe": "3 Observe", "track": "4 Track",
                "measure": "5 Measure", "scenegraph_pf": "6 Scene graph (per frame)", "ground": "7 Ground",
                "scene": "8 Scene", "agent": "9 Agent loop", "answer": "10 Answer"}
+# the steps of the run's records that the harness still runs (pipeline.harness CHAIN_TRACK), as pipeline.html names them;
+# the run predates the task plan and focal steps, so they have no timing in its records
+SHOWN_STEPS = {"objects": "1 Objects", "scenegraph_grid": "3 Scene graph", "track": "4 Track"}
 
 
 def write_time_table(questions: list[dict], tag: str) -> int:
     """Regenerate the time-per-step table of pipeline.html between TIME_TABLE_MARKS from the answer records' timing of
-    run `tag` (outputs/harness/<tag>/answers/<unit>.json, "timing"): median / min / max seconds per step and of the
-    total, over the questions whose record ran every step (a failed chain's prefix is left out). Read from the records
+    run `tag` (outputs/harness/<tag>/answers/<unit>.json, "timing"): median / min / max seconds of each step the harness
+    still runs (SHOWN_STEPS), over the questions whose record ran every step (a failed chain's prefix is left out). Read from the records
     themselves, not the run's CSV (docs/VAL_V6.md: the CSV lists four retried units as failed). Returns the number."""
     page = PIPELINE_HTML.read_text()
     a, b = TIME_TABLE_MARKS
@@ -4536,9 +4524,8 @@ def write_time_table(questions: list[dict], tag: str) -> int:
     if list(STEP_LABELS) != steps or any([x["step"] for x in q["time"]["steps"]] != steps for q in qs):
         raise ValueError(f"{tag}: timing steps {steps}, expected {list(STEP_LABELS)}")
     cells = lambda v: "".join(f'<td class="n">{x:.1f}</td>' for x in (float(np.median(v)), min(v), max(v)))
-    rows = [f'  <tr><td data-i18n>{STEP_LABELS[k]}</td><td><code>{k}</code></td>{cells([q["time"]["steps"][i]["s"] for q in qs])}</tr>'
-            for i, k in enumerate(steps)]
-    rows.append(f'  <tr><td data-i18n><b>Total</b></td><td><code>total_seconds</code></td>{cells([q["time"]["total"] for q in qs])}</tr>')
+    rows = [f'  <tr><td data-i18n>{SHOWN_STEPS[k]}</td><td><code>{k}</code></td>{cells([q["time"]["steps"][i]["s"] for q in qs])}</tr>'
+            for i, k in enumerate(steps) if k in SHOWN_STEPS]
     n_all = len([q for q in questions if q["version"] == tag])
     table = ('\n<div class="scroll-x"><table class="tt">\n'
              '  <tr><th data-i18n>Step</th><th data-i18n>Timing key</th><th class="n" data-i18n>Median (s)</th>'
@@ -4564,21 +4551,24 @@ def main():
     ap.add_argument("--val-runs", nargs="+", default=[CURRENT], metavar="TAG[=CSV]",
                     help="completed harness validation runs, in order of preference: a question is shown from the "
                          "first run that has it (default: pipeline/VERSION, %(default)s)")
-    ap.add_argument("--sceneprog", nargs=2, metavar=("BUILD", "LOOP"),
-                    help="scene-program tags of the first run (outputs/sceneprog/<BUILD>, outputs/sceneprog/<LOOP>, "
-                         "outputs/sceneprog_answers_<LOOP>.json); required when its version has the scene program")
+    ap.add_argument("--sceneprog", metavar="BUILD",
+                    help="scene-program tag of the first run (outputs/sceneprog/<BUILD>: programs, fits, overlays); "
+                         "required when its version has the scene program")
+    ap.add_argument("--answers", type=Path, metavar="JSON",
+                    help="the answer step's table on those programs ({unit: entry}, records in the directory of the "
+                         "same stem); required with --sceneprog")
     ap.add_argument("--rethumb", action="store_true", help="regenerate thumbnails that already exist")
     args = ap.parse_args()
     THUMBS.mkdir(parents=True, exist_ok=True)
     runs = [parse_run(s) for s in args.val_runs]
     has_sp = [t for t, _ in runs if version_format(t).get("sceneprog")]
-    if has_sp and (has_sp != [runs[0][0]] or not args.sceneprog):
-        raise ValueError(f"runs with the scene program {has_sp}: only the first run, and --sceneprog BUILD LOOP is required")
+    if has_sp and (has_sp != [runs[0][0]] or not args.sceneprog or not args.answers):
+        raise ValueError(f"runs with the scene program {has_sp}: only the first run, and --sceneprog BUILD --answers JSON are required")
     if args.sceneprog and not has_sp:
         raise ValueError("--sceneprog given, but the first run's version has no scene program")
     data = {"generated": date.today().isoformat(), "val": build_harness_val(runs, args.rethumb)}
     if has_sp:
-        data["val"]["sceneprog"] = add_sceneprog(data["val"]["questions"], runs[0][0], *args.sceneprog)
+        data["val"]["sceneprog"] = add_sceneprog(data["val"]["questions"], runs[0][0], args.sceneprog, args.answers.resolve())
         print(f"comparison_ours.json: {write_comparison_ours(data['val']['questions'], data['val']['sceneprog'])} baseline questions")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), allow_nan=False))

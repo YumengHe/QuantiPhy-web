@@ -16,12 +16,11 @@
 <p data-i18n="home.keywords"><strong>Keywords:</strong> Minimal Sufficient Reconstruction</p>
 
 <h2 id="pipeline" data-i18n>Pipeline</h2>
-<p data-i18n="home.pipeline">Each question is reconstructed on its own from the video, the question and the prior, the known facts that come with it (an object's size or speed, or its distance to the camera). A vision-language model writes the scene as a program: which objects exist, what supports what, and which physical law governs each stretch of motion. Measurement sets the magnitudes: Physics-guided Fitting fits the program to the object masks of all frames under the prior and gravity, and marks every parameter, the metric scale and the asked quantity as determined or undetermined. A checking loop revises the program's structure where the fit shows it is wrong, and keeps an edit only when the evidence it cites improves, nothing that held is lost, and any parameters it adds pay for themselves. Each question then receives two answers: the scene answer, read strictly from the fitted program and left empty when the scene does not determine the asked quantity, and the final answer, always given by a VLM that sees the rendered program and its fitted parameters.</p>
+<p data-i18n="home.pipeline">Each question is reconstructed on its own from the video, the question and the prior, the known facts that come with it (an object's size or speed, or its distance to the camera). A vision-language model writes the scene as a program: which objects exist, what supports what, and which physical law governs each stretch of motion. Measurement sets the magnitudes: Physics-guided Fitting fits the program to the object masks of all frames under the prior and gravity, and marks every parameter, the metric scale and the asked quantity as determined or undetermined. Each question then receives two answers: the scene answer, read strictly from the fitted program and left empty when the scene does not determine the asked quantity, and the final answer, given by a vision-language model that sees frames of the video beside the rendered program and the reconstruction as evidence, and judges whether the reconstruction is credible.</p>
 <div class="steps stages" aria-label="Pipeline overview" data-i18n-aria-label>
   <a class="s" href="pipeline.html#perception" data-i18n>Input and perception</a><span class="ar">→</span>
   <a class="s prog" href="pipeline.html#program" data-i18n>Scene program</a><span class="ar">→</span>
   <a class="s fit" href="pipeline.html#fit" data-i18n>Physics-guided Fitting</a><span class="ar">→</span>
-  <a class="s loop" href="pipeline.html#loop" data-i18n>Checking loop</a><span class="ar">→</span>
   <a class="s answer" href="pipeline.html#answers" data-i18n>Answers</a>
 </div>
 
@@ -30,7 +29,7 @@
 <p class="muted small" data-i18n="home.cats">S / D: the given prior is a size (static) or a velocity / acceleration (dynamic). 2 / 3: 2D, no depth given, or 3D, with object–camera distances given.</p>
 <h2 id="qualitative-comparison" data-i18n>Qualitative Comparison</h2>
 <div id="qualitative-comparison-grid" class="comparison-grid"></div>
-<p class="muted small" data-i18n="home.qual">Each reconstruction drawn back onto the video at the times the questions ask about: ours, the final scene program of one of the frame's questions as on the Evaluation page, PhysMind (variant B, as on the Baseline page) with its posed 3D meshes of the same question objects (SAM 3D Objects + FoundationPose, metric depth, MoGe-2 intrinsics), and Thinking with Spatial Code with its spatial encoder’s 3D boxes, drawn on the encoder frame nearest to that time; the three images in a row show the same frame. Click an image for full size.</p>
+<p class="muted small" data-i18n="home.qual">Each reconstruction drawn back onto the video at the times the questions ask about: ours, the fitted scene program of one of the frame's questions as on the Evaluation page, PhysMind (variant B, as on the Baseline page) with its posed 3D meshes of the same question objects (SAM 3D Objects + FoundationPose, metric depth, MoGe-2 intrinsics), and Thinking with Spatial Code with its spatial encoder’s 3D boxes, drawn on the encoder frame nearest to that time; the three images in a row show the same frame. Click an image for full size.</p>
 
 </main>
 <script src="i18n.js"></script>

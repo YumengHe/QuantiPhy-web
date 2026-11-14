@@ -1,22 +1,22 @@
 """Home > Qualitative Comparison: on each frame where a baseline drew its reconstruction, the final scene program of
 one of the frame's questions, PhysMind's posed meshes and Thinking with Spatial Code's 3D boxes.
 
-  python -B web/tools/build_qualitative.py --loop v6valloop
+  python -B web/tools/build_qualitative.py --tag v6val
 
 Frames: those of data/physmind/index.json (PhysMind's images, tools/render_physmind.py; not touched here) and the
 frames Thinking with Spatial Code drew its encoder's boxes on (drawn_frame of SPATIALCODE/index.json, the encoder frame
 nearest to the PhysMind frame; its images are copied to data/spatialcode/<video>_f<drawn_frame>.jpg). A frame drawn by
 only one of the two leaves the other's image out.
 
-For every frame, the first of its questions that has a final scene program (outputs/sceneprog/<loop>/<unit>/scene.json;
+For every frame, the first of its questions that has a fitted scene program (outputs/sceneprog/<tag>/<unit>/scene.json;
 a frame without questions: the video's first question with one) is drawn at that frame exactly as
 pipeline.sceneprog.evaluate draws its overlays: the program rendered from its camera (visible outline 2 px, occluded
 silhouette 1 px, object colour), the observed masks of the tracks it is bound to (white), each object's IoU on that
 frame, the unit and frame in the corner. Reads saved programs only (no fitting, no model calls). A frame none of whose
 questions has a program raises.
 
-Writes data/qualitative/<loop>/<unit>_f<frame>.jpg and data/qualitative/index.json:
-{"generated", "ours" (loop tag), "videos": [{"video", "physmind": {"question_objects", "posed_question_objects",
+Writes data/qualitative/<tag>/<unit>_f<frame>.jpg and data/qualitative/index.json:
+{"generated", "ours" (scene-program tag), "videos": [{"video", "physmind": {"question_objects", "posed_question_objects",
 "failed_stage"}, "frames": [{"frame", "t", "questions", "ours", "ours_unit", "physmind", "physmind_missing",
 "spatialcode", "spatialcode_missing"}]}]}; images of an earlier build that no frame references are removed.
 """
@@ -114,31 +114,31 @@ def frames(pm: dict, sc: dict) -> list[dict]:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--loop", required=True, help="scene-program loop tag (outputs/sceneprog/<loop>/<unit>)")
+    ap.add_argument("--tag", required=True, help="scene-program tag of the fitted programs (outputs/sceneprog/<tag>/<unit>)")
     args = ap.parse_args()
     videos = frames(json.loads(PHYSMIND.read_text()), json.loads((SPATIALCODE / "index.json").read_text()))
-    out_dir = WEB / "data" / "qualitative" / args.loop
+    out_dir = WEB / "data" / "qualitative" / args.tag
     written, drawn = set(), 0
     for v in videos:
         for f in v["frames"]:
             # a frame without a question of ours (PhysMind's frame with most posed objects) takes the video's questions
-            qs = f["questions"] or sorted((p.parent.name for p in (ROOT / "outputs" / "sceneprog" / args.loop).glob(f"{v['video']}_q*/scene.json")
+            qs = f["questions"] or sorted((p.parent.name for p in (ROOT / "outputs" / "sceneprog" / args.tag).glob(f"{v['video']}_q*/scene.json")
                                            if re.fullmatch(rf"{re.escape(v['video'])}_q\d+", p.parent.name)),
                                           key=lambda u: int(u.rsplit("_q", 1)[1]))
-            units = [u for u in qs if (ROOT / "outputs" / "sceneprog" / args.loop / u / "scene.json").is_file()]
+            units = [u for u in qs if (ROOT / "outputs" / "sceneprog" / args.tag / u / "scene.json").is_file()]
             if not units:
-                raise ValueError(f"{v['video']} frame {f['frame']}: none of {f['questions']} has a program in {args.loop}")
+                raise ValueError(f"{v['video']} frame {f['frame']}: none of {f['questions']} has a program in {args.tag}")
             unit, frame = units[0], int(f["frame"])
             out = out_dir / f"{unit}_f{frame}.jpg"
             if not out.exists():
-                draw(ROOT / "outputs" / "sceneprog" / args.loop / unit, frame, out)
+                draw(ROOT / "outputs" / "sceneprog" / args.tag / unit, frame, out)
                 drawn += 1
             f["ours"], f["ours_unit"] = str(out.relative_to(WEB)), unit
             written.add(out)
     stale = [p for p in out_dir.glob("*.jpg") if p not in written]
     for p in stale:
         p.unlink()
-    INDEX.write_text(json.dumps({"generated": datetime.date.today().isoformat(), "ours": args.loop, "videos": videos},
+    INDEX.write_text(json.dumps({"generated": datetime.date.today().isoformat(), "ours": args.tag, "videos": videos},
                                 ensure_ascii=False, indent=1))
     n = sum(len(v["frames"]) for v in videos)
     print(f"{n} frames ({len(written)} of ours, {drawn} drawn now, {len(stale)} stale removed); "

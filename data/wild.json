@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-13T21:25:44",
+ "generated": "2026-11-14T00:20:04",
  "groups": [
   {
    "key": "ball",
@@ -31,7 +31,7 @@
   "answered": 45,
   "failed": 6,
   "stopped": 3,
-  "determined": 14
+  "determined": 12
  },
  "videos": [
   {
@@ -46,17 +46,17 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.0,
+      "value": 0.23,
       "unit": "m/s"
      },
      "scene": {
       "value": 0.0,
-      "sigma": 0.07339173253279531,
+      "sigma": 0.04680633692215568,
       "unit": "m/s",
       "determined": true,
       "reason": null
      },
-     "iou": 0.5898412458099387,
+     "iou": 0.5266977149740846,
      "overlays": [
       "data/wild/nonrobot_0011_q1/overlay_f0000.jpg",
       "data/wild/nonrobot_0011_q1/overlay_f0067.jpg",
@@ -74,17 +74,17 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.3131,
+      "value": 1.0,
       "unit": "m"
      },
      "scene": {
-      "value": 1.3130933197776797,
-      "sigma": 0.24272491554776254,
+      "value": null,
+      "sigma": null,
       "unit": "m",
-      "determined": true,
-      "reason": null
+      "determined": false,
+      "reason": "rests on fit variables the observations leave open: cam.position[2], desk.s0.p[0], desk.s0.yaw, desk.s1.pose[0].x, desk.s1.pose[100].x, desk.s1.pose[101].x"
      },
-     "iou": 0.7659849336410522,
+     "iou": 0.7691758046528204,
      "overlays": [
       "data/wild/nonrobot_0011_q2/overlay_f0000.jpg",
       "data/wild/nonrobot_0011_q2/overlay_f0067.jpg",
@@ -109,12 +109,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.53,
+      "value": 1.6,
       "unit": "m/s"
      },
      "scene": {
       "value": null,
-      "sigma": 3.034932624255491,
+      "sigma": null,
       "unit": "m/s",
       "determined": false,
       "reason": "rests on fit variables the observations leave open: basketball.s0.pose[0].x, basketball.s0.pose[0].z, basketball.s0.pose[1].x, basketball.s0.pose[1].z, basketball.s0.pose[2].x, basketball.s0.pose[2].z"
@@ -137,12 +137,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.8,
+      "value": 2.0,
       "unit": "m"
      },
      "scene": {
       "value": null,
-      "sigma": 2015.2061354227667,
+      "sigma": null,
       "unit": "m",
       "determined": false,
       "reason": "no time in the question: rim, floor static over [0.000, 3.167] s, read at 1.583 s; rests on fit variables the observations leave open: basketball.s0.pose[0].x, basketball.s0.pose[0].z, basketball.s0.pose[1].x, basketball.s0.pose[1].z, basketball.s0.pose[2].x, basketball.s0.pose[2].z"
@@ -172,7 +172,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.13,
+      "value": 0.16,
       "unit": "m/s"
      },
      "scene": {
@@ -214,7 +214,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.52959,
+      "value": 0.53,
       "unit": "m"
      },
      "scene": {
@@ -242,7 +242,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.17,
+      "value": 0.95,
       "unit": "m/s"
      },
      "scene": {
@@ -277,7 +277,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.543,
+      "value": 0.8,
       "unit": "m"
      },
      "scene": {
@@ -305,12 +305,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.068,
+      "value": 0.3,
       "unit": "m/s"
      },
      "scene": {
       "value": null,
-      "sigma": 0.12372884930723727,
+      "sigma": null,
       "unit": "m/s",
       "determined": false,
       "reason": "the scale rests on a class vote in tension: person.H (fitted 1.116 against 1.7 +- 0.17, +3.44 sigma), skateboard.L (fitted 0.4916 against 0.8 +- 0.1, +3.08 sigma); rests on fit variables the observations leave open: skateboard.s1.v0[0], skateboard.s1.v0[1]"
@@ -340,7 +340,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.0012392,
+      "value": 0.25,
       "unit": "m/s"
      },
      "scene": {
@@ -350,7 +350,7 @@
       "determined": false,
       "reason": "the motion it is read from is described by a table, not by a law (laptop_cart.s0 is the pose table laptop_cart.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
      },
-     "iou": 0.5734873691484506,
+     "iou": 0.5516510156074477,
      "overlays": [
       "data/wild/nonrobot_0013_q1/overlay_f0000.jpg",
       "data/wild/nonrobot_0013_q1/overlay_f0075.jpg",
@@ -368,12 +368,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.85,
+      "value": 0.8,
       "unit": "m"
      },
      "scene": {
       "value": null,
-      "sigma": 0.23355491966381137,
+      "sigma": null,
       "unit": "m",
       "determined": false,
       "reason": "the scale rests on a class vote in tension: basketball.D (fitted 0.0296 against 0.24 +- 0.024, +8.77 sigma), person.H (fitted 0.7853 against 1.7 +- 0.17, +5.38 sigma); rests on laptop_cart.H, which the observations leave open (sigma 0.314 natural units > 0.25)"
@@ -403,7 +403,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.6977,
+      "value": 2.04,
       "unit": "m"
      },
      "scene": {
@@ -431,7 +431,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.41,
+      "value": 0.45,
       "unit": "m"
      },
      "scene": {
@@ -466,7 +466,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.994,
+      "value": 5.5,
       "unit": "m/s"
      },
      "scene": {
@@ -494,7 +494,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.53,
+      "value": 1.2,
       "unit": "m"
      },
      "scene": {
@@ -529,7 +529,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.13429,
+      "value": 0.0,
       "unit": "m/s"
      },
      "scene": {
@@ -539,7 +539,7 @@
       "determined": false,
       "reason": "the motion it is read from is described by a table, not by a law (toy_airplane.s0 is the pose table toy_airplane.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
      },
-     "iou": 0.6193904031311019,
+     "iou": 0.5872810329745414,
      "overlays": [
       "data/wild/nonrobot_0018_q1/overlay_f0000.jpg",
       "data/wild/nonrobot_0018_q1/overlay_f0067.jpg",
@@ -562,12 +562,12 @@
      },
      "scene": {
       "value": null,
-      "sigma": 0.21176583606050986,
+      "sigma": null,
       "unit": "m",
       "determined": false,
-      "reason": "the scale rests on a class vote in tension: left_chair.H (fitted 1.716 against 1 +- 0.15, -4.77 sigma), left_desk.H (fitted 1.479 against 0.74 +- 0.1, -7.39 sigma), right_desk.H (fitted 1.109 against 0.74 +- 0.1, -3.69 sigma), woman.H (fitted 4.033 against 1.65 +- 0.17, -14.02 sigma)"
+      "reason": "the scale rests on a class vote in tension: left_chair.H (fitted 1.739 against 1 +- 0.15, -4.93 sigma), left_desk.H (fitted 1.468 against 0.74 +- 0.1, -7.28 sigma), right_desk.H (fitted 1.155 against 0.74 +- 0.1, -4.15 sigma), woman.H (fitted 3.995 against 1.65 +- 0.17, -13.80 sigma); rests on fit variables the observations leave open: cam.position[2], left_desk.s0.p[0], left_desk.s0.p[1], left_desk.s0.yaw"
      },
-     "iou": 0.5576783459821517,
+     "iou": 0.5497133917128412,
      "overlays": [
       "data/wild/nonrobot_0018_q2/overlay_f0000.jpg",
       "data/wild/nonrobot_0018_q2/overlay_f0067.jpg",
@@ -592,7 +592,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 3.7041,
+      "value": 3.7,
       "unit": "m/s"
      },
      "scene": {
@@ -620,12 +620,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.9,
+      "value": 1.93,
       "unit": "m"
      },
      "scene": {
       "value": null,
-      "sigma": 19.667471806740384,
+      "sigma": null,
       "unit": "m",
       "determined": false,
       "reason": "rests on man.H, which the observations leave open (sigma 3.58 natural units > 0.25)"
@@ -655,7 +655,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.94,
+      "value": 1.2,
       "unit": "m"
      },
      "scene": {
@@ -686,69 +686,6 @@
    ]
   },
   {
-   "video": "robot_0018",
-   "group": "ball",
-   "fps": 59.94,
-   "questions": [
-    {
-     "unit": "robot_0018_q1",
-     "q": "What is the speed of the soccer ball at 1.02s in m/s?",
-     "prior": "diameter of the soccer ball = 0.22 m",
-     "status": "answered",
-     "step": null,
-     "final": {
-      "value": 1.0521,
-      "unit": "m/s"
-     },
-     "scene": {
-      "value": 1.052093925706652,
-      "sigma": 0.8294759857861641,
-      "unit": "m/s",
-      "determined": true,
-      "reason": null
-     },
-     "iou": 0.3217605486187356,
-     "overlays": [
-      "data/wild/robot_0018_q1/overlay_f0000.jpg",
-      "data/wild/robot_0018_q1/overlay_f0085.jpg",
-      "data/wild/robot_0018_q1/overlay_f0169.jpg",
-      "data/wild/robot_0018_q1/overlay_f0253.jpg",
-      "data/wild/robot_0018_q1/overlay_f0337.jpg"
-     ],
-     "plan_grid": "data/wild/robot_0018_q1/plan_grid.jpg",
-     "shapes": "data/wild/robot_0018_q1/shapes.jpg"
-    },
-    {
-     "unit": "robot_0018_q2",
-     "q": "What is the width of the soccer goal in meters?",
-     "prior": "diameter of the soccer ball = 0.22 m",
-     "status": "answered",
-     "step": null,
-     "final": {
-      "value": 3.0,
-      "unit": "m"
-     },
-     "scene": {
-      "value": null,
-      "sigma": 6478401735931.169,
-      "unit": "m",
-      "determined": false,
-      "reason": "rests on fit variables the observations leave open: adult.H, adult.s0.pose[0].x, adult.s0.pose[0].y, adult.s0.pose[12].x, adult.s0.pose[12].y, adult.s0.pose[15].x"
-     },
-     "iou": 0.5372296601009267,
-     "overlays": [
-      "data/wild/robot_0018_q2/overlay_f0000.jpg",
-      "data/wild/robot_0018_q2/overlay_f0084.jpg",
-      "data/wild/robot_0018_q2/overlay_f0168.jpg",
-      "data/wild/robot_0018_q2/overlay_f0253.jpg",
-      "data/wild/robot_0018_q2/overlay_f0337.jpg"
-     ],
-     "plan_grid": "data/wild/robot_0018_q2/plan_grid.jpg",
-     "shapes": "data/wild/robot_0018_q2/shapes.jpg"
-    }
-   ]
-  },
-  {
    "video": "robot_0017",
    "group": "ball",
    "fps": 50.0,
@@ -760,7 +697,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.5,
+      "value": 0.9,
       "unit": "m/s"
      },
      "scene": {
@@ -788,7 +725,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.35,
+      "value": 1.4,
       "unit": "m"
      },
      "scene": {
@@ -823,12 +760,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.65,
+      "value": 0.7,
       "unit": "m"
      },
      "scene": {
       "value": null,
-      "sigma": 0.35752200750817587,
+      "sigma": null,
       "unit": "m",
       "determined": false,
       "reason": "rests on yoga_ball.D, which the observations leave open (sigma 0.4 natural units > 0.25)"
@@ -851,7 +788,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.0,
+      "value": 0.25,
       "unit": "m/s"
      },
      "scene": {
@@ -886,12 +823,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.25,
+      "value": 0.27,
       "unit": "m"
      },
      "scene": {
       "value": null,
-      "sigma": 12.66898959546027,
+      "sigma": null,
       "unit": "m",
       "determined": false,
       "reason": "rests on fit variables the observations leave open: cam.pitch, cam.position[2], robot_dog.s0.pose[11].x, robot_dog.s0.pose[132].x, robot_dog.s0.pose[13].x, robot_dog.s0.pose[15].x"
@@ -914,7 +851,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.08,
+      "value": 0.1,
       "unit": "m/s"
      },
      "scene": {
@@ -924,7 +861,7 @@
       "determined": false,
       "reason": "the motion it is read from is described by a table, not by a law (robot_dog.s0 is the pose table robot_dog.s0.pose): no law gives its speed; a difference of interpolated rows is not a measurement of it"
      },
-     "iou": 0.5019432240004441,
+     "iou": 0.49832206515545646,
      "overlays": [
       "data/wild/robot_0015_q2/overlay_f0000.jpg",
       "data/wild/robot_0015_q2/overlay_f0083.jpg",
@@ -949,17 +886,17 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.4398,
+      "value": 0.24,
       "unit": "m"
      },
      "scene": {
-      "value": 1.4398256284214512,
-      "sigma": 0.543226482301355,
+      "value": 1.4639754120753279,
+      "sigma": 1.1008568317258354,
       "unit": "m",
       "determined": true,
       "reason": "no time in the question: left_platform, right_platform static over [0.000, 3.083] s, read at 1.542 s"
      },
-     "iou": 0.48504526052177527,
+     "iou": 0.47720224147551643,
      "overlays": [
       "data/wild/robot_0011_q1/overlay_f0000.jpg",
       "data/wild/robot_0011_q1/overlay_f0046.jpg",
@@ -977,12 +914,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.1,
+      "value": 1.25,
       "unit": "m/s"
      },
      "scene": {
       "value": null,
-      "sigma": 2562442113036.0703,
+      "sigma": null,
       "unit": "m/s",
       "determined": false,
       "reason": "rests on fit variables the observations leave open: cam.f, cam.pitch, cam.position[2], cam.roll, robot_dog.s0.p[0], robot_dog.s0.p[1]"
@@ -1012,7 +949,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 3.06,
+      "value": 1.5,
       "unit": "m/s"
      },
      "scene": {
@@ -1075,7 +1012,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 4.4862,
+      "value": 4.5,
       "unit": "m/s"
      },
      "scene": {
@@ -1138,17 +1075,17 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.2,
+      "value": 0.22,
       "unit": "m"
      },
      "scene": {
-      "value": 0.30649257052169077,
-      "sigma": 7.548500301195736,
+      "value": null,
+      "sigma": null,
       "unit": "m",
-      "determined": true,
-      "reason": "no time in the question: wagon_underside, ground static over [0.000, 6.533] s, read at 3.267 s"
+      "determined": false,
+      "reason": "no time in the question: wagon_underside, ground static over [0.000, 6.533] s, read at 3.267 s; rests on fit variables the observations leave open: building_top_storey.H, building_top_storey.L, building_top_storey.s0.p[0], building_top_storey.s0.p[1], building_top_storey.s0.p[2], building_top_storey.s0.yaw"
      },
-     "iou": 0.029821463606042767,
+     "iou": 0.02956567242281528,
      "overlays": [
       "data/wild/robot_0013_q1/overlay_f0000.jpg",
       "data/wild/robot_0013_q1/overlay_f0098.jpg",
@@ -1166,7 +1103,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.5,
+      "value": 0.65,
       "unit": "m/s"
      },
      "scene": {
@@ -1190,6 +1127,69 @@
    ]
   },
   {
+   "video": "robot_0018",
+   "group": "ball",
+   "fps": 59.94,
+   "questions": [
+    {
+     "unit": "robot_0018_q1",
+     "q": "What is the speed of the soccer ball at 1.02s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.6,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": 1.052093925706652,
+      "sigma": 0.8294759857861641,
+      "unit": "m/s",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.3217605486187356,
+     "overlays": [
+      "data/wild/robot_0018_q1/overlay_f0000.jpg",
+      "data/wild/robot_0018_q1/overlay_f0085.jpg",
+      "data/wild/robot_0018_q1/overlay_f0169.jpg",
+      "data/wild/robot_0018_q1/overlay_f0253.jpg",
+      "data/wild/robot_0018_q1/overlay_f0337.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0018_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0018_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0018_q2",
+     "q": "What is the width of the soccer goal in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 3.0,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "rests on soccer_goal.W, which the observations leave open (sigma 0.275 natural units > 0.25)"
+     },
+     "iou": 0.39853688418525973,
+     "overlays": [
+      "data/wild/robot_0018_q2/overlay_f0000.jpg",
+      "data/wild/robot_0018_q2/overlay_f0084.jpg",
+      "data/wild/robot_0018_q2/overlay_f0168.jpg",
+      "data/wild/robot_0018_q2/overlay_f0253.jpg",
+      "data/wild/robot_0018_q2/overlay_f0337.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0018_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0018_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
    "video": "robot_0005",
    "group": "ball",
    "fps": 59.94,
@@ -1201,12 +1201,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.88,
+      "value": 0.98,
       "unit": "m/s"
      },
      "scene": {
       "value": null,
-      "sigma": 0.3337167600097658,
+      "sigma": null,
       "unit": "m/s",
       "determined": false,
       "reason": "the fit violates held statements: d1 (relative residual -0.0476 > 0.000163), soccer_ball.s0|s1.p[0] (relative residual 1.94 > 0.00379), soccer_ball.s0|s1.p[1] (relative residual 1.41 > 0.00379), soccer_ball.s0|s1.v[0] (relative residual -2.16 > 0.00516), soccer_ball.s0|s1.v[1] (relative residual -0.598 > 0.00516), soccer_ball.s1|s2.p[0] (relative residual 1.43 > 0.0048) and 3 more; jointly infeasible: soccer_ball.s0|s1.v[1]"
@@ -1243,7 +1243,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 2.2874,
+      "value": 4.3,
       "unit": "m/s"
      },
      "scene": {
@@ -1271,7 +1271,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.65,
+      "value": 1.6,
       "unit": "m"
      },
      "scene": {
@@ -1306,7 +1306,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.43,
+      "value": 1.9,
       "unit": "m/s"
      },
      "scene": {
@@ -1334,7 +1334,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.2,
+      "value": 1.3,
       "unit": "m"
      },
      "scene": {
@@ -1369,7 +1369,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.35,
+      "value": 0.3,
       "unit": "m"
      },
      "scene": {
@@ -1379,7 +1379,7 @@
       "determined": false,
       "reason": "the measurement table_gap_width: no plane to back-project onto"
      },
-     "iou": 0.22245227483078975,
+     "iou": 0.1940687959220556,
      "overlays": [
       "data/wild/robot_0012_q1/overlay_f0000.jpg",
       "data/wild/robot_0012_q1/overlay_f0025.jpg",
@@ -1397,12 +1397,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.66,
+      "value": 1.7,
       "unit": "m/s"
      },
      "scene": {
       "value": null,
-      "sigma": 3454474740035.348,
+      "sigma": null,
       "unit": "m/s",
       "determined": false,
       "reason": "rests on fit variables the observations leave open: cam.f, cam.pitch, cam.position[2], cam.roll, robot_dog.s0.pose[0].y, robot_dog.s0.pose[0].z"
@@ -1432,12 +1432,12 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 5.5,
+      "value": 5.8,
       "unit": "m/s"
      },
      "scene": {
       "value": null,
-      "sigma": 17.979109139481615,
+      "sigma": null,
       "unit": "m/s",
       "determined": false,
       "reason": "the fit violates held statements: soccer_ball.s1|s2.p[2] (relative residual -6.77 > 0.0192), soccer_ball.s1|s2.v[2] (relative residual -6.33 > 0.0281), soccer_ball.s2|s3.p[2] (relative residual -6.77 > 0.0449); jointly infeasible: soccer_ball.s1|s2.p[2], soccer_ball.s1|s2.v[2], soccer_ball.s2|s3.p[2]"
@@ -1460,7 +1460,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.84856,
+      "value": 1.9,
       "unit": "m"
      },
      "scene": {

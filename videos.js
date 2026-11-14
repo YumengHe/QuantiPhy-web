@@ -33,13 +33,11 @@
   // the two answers of the scene-program run (q.sp): answer_scene, the strict read-out (undetermined = 0), and
   // answer_final, the agent's answer (the reported one); a unit without an answer scores 0 in both
   const fMRA = (q) => q.sp.final_mra, sMRA = (q) => q.sp.scene_mra;
-  const SP_SOURCES = ['scene', 'agent', 'none'];
-  const SP_STOPS = ['no_edit_available', 'converged', 'budget'];
   // the per-question mean of both MRAs and the determined count of a set of questions
   const spCells = (qs) => Ht`<td class="n">${qs.length}</td><td class="n">${fmt(mean(qs.map(sMRA)), 3)}</td>` +
     Ht`<td class="n"><b>${fmt(mean(qs.map(fMRA)), 3)}</b></td><td class="n">${qs.filter((q) => q.sp.determined).length}</td>`;
   const SP_HEAD = Ht`<th class="n">n</th><th class="n">answer_scene</th><th class="n">answer_final</th><th class="n">determined</th>`;
-  // ---------- summary of the selected set: both MRAs, the set shared with the baselines, categories, sources, loop stops ----------
+  // ---------- summary of the selected set: both MRAs, the set shared with the baselines, categories ----------
   function valSummary() {
     const all = setQuestions(), dev = $('v-set').value === 'dev';
     $('val-final').textContent = fmt(mean(all.map(fMRA)), 3);
@@ -51,14 +49,6 @@
       (shared.length !== all.length ? Ht`<tr><td>Shared with the baselines</td>${spCells(shared)}</tr>` : '');
     $('t-cats').innerHTML = Ht`<tr><th>Category</th>${SP_HEAD}</tr>` +
       CATS.map((c) => all.filter((q) => q.cat === c)).map((qs, i) => qs.length ? Ht`<tr><td>${CATS[i]}</td>${spCells(qs)}</tr>` : '').join('');
-    $('t-src').innerHTML = Ht`<tr><th>answer_final from</th><th class="n">n</th><th class="n">MRA</th></tr>` +
-      SP_SOURCES.map((k) => all.filter((q) => q.sp.final_source === k)).map((qs, i) => qs.length
-        ? Ht`<tr><td>${SP_SOURCES[i]}</td><td class="n">${qs.length}</td><td class="n">${fmt(mean(qs.map(fMRA)), 3)}</td></tr>` : '').join('');
-    const loops = all.filter((q) => q.sp.loop);
-    $('t-loop').innerHTML = Ht`<tr><th>Loop stop</th><th class="n">n</th></tr>` +
-      SP_STOPS.map((k) => [k, loops.filter((q) => q.sp.loop.stop === k).length]).filter(([, n]) => n)
-        .map(([k, n]) => Ht`<tr><td><code>${k}</code></td><td class="n">${n}</td></tr>`).join('') +
-      (loops.length ? Ht`<tr><td>rounds, mean / max</td><td class="n">${fmt(mean(loops.map((q) => q.sp.loop.rounds)), 1)} / ${Math.max(...loops.map((q) => q.sp.loop.rounds))}</td></tr>` : '');
   }
 
   // ---------- one question ----------
@@ -78,8 +68,7 @@
     const nums = Ht`<span class="qv" data-k="GT">${fmtNum(q.answer)}</span>` +
       Ht`<span class="qv" data-k="Scene">${sp.determined ? fmtNum(sp.scene) : ''}</span>` +
       Ht`<span class="qv qsm" data-k="Scene MRA">${mraBadge(sp.scene_mra)}</span>` +
-      Ht`<span class="qv pred" data-k="Final">${fmtNum(sp.final)}</span>` +
-      Ht`<span class="qsrc${sp.final_source === 'none' ? ' qfailed' : ''}">${esc(sp.final_source)}</span>`;
+      Ht`<span class="qv pred" data-k="Final">${fmtNum(sp.final)}</span>`;
     return Ht`<summary><img class="thumb" loading="lazy" alt="" src="${esc(v.thumb)}"><span class="qmain"><span class="qid">${esc(q.id)}<span class="qver">${esc(q.cat)}</span></span><span class="qtext">${esc(q.q)}</span></span>` +
       Ht`<span class="qnums sp">${nums}</span><span class="qm">${mraBadge(sp.final_mra)}</span></summary>`;
   }
@@ -124,26 +113,21 @@
     return d;
   }
 
-  // the scene-program products of the question: both answers, the loop's stop, the final program's overlays, each
-  // loop round's views, the plan grid and the shapes
+  // the scene-program products of the question: both answers, the fitted program's overlays, the plan grid and the shapes
   function spBlock(q) {
     const sp = q.sp;
-    if (!sp.loop) return Ht`<h4>Scene program</h4><p class="fwarn">no answer</p>`;
     const u = sp.unit ? Ht` ${esc(sp.unit)}` : '';
     const ans = Ht`<div class="scroll-x"><table class="spans"><tr><th></th><th class="n">Value</th><th class="n">GT</th><th class="n">MRA</th><th></th></tr>` +
       Ht`<tr><td><code>answer_scene</code></td><td class="n">${sp.determined ? Ht`${fmtNum(sp.scene)}${sp.sigma != null ? Ht` ± ${fmtNum(sp.sigma)}` : ''}${u}` : tr('undetermined')}</td>` +
       Ht`<td class="n">${fmtNum(q.answer)}</td><td class="n">${mraBadge(sp.scene_mra)}</td><td>${esc(sp.reason || '')}</td></tr>` +
       Ht`<tr><td><code>answer_final</code></td><td class="n"><b>${fmtNum(sp.final)}</b>${u}</td><td class="n">${fmtNum(q.answer)}</td>` +
-      Ht`<td class="n">${mraBadge(sp.final_mra)}</td><td>${esc(sp.final_source)}</td></tr></table></div>` +
+      Ht`<td class="n">${mraBadge(sp.final_mra)}</td><td></td></tr></table></div>` +
       (sp.rationale ? Ht`<p class="sprat">${esc(sp.rationale)}</p>` : '');
     const img = (src, alt) => Ht`<a class="ovimg" href="${esc(src)}"><img loading="lazy" src="${esc(src)}" alt="${esc(alt)}"></a>`;
-    const r = sp.renders, L = sp.loop;
+    const r = sp.renders;
     const frames = r.overlays.map((p) => Ht`<figure class="runtime-frame">${img(p, p.split('/').pop())}<figcaption>${esc(p.match(/overlay_f(\d+)/)[1].replace(/^0+(?=\d)/, ''))}</figcaption></figure>`).join('');
-    const views = r.views.map((p, i) => Ht`<a href="${esc(p)}"${i === r.views.length - 1 ? ' aria-current="true"' : ''}>r${i + 1}</a>`).join(' ');
     return Ht`<h4>Scene program</h4>` + ans +
-      Ht`<h4>Loop</h4><p><code>${esc(L.stop)}</code> · ${L.rounds} rounds · ${L.accepted} / ${L.proposals} edits accepted · fit <code>${esc(sp.fit_status)}</code></p>` +
       Ht`<div class="runtime-frames spframes">${frames}</div>` +
-      Ht`<div class="spviews">${img(r.views[r.views.length - 1], Ht`views round ${r.views.length}`)}<p class="spr">${views}</p></div>` +
       Ht`<div class="spplan">${img(r.plan_grid, tr('plan grid'))}${img(r.shapes, tr('shapes'))}</div>`;
   }
 
@@ -1689,8 +1673,8 @@
       : sh.ground_floor === 'shared' ? ` (${tr('floor')})` : sh.support_masks === 'shared' ? ` (${tr('support masks')})` : '';
     return (x.reused === true ? tr('reused') : tr('partly reused')) + hits;
   }
-  // harness steps (answer record timing) and the scene-program steps this unit records (build, first fit, loop)
-  const SP_STEP_LABEL = { build: 'Scene program', fit: 'Physics-guided Fitting', loop: 'Checking loop' };
+  // harness steps (answer record timing) and the scene-program steps this unit records (build, fit, answer)
+  const SP_STEP_LABEL = { build: 'Scene program', fit: 'Physics-guided Fitting', answer: 'Answer' };
   function timeBlock(q) {
     const t = q.sp.time;
     if (!q.time && !t) return '';
@@ -1948,7 +1932,7 @@
     const list = $('val-list'); list.innerHTML = '';
     const head = document.createElement('div');
     head.className = 'qhead';
-    head.innerHTML = Ht`<span></span><span>Question</span><span class="qnums sp"><span class="qv">GT</span><span class="qv">Scene</span><span class="qv">MRA</span><span class="qv">Final</span><span>Source</span></span><span class="qm">MRA</span>`;
+    head.innerHTML = Ht`<span></span><span>Question</span><span class="qnums sp"><span class="qv">GT</span><span class="qv">Scene</span><span class="qv">MRA</span><span class="qv">Final</span></span><span class="qm">MRA</span>`;
     if (items.length) list.appendChild(head);
     const frag = document.createDocumentFragment();
     items.forEach(({ q, v }) => frag.appendChild(questionCard(q, v)));
@@ -1959,12 +1943,11 @@
   }
   const matchText = (q, needle) => !needle || q.id.toLowerCase().includes(needle) || q.q.toLowerCase().includes(needle);
   function renderVal() {
-    const src = $('v-src').value, vsrc = $('v-vsrc').value, mf = $('v-mra').value, sort = $('v-sort').value;
+    const vsrc = $('v-vsrc').value, mf = $('v-mra').value, sort = $('v-sort').value;
     const needle = $('v-q').value.trim().toLowerCase(), vids = DATA.val.vmap;
     const okM = (m) => !mf || (mf === 'lt0.2' ? m < 0.2 : mf === 'lt0.5' ? m < 0.5 : m >= 0.8);
     // setQuestions() is already in set order (DEV20 order, or video then k)
-    const items = setQuestions().filter((q) => (!src || q.sp.final_source === src) &&
-      (!vsrc || vids[q.video].source === vsrc) && okM(fMRA(q)) && matchText(q, needle)).map((q) => ({ q, v: vids[q.video] }));
+    const items = setQuestions().filter((q) => (!vsrc || vids[q.video].source === vsrc) && okM(fMRA(q)) && matchText(q, needle)).map((q) => ({ q, v: vids[q.video] }));
     const key = { 'mra-asc': fMRA, 'mra-desc': fMRA, 'smra-asc': sMRA, 'smra-desc': sMRA }[sort];
     if (key) items.sort((a, b) => (sort.endsWith('asc') ? 1 : -1) * (key(a.q) - key(b.q)));
     $('v-status').textContent = Ht`${items.length} questions` + (items.length ? Ht` · answer_scene ${fmt(mean(items.map((x) => sMRA(x.q))), 3)} · answer_final ${fmt(mean(items.map((x) => fMRA(x.q))), 3)}` : '');
@@ -1990,7 +1973,7 @@
     d.val.runmap = Object.fromEntries(d.val.runs.map((r) => [r.version, r]));
     fillSourceSelect($('v-vsrc'), d.val.videos);
     $('v-set').addEventListener('change', renderAll);
-    ['v-src', 'v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
+    ['v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));
     $('v-q').addEventListener('input', debounce(renderVal, 200));
     renderAll();
     // deep link: #val/<video_id>_q<k> opens that question (switching to All when it is not a DEV20 question)
@@ -1998,7 +1981,7 @@
       const m = decodeURIComponent(location.hash.slice(1)).match(/^val\/(.+)$/);
       if (!m || !DATA.val.questions.some((q) => q.id === m[1])) return;
       if (!DATA.val.dev.includes(m[1])) $('v-set').value = '';
-      ['v-src', 'v-vsrc', 'v-mra', 'v-q'].forEach((id) => { $(id).value = ''; });
+      ['v-vsrc', 'v-mra', 'v-q'].forEach((id) => { $(id).value = ''; });
       renderAll();
       const card = [...$('val-list').querySelectorAll('details.qrow')].find((x) => x.dataset.id === m[1]);
       card.open = true; card.scrollIntoView();

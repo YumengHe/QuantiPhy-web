@@ -1,7 +1,8 @@
 """Build web/data/wild.json (+ images under web/data/wild/) for wild.html: the scene-program run on real videos outside
 the benchmark, which have no ground truth.
 
-  python -B web/tools/build_wild.py --build v6wild --loop v6wildloop
+  python -B web/tools/build_wild.py --build v6wild --status outputs/sceneprog_answers_wild_v6wildloop.csv \
+      --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_wild_noloop.json
 
 Reads only the run's outputs; never runs the pipeline.
 
@@ -9,11 +10,14 @@ Inputs (relative to the repo root):
   data/QuantiPhy-wild/wild_dataset.parquet              questions and priors (unit <video_id>_q<k>, k = the question's
                                                         1-based order among the video's rows)
   data/QuantiPhy-wild/videos/<video>.mp4                frames of a video none of whose questions was answered
-  outputs/sceneprog_answers_wild_<LOOP>.csv             one row per question: status answered / failed(step:kind) /
-                                                        stopped, both answers (the authoritative table of the run)
-  outputs/sceneprog_wild/<LOOP>/<unit>/answer.json      both answers with the scene answer's sigma and units
-  outputs/sceneprog_wild/<LOOP>/<unit>/metric.json      alignment of the final program (unit_summary.iou_median_mean)
-  outputs/sceneprog_wild/<LOOP>/<unit>/overlay_f*.jpg   the final program rendered over frames
+  --status CSV                                          one row per question (unit, question, status answered /
+                                                        failed(step:kind) / stopped): which units reached a fit
+  --answers JSON                                        the answer step on the fitted programs: {unit: {final, unit,
+                                                        scene_value, sigma, determined, reason, ...}}, one entry per
+                                                        answered unit; the directory of the same stem holds each
+                                                        unit's answer record (<unit>.json, the scene answer's reason)
+  outputs/sceneprog_wild/<BUILD>/<unit>/metric.json     alignment of the fitted program (unit_summary.iou_median_mean)
+  outputs/sceneprog_wild/<BUILD>/<unit>/overlay_f*.jpg  the fitted program rendered over frames
   outputs/sceneprog_wild/<BUILD>/<unit>/plan_grid.jpg, shapes.png
 
 An answered question missing any of these is an error. Videos are sorted by the best mean IoU among their answered
@@ -98,12 +102,15 @@ def raw_frames(video: str, n: int = 5) -> tuple[list[str], int]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--build", required=True, help="scene-program build tag (outputs/sceneprog_wild/<BUILD>)")
-    ap.add_argument("--loop", required=True, help="loop tag (outputs/sceneprog_wild/<LOOP>, the answers CSV)")
+    ap.add_argument("--build", required=True, help="scene-program tag (outputs/sceneprog_wild/<BUILD>: fits, overlays)")
+    ap.add_argument("--status", required=True, type=Path, help="the run's per-question status table (CSV)")
+    ap.add_argument("--answers", required=True, type=Path, help="the answer step's table (JSON) on the fitted programs")
     args = ap.parse_args()
     build_dir = ROOT / "outputs" / "sceneprog_wild" / args.build
-    loop_dir = ROOT / "outputs" / "sceneprog_wild" / args.loop
-    answers = ROOT / "outputs" / f"sceneprog_answers_wild_{args.loop}.csv"
+    status = args.status if args.status.is_absolute() else ROOT / args.status
+    answers = args.answers if args.answers.is_absolute() else ROOT / args.answers
+    table_ans = json.loads(answers.read_text())
+    rec_dir = answers.with_suffix("")
 
     table = pd.read_parquet(DATASET / "wild_dataset.parquet")
     units: dict[str, dict] = {}
@@ -112,10 +119,12 @@ def main() -> None:
         order.append(video)
         for k, (_, r) in enumerate(rows.iterrows(), 1):
             units[f"{video}_q{k}"] = {"video": video, "q": r["question"], "prior": r["prior"], "fps": float(r["fps"])}
-    with open(answers, newline="") as fh:
+    with open(status, newline="") as fh:
         rows = list(csv.DictReader(fh))
     if sorted(r["unit"] for r in rows) != sorted(units):
-        raise ValueError(f"{answers}: units differ from the dataset's")
+        raise ValueError(f"{status}: units differ from the dataset's")
+    if set(table_ans) != {r["unit"] for r in rows if r["status"] == "answered"}:
+        raise ValueError(f"{answers.name}: units differ from the answered units of {status.name}")
 
     if OUT_IMG.exists():
         shutil.rmtree(OUT_IMG)
@@ -130,16 +139,17 @@ def main() -> None:
         q = {"unit": u, "q": meta["q"], "prior": meta["prior"], "status": m.group(1),
              "step": f"{m.group(2)}: {m.group(3)}" if m.group(2) else None}
         if q["status"] == "answered":
-            d = loop_dir / u
-            a = json.loads((d / "answer.json").read_text())
-            if a["unit"] != u:
-                raise ValueError(f"{d}/answer.json: unit {a['unit']}")
-            s, f = a["answer_scene"], a["answer_final"]
-            q["final"] = {"value": num(f["value"]), "unit": f["unit"]}
-            q["scene"] = {"value": num(s["value"]), "sigma": num(s["sigma"]), "unit": s["unit"],
-                          "determined": bool(s["determined"]), "reason": s.get("reason") or r["scene_reason"] or None}
-            if str(q["scene"]["determined"]) != r["determined"]:
-                raise ValueError(f"{u}: determined differs between {answers.name} and answer.json")
+            d = build_dir / u
+            e = table_ans[u]
+            a = json.loads((rec_dir / f"{u}.json").read_text())
+            if a["unit"] != u or bool(a["answer_scene"]["determined"]) != bool(e["determined"]) or \
+                    num(a["answer_final"]["value"]) != num(e["final"]):
+                raise ValueError(f"{u}: record {rec_dir.name}/{u}.json differs from {answers.name}")
+            det = bool(e["determined"])
+            q["final"] = {"value": num(e["final"]), "unit": e["unit"]}
+            q["scene"] = {"value": num(e["scene_value"]) if det else None, "sigma": num(e["sigma"]) if det else None,
+                          "unit": a["answer_scene"]["unit"], "determined": det,
+                          "reason": a["answer_scene"].get("reason") or None}
             met = json.loads((d / "metric.json").read_text())
             if met["unit"] != u:
                 raise ValueError(f"{d}/metric.json: unit {met['unit']}")
