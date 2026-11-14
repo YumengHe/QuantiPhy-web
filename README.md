@@ -27,10 +27,10 @@ From the repository root:
 
 ```bash
 python -B web/tools/build_videos.py --val-runs v6gpt --sceneprog v6val \
-    --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_noloop.json        # harness run, fitted programs, the answer step's table
+    --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_fix.json        # harness run, fitted programs, the answer step's table
 python -B web/tools/build_qualitative.py --tag v6val                                # the qualitative comparison: our overlays on the baselines' frames
 python -B web/tools/build_wild.py --build v6wild --status outputs/sceneprog_answers_wild_v6wildloop.csv \
-    --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_wild_noloop.json   # In the Wild: fitted programs, run status, answers
+    --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_wild_fix.json   # In the Wild: fitted programs, run status, answers
 python -B web/tools/build_baseline.py --run physmind=/nas/yumenghe/QuantiPhy-data/physmind_result_new/quantiphy/scores/physmind_preds.csv \
     --run spatialcode=/nas/yumenghe/QuantiPhy-data/spatial_code_result/quantiphy/answers/preds.csv   # baselines given here are rebuilt, the others kept
 ```

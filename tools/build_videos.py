@@ -4,7 +4,7 @@ Reads only the runs' outputs; never runs the pipeline. The page lists one row pe
 unit <video_id>_q<k> (k = its 1-based order among the video's rows of the split table, docs/PER_QUESTION.md).
 
   python -B web/tools/build_videos.py --val-runs v6gpt --sceneprog v6val \
-      --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_noloop.json
+      --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_fix.json
 
 Runs are listed in order of preference: each question is shown from the first run whose CSV has its row, and every
 value of that question (pred, MRA, source, scene, overlays, tracks, scene graph) comes from that run alone. The page

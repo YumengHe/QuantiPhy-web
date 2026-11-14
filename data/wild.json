@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-14T00:20:04",
+ "generated": "2026-11-14T01:03:47",
  "groups": [
   {
    "key": "ball",
@@ -46,7 +46,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.23,
+      "value": 0.22,
       "unit": "m/s"
      },
      "scene": {
@@ -137,7 +137,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 2.0,
+      "value": 1.8,
       "unit": "m"
      },
      "scene": {
@@ -172,7 +172,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.16,
+      "value": 0.18,
       "unit": "m/s"
      },
      "scene": {
@@ -242,7 +242,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.95,
+      "value": 0.8,
       "unit": "m/s"
      },
      "scene": {
@@ -305,7 +305,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.3,
+      "value": 0.45,
       "unit": "m/s"
      },
      "scene": {
@@ -340,7 +340,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.25,
+      "value": 0.28,
       "unit": "m/s"
      },
      "scene": {
@@ -368,7 +368,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.8,
+      "value": 0.85,
       "unit": "m"
      },
      "scene": {
@@ -403,7 +403,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 2.04,
+      "value": 1.8,
       "unit": "m"
      },
      "scene": {
@@ -431,7 +431,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.45,
+      "value": 0.43,
       "unit": "m"
      },
      "scene": {
@@ -466,7 +466,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 5.5,
+      "value": 1.99,
       "unit": "m/s"
      },
      "scene": {
@@ -494,7 +494,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.2,
+      "value": 1.15,
       "unit": "m"
      },
      "scene": {
@@ -557,7 +557,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.36,
+      "value": 0.38,
       "unit": "m"
      },
      "scene": {
@@ -592,7 +592,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 3.7,
+      "value": 3.0,
       "unit": "m/s"
      },
      "scene": {
@@ -620,7 +620,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.93,
+      "value": 1.85,
       "unit": "m"
      },
      "scene": {
@@ -697,7 +697,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.9,
+      "value": 0.6,
       "unit": "m/s"
      },
      "scene": {
@@ -725,7 +725,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.4,
+      "value": 1.3,
       "unit": "m"
      },
      "scene": {
@@ -760,7 +760,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.7,
+      "value": 0.75,
       "unit": "m"
      },
      "scene": {
@@ -788,7 +788,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.25,
+      "value": 0.24,
       "unit": "m/s"
      },
      "scene": {
@@ -823,7 +823,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.27,
+      "value": 0.25,
       "unit": "m"
      },
      "scene": {
@@ -851,7 +851,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.1,
+      "value": 0.03,
       "unit": "m/s"
      },
      "scene": {
@@ -886,7 +886,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.24,
+      "value": 0.3,
       "unit": "m"
      },
      "scene": {
@@ -914,7 +914,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.25,
+      "value": 1.1,
       "unit": "m/s"
      },
      "scene": {
@@ -949,7 +949,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.5,
+      "value": 1.7,
       "unit": "m/s"
      },
      "scene": {
@@ -977,7 +977,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.3,
+      "value": 1.18,
       "unit": "m"
      },
      "scene": {
@@ -1012,7 +1012,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 4.5,
+      "value": 5.3,
       "unit": "m/s"
      },
      "scene": {
@@ -1075,7 +1075,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.22,
+      "value": 0.2,
       "unit": "m"
      },
      "scene": {
@@ -1103,7 +1103,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.65,
+      "value": 0.6,
       "unit": "m/s"
      },
      "scene": {
@@ -1138,7 +1138,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.6,
+      "value": 1.7,
       "unit": "m/s"
      },
      "scene": {
@@ -1201,7 +1201,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.98,
+      "value": 0.95,
       "unit": "m/s"
      },
      "scene": {
@@ -1243,7 +1243,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 4.3,
+      "value": 4.0,
       "unit": "m/s"
      },
      "scene": {
@@ -1306,7 +1306,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.9,
+      "value": 2.0,
       "unit": "m/s"
      },
      "scene": {
@@ -1334,7 +1334,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.3,
+      "value": 1.15,
       "unit": "m"
      },
      "scene": {
@@ -1369,7 +1369,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.3,
+      "value": 0.32,
       "unit": "m"
      },
      "scene": {
@@ -1397,7 +1397,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.7,
+      "value": 1.66,
       "unit": "m/s"
      },
      "scene": {
@@ -1432,7 +1432,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 5.8,
+      "value": 6.2,
       "unit": "m/s"
      },
      "scene": {
@@ -1460,7 +1460,7 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.9,
+      "value": 2.0,
       "unit": "m"
      },
      "scene": {

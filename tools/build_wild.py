@@ -2,7 +2,7 @@
 the benchmark, which have no ground truth.
 
   python -B web/tools/build_wild.py --build v6wild --status outputs/sceneprog_answers_wild_v6wildloop.csv \
-      --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_wild_noloop.json
+      --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_wild_fix.json
 
 Reads only the run's outputs; never runs the pipeline.
 
