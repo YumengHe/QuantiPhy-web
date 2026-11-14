@@ -26,28 +26,16 @@
    "setup": "spatialcode @cf7fffc (arXiv 2603.05591): object boxes by Gemini 3 Flash, each object boxed on the earliest of 8 shown frames where it is visible; Spatial Encoder with the released weights (qicq1c/SpatialCode), 32 frames spread over each video; spatial code = one 3D box per object plus its per-frame box centres with timestamps (metres, first camera frame); reasoner Qwen/Qwen3-4B-Instruct-2507 on SGLang, temperature 0, max_tokens 8192; prompt = spatial code, prior, depth info, question; 1× L40S, 2026-11-11"
   },
   {
-   "key": "gpt56_luna",
-   "label": "GPT-5.6-luna",
-   "source": "https://openrouter.ai/openai/gpt-5.6-luna",
-   "setup": "pure model inference, no tools: 16 frames sampled uniformly over the video (long side 768 px, each labelled with its timestamp) + one prompt (expert persona, prior, the dataset's depth info for 3D questions, question, 'directly tell me the number'); default reasoning; openai/gpt-5.6-luna via OpenRouter (provider OpenAI), physmind_quantiphy/run_gpt.py; 2026-11-06"
-  },
-  {
-   "key": "gpt61_sol",
-   "label": "GPT-6.1-sol",
-   "source": "https://openrouter.ai/openai/gpt-6.1-sol",
-   "setup": "pure model inference, no tools, same frames and prompt as GPT-5.6-luna (16 frames, long side 768 px, timestamps; expert persona, prior, depth info for 3D questions, question, 'directly tell me the number'); default reasoning; openai/gpt-6.1-sol via OpenRouter pinned to OpenAI, physmind_quantiphy/run_gpt.py on Google Colab; 2026-11-12"
-  },
-  {
    "key": "gemini4_carbon_video",
    "label": "Gemini-4-Carbon",
    "source": "https://openrouter.ai/google/gemini-4-carbon",
-   "setup": "pure model inference, no tools, whole video as input: the mp4 file itself is sent (no frame sampling on our side), same prompt as GPT-5.6-luna with 'You are given a video.' in place of the frames sentence; default reasoning; google/gemini-4-carbon via OpenRouter (Google's own hosts), physmind_quantiphy/run_gpt.py --input video on Google Colab; 11 of 158 questions returned no answer and score 0; 2026-11-13"
+   "setup": "pure model inference, no tools, whole video as input: the mp4 file itself is sent (no frame sampling on our side), same prompt as Qwen3.5-27B with 'You are given a video.' in place of the frames sentence; default reasoning; google/gemini-4-carbon via OpenRouter (Google's own hosts), physmind_quantiphy/run_gpt.py --input video on Google Colab; 11 of 158 questions returned no answer and score 0; 2026-11-13"
   },
   {
    "key": "qwen35_27b",
    "label": "Qwen3.5-27B",
    "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
-   "setup": "pure model inference, no tools, same frames and prompt as GPT-5.6-luna (16 frames, long side 768 px, timestamps; expert persona, prior, depth info for 3D questions, question, 'directly tell me the number'); thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no fallback), physmind_quantiphy/run_gpt.py; 2026-11-07"
+   "setup": "pure model inference, no tools: 16 frames sampled uniformly over the video (long side 768 px, each labelled with its timestamp) + one prompt (expert persona, prior, the dataset's depth info for 3D questions, question, 'directly tell me the number'); thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no fallback), physmind_quantiphy/run_gpt.py; 2026-11-07"
   }
  ],
  "videos": [
@@ -289,16 +277,6 @@
      "mra": 0.8,
      "raw": "12"
     },
-    "gpt56_luna": {
-     "pred": 10.0,
-     "mra": 0.6,
-     "raw": "10"
-    },
-    "gpt61_sol": {
-     "pred": 10.0,
-     "mra": 0.6,
-     "raw": "10"
-    },
     "qwen35_27b": {
      "pred": 10.0,
      "mra": 0.6,
@@ -340,16 +318,6 @@
      "pred": 15.0,
      "mra": 1.0,
      "raw": "15"
-    },
-    "gpt56_luna": {
-     "pred": 14.0,
-     "mra": 1.0,
-     "raw": "14 cm"
-    },
-    "gpt61_sol": {
-     "pred": 7.5,
-     "mra": 0.5,
-     "raw": "7.5"
     },
     "qwen35_27b": {
      "pred": 15.0,
@@ -393,16 +361,6 @@
      "mra": 0.8,
      "raw": "7"
     },
-    "gpt56_luna": {
-     "pred": 6.0,
-     "mra": 0.7,
-     "raw": "6 cm"
-    },
-    "gpt61_sol": {
-     "pred": 6.0,
-     "mra": 0.7,
-     "raw": "6"
-    },
     "qwen35_27b": {
      "pred": 8.0,
      "mra": 1.0,
@@ -444,16 +402,6 @@
      "pred": 15.0,
      "mra": 0.6,
      "raw": "15"
-    },
-    "gpt56_luna": {
-     "pred": 10.0,
-     "mra": 0.9,
-     "raw": "10 cm"
-    },
-    "gpt61_sol": {
-     "pred": 7.5,
-     "mra": 0.6,
-     "raw": "7.5"
     },
     "qwen35_27b": {
      "pred": 20.0,
@@ -497,16 +445,6 @@
      "mra": 0.0,
      "raw": "31.7"
     },
-    "gpt56_luna": {
-     "pred": 87.0,
-     "mra": 0.1,
-     "raw": "87 cm"
-    },
-    "gpt61_sol": {
-     "pred": 60.0,
-     "mra": 0.0,
-     "raw": "60"
-    },
     "qwen35_27b": {
      "pred": 172.1,
      "mra": 0.2,
@@ -548,16 +486,6 @@
      "pred": 100.0,
      "mra": 0.0,
      "raw": "100"
-    },
-    "gpt56_luna": {
-     "pred": 24.1,
-     "mra": 0.7,
-     "raw": "24.1 cm"
-    },
-    "gpt61_sol": {
-     "pred": 30.0,
-     "mra": 1.0,
-     "raw": "30"
     },
     "qwen35_27b": {
      "pred": 24.1,
@@ -601,16 +529,6 @@
      "mra": 1.0,
      "raw": "7"
     },
-    "gpt56_luna": {
-     "pred": 4.0,
-     "mra": 0.5,
-     "raw": "4 cm"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 0.7,
-     "raw": "5"
-    },
     "qwen35_27b": {
      "pred": 4.0,
      "mra": 0.5,
@@ -652,16 +570,6 @@
      "pred": 450.0,
      "mra": 0.0,
      "raw": "450 cm/s"
-    },
-    "gpt56_luna": {
-     "pred": 450.0,
-     "mra": 0.0,
-     "raw": "450 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 90.0,
-     "mra": 0.8,
-     "raw": "90"
     },
     "qwen35_27b": {
      "pred": 90.0,
@@ -705,16 +613,6 @@
      "mra": 0.9,
      "raw": "125 cm/s"
     },
-    "gpt56_luna": {
-     "pred": 120.25,
-     "mra": 1.0,
-     "raw": "120.25 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 120.25,
-     "mra": 1.0,
-     "raw": "120.25"
-    },
     "qwen35_27b": {
      "pred": 120.25,
      "mra": 1.0,
@@ -756,16 +654,6 @@
      "pred": 120.0,
      "mra": 0.6,
      "raw": "120"
-    },
-    "gpt56_luna": {
-     "pred": 120.25,
-     "mra": 0.6,
-     "raw": "120.25 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 120.25,
-     "mra": 0.6,
-     "raw": "120.25"
     },
     "qwen35_27b": {
      "pred": 120.25,
@@ -809,16 +697,6 @@
      "mra": 1.0,
      "raw": "48.1"
     },
-    "gpt56_luna": {
-     "pred": 48.1,
-     "mra": 1.0,
-     "raw": "48.1 cm"
-    },
-    "gpt61_sol": {
-     "pred": 48.6,
-     "mra": 1.0,
-     "raw": "48.6"
-    },
     "qwen35_27b": {
      "pred": 48.1,
      "mra": 1.0,
@@ -860,16 +738,6 @@
      "pred": 91.0,
      "mra": 0.4,
      "raw": "91 cm"
-    },
-    "gpt56_luna": {
-     "pred": 60.0,
-     "mra": 1.0,
-     "raw": "60 cm"
-    },
-    "gpt61_sol": {
-     "pred": 60.0,
-     "mra": 1.0,
-     "raw": "60"
     },
     "qwen35_27b": {
      "pred": 96.2,
@@ -913,16 +781,6 @@
      "mra": 0.6,
      "raw": "103"
     },
-    "gpt56_luna": {
-     "pred": 60.0,
-     "mra": 0.7,
-     "raw": "60 cm"
-    },
-    "gpt61_sol": {
-     "pred": 80.0,
-     "mra": 0.9,
-     "raw": "80"
-    },
     "qwen35_27b": {
      "pred": 180.0,
      "mra": 0.0,
@@ -964,16 +822,6 @@
      "pred": 115.5,
      "mra": 0.5,
      "raw": "115.5"
-    },
-    "gpt56_luna": {
-     "pred": 12.875,
-     "mra": 0.0,
-     "raw": "12.875 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 14.0,
-     "mra": 0.0,
-     "raw": "14"
     },
     "qwen35_27b": {
      "pred": 12.875,
@@ -1017,16 +865,6 @@
      "mra": 0.2,
      "raw": "115.1"
     },
-    "gpt56_luna": {
-     "pred": 12.5,
-     "mra": 0.1,
-     "raw": "12.5 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 47.0,
-     "mra": 0.7,
-     "raw": "47"
-    },
     "qwen35_27b": {
      "pred": 12.875,
      "mra": 0.1,
@@ -1068,16 +906,6 @@
      "pred": 980.0,
      "mra": 0.9,
      "raw": "980"
-    },
-    "gpt56_luna": {
-     "pred": -394.0,
-     "mra": 0.3,
-     "raw": "-394 cm/s²"
-    },
-    "gpt61_sol": {
-     "pred": 407.0,
-     "mra": 0.3,
-     "raw": "407"
     },
     "qwen35_27b": {
      "pred": 980.0,
@@ -1121,16 +949,6 @@
      "mra": 0.7,
      "raw": "100"
     },
-    "gpt56_luna": {
-     "pred": 65.0,
-     "mra": 0.7,
-     "raw": "65 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 66.5,
-     "mra": 0.8,
-     "raw": "66.5"
-    },
     "qwen35_27b": {
      "pred": 80.0,
      "mra": 1.0,
@@ -1172,16 +990,6 @@
      "pred": 143.0,
      "mra": 0.5,
      "raw": "143"
-    },
-    "gpt56_luna": {
-     "pred": 55.4,
-     "mra": 0.5,
-     "raw": "55.4 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 59.0,
-     "mra": 0.5,
-     "raw": "59.0"
     },
     "qwen35_27b": {
      "pred": 28.0,
@@ -1225,16 +1033,6 @@
      "mra": 0.0,
      "raw": "15"
     },
-    "gpt56_luna": {
-     "pred": 6.0,
-     "mra": 0.8,
-     "raw": "6 cm"
-    },
-    "gpt61_sol": {
-     "pred": 6.5,
-     "mra": 1.0,
-     "raw": "6.5"
-    },
     "qwen35_27b": {
      "pred": 4.0,
      "mra": 0.5,
@@ -1276,16 +1074,6 @@
      "pred": 20.0,
      "mra": 1.0,
      "raw": "20"
-    },
-    "gpt56_luna": {
-     "pred": 15.2,
-     "mra": 0.7,
-     "raw": "15.2 cm"
-    },
-    "gpt61_sol": {
-     "pred": 18.0,
-     "mra": 0.8,
-     "raw": "18"
     },
     "qwen35_27b": {
      "pred": 10.0,
@@ -1329,16 +1117,6 @@
      "mra": 0.7,
      "raw": "22 cm"
     },
-    "gpt56_luna": {
-     "pred": 15.0,
-     "mra": 0.8,
-     "raw": "15 cm"
-    },
-    "gpt61_sol": {
-     "pred": 16.0,
-     "mra": 0.9,
-     "raw": "16.0"
-    },
     "qwen35_27b": {
      "pred": 22.0,
      "mra": 0.7,
@@ -1380,16 +1158,6 @@
      "pred": 115.0,
      "mra": 0.6,
      "raw": "115"
-    },
-    "gpt56_luna": {
-     "pred": 61.0,
-     "mra": 0.7,
-     "raw": "61 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 60.0,
-     "mra": 0.7,
-     "raw": "60"
     },
     "qwen35_27b": {
      "pred": 90.5,
@@ -1433,16 +1201,6 @@
      "mra": 0.7,
      "raw": "115"
     },
-    "gpt56_luna": {
-     "pred": 55.0,
-     "mra": 0.5,
-     "raw": "55 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 59.0,
-     "mra": 0.6,
-     "raw": "59.0"
-    },
     "qwen35_27b": {
      "pred": 100.0,
      "mra": 0.9,
@@ -1484,16 +1242,6 @@
      "pred": 19.0,
      "mra": 0.3,
      "raw": "19"
-    },
-    "gpt56_luna": {
-     "pred": 28.0,
-     "mra": 0.4,
-     "raw": "28 cm"
-    },
-    "gpt61_sol": {
-     "pred": 34.5,
-     "mra": 0.6,
-     "raw": "34.5"
     },
     "qwen35_27b": {
      "pred": 13.4,
@@ -1537,16 +1285,6 @@
      "mra": 0.2,
      "raw": "18"
     },
-    "gpt56_luna": {
-     "pred": 38.0,
-     "mra": 0.5,
-     "raw": "38 cm"
-    },
-    "gpt61_sol": {
-     "pred": 40.0,
-     "mra": 0.5,
-     "raw": "40"
-    },
     "qwen35_27b": {
      "pred": 46.9,
      "mra": 0.6,
@@ -1589,16 +1327,6 @@
      "mra": 0.7,
      "raw": "22 cm"
     },
-    "gpt56_luna": {
-     "pred": 22.0,
-     "mra": 0.7,
-     "raw": "22 cm"
-    },
-    "gpt61_sol": {
-     "pred": 16.0,
-     "mra": 0.9,
-     "raw": "16"
-    },
     "qwen35_27b": {
      "pred": 22.0,
      "mra": 0.7,
@@ -1637,16 +1365,6 @@
      "raw": "0.47"
     },
     "caw_9b": {
-     "pred": 0.47,
-     "mra": 0.7,
-     "raw": "0.47"
-    },
-    "gpt56_luna": {
-     "pred": 0.47,
-     "mra": 0.7,
-     "raw": "0.47 m"
-    },
-    "gpt61_sol": {
      "pred": 0.47,
      "mra": 0.7,
      "raw": "0.47"
@@ -1693,16 +1411,6 @@
      "mra": 0.0,
      "raw": "1.47"
     },
-    "gpt56_luna": {
-     "pred": 0.521,
-     "mra": 0.0,
-     "raw": "0.521 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.52,
-     "mra": 0.0,
-     "raw": "0.52"
-    },
     "qwen35_27b": {
      "pred": 0.521,
      "mra": 0.0,
@@ -1745,16 +1453,6 @@
      "mra": 0.7,
      "raw": "65"
     },
-    "gpt56_luna": {
-     "pred": 55.0,
-     "mra": 0.9,
-     "raw": "55 cm"
-    },
-    "gpt61_sol": {
-     "pred": 55.0,
-     "mra": 0.9,
-     "raw": "55"
-    },
     "qwen35_27b": {
      "pred": 65.0,
      "mra": 0.7,
@@ -1793,16 +1491,6 @@
      "raw": "22"
     },
     "caw_9b": {
-     "pred": 22.0,
-     "mra": 0.7,
-     "raw": "22"
-    },
-    "gpt56_luna": {
-     "pred": 22.0,
-     "mra": 0.7,
-     "raw": "22 cm"
-    },
-    "gpt61_sol": {
      "pred": 22.0,
      "mra": 0.7,
      "raw": "22"
@@ -1849,16 +1537,6 @@
      "mra": 0.7,
      "raw": "2.42"
     },
-    "gpt56_luna": {
-     "pred": 1.193,
-     "mra": 0.6,
-     "raw": "1.1930 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.1924,
-     "mra": 0.6,
-     "raw": "1.1924"
-    },
     "qwen35_27b": {
      "pred": 1.1924,
      "mra": 0.6,
@@ -1900,16 +1578,6 @@
      "pred": 2.4,
      "mra": 0.5,
      "raw": "2.4"
-    },
-    "gpt56_luna": {
-     "pred": 4.1609,
-     "mra": 0.0,
-     "raw": "4.1609 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.43,
-     "mra": 0.8,
-     "raw": "1.43"
     },
     "qwen35_27b": {
      "pred": 0.9333,
@@ -1953,16 +1621,6 @@
      "mra": 0.3,
      "raw": "0.6"
     },
-    "gpt56_luna": {
-     "pred": 0.0,
-     "mra": 0.0,
-     "raw": "0 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.3,
-     "mra": 0.1,
-     "raw": "0.30"
-    },
     "qwen35_27b": {
      "pred": 0.0,
      "mra": 0.0,
@@ -2004,16 +1662,6 @@
      "pred": 3.42,
      "mra": 0.7,
      "raw": "3.42"
-    },
-    "gpt56_luna": {
-     "pred": 1.1733,
-     "mra": 0.4,
-     "raw": "1.1733 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.1733,
-     "mra": 0.4,
-     "raw": "1.1733"
     },
     "qwen35_27b": {
      "pred": 1.1733,
@@ -2057,16 +1705,6 @@
      "mra": 0.7,
      "raw": "3.52"
     },
-    "gpt56_luna": {
-     "pred": 1.1733,
-     "mra": 0.4,
-     "raw": "1.1733 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.1733,
-     "mra": 0.4,
-     "raw": "1.1733"
-    },
     "qwen35_27b": {
      "pred": 1.1733,
      "mra": 0.4,
@@ -2108,16 +1746,6 @@
      "pred": 3.58,
      "mra": 0.3,
      "raw": "3.58"
-    },
-    "gpt56_luna": {
-     "pred": 1.037,
-     "mra": 0.1,
-     "raw": "1.037 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.037,
-     "mra": 0.1,
-     "raw": "1.037"
     },
     "qwen35_27b": {
      "pred": 1.037,
@@ -2161,16 +1789,6 @@
      "mra": 0.0,
      "raw": "3.58"
     },
-    "gpt56_luna": {
-     "pred": -1.037,
-     "mra": 0.7,
-     "raw": "-1.037 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.037,
-     "mra": 0.7,
-     "raw": "1.037"
-    },
     "qwen35_27b": {
      "pred": 1.037,
      "mra": 0.7,
@@ -2212,16 +1830,6 @@
      "pred": 4.6,
      "mra": 0.7,
      "raw": "4.6 m"
-    },
-    "gpt56_luna": {
-     "pred": 5.3,
-     "mra": 0.9,
-     "raw": "5.3 m"
-    },
-    "gpt61_sol": {
-     "pred": 5.5,
-     "mra": 0.9,
-     "raw": "5.5"
     },
     "qwen35_27b": {
      "pred": 4.5,
@@ -2265,16 +1873,6 @@
      "mra": 0.8,
      "raw": "1.8"
     },
-    "gpt56_luna": {
-     "pred": 2.2,
-     "mra": 1.0,
-     "raw": "2.2 m"
-    },
-    "gpt61_sol": {
-     "pred": 2.16,
-     "mra": 1.0,
-     "raw": "2.16"
-    },
     "qwen35_27b": {
      "pred": 1.8,
      "mra": 0.8,
@@ -2316,16 +1914,6 @@
      "pred": 25.0,
      "mra": 0.8,
      "raw": "25"
-    },
-    "gpt56_luna": {
-     "pred": 33.5,
-     "mra": 0.8,
-     "raw": "33.5 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 35.0,
-     "mra": 0.8,
-     "raw": "35.0"
     },
     "qwen35_27b": {
      "pred": 30.0,
@@ -2369,16 +1957,6 @@
      "mra": 1.0,
      "raw": "10"
     },
-    "gpt56_luna": {
-     "pred": 20.0,
-     "mra": 0.0,
-     "raw": "20 cm"
-    },
-    "gpt61_sol": {
-     "pred": 12.0,
-     "mra": 0.7,
-     "raw": "12"
-    },
     "qwen35_27b": {
      "pred": 10.0,
      "mra": 1.0,
@@ -2417,16 +1995,6 @@
      "raw": "3"
     },
     "caw_9b": {
-     "pred": 2.0,
-     "mra": 0.9,
-     "raw": "2"
-    },
-    "gpt56_luna": {
-     "pred": 2.0,
-     "mra": 0.9,
-     "raw": "2 cm"
-    },
-    "gpt61_sol": {
      "pred": 2.0,
      "mra": 0.9,
      "raw": "2"
@@ -2473,16 +2041,6 @@
      "mra": 0.7,
      "raw": "10"
     },
-    "gpt56_luna": {
-     "pred": 24.0,
-     "mra": 0.2,
-     "raw": "24 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 11.2,
-     "mra": 0.7,
-     "raw": "11.2"
-    },
     "qwen35_27b": {
      "pred": 9.0,
      "mra": 0.6,
@@ -2524,16 +2082,6 @@
      "pred": 1.5,
      "mra": 0.7,
      "raw": "1.5 cm/s"
-    },
-    "gpt56_luna": {
-     "pred": 2.15,
-     "mra": 0.2,
-     "raw": "2.15 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.5,
-     "mra": 0.7,
-     "raw": "1.5"
     },
     "qwen35_27b": {
      "pred": 1.0,
@@ -2577,16 +2125,6 @@
      "mra": 0.8,
      "raw": "4"
     },
-    "gpt56_luna": {
-     "pred": 5.0,
-     "mra": 1.0,
-     "raw": "5 m"
-    },
-    "gpt61_sol": {
-     "pred": 4.8,
-     "mra": 1.0,
-     "raw": "4.8"
-    },
     "qwen35_27b": {
      "pred": 3.55,
      "mra": 0.7,
@@ -2628,16 +2166,6 @@
      "pred": 1.65,
      "mra": 1.0,
      "raw": "1.65 m"
-    },
-    "gpt56_luna": {
-     "pred": 1.6,
-     "mra": 0.9,
-     "raw": "1.6 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.65,
-     "mra": 1.0,
-     "raw": "1.65"
     },
     "qwen35_27b": {
      "pred": 1.6,
@@ -2681,16 +2209,6 @@
      "mra": 0.8,
      "raw": "1.2"
     },
-    "gpt56_luna": {
-     "pred": 1.5,
-     "mra": 0.5,
-     "raw": "1.5 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.4,
-     "mra": 0.6,
-     "raw": "1.4"
-    },
     "qwen35_27b": {
      "pred": 1.2,
      "mra": 0.8,
@@ -2732,16 +2250,6 @@
      "pred": 0.5,
      "mra": 0.3,
      "raw": "0.5"
-    },
-    "gpt56_luna": {
-     "pred": 0.7,
-     "mra": 0.5,
-     "raw": "0.7 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.2,
-     "mra": 1.0,
-     "raw": "1.2"
     },
     "qwen35_27b": {
      "pred": 0.6,
@@ -2785,16 +2293,6 @@
      "mra": 0.3,
      "raw": "6"
     },
-    "gpt56_luna": {
-     "pred": 3.5,
-     "mra": 1.0,
-     "raw": "3.5 meters"
-    },
-    "gpt61_sol": {
-     "pred": 4.5,
-     "mra": 0.7,
-     "raw": "4.5"
-    },
     "qwen35_27b": {
      "pred": 3.5,
      "mra": 1.0,
@@ -2836,16 +2334,6 @@
      "pred": 6.0,
      "mra": 0.5,
      "raw": "6"
-    },
-    "gpt56_luna": {
-     "pred": 3.0,
-     "mra": 0.7,
-     "raw": "3 m"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 0.7,
-     "raw": "5"
     },
     "qwen35_27b": {
      "pred": 3.5,
@@ -2889,16 +2377,6 @@
      "mra": 0.8,
      "raw": "18"
     },
-    "gpt56_luna": {
-     "pred": 20.0,
-     "mra": 1.0,
-     "raw": "20 m"
-    },
-    "gpt61_sol": {
-     "pred": 24.0,
-     "mra": 0.8,
-     "raw": "24"
-    },
     "qwen35_27b": {
      "pred": 20.0,
      "mra": 1.0,
@@ -2940,16 +2418,6 @@
      "pred": 13.0,
      "mra": 0.0,
      "raw": "13 m/s"
-    },
-    "gpt56_luna": {
-     "pred": 7.0,
-     "mra": 0.7,
-     "raw": "7 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 0.8,
-     "raw": "5.0"
     },
     "qwen35_27b": {
      "pred": 11.0,
@@ -2993,16 +2461,6 @@
      "mra": 0.3,
      "raw": "5.6"
     },
-    "gpt56_luna": {
-     "pred": 4.0,
-     "mra": 0.8,
-     "raw": "4.0 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.5,
-     "mra": 0.4,
-     "raw": "1.5"
-    },
     "qwen35_27b": {
      "pred": 4.5,
      "mra": 0.6,
@@ -3045,16 +2503,6 @@
      "mra": 0.6,
      "raw": "18"
     },
-    "gpt56_luna": {
-     "pred": 29.0,
-     "mra": 0.9,
-     "raw": "29 meters"
-    },
-    "gpt61_sol": {
-     "pred": 27.0,
-     "mra": 1.0,
-     "raw": "27"
-    },
     "qwen35_27b": {
      "pred": 27.0,
      "mra": 1.0,
@@ -3093,16 +2541,6 @@
      "raw": "22"
     },
     "caw_9b": {
-     "pred": 22.0,
-     "mra": 1.0,
-     "raw": "22"
-    },
-    "gpt56_luna": {
-     "pred": 22.0,
-     "mra": 1.0,
-     "raw": "22 cm"
-    },
-    "gpt61_sol": {
      "pred": 22.0,
      "mra": 1.0,
      "raw": "22"
@@ -3149,16 +2587,6 @@
      "mra": 0.9,
      "raw": "170"
     },
-    "gpt56_luna": {
-     "pred": 170.0,
-     "mra": 0.9,
-     "raw": "170 cm"
-    },
-    "gpt61_sol": {
-     "pred": 172.0,
-     "mra": 1.0,
-     "raw": "172"
-    },
     "qwen35_27b": {
      "pred": 175.0,
      "mra": 1.0,
@@ -3200,16 +2628,6 @@
      "pred": 160.0,
      "mra": 1.0,
      "raw": "160"
-    },
-    "gpt56_luna": {
-     "pred": 140.0,
-     "mra": 0.8,
-     "raw": "140 cm"
-    },
-    "gpt61_sol": {
-     "pred": 140.0,
-     "mra": 0.8,
-     "raw": "140"
     },
     "qwen35_27b": {
      "pred": 170.0,
@@ -3253,16 +2671,6 @@
      "mra": 0.9,
      "raw": "170"
     },
-    "gpt56_luna": {
-     "pred": 133.0,
-     "mra": 0.7,
-     "raw": "133 cm"
-    },
-    "gpt61_sol": {
-     "pred": 175.0,
-     "mra": 1.0,
-     "raw": "175"
-    },
     "qwen35_27b": {
      "pred": 170.0,
      "mra": 0.9,
@@ -3304,16 +2712,6 @@
      "pred": 9.5,
      "mra": 0.0,
      "raw": "9.5"
-    },
-    "gpt56_luna": {
-     "pred": 3.2,
-     "mra": 0.7,
-     "raw": "3.2 m"
-    },
-    "gpt61_sol": {
-     "pred": 4.5,
-     "mra": 1.0,
-     "raw": "4.5"
     },
     "qwen35_27b": {
      "pred": 10.0,
@@ -3357,16 +2755,6 @@
      "mra": 0.0,
      "raw": "9.8"
     },
-    "gpt56_luna": {
-     "pred": -3.3,
-     "mra": 0.8,
-     "raw": "-3.3 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 3.5,
-     "mra": 0.9,
-     "raw": "3.5"
-    },
     "qwen35_27b": {
      "pred": 2.0,
      "mra": 0.5,
@@ -3408,16 +2796,6 @@
      "pred": 8.2,
      "mra": 0.0,
      "raw": "8.2 m/s"
-    },
-    "gpt56_luna": {
-     "pred": 2.0,
-     "mra": 1.0,
-     "raw": "2.0 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.95,
-     "mra": 1.0,
-     "raw": "1.95"
     },
     "qwen35_27b": {
      "pred": 4.0,
@@ -3461,16 +2839,6 @@
      "mra": 0.7,
      "raw": "11.4 cm"
     },
-    "gpt56_luna": {
-     "pred": 15.0,
-     "mra": 1.0,
-     "raw": "15 cm"
-    },
-    "gpt61_sol": {
-     "pred": 14.3,
-     "mra": 1.0,
-     "raw": "14.3"
-    },
     "qwen35_27b": {
      "pred": 14.3,
      "mra": 1.0,
@@ -3512,16 +2880,6 @@
      "pred": 23.0,
      "mra": 0.8,
      "raw": "23"
-    },
-    "gpt56_luna": {
-     "pred": 26.3,
-     "mra": 1.0,
-     "raw": "26.3 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 27.1,
-     "mra": 1.0,
-     "raw": "27.1"
     },
     "qwen35_27b": {
      "pred": 18.3,
@@ -3565,16 +2923,6 @@
      "mra": 0.0,
      "raw": "115"
     },
-    "gpt56_luna": {
-     "pred": 24.6,
-     "mra": 1.0,
-     "raw": "24.6 cm/s"
-    },
-    "gpt61_sol": {
-     "pred": 24.5,
-     "mra": 1.0,
-     "raw": "24.5"
-    },
     "qwen35_27b": {
      "pred": 28.6,
      "mra": 0.8,
@@ -3616,16 +2964,6 @@
      "pred": 11.4,
      "mra": 0.6,
      "raw": "11.4 cm"
-    },
-    "gpt56_luna": {
-     "pred": 17.8,
-     "mra": 1.0,
-     "raw": "17.8 cm"
-    },
-    "gpt61_sol": {
-     "pred": 17.7,
-     "mra": 1.0,
-     "raw": "17.7"
     },
     "qwen35_27b": {
      "pred": 14.3,
@@ -3669,16 +3007,6 @@
      "mra": 1.0,
      "raw": "10.8 cm/s^2"
     },
-    "gpt56_luna": {
-     "pred": 4.9,
-     "mra": 0.4,
-     "raw": "4.9 cm/s²"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 0.4,
-     "raw": "5.0"
-    },
     "qwen35_27b": {
      "pred": 0.0,
      "mra": 0.0,
@@ -3720,16 +3048,6 @@
      "pred": 3.2,
      "mra": 0.8,
      "raw": "3.2 m"
-    },
-    "gpt56_luna": {
-     "pred": 2.5,
-     "mra": 0.6,
-     "raw": "2.5 m"
-    },
-    "gpt61_sol": {
-     "pred": 3.7,
-     "mra": 1.0,
-     "raw": "3.7"
     },
     "qwen35_27b": {
      "pred": 2.5,
@@ -3773,16 +3091,6 @@
      "mra": 0.0,
      "raw": "2.4 m"
     },
-    "gpt56_luna": {
-     "pred": 0.7,
-     "mra": 0.5,
-     "raw": "0.7 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.8,
-     "mra": 0.5,
-     "raw": "1.8"
-    },
     "qwen35_27b": {
      "pred": 1.5,
      "mra": 0.7,
@@ -3824,16 +3132,6 @@
      "pred": 0.75,
      "mra": 1.0,
      "raw": "0.75 m"
-    },
-    "gpt56_luna": {
-     "pred": 1.4,
-     "mra": 0.1,
-     "raw": "1.4 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.1,
-     "mra": 0.5,
-     "raw": "1.1"
     },
     "qwen35_27b": {
      "pred": 0.5,
@@ -3877,16 +3175,6 @@
      "mra": 0.0,
      "raw": "3.5 m"
     },
-    "gpt56_luna": {
-     "pred": 5.0,
-     "mra": 0.0,
-     "raw": "5 m"
-    },
-    "gpt61_sol": {
-     "pred": 3.3,
-     "mra": 0.0,
-     "raw": "3.3"
-    },
     "qwen35_27b": {
      "pred": 4.205,
      "mra": 0.0,
@@ -3928,16 +3216,6 @@
      "pred": 6.2,
      "mra": 1.0,
      "raw": "6.2"
-    },
-    "gpt56_luna": {
-     "pred": 4.205,
-     "mra": 0.6,
-     "raw": "4.205 m"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 0.8,
-     "raw": "5.0"
     },
     "qwen35_27b": {
      "pred": 4.205,
@@ -3981,16 +3259,6 @@
      "mra": 0.2,
      "raw": "3.45"
     },
-    "gpt56_luna": {
-     "pred": 2.766,
-     "mra": 0.5,
-     "raw": "2.766 m"
-    },
-    "gpt61_sol": {
-     "pred": 2.593,
-     "mra": 0.6,
-     "raw": "2.593"
-    },
     "qwen35_27b": {
      "pred": 2.593,
      "mra": 0.6,
@@ -4032,16 +3300,6 @@
      "pred": 1.2,
      "mra": 0.7,
      "raw": "1.2"
-    },
-    "gpt56_luna": {
-     "pred": 1.0,
-     "mra": 0.6,
-     "raw": "1 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.5,
-     "mra": 1.0,
-     "raw": "1.5"
     },
     "qwen35_27b": {
      "pred": 1.0,
@@ -4085,16 +3343,6 @@
      "mra": 0.0,
      "raw": "1.2 m"
     },
-    "gpt56_luna": {
-     "pred": 0.75,
-     "mra": 0.0,
-     "raw": "0.75 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.65,
-     "mra": 0.0,
-     "raw": "0.65"
-    },
     "qwen35_27b": {
      "pred": 4.205,
      "mra": 0.0,
@@ -4137,16 +3385,6 @@
      "mra": 0.0,
      "raw": "2.1"
     },
-    "gpt56_luna": {
-     "pred": 1.25,
-     "mra": 0.5,
-     "raw": "1.25 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.0,
-     "mra": 0.8,
-     "raw": "1.0"
-    },
     "qwen35_27b": {
      "pred": 1.5,
      "mra": 0.2,
@@ -4185,16 +3423,6 @@
      "raw": "1.8"
     },
     "caw_9b": {
-     "pred": 1.68,
-     "mra": 0.8,
-     "raw": "1.68"
-    },
-    "gpt56_luna": {
-     "pred": 1.9,
-     "mra": 1.0,
-     "raw": "1.9 m"
-    },
-    "gpt61_sol": {
      "pred": 1.68,
      "mra": 0.8,
      "raw": "1.68"
@@ -4241,16 +3469,6 @@
      "mra": 0.8,
      "raw": "1.2"
     },
-    "gpt56_luna": {
-     "pred": 1.6,
-     "mra": 0.9,
-     "raw": "1.6 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.58,
-     "mra": 0.9,
-     "raw": "1.58"
-    },
     "qwen35_27b": {
      "pred": 1.5,
      "mra": 1.0,
@@ -4292,16 +3510,6 @@
      "pred": 1.1,
      "mra": 0.1,
      "raw": "1.1"
-    },
-    "gpt56_luna": {
-     "pred": 1.06,
-     "mra": 0.2,
-     "raw": "1.06 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.0,
-     "mra": 0.3,
-     "raw": "1.0"
     },
     "qwen35_27b": {
      "pred": 1.0,
@@ -4345,16 +3553,6 @@
      "mra": 0.7,
      "raw": "1.2"
     },
-    "gpt56_luna": {
-     "pred": 1.8,
-     "mra": 0.8,
-     "raw": "1.8 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.3,
-     "mra": 0.8,
-     "raw": "1.3"
-    },
     "qwen35_27b": {
      "pred": 1.87,
      "mra": 0.8,
@@ -4396,16 +3594,6 @@
      "pred": 2.1,
      "mra": 0.9,
      "raw": "2.1"
-    },
-    "gpt56_luna": {
-     "pred": 1.9,
-     "mra": 0.9,
-     "raw": "1.9 m"
-    },
-    "gpt61_sol": {
-     "pred": 2.2,
-     "mra": 0.8,
-     "raw": "2.2"
     },
     "qwen35_27b": {
      "pred": 3.0,
@@ -4449,16 +3637,6 @@
      "mra": 0.6,
      "raw": "0.63 m"
     },
-    "gpt56_luna": {
-     "pred": 0.45,
-     "mra": 1.0,
-     "raw": "0.45 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.45,
-     "mra": 1.0,
-     "raw": "0.45"
-    },
     "qwen35_27b": {
      "pred": 0.45,
      "mra": 1.0,
@@ -4500,16 +3678,6 @@
      "pred": 1.22,
      "mra": 0.2,
      "raw": "1.22 m"
-    },
-    "gpt56_luna": {
-     "pred": 2.4,
-     "mra": 0.0,
-     "raw": "2.4 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.65,
-     "mra": 0.0,
-     "raw": "1.65"
     },
     "qwen35_27b": {
      "pred": 0.8,
@@ -4553,16 +3721,6 @@
      "mra": 0.6,
      "raw": "1.5"
     },
-    "gpt56_luna": {
-     "pred": 2.5,
-     "mra": 0.8,
-     "raw": "2.5 m"
-    },
-    "gpt61_sol": {
-     "pred": 2.0,
-     "mra": 0.8,
-     "raw": "2.0"
-    },
     "qwen35_27b": {
      "pred": 2.4,
      "mra": 0.9,
@@ -4604,16 +3762,6 @@
      "pred": 6.5,
      "mra": 0.5,
      "raw": "6.5"
-    },
-    "gpt56_luna": {
-     "pred": 8.0,
-     "mra": 0.6,
-     "raw": "8 m"
-    },
-    "gpt61_sol": {
-     "pred": 12.0,
-     "mra": 0.9,
-     "raw": "12.0"
     },
     "qwen35_27b": {
      "pred": 20.0,
@@ -4657,16 +3805,6 @@
      "mra": 0.0,
      "raw": "4.5"
     },
-    "gpt56_luna": {
-     "pred": 0.25,
-     "mra": 0.3,
-     "raw": "0.25 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.5,
-     "mra": 0.6,
-     "raw": "0.5"
-    },
     "qwen35_27b": {
      "pred": 1.0,
      "mra": 0.6,
@@ -4708,16 +3846,6 @@
      "pred": 1.29,
      "mra": 1.0,
      "raw": "1.29"
-    },
-    "gpt56_luna": {
-     "pred": 1.29,
-     "mra": 1.0,
-     "raw": "1.29 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 0.0,
-     "mra": 0.0,
-     "raw": "0"
     },
     "qwen35_27b": {
      "pred": 1.29,
@@ -4761,16 +3889,6 @@
      "mra": 1.0,
      "raw": "4.05"
     },
-    "gpt56_luna": {
-     "pred": 4.0505,
-     "mra": 1.0,
-     "raw": "4.0505 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 4.0505,
-     "mra": 1.0,
-     "raw": "4.0505"
-    },
     "qwen35_27b": {
      "pred": 4.0505,
      "mra": 1.0,
@@ -4812,16 +3930,6 @@
      "pred": 4.2,
      "mra": 0.4,
      "raw": "4.2 m"
-    },
-    "gpt56_luna": {
-     "pred": 22.0,
-     "mra": 0.0,
-     "raw": "22 m"
-    },
-    "gpt61_sol": {
-     "pred": 9.4,
-     "mra": 1.0,
-     "raw": "9.4"
     },
     "qwen35_27b": {
      "pred": 12.0,
@@ -4865,16 +3973,6 @@
      "mra": 0.6,
      "raw": "4.5 m"
     },
-    "gpt56_luna": {
-     "pred": 3.0,
-     "mra": 0.9,
-     "raw": "3 m"
-    },
-    "gpt61_sol": {
-     "pred": 3.1,
-     "mra": 0.9,
-     "raw": "3.1"
-    },
     "qwen35_27b": {
      "pred": 5.0,
      "mra": 0.4,
@@ -4916,16 +4014,6 @@
      "pred": 0.99,
      "mra": 0.7,
      "raw": "0.99"
-    },
-    "gpt56_luna": {
-     "pred": 0.0099,
-     "mra": 0.0,
-     "raw": "0.0099 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.25,
-     "mra": 1.0,
-     "raw": "1.25"
     },
     "qwen35_27b": {
      "pred": 1.35,
@@ -4969,16 +4057,6 @@
      "mra": 1.0,
      "raw": "1.52 m"
     },
-    "gpt56_luna": {
-     "pred": 1.75,
-     "mra": 0.8,
-     "raw": "1.75 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.7,
-     "mra": 0.9,
-     "raw": "1.7"
-    },
     "qwen35_27b": {
      "pred": 2.0,
      "mra": 0.7,
@@ -5020,16 +4098,6 @@
      "pred": 11.74,
      "mra": 1.0,
      "raw": "11.74"
-    },
-    "gpt56_luna": {
-     "pred": 11.74,
-     "mra": 1.0,
-     "raw": "11.740 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 11.84,
-     "mra": 1.0,
-     "raw": "11.84"
     },
     "qwen35_27b": {
      "pred": 11.7395,
@@ -5073,16 +4141,6 @@
      "mra": 0.0,
      "raw": "21.965"
     },
-    "gpt56_luna": {
-     "pred": 2.1965,
-     "mra": 0.5,
-     "raw": "2.1965 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 2.1965,
-     "mra": 0.5,
-     "raw": "2.1965"
-    },
     "qwen35_27b": {
      "pred": 2.1965,
      "mra": 0.5,
@@ -5124,16 +4182,6 @@
      "pred": 3.66,
      "mra": 0.3,
      "raw": "3.66 m"
-    },
-    "gpt56_luna": {
-     "pred": 3.19,
-     "mra": 0.2,
-     "raw": "3.19 m"
-    },
-    "gpt61_sol": {
-     "pred": 6.0,
-     "mra": 0.5,
-     "raw": "6"
     },
     "qwen35_27b": {
      "pred": 4.32,
@@ -5177,16 +4225,6 @@
      "mra": 0.7,
      "raw": "4.5"
     },
-    "gpt56_luna": {
-     "pred": 5.0,
-     "mra": 0.8,
-     "raw": "5 m"
-    },
-    "gpt61_sol": {
-     "pred": 6.0,
-     "mra": 1.0,
-     "raw": "6.0"
-    },
     "qwen35_27b": {
      "pred": 5.5,
      "mra": 0.9,
@@ -5228,16 +4266,6 @@
      "pred": 4.5,
      "mra": 0.8,
      "raw": "4.5"
-    },
-    "gpt56_luna": {
-     "pred": 4.5,
-     "mra": 0.8,
-     "raw": "4.5 m"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 0.9,
-     "raw": "5.0"
     },
     "qwen35_27b": {
      "pred": 5.0,
@@ -5281,16 +4309,6 @@
      "mra": 0.9,
      "raw": "1.5 m"
     },
-    "gpt56_luna": {
-     "pred": 1.5,
-     "mra": 0.9,
-     "raw": "1.5 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.5,
-     "mra": 0.9,
-     "raw": "1.5"
-    },
     "qwen35_27b": {
      "pred": 1.5,
      "mra": 0.9,
@@ -5332,16 +4350,6 @@
      "pred": 0.67,
      "mra": 0.8,
      "raw": "0.67"
-    },
-    "gpt56_luna": {
-     "pred": 0.7,
-     "mra": 0.7,
-     "raw": "0.7 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.5,
-     "mra": 0.8,
-     "raw": "0.5"
     },
     "qwen35_27b": {
      "pred": 0.7,
@@ -5385,16 +4393,6 @@
      "mra": 0.9,
      "raw": "1.4"
     },
-    "gpt56_luna": {
-     "pred": 1.17,
-     "mra": 0.8,
-     "raw": "1.17 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.17,
-     "mra": 0.8,
-     "raw": "1.17"
-    },
     "qwen35_27b": {
      "pred": 1.17,
      "mra": 0.8,
@@ -5436,16 +4434,6 @@
      "pred": 1.7,
      "mra": 0.9,
      "raw": "1.7"
-    },
-    "gpt56_luna": {
-     "pred": 1.6,
-     "mra": 0.8,
-     "raw": "1.6 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.5,
-     "mra": 0.8,
-     "raw": "1.5"
     },
     "qwen35_27b": {
      "pred": 1.7,
@@ -5489,16 +4477,6 @@
      "mra": 0.6,
      "raw": "3.2773"
     },
-    "gpt56_luna": {
-     "pred": 0.3272,
-     "mra": 0.0,
-     "raw": "0.3272 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 0.9,
-     "raw": "5"
-    },
     "qwen35_27b": {
      "pred": 3.91,
      "mra": 0.7,
@@ -5537,16 +4515,6 @@
      "raw": "4.5"
     },
     "caw_9b": {
-     "pred": 1.8,
-     "mra": 0.8,
-     "raw": "1.8"
-    },
-    "gpt56_luna": {
-     "pred": 1.8,
-     "mra": 0.8,
-     "raw": "1.8 m"
-    },
-    "gpt61_sol": {
      "pred": 1.8,
      "mra": 0.8,
      "raw": "1.8"
@@ -5593,16 +4561,6 @@
      "mra": 1.0,
      "raw": "1.8"
     },
-    "gpt56_luna": {
-     "pred": 1.8,
-     "mra": 1.0,
-     "raw": "1.8 m"
-    },
-    "gpt61_sol": {
-     "pred": 2.0,
-     "mra": 0.9,
-     "raw": "2.0"
-    },
     "qwen35_27b": {
      "pred": 1.8,
      "mra": 1.0,
@@ -5645,16 +4603,6 @@
      "mra": 0.4,
      "raw": "2.1"
     },
-    "gpt56_luna": {
-     "pred": 1.2,
-     "mra": 0.8,
-     "raw": "1.2 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.0,
-     "mra": 0.7,
-     "raw": "1.0"
-    },
     "qwen35_27b": {
      "pred": 1.0,
      "mra": 0.7,
@@ -5693,16 +4641,6 @@
      "raw": "1.1"
     },
     "caw_9b": {
-     "pred": 0.8,
-     "mra": 0.6,
-     "raw": "0.8"
-    },
-    "gpt56_luna": {
-     "pred": 1.0,
-     "mra": 0.3,
-     "raw": "1 m"
-    },
-    "gpt61_sol": {
      "pred": 0.8,
      "mra": 0.6,
      "raw": "0.8"
@@ -5749,16 +4687,6 @@
      "mra": 0.0,
      "raw": "2.1"
     },
-    "gpt56_luna": {
-     "pred": 1.18,
-     "mra": 0.3,
-     "raw": "1.18 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.5,
-     "mra": 0.0,
-     "raw": "1.50"
-    },
     "qwen35_27b": {
      "pred": 1.88,
      "mra": 0.0,
@@ -5800,16 +4728,6 @@
      "pred": 1.5,
      "mra": 0.7,
      "raw": "1.5"
-    },
-    "gpt56_luna": {
-     "pred": 1.1,
-     "mra": 0.5,
-     "raw": "1.1 m"
-    },
-    "gpt61_sol": {
-     "pred": 2.93,
-     "mra": 0.5,
-     "raw": "2.93"
     },
     "qwen35_27b": {
      "pred": 1.88,
@@ -5853,16 +4771,6 @@
      "mra": 0.3,
      "raw": "0.4"
     },
-    "gpt56_luna": {
-     "pred": 1.41,
-     "mra": 0.9,
-     "raw": "1.41 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.52,
-     "mra": 0.3,
-     "raw": "0.52"
-    },
     "qwen35_27b": {
      "pred": 0.94,
      "mra": 0.7,
@@ -5904,16 +4812,6 @@
      "pred": 10.5,
      "mra": 1.0,
      "raw": "10.5 m/s"
-    },
-    "gpt56_luna": {
-     "pred": 14.3,
-     "mra": 0.6,
-     "raw": "14.3 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 17.4,
-     "mra": 0.4,
-     "raw": "17.4"
     },
     "qwen35_27b": {
      "pred": 20.0,
@@ -5957,16 +4855,6 @@
      "mra": 0.5,
      "raw": "10"
     },
-    "gpt56_luna": {
-     "pred": 19.0,
-     "mra": 0.9,
-     "raw": "19.0 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 26.3,
-     "mra": 0.5,
-     "raw": "26.3"
-    },
     "qwen35_27b": {
      "pred": 18.8,
      "mra": 1.0,
@@ -6008,16 +4896,6 @@
      "pred": 10.5,
      "mra": 0.7,
      "raw": "10.5 m"
-    },
-    "gpt56_luna": {
-     "pred": 17.0,
-     "mra": 0.8,
-     "raw": "17.0 m"
-    },
-    "gpt61_sol": {
-     "pred": 27.5,
-     "mra": 0.1,
-     "raw": "27.5"
     },
     "qwen35_27b": {
      "pred": 26.32,
@@ -6061,16 +4939,6 @@
      "mra": 0.5,
      "raw": "3"
     },
-    "gpt56_luna": {
-     "pred": 5.0,
-     "mra": 1.0,
-     "raw": "5 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 1.0,
-     "raw": "5"
-    },
     "qwen35_27b": {
      "pred": 3.0,
      "mra": 0.5,
@@ -6112,16 +4980,6 @@
      "pred": 10.0,
      "mra": 1.0,
      "raw": "10 m"
-    },
-    "gpt56_luna": {
-     "pred": 10.0,
-     "mra": 1.0,
-     "raw": "10 meters"
-    },
-    "gpt61_sol": {
-     "pred": 10.0,
-     "mra": 1.0,
-     "raw": "10"
     },
     "qwen35_27b": {
      "pred": 18.0,
@@ -6165,16 +5023,6 @@
      "mra": 0.7,
      "raw": "2.5 m"
     },
-    "gpt56_luna": {
-     "pred": 3.0,
-     "mra": 0.9,
-     "raw": "3 m"
-    },
-    "gpt61_sol": {
-     "pred": 3.25,
-     "mra": 1.0,
-     "raw": "3.25"
-    },
     "qwen35_27b": {
      "pred": 3.0,
      "mra": 0.9,
@@ -6216,16 +5064,6 @@
      "pred": 1.2,
      "mra": 0.9,
      "raw": "1.2 m"
-    },
-    "gpt56_luna": {
-     "pred": 1.2,
-     "mra": 0.9,
-     "raw": "1.2 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.24,
-     "mra": 0.8,
-     "raw": "1.24"
     },
     "qwen35_27b": {
      "pred": 3.0,
@@ -6269,16 +5107,6 @@
      "mra": 0.3,
      "raw": "5.25"
     },
-    "gpt56_luna": {
-     "pred": 3.1,
-     "mra": 1.0,
-     "raw": "3.1 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 3.2,
-     "mra": 1.0,
-     "raw": "3.2"
-    },
     "qwen35_27b": {
      "pred": 5.0,
      "mra": 0.4,
@@ -6320,16 +5148,6 @@
      "pred": 2.4,
      "mra": 0.0,
      "raw": "2.4"
-    },
-    "gpt56_luna": {
-     "pred": 2.0,
-     "mra": 0.0,
-     "raw": "-0.22 m/s^2"
-    },
-    "gpt61_sol": {
-     "pred": -0.35,
-     "mra": 1.0,
-     "raw": "-0.35"
     },
     "qwen35_27b": {
      "pred": 0.0,
@@ -6373,16 +5191,6 @@
      "mra": 0.5,
      "raw": "4.2"
     },
-    "gpt56_luna": {
-     "pred": 3.1,
-     "mra": 1.0,
-     "raw": "3.1 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 3.05,
-     "mra": 1.0,
-     "raw": "3.05"
-    },
     "qwen35_27b": {
      "pred": 2.1,
      "mra": 0.7,
@@ -6424,16 +5232,6 @@
      "pred": 2.5,
      "mra": 0.0,
      "raw": "2.5"
-    },
-    "gpt56_luna": {
-     "pred": 2.0,
-     "mra": 0.0,
-     "raw": "-0.55 m/s^2"
-    },
-    "gpt61_sol": {
-     "pred": -0.35,
-     "mra": 1.0,
-     "raw": "-0.35"
     },
     "qwen35_27b": {
      "pred": 0.0,
@@ -6477,16 +5275,6 @@
      "mra": 0.5,
      "raw": "0.48"
     },
-    "gpt56_luna": {
-     "pred": 0.33,
-     "mra": 1.0,
-     "raw": "0.33 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.33,
-     "mra": 1.0,
-     "raw": "0.33"
-    },
     "qwen35_27b": {
      "pred": 0.38,
      "mra": 0.8,
@@ -6528,16 +5316,6 @@
      "pred": 0.21,
      "mra": 0.0,
      "raw": "0.21"
-    },
-    "gpt56_luna": {
-     "pred": 0.12,
-     "mra": 0.0,
-     "raw": "0.12 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.7,
-     "mra": 0.0,
-     "raw": "0.7"
     },
     "qwen35_27b": {
      "pred": 0.42,
@@ -6581,16 +5359,6 @@
      "mra": 0.6,
      "raw": "2.2"
     },
-    "gpt56_luna": {
-     "pred": 7.5,
-     "mra": 0.0,
-     "raw": "7.5 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 3.5,
-     "mra": 1.0,
-     "raw": "3.5"
-    },
     "qwen35_27b": {
      "pred": 36.0,
      "mra": 0.0,
@@ -6632,16 +5400,6 @@
      "pred": 2.4,
      "mra": 0.3,
      "raw": "2.4"
-    },
-    "gpt56_luna": {
-     "pred": 2.0,
-     "mra": 0.3,
-     "raw": "9.8 m/s^2"
-    },
-    "gpt61_sol": {
-     "pred": 6.3,
-     "mra": 1.0,
-     "raw": "6.3"
     },
     "qwen35_27b": {
      "pred": 4.0,
@@ -6685,16 +5443,6 @@
      "mra": 0.3,
      "raw": "2.2"
     },
-    "gpt56_luna": {
-     "pred": 1.8,
-     "mra": 0.3,
-     "raw": "1.8 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 6.3,
-     "mra": 0.9,
-     "raw": "6.3"
-    },
     "qwen35_27b": {
      "pred": 7.71,
      "mra": 0.7,
@@ -6736,16 +5484,6 @@
      "pred": 2.7,
      "mra": 0.7,
      "raw": "2.7"
-    },
-    "gpt56_luna": {
-     "pred": 2.5,
-     "mra": 0.6,
-     "raw": "2.5 m/s²"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 0.6,
-     "raw": "5.0"
     },
     "qwen35_27b": {
      "pred": 9.8,
@@ -6789,16 +5527,6 @@
      "mra": 0.4,
      "raw": "3.3"
     },
-    "gpt56_luna": {
-     "pred": 6.5,
-     "mra": 1.0,
-     "raw": "6.5 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 6.9,
-     "mra": 1.0,
-     "raw": "6.9"
-    },
     "qwen35_27b": {
      "pred": 7.0,
      "mra": 1.0,
@@ -6840,16 +5568,6 @@
      "pred": 9.8,
      "mra": 0.0,
      "raw": "9.8 m/s^2"
-    },
-    "gpt56_luna": {
-     "pred": 2.0,
-     "mra": 0.7,
-     "raw": "3.0 m/s^2"
-    },
-    "gpt61_sol": {
-     "pred": 1.7,
-     "mra": 1.0,
-     "raw": "1.7"
     },
     "qwen35_27b": {
      "pred": 9.8,
@@ -6893,16 +5611,6 @@
      "mra": 0.4,
      "raw": "3.7"
     },
-    "gpt56_luna": {
-     "pred": 5.0,
-     "mra": 0.0,
-     "raw": "5 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 2.2,
-     "mra": 0.9,
-     "raw": "2.2"
-    },
     "qwen35_27b": {
      "pred": 10.0,
      "mra": 0.0,
@@ -6944,16 +5652,6 @@
      "pred": 0.01,
      "mra": 0.0,
      "raw": "0.01"
-    },
-    "gpt56_luna": {
-     "pred": 0.0,
-     "mra": 0.0,
-     "raw": "0 m/s²"
-    },
-    "gpt61_sol": {
-     "pred": 6.0,
-     "mra": 0.8,
-     "raw": "6.0"
     },
     "qwen35_27b": {
      "pred": 10.0,
@@ -6997,16 +5695,6 @@
      "mra": 1.0,
      "raw": "1.8 m/s"
     },
-    "gpt56_luna": {
-     "pred": 2.5,
-     "mra": 0.5,
-     "raw": "2.5 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 2.6,
-     "mra": 0.4,
-     "raw": "2.6"
-    },
     "qwen35_27b": {
      "pred": 2.2,
      "mra": 0.7,
@@ -7048,16 +5736,6 @@
      "pred": 1.62,
      "mra": 0.8,
      "raw": "1.62"
-    },
-    "gpt56_luna": {
-     "pred": 1.6,
-     "mra": 0.8,
-     "raw": "1.6 m/s²"
-    },
-    "gpt61_sol": {
-     "pred": 4.1,
-     "mra": 0.0,
-     "raw": "4.1"
     },
     "qwen35_27b": {
      "pred": 9.8,
@@ -7101,16 +5779,6 @@
      "mra": 0.3,
      "raw": "1.8 m/s"
     },
-    "gpt56_luna": {
-     "pred": 5.6,
-     "mra": 0.8,
-     "raw": "5.6 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 5.5,
-     "mra": 0.8,
-     "raw": "5.5"
-    },
     "qwen35_27b": {
      "pred": 2.2,
      "mra": 0.4,
@@ -7149,16 +5817,6 @@
      "raw": "1.6"
     },
     "caw_9b": {
-     "pred": 1.62,
-     "mra": 0.6,
-     "raw": "1.62"
-    },
-    "gpt56_luna": {
-     "pred": 1.62,
-     "mra": 0.6,
-     "raw": "1.62"
-    },
-    "gpt61_sol": {
      "pred": 1.62,
      "mra": 0.6,
      "raw": "1.62"
@@ -7205,16 +5863,6 @@
      "mra": 1.0,
      "raw": "1.8 m/s"
     },
-    "gpt56_luna": {
-     "pred": 2.0,
-     "mra": 0.9,
-     "raw": "2.0 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 2.2,
-     "mra": 0.8,
-     "raw": "2.2"
-    },
     "qwen35_27b": {
      "pred": 4.4,
      "mra": 0.0,
@@ -7253,16 +5901,6 @@
      "raw": "1.6"
     },
     "caw_9b": {
-     "pred": 1.62,
-     "mra": 0.0,
-     "raw": "1.62"
-    },
-    "gpt56_luna": {
-     "pred": 2.0,
-     "mra": 0.0,
-     "raw": "-1.62 m/s^2"
-    },
-    "gpt61_sol": {
      "pred": 1.62,
      "mra": 0.0,
      "raw": "1.62"
@@ -7309,16 +5947,6 @@
      "mra": 0.4,
      "raw": "2.2 m/s"
     },
-    "gpt56_luna": {
-     "pred": 1.2,
-     "mra": 0.8,
-     "raw": "1.2 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.2,
-     "mra": 0.8,
-     "raw": "1.2"
-    },
     "qwen35_27b": {
      "pred": 0.0,
      "mra": 0.0,
@@ -7360,16 +5988,6 @@
      "pred": 1.62,
      "mra": 0.6,
      "raw": "1.62"
-    },
-    "gpt56_luna": {
-     "pred": 1.62,
-     "mra": 0.6,
-     "raw": "1.62 m/s²"
-    },
-    "gpt61_sol": {
-     "pred": 0.6,
-     "mra": 0.2,
-     "raw": "0.6"
     },
     "qwen35_27b": {
      "pred": 0.0,
@@ -7413,16 +6031,6 @@
      "mra": 0.2,
      "raw": "0.04"
     },
-    "gpt56_luna": {
-     "pred": 0.1,
-     "mra": 0.7,
-     "raw": "0.1 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.1,
-     "mra": 0.7,
-     "raw": "0.1"
-    },
     "qwen35_27b": {
      "pred": 8.0,
      "mra": 0.0,
@@ -7464,16 +6072,6 @@
      "pred": 0.8,
      "mra": 0.4,
      "raw": "0.8"
-    },
-    "gpt56_luna": {
-     "pred": 2.0,
-     "mra": 0.8,
-     "raw": "2 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.6,
-     "mra": 0.9,
-     "raw": "1.6"
     },
     "qwen35_27b": {
      "pred": 0.5,
@@ -7517,16 +6115,6 @@
      "mra": 0.6,
      "raw": "1.25 m/s"
     },
-    "gpt56_luna": {
-     "pred": 1.325,
-     "mra": 0.6,
-     "raw": "1.325 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.92,
-     "mra": 1.0,
-     "raw": "1.92"
-    },
     "qwen35_27b": {
      "pred": 1.254,
      "mra": 0.6,
@@ -7568,16 +6156,6 @@
      "pred": 1.18,
      "mra": 1.0,
      "raw": "1.18 m/s"
-    },
-    "gpt56_luna": {
-     "pred": 1.05,
-     "mra": 0.8,
-     "raw": "1.05 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 1.2,
-     "mra": 1.0,
-     "raw": "1.20"
     },
     "qwen35_27b": {
      "pred": 1.05,
@@ -7621,16 +6199,6 @@
      "mra": 1.0,
      "raw": "0.843 m/s"
     },
-    "gpt56_luna": {
-     "pred": 0.832,
-     "mra": 1.0,
-     "raw": "0.832 m/s"
-    },
-    "gpt61_sol": {
-     "pred": 0.815,
-     "mra": 1.0,
-     "raw": "0.815"
-    },
     "qwen35_27b": {
      "pred": 0.832,
      "mra": 1.0,
@@ -7672,16 +6240,6 @@
      "pred": 0.15,
      "mra": 0.9,
      "raw": "0.15"
-    },
-    "gpt56_luna": {
-     "pred": 0.05,
-     "mra": 0.3,
-     "raw": "0.05 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.1,
-     "mra": 0.7,
-     "raw": "0.1"
     },
     "qwen35_27b": {
      "pred": 0.627,
@@ -7725,16 +6283,6 @@
      "mra": 0.0,
      "raw": "1.25 m"
     },
-    "gpt56_luna": {
-     "pred": 0.05,
-     "mra": 0.3,
-     "raw": "0.05 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.13,
-     "mra": 0.9,
-     "raw": "0.13"
-    },
     "qwen35_27b": {
      "pred": 0.012,
      "mra": 0.0,
@@ -7773,16 +6321,6 @@
      "raw": "0.45"
     },
     "caw_9b": {
-     "pred": 0.15,
-     "mra": 0.9,
-     "raw": "0.15"
-    },
-    "gpt56_luna": {
-     "pred": 0.065,
-     "mra": 0.4,
-     "raw": "0.065 m"
-    },
-    "gpt61_sol": {
      "pred": 0.15,
      "mra": 0.9,
      "raw": "0.15"
@@ -7829,16 +6367,6 @@
      "mra": 0.3,
      "raw": "1.26 m"
     },
-    "gpt56_luna": {
-     "pred": 2.6,
-     "mra": 0.7,
-     "raw": "2.6 m"
-    },
-    "gpt61_sol": {
-     "pred": 3.35,
-     "mra": 1.0,
-     "raw": "3.35"
-    },
     "qwen35_27b": {
      "pred": 1.49,
      "mra": 0.4,
@@ -7880,16 +6408,6 @@
      "pred": 1.26,
      "mra": 0.2,
      "raw": "1.26 m"
-    },
-    "gpt56_luna": {
-     "pred": 2.2,
-     "mra": 0.5,
-     "raw": "2.2 m"
-    },
-    "gpt61_sol": {
-     "pred": 5.0,
-     "mra": 0.8,
-     "raw": "5"
     },
     "qwen35_27b": {
      "pred": 2.21,
@@ -7933,16 +6451,6 @@
      "mra": 0.3,
      "raw": "1.88 m"
     },
-    "gpt56_luna": {
-     "pred": 4.0,
-     "mra": 0.7,
-     "raw": "4 m"
-    },
-    "gpt61_sol": {
-     "pred": 5.5,
-     "mra": 1.0,
-     "raw": "5.5 m"
-    },
     "qwen35_27b": {
      "pred": 4.5,
      "mra": 0.8,
@@ -7984,16 +6492,6 @@
      "pred": 10.0,
      "mra": 0.8,
      "raw": "10.0 m"
-    },
-    "gpt56_luna": {
-     "pred": 9.0,
-     "mra": 0.9,
-     "raw": "9 m"
-    },
-    "gpt61_sol": {
-     "pred": 9.4,
-     "mra": 0.8,
-     "raw": "9.4"
     },
     "qwen35_27b": {
      "pred": 2.0,
@@ -8037,16 +6535,6 @@
      "mra": 0.1,
      "raw": "0.0004"
     },
-    "gpt56_luna": {
-     "pred": 0.00235,
-     "mra": 0.7,
-     "raw": "0.00235 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.0027,
-     "mra": 0.8,
-     "raw": "0.0027"
-    },
     "qwen35_27b": {
      "pred": 0.00144,
      "mra": 0.4,
@@ -8088,16 +6576,6 @@
      "pred": 0.000432,
      "mra": 0.2,
      "raw": "0.000432 m"
-    },
-    "gpt56_luna": {
-     "pred": 0.00235,
-     "mra": 0.6,
-     "raw": "0.00235 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.00144,
-     "mra": 0.8,
-     "raw": "0.00144"
     },
     "qwen35_27b": {
      "pred": 0.0023472,
@@ -8141,16 +6619,6 @@
      "mra": 0.0,
      "raw": "0.015"
     },
-    "gpt56_luna": {
-     "pred": 0.0036,
-     "mra": 0.0,
-     "raw": "0.0036 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.002,
-     "mra": 0.9,
-     "raw": "0.002"
-    },
     "qwen35_27b": {
      "pred": 0.00144,
      "mra": 0.7,
@@ -8192,16 +6660,6 @@
      "pred": 0.05,
      "mra": 0.0,
      "raw": "0.05"
-    },
-    "gpt56_luna": {
-     "pred": 0.03,
-     "mra": 0.0,
-     "raw": "0.03 m"
-    },
-    "gpt61_sol": {
-     "pred": 0.013,
-     "mra": 0.9,
-     "raw": "0.013"
     },
     "qwen35_27b": {
      "pred": 0.0235,
@@ -8245,16 +6703,6 @@
      "mra": 1.0,
      "raw": "5 m/s"
     },
-    "gpt56_luna": {
-     "pred": 2.8711,
-     "mra": 0.5,
-     "raw": "2.8711"
-    },
-    "gpt61_sol": {
-     "pred": 2.8711,
-     "mra": 0.5,
-     "raw": "2.8711"
-    },
     "qwen35_27b": {
      "pred": 2.8711,
      "mra": 0.5,
@@ -8296,16 +6744,6 @@
      "pred": 10.0,
      "mra": 1.0,
      "raw": "10 m/s"
-    },
-    "gpt56_luna": {
-     "pred": 7.8711,
-     "mra": 0.8,
-     "raw": "7.8711"
-    },
-    "gpt61_sol": {
-     "pred": 7.8711,
-     "mra": 0.8,
-     "raw": "7.8711"
     },
     "qwen35_27b": {
      "pred": 7.8711,
@@ -8349,16 +6787,6 @@
      "mra": 1.0,
      "raw": "4.5711"
     },
-    "gpt56_luna": {
-     "pred": 5.37,
-     "mra": 0.7,
-     "raw": "5.37 m"
-    },
-    "gpt61_sol": {
-     "pred": 4.0,
-     "mra": 0.8,
-     "raw": "4.0"
-    },
     "qwen35_27b": {
      "pred": 5.3711,
      "mra": 0.7,
@@ -8401,16 +6829,6 @@
      "mra": 0.8,
      "raw": "1.85 m"
     },
-    "gpt56_luna": {
-     "pred": 1.9,
-     "mra": 0.8,
-     "raw": "1.9 m"
-    },
-    "gpt61_sol": {
-     "pred": 2.4,
-     "mra": 0.9,
-     "raw": "2.4"
-    },
     "qwen35_27b": {
      "pred": 2.0,
      "mra": 0.8,
@@ -8452,16 +6870,6 @@
      "pred": 1.05,
      "mra": 0.9,
      "raw": "1.05 m"
-    },
-    "gpt56_luna": {
-     "pred": 17.4567,
-     "mra": 0.0,
-     "raw": "17.4567 m"
-    },
-    "gpt61_sol": {
-     "pred": 1.2,
-     "mra": 1.0,
-     "raw": "1.2"
     },
     "qwen35_27b": {
      "pred": 1.2,

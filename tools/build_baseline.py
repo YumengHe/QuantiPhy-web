@@ -8,7 +8,7 @@ physmind_quantiphy/run_caw.py) and data/videos.json (question ids, videos, thumb
       --run spatialcode=/nas/yumenghe/QuantiPhy-data/spatial_code_result/quantiphy/answers/preds.csv
 
 The methods given with --run are (re)built from their CSVs; every other method already in data/baseline.json keeps
-its predictions there (the Code-as-World, GPT-5.6-luna and Qwen3.5-27B CSVs are not on this machine). Methods are
+its predictions there (the Code-as-World and Qwen3.5-27B CSVs are not on this machine). Methods are
 listed in the order of METHODS.
 
 A CSV row is matched to the page's question id <video_id>_q<k> by video, ground truth (the page's table rounds some
@@ -61,33 +61,17 @@ METHODS = {
                  "Qwen/Qwen3-4B-Instruct-2507 on SGLang, temperature 0, max_tokens 8192; prompt = spatial code, "
                  "prior, depth info, question; 1× L40S, 2026-11-11",
     },
-    "gpt56_luna": {
-        "label": "GPT-5.6-luna",
-        "source": "https://openrouter.ai/openai/gpt-5.6-luna",
-        "setup": "pure model inference, no tools: 16 frames sampled uniformly over the video (long side 768 px, each "
-                 "labelled with its timestamp) + one prompt (expert persona, prior, the dataset's depth info for 3D "
-                 "questions, question, 'directly tell me the number'); default reasoning; openai/gpt-5.6-luna via "
-                 "OpenRouter (provider OpenAI), physmind_quantiphy/run_gpt.py; 2026-11-06",
-    },
-    "gpt61_sol": {
-        "label": "GPT-6.1-sol",
-        "source": "https://openrouter.ai/openai/gpt-6.1-sol",
-        "setup": "pure model inference, no tools, same frames and prompt as GPT-5.6-luna (16 frames, long side 768 px, "
-                 "timestamps; expert persona, prior, depth info for 3D questions, question, 'directly tell me the "
-                 "number'); default reasoning; openai/gpt-6.1-sol via OpenRouter pinned to OpenAI, "
-                 "physmind_quantiphy/run_gpt.py on Google Colab; 2026-11-12",
-    },
     "gemini4_carbon_video": {
         "label": "Gemini-4-Carbon",
         "source": "https://openrouter.ai/google/gemini-4-carbon",
-        "setup": "pure model inference, no tools, whole video as input: the mp4 file itself is sent (no frame sampling on our side), same prompt as GPT-5.6-luna with 'You are given a video.' in place of the frames sentence; default reasoning; google/gemini-4-carbon via OpenRouter (Google's own hosts), physmind_quantiphy/run_gpt.py --input video on Google Colab; 11 of 158 questions returned no answer and score 0; 2026-11-13",
+        "setup": "pure model inference, no tools, whole video as input: the mp4 file itself is sent (no frame sampling on our side), same prompt as Qwen3.5-27B with 'You are given a video.' in place of the frames sentence; default reasoning; google/gemini-4-carbon via OpenRouter (Google's own hosts), physmind_quantiphy/run_gpt.py --input video on Google Colab; 11 of 158 questions returned no answer and score 0; 2026-11-13",
     },
     "qwen35_27b": {
         "label": "Qwen3.5-27B",
         "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
-        "setup": "pure model inference, no tools, same frames and prompt as GPT-5.6-luna (16 frames, long side 768 px, "
-                 "timestamps; expert persona, prior, depth info for 3D questions, question, 'directly tell me the "
-                 "number'); thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no "
+        "setup": "pure model inference, no tools: 16 frames sampled uniformly over the video (long side 768 px, each "
+                 "labelled with its timestamp) + one prompt (expert persona, prior, the dataset's depth info for 3D "
+                 "questions, question, 'directly tell me the number'); thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no "
                  "fallback), physmind_quantiphy/run_gpt.py; 2026-11-07",
     },
 }
