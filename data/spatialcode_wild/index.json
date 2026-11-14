@@ -24,7 +24,7 @@
      "drawn": [
       {
        "label": "humanoid robot",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer ball",
@@ -48,7 +48,7 @@
      "drawn": [
       {
        "label": "humanoid robot",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer ball",
@@ -85,7 +85,7 @@
      "drawn": [
       {
        "label": "humanoid robot",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer ball",
@@ -122,7 +122,7 @@
      "drawn": [
       {
        "label": "soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer goal",
@@ -146,7 +146,7 @@
      "drawn": [
       {
        "label": "soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer goal",
@@ -182,7 +182,7 @@
      "drawn": [
       {
        "label": "humanoid robot",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer ball",
@@ -206,7 +206,7 @@
      "drawn": [
       {
        "label": "humanoid robot",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer ball",
@@ -242,7 +242,7 @@
      "drawn": [
       {
        "label": "the soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the man in the white shirt",
@@ -266,7 +266,7 @@
      "drawn": [
       {
        "label": "the soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the man in the white shirt",
@@ -302,7 +302,7 @@
      "drawn": [
       {
        "label": "soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "goal crossbar",
@@ -326,7 +326,7 @@
      "drawn": [
       {
        "label": "soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "goal crossbar",
@@ -362,7 +362,7 @@
      "drawn": [
       {
        "label": "basketball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "basketball rim",
@@ -370,7 +370,7 @@
       },
       {
        "label": "floor",
-       "color": "#C0564F"
+       "color": "#92B573"
       }
      ],
      "missing": [],
@@ -390,7 +390,7 @@
      "drawn": [
       {
        "label": "basketball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "basketball rim",
@@ -398,7 +398,7 @@
       },
       {
        "label": "floor",
-       "color": "#C0564F"
+       "color": "#92B573"
       }
      ],
      "missing": [],
@@ -430,7 +430,7 @@
      "drawn": [
       {
        "label": "robot dog",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the two platforms",
@@ -454,7 +454,7 @@
      "drawn": [
       {
        "label": "robot dog",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the two platforms",
@@ -490,7 +490,7 @@
      "drawn": [
       {
        "label": "the two tables",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the robot dog",
@@ -514,7 +514,7 @@
      "drawn": [
       {
        "label": "the two tables",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the robot dog",
@@ -550,7 +550,7 @@
      "drawn": [
       {
        "label": "the underside of the wagon",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the robot dog",
@@ -574,7 +574,7 @@
      "drawn": [
       {
        "label": "the underside of the wagon",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the robot dog",
@@ -610,7 +610,7 @@
      "drawn": [
       {
        "label": "caution sign",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "robot dog",
@@ -634,7 +634,7 @@
      "drawn": [
       {
        "label": "caution sign",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "robot dog",
@@ -670,7 +670,7 @@
      "drawn": [
       {
        "label": "the robot dog",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the sofa seat",
@@ -694,7 +694,7 @@
      "drawn": [
       {
        "label": "the robot dog",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the sofa seat",
@@ -730,7 +730,7 @@
      "drawn": [
       {
        "label": "ledge",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "robot dog",
@@ -754,7 +754,7 @@
      "drawn": [
       {
        "label": "ledge",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "robot dog",
@@ -790,7 +790,7 @@
      "drawn": [
       {
        "label": "humanoid robot",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer ball",
@@ -814,7 +814,7 @@
      "drawn": [
       {
        "label": "humanoid robot",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer ball",
@@ -850,7 +850,7 @@
      "drawn": [
       {
        "label": "soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer goal",
@@ -874,7 +874,7 @@
      "drawn": [
       {
        "label": "soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "soccer goal",
@@ -910,7 +910,7 @@
      "drawn": [
       {
        "label": "basketball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "man in the white sweater",
@@ -934,7 +934,7 @@
      "drawn": [
       {
        "label": "basketball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "man in the white sweater",
@@ -970,7 +970,7 @@
      "drawn": [
       {
        "label": "the soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the man standing in the goal",
@@ -994,7 +994,7 @@
      "drawn": [
       {
        "label": "the soccer ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the man standing in the goal",
@@ -1030,7 +1030,7 @@
      "drawn": [
       {
        "label": "the ceiling light panel",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the desk",
@@ -1054,7 +1054,7 @@
      "drawn": [
       {
        "label": "the ceiling light panel",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the desk",
@@ -1090,7 +1090,7 @@
      "drawn": [
       {
        "label": "ceiling light panel",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "desk top",
@@ -1098,7 +1098,7 @@
       },
       {
        "label": "height of the desk",
-       "color": "#C0564F"
+       "color": "#92B573"
       }
      ],
      "missing": [],
@@ -1118,7 +1118,7 @@
      "drawn": [
       {
        "label": "ceiling light panel",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "desk top",
@@ -1126,7 +1126,7 @@
       },
       {
        "label": "height of the desk",
-       "color": "#C0564F"
+       "color": "#92B573"
       }
      ],
      "missing": [],
@@ -1158,7 +1158,7 @@
      "drawn": [
       {
        "label": "laptop cart",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",
@@ -1182,7 +1182,7 @@
      "drawn": [
       {
        "label": "laptop cart",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",
@@ -1218,7 +1218,7 @@
      "drawn": [
       {
        "label": "cardboard box",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",
@@ -1242,7 +1242,7 @@
      "drawn": [
       {
        "label": "cardboard box",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",
@@ -1278,7 +1278,7 @@
      "drawn": [
       {
        "label": "the skateboard",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the ceiling light panel",
@@ -1302,7 +1302,7 @@
      "drawn": [
       {
        "label": "the skateboard",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the ceiling light panel",
@@ -1338,7 +1338,7 @@
      "drawn": [
       {
        "label": "skateboard",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "man",
@@ -1346,7 +1346,7 @@
       },
       {
        "label": "ceiling light panel",
-       "color": "#C0564F"
+       "color": "#92B573"
       }
      ],
      "missing": [],
@@ -1366,7 +1366,7 @@
      "drawn": [
       {
        "label": "skateboard",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "man",
@@ -1374,7 +1374,7 @@
       },
       {
        "label": "ceiling light panel",
-       "color": "#C0564F"
+       "color": "#92B573"
       }
      ],
      "missing": [],
@@ -1406,7 +1406,7 @@
      "drawn": [
       {
        "label": "snack box",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",
@@ -1414,7 +1414,7 @@
       },
       {
        "label": "floor",
-       "color": "#C0564F"
+       "color": "#92B573"
       }
      ],
      "missing": [],
@@ -1434,7 +1434,7 @@
      "drawn": [
       {
        "label": "snack box",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",
@@ -1442,7 +1442,7 @@
       },
       {
        "label": "floor",
-       "color": "#C0564F"
+       "color": "#92B573"
       }
      ],
      "missing": [],
@@ -1474,7 +1474,7 @@
      "drawn": [
       {
        "label": "toy airplane",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",
@@ -1498,7 +1498,7 @@
      "drawn": [
       {
        "label": "toy airplane",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",
@@ -1534,7 +1534,7 @@
      "drawn": [
       {
        "label": "the wooden crate",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the ceiling light panel",
@@ -1558,7 +1558,7 @@
      "drawn": [
       {
        "label": "the wooden crate",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "the ceiling light panel",
@@ -1594,7 +1594,7 @@
      "drawn": [
       {
        "label": "yoga ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",
@@ -1618,7 +1618,7 @@
      "drawn": [
       {
        "label": "yoga ball",
-       "color": "#E5B455"
+       "color": "#5B8DB8"
       },
       {
        "label": "ceiling light panel",

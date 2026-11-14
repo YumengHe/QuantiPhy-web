@@ -1,24 +1,23 @@
-"""PhysMind's and Thinking with Spatial Code's overlays in the site's style (tools/overlay_style.py).
+"""Thinking with Spatial Code's overlays in the site's style (tools/overlay_style.py).
 
-Both runs drew their reconstructions onto video frames in their own colours (reconstructions/ of each result folder,
-with index.json naming each drawn object and its colour). The geometry is taken from those images as drawn; nothing
-is re-fitted or re-projected. For each image the video frame it was drawn on is decoded again, and every pixel is
-explained as the frame blended with one of the drawn colours (p = frame + a (colour - frame), a in [0, 1]):
+The run drew its 3D box wireframes onto video frames in its own colours (reconstructions/ of the result folder, with
+index.json naming each drawn object and its colour). The geometry is taken from those images as drawn; nothing is
+re-fitted or re-projected. For each image the video frame it was drawn on is decoded again, and every pixel is
+explained as the frame blended with one of the drawn colours (p = frame + a (colour - frame), a in [0, 1]): the line
+pixels of each box keep their coverage a and take the object's outline shade; the old name text (written just above
+each box) is replaced by a name tag at the same place. (PhysMind's overlays are drawn from its run's meshes and poses
+by tools/render_physmind.py.)
 
-- PhysMind (posed meshes): the light fill (a about 0.25) with the outline next to it gives each object's projected
-  mask; the image is redrawn on the clean frame with tools/overlay_style.py (fill, outline, box, name tag).
-- Thinking with Spatial Code (3D box wireframes): the line pixels of each box keep their coverage a and take the
-  object's new colour; the old name text (written just above each box) is replaced by a name tag at the same place.
-
-Object colours: the palette without our method's blue, in order, by the object's position in the run's own drawn
-list. Text is dark on tinted tags; the frame time sits top-left on a white tag.
+Object colours: on a validation frame, the comparison's colour for the object's name ("colours" of
+data/qualitative/index.json, written by tools/build_qualitative.py: run that first); on a wild frame, the palette in
+the fixed object order, by the object's position in the run's drawn list. Text is dark on tinted tags; the frame time
+sits top-left on a white tag.
 
   python -B web/tools/restyle_baselines.py
 
-Writes, for the validation videos, data/physmind/<video>_f<frame>.jpg (and the colours in data/physmind/index.json)
-and data/spatialcode/<video>_f<drawn_frame>.jpg with data/spatialcode/index.json; for the wild videos
-data/physmind_wild/ and data/spatialcode_wild/, <run's video name>_f<frame>.jpg with index.json mapping our unit
-names (wild.json) to the images.
+Writes data/spatialcode/<video>_f<drawn_frame>.jpg with data/spatialcode/index.json, and for the wild videos
+data/spatialcode_wild/<run's video name>_f<frame>.jpg with index.json mapping our unit names (wild.json) to the
+images.
 """
 from __future__ import annotations
 
@@ -39,7 +38,7 @@ import overlay_style as S  # noqa: E402
 
 WEB = S.WEB
 NAS = Path("/nas/yumenghe/QuantiPhy-data")
-PM = NAS / "physmind_result_new"
+QUALITATIVE = WEB / "data" / "qualitative" / "index.json"
 SC = NAS / "spatial_code_result"
 VAL_VIDEOS = WEB.parent / "data" / "QuantiPhy-validation" / "validation_videos"
 WILD_VIDEOS = NAS / "videoscene"
@@ -79,44 +78,6 @@ def explain(img: np.ndarray, frame: np.ndarray, colours: list[str]) -> tuple[np.
     return lab, alpha, float((changed & (lab < 0)).sum() / max(1, changed.sum()))
 
 
-def physmind_masks(lab: np.ndarray, alpha: np.ndarray, n: int) -> list[np.ndarray]:
-    """Each object's projected mesh mask: the core of its light fill (an opening removes the 1 px box and the name
-    text), grown back over the fill and outline pixels next to it, holes filled, specks dropped."""
-    out, cores = [], []
-    k3 = np.ones((3, 3), np.uint8)
-    k5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    for k in range(n):
-        drawn = (lab == k).astype(np.uint8)
-        fill = ((lab == k) & (alpha < 0.5)).astype(np.uint8)
-        core = cv2.morphologyEx(fill, cv2.MORPH_OPEN, k5)
-        if core.sum() < 20:  # a thin object
-            core = cv2.morphologyEx(fill, cv2.MORPH_OPEN, k3)
-        nc, cc, st, _ = cv2.connectedComponentsWithStats(core, connectivity=8)
-        if nc > 1:  # what survives of the text and the box is a few pixels; the mesh's fill is a blob
-            area = st[1:, cv2.CC_STAT_AREA]
-            keep = [i + 1 for i, a in enumerate(area) if a >= max(12, 0.08 * area.max())]
-            core = np.isin(cc, keep).astype(np.uint8)
-        cores.append(m := core)
-        for _ in range(3):  # back over the opening's margin and the 2 px outline
-            m = m | (drawn & cv2.dilate(m, k3))
-        m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, k5)
-        cnt, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        big = max((cv2.contourArea(c) for c in cnt), default=0)
-        cnt = [c for c in cnt if cv2.contourArea(c) >= max(15, 0.03 * big)]
-        m = np.zeros_like(fill)
-        cv2.drawContours(m, cnt, -1, 1, -1)
-        out.append(m)
-    # the visible parts of the meshes are disjoint: a hole filled over another object's own pixels goes back to it
-    near = [((lab == j) & (cv2.dilate(c, k5) > 0)) for j, c in enumerate(cores)]
-    for k in range(n):
-        others = np.zeros(lab.shape, bool)
-        for j in range(n):
-            if j != k:
-                others |= near[j]
-        out[k] = (out[k] > 0) & ~others
-    return [m.astype(np.uint8) for m in out]
-
-
 def text_and_lines(lab: np.ndarray, alpha: np.ndarray, k: int):
     """Spatial Code: the line pixels of colour k without its old name, and where the name sat (x, y of the bottom
     left of its text). The run wrote each name just above its box, starting at the box's left end: the name is the
@@ -143,29 +104,20 @@ def text_and_lines(lab: np.ndarray, alpha: np.ndarray, k: int):
     return m.astype(bool), at
 
 
-def restyle(kind: str, src: Path, frame: np.ndarray, drawn: list[dict], t: float, dst: Path) -> dict:
+def restyle(src: Path, frame: np.ndarray, drawn: list[dict], new: list[str], t: float, dst: Path) -> dict:
     img = cv2.imread(str(src))
     if frame.shape[:2] != img.shape[:2]:
         frame = cv2.resize(frame, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_AREA)
     old = [d["color"] for d in drawn]
     lab, alpha, unexplained = explain(img, frame, old)
-    new = [S.BASELINE[i % len(S.BASELINE)] for i in range(len(drawn))]
     out = frame.copy()
     labels = []
-    if kind == "physmind":
-        masks = physmind_masks(lab, alpha, len(drawn))
-        for d, m, c in zip(drawn, masks, new):
-            if m.any():
-                S.fill_and_outline(out, m, c, box=True)
-                x, y, _, _ = cv2.boundingRect(m)
-                labels.append((d["label"], x, y - 2, c))
-    else:
-        for k, (d, c) in enumerate(zip(drawn, new)):
-            lines, at = text_and_lines(lab, alpha, k)
-            a = alpha[lines][:, None]
-            out[lines] = ((1 - a) * out[lines] + a * np.array(S.bgr(c), np.float32)).astype(np.uint8)
-            if at is not None:
-                labels.append((d["label"], at[0], at[1] + 2, c))
+    for k, (d, c) in enumerate(zip(drawn, new)):
+        lines, at = text_and_lines(lab, alpha, k)
+        a = alpha[lines][:, None]
+        out[lines] = ((1 - a) * out[lines] + a * np.array(S.edge(c), np.float32)).astype(np.uint8)
+        if at is not None:
+            labels.append((d["label"], at[0], at[1] + 2, c))
     out = S.tags(out, [S.time_tag(t)] + labels)
     dst.parent.mkdir(parents=True, exist_ok=True)
     if not cv2.imwrite(str(dst), out, [cv2.IMWRITE_JPEG_QUALITY, 86]):
@@ -190,21 +142,29 @@ def wild_units() -> dict[str, str]:
     return out
 
 
-def run(kind: str, index: dict, src_root: Path, videos: dict[str, Path], out_dir: Path, rel: str,
-        name_of, units: dict[str, str] | None = None) -> dict:
-    key = "physmind" if kind == "physmind" else "spatialcode"
+def run(index: dict, src_root: Path, videos: dict[str, Path], out_dir: Path, rel: str, name_of,
+        units: dict[str, str] | None = None, comparison: dict | None = None) -> dict:
+    """comparison: video -> frame -> name key -> colour (validation frames); None: the fixed order (wild frames)."""
+    key = "spatialcode"
     stats = defaultdict(int)
     worst = []
     for v in index["videos"]:
         for f in v["frames"]:
-            fi = int(f["drawn_frame"] if kind == "spatialcode" else f["frame"])
-            t = float(f["drawn_t"] if kind == "spatialcode" else f["t"])
+            fi, t = int(f["drawn_frame"]), float(f["drawn_t"])
             if units is not None:
                 f["units"] = [units[q] for q in f["questions"]]
             if not f.get(key):
                 continue
             name = name_of(v["video"], fi)
-            rec = restyle(kind, src_root / Path(f[key]).name, video_frame(videos[v["video"]], fi), f["drawn"], t,
+            names = [d["label"] for d in f["drawn"]]
+            if comparison is None:
+                colours = S.object_colours(names)
+            elif fi in comparison.get(v["video"], {}):
+                colours = comparison[v["video"]][fi]
+            else:
+                raise ValueError(f"{v['video']} frame {fi}: no colours in {QUALITATIVE}; run tools/build_qualitative.py")
+            new = [colours[S.name_key(n)] for n in names]
+            rec = restyle(src_root / Path(f[key]).name, video_frame(videos[v["video"]], fi), f["drawn"], new, t,
                           out_dir / name)
             f[key], f["drawn"] = f"{rel}/{name}", rec["drawn"]
             stats["images"] += 1
@@ -223,17 +183,13 @@ def main() -> None:
     val = {p.stem: p for p in VAL_VIDEOS.glob("*.mp4")}
     wild = {p.stem: p for p in WILD_VIDEOS.glob("*/*.mp4")}
     units = wild_units()
-    pm_val = json.loads((PM / "quantiphy" / "reconstructions" / "index.json").read_text())
-    run("physmind", pm_val, PM / "quantiphy" / "reconstructions", val, WEB / "data" / "physmind", "data/physmind",
-        lambda v, fi: f"{v}_f{fi}.jpg")
+    comparison = {v["video"]: {int(f["frame"]): f["colours"] for f in v["frames"]}
+                  for v in json.loads(QUALITATIVE.read_text())["videos"]}
     sc_val = json.loads((SC / "quantiphy" / "reconstructions" / "index.json").read_text())
-    run("spatialcode", sc_val, SC / "quantiphy" / "reconstructions", val, WEB / "data" / "spatialcode",
-        "data/spatialcode", lambda v, fi: f"{v}_f{fi}.jpg")
-    pm_wild = json.loads((PM / "videoscene" / "reconstructions" / "index.json").read_text())
-    run("physmind", pm_wild, PM / "videoscene" / "reconstructions", wild, WEB / "data" / "physmind_wild",
-        "data/physmind_wild", lambda v, fi: f"{v}_f{fi}.jpg", units)
+    run(sc_val, SC / "quantiphy" / "reconstructions", val, WEB / "data" / "spatialcode", "data/spatialcode",
+        lambda v, fi: f"{v}_f{fi}.jpg", comparison=comparison)
     sc_wild = json.loads((SC / "videoscene" / "reconstructions" / "index.json").read_text())
-    run("spatialcode", sc_wild, SC / "videoscene" / "reconstructions", wild, WEB / "data" / "spatialcode_wild",
+    run(sc_wild, SC / "videoscene" / "reconstructions", wild, WEB / "data" / "spatialcode_wild",
         "data/spatialcode_wild", lambda v, fi: f"{v}_f{fi}.jpg", units)
 
 

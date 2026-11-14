@@ -1,13 +1,14 @@
 """Render PhysMind's 3D reconstruction back onto the video for Home > Qualitative Comparison, from its meshes.
 
 The frames are the ones of the run's own reconstructions/index.json; draws PhysMind's posed meshes of the question
-objects on each frame in the site's style (tools/overlay_style.py): light fill and outline of the projected mesh, its
-box and the object's name on a tinted tag, t on a white tag. Our side of each frame is written by
-tools/build_qualitative.py, not by this tool.
+objects on each frame in the site's style (tools/overlay_style.py): light fill and darker outline of the projected
+mesh, its box and the object's name on a tinted tag, t on a white tag. Each object's colour is the one the comparison
+gives its name on that frame ("colours" of data/qualitative/index.json, written by tools/build_qualitative.py, which
+also draws our side: run that first).
 
-Needs the run's full artifacts (meshes, poses, frames: about 2 GB of the 7 GB under run/runs/qp_physmind_v2/artifacts);
-the copy on this machine holds two scenes only, and the site's images are redrawn from the run's published images by
-tools/restyle_baselines.py instead (same file names, same style).
+Needs the run's full artifacts (meshes, poses, frames under run/runs/qp_physmind_v2/artifacts), as downloaded to
+/nas/yumenghe/QuantiPhy-data/physmind_result/quantiphy. The geometry and the frames are the ones the run's own
+reconstructions/*.jpg were drawn from; only colours, line weights and labels follow the site.
 
   python -B tools/render_physmind.py   # --run defaults to RUN below
 
@@ -37,8 +38,8 @@ import numpy as np
 import trimesh
 
 ROOT = Path(__file__).resolve().parent.parent
-RUN = Path("/nas/yumenghe/QuantiPhy-data/physmind_result_new/quantiphy/run/runs/qp_physmind_v2")
-FRAMES = RUN.parents[2] / "reconstructions" / "index.json"  # the frames the run drew
+QUALITATIVE = ROOT / "data" / "qualitative" / "index.json"
+RUN = Path("/nas/yumenghe/QuantiPhy-data/physmind_result/quantiphy/run/runs/qp_physmind_v2")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import overlay_style as S  # noqa: E402
@@ -48,10 +49,10 @@ def read_json(path: Path) -> dict:
     return json.loads(path.read_text()) if path.exists() else {}
 
 
-def run_frames() -> dict[str, dict[int, dict]]:
-    """video -> frame -> {"t", "questions"} of the run's reconstructions/index.json."""
+def run_frames(run: Path) -> dict[str, dict[int, dict]]:
+    """video -> frame -> {"t", "questions"} of the run's reconstructions/index.json (the frames the run drew)."""
     return {v["video"]: {int(f["frame"]): {"t": f["t"], "questions": f["questions"]} for f in v["frames"]}
-            for v in read_json(FRAMES).get("videos", [])}
+            for v in read_json(run.parents[2] / "reconstructions" / "index.json").get("videos", [])}
 
 
 def question_objects(world: Path, plan_q: dict, match: dict) -> dict[str, tuple[str, dict]]:
@@ -113,7 +114,8 @@ def draw(frame: np.ndarray, K: np.ndarray, items: list[tuple[str, np.ndarray, np
     return S.tags(out, labels)
 
 
-def one_video(run: Path, measure: dict, wanted: dict[int, dict], out_dir: Path) -> dict:
+def one_video(run: Path, measure: dict, wanted: dict[int, dict], out_dir: Path,
+              colours: dict[int, dict[str, str]]) -> dict:
     vid = measure["video_id"]
     world = run / "artifacts" / f"scene_{measure['scene_index']}" / "world-modeling"
     plan_q = read_json(run / "plans" / f"{vid}.json")
@@ -136,11 +138,13 @@ def one_video(run: Path, measure: dict, wanted: dict[int, dict], out_dir: Path) 
     poses = read_json(world / "pose-estimation-and-tracking/foundationpose/foundationpose_poses.json")
     K = np.asarray(poses["fixed_intrinsics"], float) if poses.get("fixed_intrinsics") else None
     meshes = {}
-    colour = {label: S.BASELINE[i % len(S.BASELINE)] for i, label in enumerate(sorted(objs))}
     for fi, o in wanted.items():
         fr = {"frame": fi, "t": o["t"], "physmind": None, "questions": o["questions"], "drawn": [], "missing": []}
         if frames and fi < len(frames):
             img = cv2.imread(str(frames[fi]))
+            if fi not in colours:
+                raise ValueError(f"{vid} frame {fi}: no colours in {QUALITATIVE}; run tools/build_qualitative.py")
+            colour = {label: colours[fi][S.name_key(label)] for label in objs}
             items = []
             for label, (oid, obj) in sorted(objs.items()):
                 pose = next((p for p in obj["poses"] if p["frame_index"] == fi), None)
@@ -171,15 +175,17 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     for old in args.out.glob("*.jpg"):  # outputs of this tool only
         old.unlink()
-    chosen = run_frames()
+    chosen = run_frames(run)
+    comparison = {v["video"]: {int(f["frame"]): f["colours"] for f in v["frames"]}
+                  for v in json.loads(QUALITATIVE.read_text())["videos"]}
     videos = []
     for f in sorted((run / "measure").glob("*.json")):
         m = json.loads(f.read_text())
-        rec = one_video(run, m, chosen.get(m["video_id"], {}), args.out)
+        rec = one_video(run, m, chosen.get(m["video_id"], {}), args.out, comparison.get(m["video_id"], {}))
         videos.append(rec)
         print(rec["video"], [(fr["frame"], len(fr["drawn"]), len(fr["missing"])) for fr in rec["frames"]], rec["failed_stage"] or "")
     index = {"generated": datetime.date.today().isoformat(),
-             "run": "PhysMind variant B (qp_physmind_v2, all artifacts)", "videos": videos}
+             "run": str(run), "videos": videos}
     (args.out / "index.json").write_text(json.dumps(index, indent=1))
 
 

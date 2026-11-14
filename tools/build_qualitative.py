@@ -11,15 +11,21 @@ leaves the other's image out.
 For every frame, the first of its questions that has a fitted scene program (outputs/sceneprog/<tag>/<unit>/scene.json;
 a frame without questions: the video's first question with one) is drawn at that frame exactly as
 pipeline.sceneprog.evaluate draws its overlays, in the site's style (tools/overlay_style.py): the program rendered from
-its camera (visible outline 2 px, occluded silhouette 1 px, object colour from the palette in our order), the observed
-masks of the tracks it is bound to (white on dark), each object's IoU on that frame on a tag tinted with its colour,
-the unit and frame on a white tag. Reads saved programs only (no fitting, no model calls). A frame none of whose
-questions has a program raises.
+its camera (visible outline 2 px, occluded silhouette 1 px, in the object's outline shade), the observed masks of the
+tracks it is bound to (white on dark), each object's IoU on that frame on a tag tinted with its colour, the unit and
+frame on a white tag. Reads saved programs only (no fitting, no model calls). A frame none of whose questions has a
+program raises.
+
+Colours, one per object and per frame (overlay_style.object_colours): the program's asked object (query.object) first,
+then its other bodies by id, then the names PhysMind and Thinking with Spatial Code drew on that frame that none of ours
+matches. A name of theirs matching one of our objects' ids or track names takes that object's colour. The map is
+written to the frame's "colours" and tools/render_physmind.py and tools/restyle_baselines.py draw with it, so run
+this tool first.
 
 Writes data/qualitative/<tag>/<unit>_f<frame>.jpg and data/qualitative/index.json:
 {"generated", "ours" (scene-program tag), "videos": [{"video", "physmind": {"question_objects", "posed_question_objects",
 "failed_stage"}, "frames": [{"frame", "t", "questions", "ours", "ours_unit", "physmind", "physmind_missing",
-"spatialcode", "spatialcode_missing"}]}]}; images of an earlier build that no frame references are removed.
+"spatialcode", "spatialcode_missing", "colours" (name key -> colour)}]}]}; images of an earlier build that no frame references are removed.
 """
 from __future__ import annotations
 
@@ -53,7 +59,7 @@ SPATIALCODE = WEB / "data" / "spatialcode" / "index.json"
 INDEX = WEB / "data" / "qualitative" / "index.json"
 
 
-def draw(directory: Path, frame: int, out: Path) -> None:
+def draw(directory: Path, frame: int, out: Path, colours: dict[str, str]) -> None:
     """One overlay of the program in `directory` at `frame` (pipeline.sceneprog.evaluate._write_overlays)."""
     program, scad = load(directory)
     observed = ObservedMasks(program["observations"]["tracks_tag"], program["unit"], program["split"])
@@ -76,7 +82,7 @@ def draw(directory: Path, frame: int, out: Path) -> None:
         labels[oid] = f"{oid} IoU {rec['iou']:.2f}"
     video = Video(Path(program["video"]["path"]), fps=fps)
     try:
-        image = overlay(cv2.cvtColor(video.frame(frame), cv2.COLOR_RGB2BGR), r, obs, labels,
+        image = overlay(cv2.cvtColor(video.frame(frame), cv2.COLOR_RGB2BGR), r, obs, labels, colours,
                         f"{program['unit']}  frame {frame}  t={frame / fps:.2f}s")
     finally:
         video.close()
@@ -85,14 +91,16 @@ def draw(directory: Path, frame: int, out: Path) -> None:
         raise ValueError(f"{out}: not written")
 
 
-def overlay(bgr: np.ndarray, rendered: dict, observed: dict, labels: dict, header: str) -> np.ndarray:
-    """pipeline.sceneprog.render.overlay in the site's style: per object (ids sorted, colours in our order) the
-    observed mask outline (white on dark, 1 px), the rendered occluded silhouette (1 px) and visible outline (2 px) in
-    the object's colour; the labels as tags down the left edge under the header."""
+def overlay(bgr: np.ndarray, rendered: dict, observed: dict, labels: dict, colours: dict[str, str],
+            header: str) -> np.ndarray:
+    """pipeline.sceneprog.render.overlay in the site's style: per object (in the order of `colours`) the observed mask
+    outline (white on dark, 1 px), the rendered occluded silhouette (1 px) and visible outline (2 px) in the object's
+    outline shade; the labels as tags down the left edge under the header."""
     image = np.ascontiguousarray(bgr).copy()
     tags = [(header, 4, None, None)]
-    for i, oid in enumerate(sorted(set(labels))):
-        colour = S.OURS[i % len(S.OURS)]
+    order = list(colours)
+    for oid in sorted(set(labels), key=lambda o: order.index(S.name_key(o))):
+        colour = colours[S.name_key(oid)]
         obs = observed.get(oid)
         if obs is not None and obs.any():
             cs, _ = cv2.findContours(obs.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -101,11 +109,25 @@ def overlay(bgr: np.ndarray, rendered: dict, observed: dict, labels: dict, heade
         r = rendered.get(oid)
         if r is not None:
             cs, _ = cv2.findContours(r["silhouette"].astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            cv2.drawContours(image, cs, -1, S.bgr(colour), 1, cv2.LINE_AA)
+            cv2.drawContours(image, cs, -1, S.edge(colour), 1, cv2.LINE_AA)
             cs, _ = cv2.findContours(r["visible"].astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            cv2.drawContours(image, cs, -1, S.bgr(colour), 2, cv2.LINE_AA)
+            cv2.drawContours(image, cs, -1, S.edge(colour), 2, cv2.LINE_AA)
         tags.append((labels[oid], 4, None, colour))
     return S.tags(image, tags)
+
+
+def comparison_colours(program: dict, theirs: list[str]) -> dict[str, str]:
+    """name key -> colour for one frame: the program's asked object, its other bodies by id, then the baselines'
+    names that match none of ours (a name matching a body's id or track name is that body)."""
+    bodies = sorted(o["id"] for o in program["objects"] if o["kind"] == "body")
+    asked = (program.get("query") or {}).get("object")
+    ordered = ([asked] if asked in bodies else []) + [b for b in bodies if b != asked]
+    alias = {S.name_key(o["track"]): o["id"] for o in program["objects"]
+             if o["kind"] == "body" and o.get("track") is not None}
+    colours = S.object_colours(ordered, [alias.get(S.name_key(n), n) for n in theirs])
+    for n in theirs:  # their own spelling of a name of ours
+        colours.setdefault(S.name_key(n), colours[S.name_key(alias.get(S.name_key(n), n))])
+    return colours
 
 
 def frames(pm: dict, sc: dict) -> list[dict]:
@@ -119,11 +141,13 @@ def frames(pm: dict, sc: dict) -> list[dict]:
         blank = {"physmind": None, "physmind_missing": [], "spatialcode": None, "spatialcode_missing": []}
         for f in v["frames"]:
             rows[int(f["frame"])] = {"frame": int(f["frame"]), "t": f["t"], "questions": f["questions"], **blank,
-                                     "physmind": f["physmind"], "physmind_missing": f["missing"] if f["physmind"] else []}
+                                     "physmind": f["physmind"], "physmind_missing": f["missing"] if f["physmind"] else [],
+                                     "names": [d["label"] for d in f["drawn"]] + f["missing"]}
         for f in sc_videos[v["video"]]["frames"]:
             fi = int(f["drawn_frame"])
             row = rows.setdefault(fi, {"frame": fi, "t": f["drawn_t"], "questions": f["questions"], **blank})
             row["spatialcode"], row["spatialcode_missing"] = f["spatialcode"], f["missing"]
+            row["names"] = row.get("names", []) + [d["label"] for d in f["drawn"]] + f["missing"]
         videos.append({"video": v["video"],
                        "physmind": {k: v[k] for k in ("question_objects", "posed_question_objects", "failed_stage")},
                        "frames": [rows[k] for k in sorted(rows)]})
@@ -147,10 +171,11 @@ def main():
             if not units:
                 raise ValueError(f"{v['video']} frame {f['frame']}: none of {f['questions']} has a program in {args.tag}")
             unit, frame = units[0], int(f["frame"])
+            directory = ROOT / "outputs" / "sceneprog" / args.tag / unit
+            f["colours"] = comparison_colours(json.loads((directory / "scene.json").read_text()), f.pop("names", []))
             out = out_dir / f"{unit}_f{frame}.jpg"
-            if not out.exists():
-                draw(ROOT / "outputs" / "sceneprog" / args.tag / unit, frame, out)
-                drawn += 1
+            draw(directory, frame, out, f["colours"])
+            drawn += 1
             f["ours"], f["ours_unit"] = str(out.relative_to(WEB)), unit
             written.add(out)
     stale = [p for p in out_dir.glob("*.jpg") if p not in written]
@@ -159,7 +184,7 @@ def main():
     INDEX.write_text(json.dumps({"generated": datetime.date.today().isoformat(), "ours": args.tag, "videos": videos},
                                 ensure_ascii=False, indent=1))
     n = sum(len(v["frames"]) for v in videos)
-    print(f"{n} frames ({len(written)} of ours, {drawn} drawn now, {len(stale)} stale removed); "
+    print(f"{n} frames ({len(written)} of ours, {drawn} drawn, {len(stale)} stale removed); "
           f"PhysMind {sum(bool(f['physmind']) for v in videos for f in v['frames'])}, "
           f"Spatial Code {sum(bool(f['spatialcode']) for v in videos for f in v['frames'])}; {INDEX.relative_to(WEB)} written")
 
