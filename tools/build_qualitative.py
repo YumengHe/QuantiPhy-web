@@ -46,6 +46,7 @@ import numpy as np  # noqa: E402
 sys.path.insert(0, str(WEB / "tools"))
 import overlay_style as S  # noqa: E402
 
+from pipeline import palette  # noqa: E402
 from pipeline.data import Video  # noqa: E402
 from pipeline.sceneprog.masks import ObservedMasks  # noqa: E402
 from pipeline.sceneprog.metric import frame_record  # noqa: E402
@@ -109,9 +110,9 @@ def overlay(bgr: np.ndarray, rendered: dict, observed: dict, labels: dict, colou
         r = rendered.get(oid)
         if r is not None:
             cs, _ = cv2.findContours(r["silhouette"].astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            cv2.drawContours(image, cs, -1, S.edge(colour), 1, cv2.LINE_AA)
+            cv2.drawContours(image, cs, -1, palette.darker(S.bgr(colour)), 1, cv2.LINE_AA)
             cs, _ = cv2.findContours(r["visible"].astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            cv2.drawContours(image, cs, -1, S.edge(colour), 2, cv2.LINE_AA)
+            cv2.drawContours(image, cs, -1, palette.darker(S.bgr(colour)), 2, cv2.LINE_AA)
         tags.append((labels[oid], 4, None, colour))
     return S.tags(image, tags)
 

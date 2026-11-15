@@ -1,7 +1,8 @@
 """One drawing style for every object overlay the site shows (ours, PhysMind, Thinking with Spatial Code).
 
-Colours are the paper palette, read from site.css (--c-*). Every object of one image has its own colour, taken in a
-fixed order with the asked object first (object_colours); in one comparison an object keeps its colour across methods
+Object colours, their order and the outline shade are pipeline.palette's (the paper's palette; the time tag's grey
+and the text colour are read from site.css). Every object of one image has its own colour, taken in the fixed order
+with the asked object first (object_colours); in one comparison an object keeps its colour across methods
 when the names match. Each object: a light fill of its colour, its outline a little darker, and its name in dark text
 on a tag tinted with the colour (never pale text). Images are BGR uint8 (OpenCV).
 """
@@ -10,21 +11,21 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import sys
+
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 WEB = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(WEB.parent))
+from pipeline import palette  # noqa: E402  (the object colours, their order and the outline shade)
 _CSS = (WEB / "site.css").read_text()
 CSS_COLOURS = dict(re.findall(r"--c-([a-z]+):\s*(#[0-9A-Fa-f]{6})", _CSS))
 TEXT = re.search(r"--text:\s*(#[0-9A-Fa-f]{6})", _CSS).group(1)
-# the order objects take the palette in: the asked object blue, then orange, green, ...
-OBJECT_ORDER = ["blue", "orange", "green", "purple", "yellow", "teal", "red", "lavender", "pink", "olive", "sky", "grey"]
-OBJECTS = [CSS_COLOURS[c] for c in OBJECT_ORDER]
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FILL = 0.28          # weight of the object colour in its fill
 TAG_TINT = 0.45      # weight of the object colour in its label tag (rest white)
-EDGE = 0.72          # an outline is the object colour scaled by this (a little darker than the fill)
 
 
 def name_key(name: str) -> str:
@@ -44,23 +45,24 @@ def object_colours(ordered: list[str], *others: list[str]) -> dict[str, str]:
     """name key -> colour, for every name given. `ordered`: one method's objects, asked object first; `others`: the
     names other methods drew in the same comparison, in their own order. A name is a known one when its key is the
     same, else when exactly one known name's words (fillers aside) contain its words or are contained in them; it then
-    takes that name's colour, otherwise the next colour (wrapping around). The paper's figures use the same rule
-    (paper/figures/src/overlays.py)."""
-    known: dict[str, tuple[str, frozenset]] = {}  # key -> (colour, words) of the names that opened a colour
-    out: dict[str, str] = {}
+    takes that name's colour. The names that are not known open a colour each, in pipeline.palette's order
+    (palette.assign). The paper's figures use the same rule (paper/figures/src/overlays.py)."""
+    opened: dict[str, frozenset] = {}  # key -> words of the names that open a colour, in order
+    same: dict[str, str] = {}          # key -> the opening key it is
     for names in (ordered, *others):
         for n in names:
             k, w = name_key(n), name_words(n)
-            if k in known:
-                out[k] = known[k][0]
+            if k in opened:
+                same[k] = k
                 continue
-            near = [c for c, (_, cw) in known.items() if w and cw and (w <= cw or cw <= w)]
+            near = [c for c, cw in opened.items() if w and cw and (w <= cw or cw <= w)]
             if len(near) == 1:
-                out[k] = known[near[0]][0]
+                same[k] = near[0]
                 continue
-            known[k] = (OBJECTS[len(known) % len(OBJECTS)], w)
-            out[k] = known[k][0]
-    return out
+            opened[k] = w
+            same[k] = k
+    rgb = palette.assign(list(opened))
+    return {k: "#%02X%02X%02X" % rgb[o] for k, o in same.items()}
 
 
 def bgr(hex_colour: str) -> tuple[int, int, int]:
@@ -69,8 +71,8 @@ def bgr(hex_colour: str) -> tuple[int, int, int]:
 
 
 def edge(hex_colour: str) -> tuple[int, int, int]:
-    """The outline shade of an object colour (BGR)."""
-    return tuple(int(round(EDGE * c)) for c in bgr(hex_colour))
+    """The outline shade of an object colour (BGR): palette.darker."""
+    return palette.darker(bgr(hex_colour))
 
 
 def tint(hex_colour: str, w: float = TAG_TINT) -> tuple[int, int, int]:
