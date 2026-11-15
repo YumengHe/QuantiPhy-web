@@ -3,8 +3,10 @@
 Reads only the runs' outputs; never runs the pipeline. The page lists one row per question; a question is the
 unit <video_id>_q<k> (k = its 1-based order among the video's rows of the split table, docs/PER_QUESTION.md).
 
-  python -B web/tools/build_videos.py --val-runs v6gpt --sceneprog v6val \
-      --answers /nas/yumenghe/QuantiPhy-data/scratch/qp-code-3d-chain/answers_fix.json
+  python -B web/tools/build_videos.py --run main
+
+--run TAG: a run of the current chain (harness until track, then the scene program), see build_program_val. The rest
+of this header describes the older runs (--val-runs / --sceneprog / --answers), whose harness fitted its own scene.
 
 Runs are listed in order of preference: each question is shown from the first run whose CSV has its row, and every
 value of that question (pred, MRA, source, scene, overlays, tracks, scene graph) comes from that run alone. The page
@@ -4426,6 +4428,161 @@ def add_sceneprog(questions: list[dict], harness: str, build: str, answers: Path
     return {"harness": harness, "build": build, "answers": answers.name}
 
 
+# ---------- a run of the current chain (--run TAG): harness until track, then masks -> build -> fit -> answer ----------
+# The harness stops after tracking (pipeline.harness --until track: objects, scene graph grid, track, focal), so a
+# question has no harness scene; everything shown comes from outputs/sceneprog/<TAG>/<unit>/ (answer.json with both
+# answers, fit.json, plan.json, the plan grid and the shapes) and the harness record outputs/harness/<TAG>/answers/<unit>.json
+# (its timing). The fitted program's overlays are redrawn at the frames the chain drew (tools/sceneprog_overlay.py,
+# pipeline.palette) into data/runtime/<TAG>/<unit>/, recorded in data/runtime/<TAG>/overlays.json with the hash of
+# the drawing code; an image whose record matches the current code and program is kept.
+RUN_STEPS = ("objects", "scenegraph_grid", "track", "focal")
+RUN_STEP_LABELS = {"objects": "1 Objects", "scenegraph_grid": "3 Scene graph", "track": "4 Track", "focal": "5 Focal"}
+
+
+def drawing_hash() -> str:
+    files = [WEB / "tools" / "sceneprog_overlay.py", WEB / "tools" / "overlay_style.py", ROOT / "pipeline" / "palette.py",
+             ROOT / "pipeline" / "sceneprog" / "render.py", WEB / "site.css"]
+    return hashlib.sha256(b"".join(p.read_bytes() for p in files)).hexdigest()[:16]
+
+
+def run_overlays(tag: str, units: list[str], workers: int) -> dict[str, list[str]]:
+    """{unit: [page paths of its redrawn overlays]}; draws only what the record lacks (or drew with other code or from
+    another program), with `workers` processes; drops images no unit references."""
+    from concurrent.futures import ProcessPoolExecutor
+    out_root = WEB / "data" / "runtime" / tag
+    rec_file = out_root / "overlays.json"
+    record = json.loads(rec_file.read_text()) if rec_file.exists() else {}
+    h = drawing_hash()
+    todo, result = [], {}
+    for u in units:
+        d = ROOT / "outputs" / "sceneprog" / tag / u
+        frames = sorted(p.name for p in d.glob("overlay_f*.jpg"))
+        if not frames:
+            raise ValueError(f"{u}: no overlay_f*.jpg in {d.relative_to(ROOT)}")
+        scene = hashlib.sha256((d / "scene.json").read_bytes()).hexdigest()[:16]
+        paths = [f"data/runtime/{tag}/{u}/{n}" for n in frames]
+        e = record.get(u)
+        if not (e and e["drawing"] == h and e["scene"] == scene and e["paths"] == paths
+                and all((WEB / p).is_file() for p in paths)):
+            todo.append(u)
+            record[u] = {"drawing": h, "scene": scene, "paths": paths}
+        result[u] = paths
+    if todo:
+        with ProcessPoolExecutor(max_workers=workers) as ex:
+            for u, outs in zip(todo, ex.map(_draw_unit, [(tag, u) for u in todo])):
+                if [f"data/runtime/{tag}/{u}/{p.name}" for p in outs] != result[u]:
+                    raise ValueError(f"{u}: redrawn frames differ from the chain's")
+    for k in set(record) - set(units):
+        record.pop(k)
+    keep = {p for ps in result.values() for p in ps}
+    stale = [p for p in out_root.rglob("*.jpg") if str(p.relative_to(WEB)) not in keep]
+    for p in stale:
+        p.unlink()
+    for d in sorted(out_root.glob("*/"), reverse=True):
+        if d.is_dir() and not any(d.iterdir()):
+            d.rmdir()
+    out_root.mkdir(parents=True, exist_ok=True)
+    rec_file.write_text(json.dumps(record, indent=1, sort_keys=True))
+    print(f"{tag}: {len(todo)} units redrawn ({sum(len(result[u]) for u in todo)} overlays), {len(stale)} stale images removed")
+    return result
+
+
+def _draw_unit(arg):
+    tag, unit = arg
+    sys.path.insert(0, str(WEB / "tools"))
+    from sceneprog_overlay import draw_unit
+    return draw_unit(ROOT / "outputs" / "sceneprog" / tag / unit, WEB / "data" / "runtime" / tag / unit)
+
+
+def run_answer(tag: str, unit: str, truth) -> dict:
+    """One question's products of the run: both answers (answer.json: answer_scene, the strict read-out, undetermined
+    = no value; answer_final, the agent's, the reported one) with their MRA, the fit's status, each chain step's time
+    (build: plan.json timing; fit: fit.json time_s; the answer record has no timing) and the plan
+    grid and shapes of the build."""
+    AT["where"] = f"{tag} {unit}"
+    bd = ROOT / "outputs" / "sceneprog" / tag / unit
+    a = read_json(bd / "answer.json", "scene-program answer")
+    if req(a, "schema", "scene-program answer") != "sceneprog-answer/1" or a["unit"] != unit:
+        raise ValueError(f"{unit}: answer record schema / unit {a.get('schema')!r} {a.get('unit')!r}")
+    sc, fi = req(a, "answer_scene", "answer record"), req(a, "answer_final", "answer record")
+    det = bool(req(sc, "determined", "answer_scene"))
+    if det and sc.get("value") is None:
+        raise ValueError(f"{unit}: a determined read-out without a value")
+    fit, plan = read_json(bd / "fit.json", "fit"), read_json(bd / "plan.json", "plan")
+    scene_value = sc["value"] if det else None
+    SP_RAW[unit] = (fi.get("value"), scene_value)
+    return {"scene": num(scene_value), "sigma": num(sc.get("sigma"), 3) if det else None, "determined": det,
+            "reason": text(sc.get("reason")) or None, "scene_mra": sp_mra(scene_value, truth),
+            "final": num(fi.get("value")), "final_mra": sp_mra(fi.get("value"), truth),
+            "unit": text(fi.get("unit") or sc.get("unit")), "rationale": text(fi.get("rationale")) or None,
+            "fit_status": text(req(fit, "status", "fit")),
+            "time": {"build": num(req(req(plan, "timing", "plan"), "total_s", "plan timing"), 4),
+                     "fit": num(req(fit, "time_s", "fit"), 4)},
+            "renders": {"plan_grid": sp_media(tag, unit, "plan_grid.jpg"), "shapes": sp_media(tag, unit, "shapes.png")}}
+
+
+def build_program_val(tag: str, make_thumb: bool, workers: int) -> dict:
+    """Every question of the validation table from run `tag` (see RUN_STEPS above). Every unit must have its
+    products; a missing one is an error."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", tag):
+        raise ValueError(f"invalid run tag: {tag!r}")
+    manifest, dev = manifest_units(), dev_units()
+    overlays = run_overlays(tag, list(manifest["unit"]), workers)
+    videos, questions = {}, []
+    for i, row in manifest.iterrows():
+        unit, vid = row["unit"], row["video_id"]
+        AT["where"] = f"{tag} {unit}"
+        if vid not in videos:
+            duration, width, height, thumb = video_meta(vid, make_thumb)
+            videos[vid] = {"id": vid, "source": row["video_source"], "video_type": row["video_type"],
+                           "fps": num(row["fps"]), "duration": duration, "size": [width, height], "thumb": thumb,
+                           **video_info(vid)}
+        rec = read_json(ROOT / "outputs/harness" / tag / "answers" / f"{unit}.json", "harness record")
+        for key in ("unit", "row", "question", "prior", "depth_info"):
+            want = unit if key == "unit" else i if key == "row" else row[key]
+            if text(req(rec, key, "harness record")) != text(want):
+                raise ValueError(f"{unit}: harness record {key} differs from the validation table")
+        t = req(rec, "timing", "harness record")
+        steps = req(t, "steps", "timing")
+        if list(steps) != list(RUN_STEPS):
+            raise ValueError(f"{unit}: harness timing steps {list(steps)}, expected {list(RUN_STEPS)}")
+        tq, tjump = question_times(row["question"], None)
+        sp = run_answer(tag, unit, row["answer"])
+        sp["renders"]["overlays"] = overlays[unit]
+        questions.append({"id": unit, "video": vid, "k": int(row["k"]), "row": int(i), "cat": row["category"],
+                          "type": row["inference_type"], "q": row["question"], "prior": text(row["prior"]),
+                          "depth": text(row["depth_info"]), "answer": num(row["answer"]), "tq": tq, "tjump": tjump,
+                          "time": {"total": num(req(t, "total_seconds", "timing"), 5),
+                                   "steps": [{"step": k, "s": num(req(steps[k], "seconds", f"timing step {k}"), 4),
+                                              "reused": steps[k].get("reused", False),
+                                              "cached": bool(steps[k].get("cached", False)),
+                                              "shared": steps[k].get("shared")} for k in RUN_STEPS]},
+                          "sp": sp})
+    print(f"val: {len(questions)} questions ({len(dev)} DEV20), {len(videos)} videos, "
+          f"{sum(q['sp']['determined'] for q in questions)} determined read-outs")
+    return {"dev": dev, "videos": [videos[v] for v in sorted(videos)], "questions": questions}
+
+
+def write_run_time_table(questions: list[dict]) -> int:
+    """The time-per-step table of pipeline.html (between TIME_TABLE_MARKS) from the harness records' timing of a
+    --run build: median / min / max seconds of each harness step."""
+    page = PIPELINE_HTML.read_text()
+    a, b = TIME_TABLE_MARKS
+    if page.count(a) != 1 or page.count(b) != 1 or page.index(a) > page.index(b):
+        raise ValueError(f"{PIPELINE_HTML.name}: step-time table marks missing or out of order")
+    cells = lambda v: "".join(f'<td class="n">{x:.1f}</td>' for x in (float(np.median(v)), min(v), max(v)))
+    rows = [f'  <tr><td data-i18n>{RUN_STEP_LABELS[k]}</td><td><code>{k}</code></td>'
+            f'{cells([q["time"]["steps"][i]["s"] for q in questions])}</tr>' for i, k in enumerate(RUN_STEPS)]
+    table = ('\n<div class="scroll-x"><table class="tt">\n'
+             '  <tr><th data-i18n>Step</th><th data-i18n>Timing key</th><th class="n" data-i18n>Median (s)</th>'
+             '<th class="n" data-i18n>Min</th><th class="n" data-i18n>Max</th></tr>\n'
+             + "\n".join(rows) + '\n</table></div>\n')
+    new = page[:page.index(a) + len(a)] + table + page[page.index(b):]
+    if new != page:
+        PIPELINE_HTML.write_text(new)
+    return len(questions)
+
+
 OURS_JSON = WEB / "data" / "comparison_ours.json"
 
 
@@ -4443,8 +4600,8 @@ def write_comparison_ours(questions: list[dict], sp: dict) -> int:
         final, scene = SP_RAW[b["id"]]
         out[b["id"]] = {"cat": q["cat"], "final": q["sp"]["final"], "final_mra": sp_mra(final, b["answer"]),
                         "scene_mra": sp_mra(scene, b["answer"])}
-    OURS_JSON.write_text(json.dumps({"label": "Ours", "version": base_version(sp["harness"]),
-                                     "run": [sp["harness"], sp["build"], sp["answers"]], "questions": out},
+    run = [sp["harness"], sp["build"], sp["answers"]] if sp.get("answers") else [sp["build"]]
+    OURS_JSON.write_text(json.dumps({"label": "Ours", "run": run, "questions": out},
                                     ensure_ascii=False, separators=(",", ":")))
     return len(out)
 
@@ -4558,8 +4715,22 @@ def main():
                     help="the answer step's table on those programs ({unit: entry}, records in the directory of the "
                          "same stem); required with --sceneprog")
     ap.add_argument("--rethumb", action="store_true", help="regenerate thumbnails that already exist")
+    ap.add_argument("--run", metavar="TAG",
+                    help="a run of the current chain (harness until track, then the scene program): every question "
+                         "from outputs/sceneprog/<TAG>/<unit>/ and outputs/harness/<TAG>/answers/; replaces "
+                         "--val-runs / --sceneprog / --answers")
+    ap.add_argument("--workers", type=int, default=3, help="processes redrawing overlays (--run)")
     args = ap.parse_args()
     THUMBS.mkdir(parents=True, exist_ok=True)
+    if args.run:
+        if args.sceneprog or args.answers or ap.get_default("val_runs") != args.val_runs:
+            raise ValueError("--run replaces --val-runs / --sceneprog / --answers")
+        data = {"generated": date.today().isoformat(), "val": build_program_val(args.run, args.rethumb, args.workers)}
+        data["val"]["sceneprog"] = {"build": args.run}
+        print(f"comparison_ours.json: {write_comparison_ours(data['val']['questions'], data['val']['sceneprog'])} baseline questions")
+        finish(data)
+        print(f"pipeline.html: step-time table, {write_run_time_table(data['val']['questions'])} questions")
+        return
     runs = [parse_run(s) for s in args.val_runs]
     has_sp = [t for t, _ in runs if version_format(t).get("sceneprog")]
     if has_sp and (has_sp != [runs[0][0]] or not args.sceneprog or not args.answers):
@@ -4570,6 +4741,13 @@ def main():
     if has_sp:
         data["val"]["sceneprog"] = add_sceneprog(data["val"]["questions"], runs[0][0], args.sceneprog, args.answers.resolve())
         print(f"comparison_ours.json: {write_comparison_ours(data['val']['questions'], data['val']['sceneprog'])} baseline questions")
+    finish(data)
+    first = data["val"]["runs"][0]["version"]
+    print(f"pipeline.html: step-time table, {write_time_table(data['val']['questions'], first)} {first} questions")
+
+
+def finish(data: dict):
+    """Write videos.json, drop unreferenced thumbs, regenerate the class-size table."""
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
     used = {Path(v["thumb"]).name for v in data["val"]["videos"]}
@@ -4579,8 +4757,6 @@ def main():
     if stale:
         print(f"{len(stale)} unreferenced thumbs removed")
     print(f"pipeline.html: class-size table, {write_class_table()} classes")
-    first = data["val"]["runs"][0]["version"]
-    print(f"pipeline.html: step-time table, {write_time_table(data['val']['questions'], first)} {first} questions")
     sizes = [p.stat().st_size for p in THUMBS.glob("*.jpg")]
     print(f"wrote {OUT} ({OUT.stat().st_size / 1e6:.2f} MB); {len(sizes)} thumbs, {sum(sizes) / 1e6:.2f} MB, max {max(sizes, default=0)} B")
 

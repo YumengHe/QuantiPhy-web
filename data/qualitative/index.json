@@ -1,6 +1,6 @@
 {
- "generated": "2026-11-14",
- "ours": "v6val",
+ "generated": "2026-11-15",
+ "ours": "main",
  "videos": [
   {
    "video": "captured_0013",
@@ -35,7 +35,7 @@
       "notebook": "#6FB5AE",
       "ball": "#C0564F"
      },
-     "ours": "data/qualitative/v6val/captured_0013_q1_f0.jpg",
+     "ours": "data/qualitative/main/captured_0013_q1_f0.jpg",
      "ours_unit": "captured_0013_q1"
     }
    ]
@@ -63,7 +63,7 @@
       "table": "#5B8DB8",
       "pingpongball": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/captured_0021x_q4_f0.jpg",
+     "ours": "data/qualitative/main/captured_0021x_q4_f0.jpg",
      "ours_unit": "captured_0021x_q4"
     },
     {
@@ -81,7 +81,7 @@
       "woodentable": "#E09A6E",
       "table": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/captured_0021x_q3_f23.jpg",
+     "ours": "data/qualitative/main/captured_0021x_q3_f23.jpg",
      "ours_unit": "captured_0021x_q3"
     },
     {
@@ -98,7 +98,7 @@
       "pingpongball": "#5B8DB8",
       "woodentable": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/captured_0021x_q3_f24.jpg",
+     "ours": "data/qualitative/main/captured_0021x_q3_f24.jpg",
      "ours_unit": "captured_0021x_q3"
     },
     {
@@ -116,7 +116,7 @@
       "pingpongball": "#5B8DB8",
       "table": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/captured_0021x_q2_f34.jpg",
+     "ours": "data/qualitative/main/captured_0021x_q2_f34.jpg",
      "ours_unit": "captured_0021x_q2"
     }
    ]
@@ -139,9 +139,9 @@
      "spatialcode_missing": [],
      "colours": {
       "redball": "#5B8DB8",
-      "suspensionsupport": "#E09A6E"
+      "suspension": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/captured_0027s_q1_f0.jpg",
+     "ours": "data/qualitative/main/captured_0027s_q1_f0.jpg",
      "ours_unit": "captured_0027s_q1"
     }
    ]
@@ -170,11 +170,11 @@
      "spatialcode_missing": [],
      "colours": {
       "pencilbag": "#5B8DB8",
-      "soccerball": "#E09A6E",
+      "righttennisball": "#E09A6E",
       "lefttennisball": "#92B573",
-      "righttennisball": "#C58BC0"
+      "soccerball": "#C58BC0"
      },
-     "ours": "data/qualitative/v6val/captured_0034as_q3_f0.jpg",
+     "ours": "data/qualitative/main/captured_0034as_q3_f0.jpg",
      "ours_unit": "captured_0034as_q3"
     },
     {
@@ -193,7 +193,7 @@
       "lefttennisball": "#92B573",
       "soccerball": "#C58BC0"
      },
-     "ours": "data/qualitative/v6val/captured_0034as_q2_f29.jpg",
+     "ours": "data/qualitative/main/captured_0034as_q2_f29.jpg",
      "ours_unit": "captured_0034as_q2"
     },
     {
@@ -213,7 +213,7 @@
       "righttennisball": "#92B573",
       "soccerball": "#C58BC0"
      },
-     "ours": "data/qualitative/v6val/captured_0034as_q6_f31.jpg",
+     "ours": "data/qualitative/main/captured_0034as_q6_f31.jpg",
      "ours_unit": "captured_0034as_q6"
     }
    ]
@@ -240,7 +240,7 @@
       "soccerball": "#5B8DB8",
       "person": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/captured_0041x_q1_f0.jpg",
+     "ours": "data/qualitative/main/captured_0041x_q1_f0.jpg",
      "ours_unit": "captured_0041x_q1"
     },
     {
@@ -257,7 +257,7 @@
       "soccerball": "#5B8DB8",
       "person": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/captured_0041x_q2_f36.jpg",
+     "ours": "data/qualitative/main/captured_0041x_q2_f36.jpg",
      "ours_unit": "captured_0041x_q2"
     },
     {
@@ -274,7 +274,7 @@
       "soccerball": "#5B8DB8",
       "person": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/captured_0041x_q2_f37.jpg",
+     "ours": "data/qualitative/main/captured_0041x_q2_f37.jpg",
      "ours_unit": "captured_0041x_q2"
     },
     {
@@ -291,7 +291,7 @@
       "soccerball": "#5B8DB8",
       "person": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/captured_0041x_q2_f38.jpg",
+     "ours": "data/qualitative/main/captured_0041x_q2_f38.jpg",
      "ours_unit": "captured_0041x_q2"
     }
    ]
@@ -329,7 +329,7 @@
       "floor": "#C58BC0",
       "yogaball": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/captured_0061_q1_f0.jpg",
+     "ours": "data/qualitative/main/captured_0061_q1_f0.jpg",
      "ours_unit": "captured_0061_q1"
     },
     {
@@ -352,7 +352,7 @@
       "basketball": "#C58BC0",
       "floor": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/captured_0061_q6_f14.jpg",
+     "ours": "data/qualitative/main/captured_0061_q6_f14.jpg",
      "ours_unit": "captured_0061_q6"
     },
     {
@@ -374,7 +374,7 @@
       "basketball": "#C58BC0",
       "floor": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/captured_0061_q7_f22.jpg",
+     "ours": "data/qualitative/main/captured_0061_q7_f22.jpg",
      "ours_unit": "captured_0061_q7"
     },
     {
@@ -394,7 +394,7 @@
       "soccerball": "#C58BC0",
       "floor": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/captured_0061_q9_f37.jpg",
+     "ours": "data/qualitative/main/captured_0061_q9_f37.jpg",
      "ours_unit": "captured_0061_q9"
     },
     {
@@ -417,7 +417,7 @@
       "floor": "#C58BC0",
       "soccerball": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/captured_0061_q9_f38.jpg",
+     "ours": "data/qualitative/main/captured_0061_q9_f38.jpg",
      "ours_unit": "captured_0061_q9"
     },
     {
@@ -437,13 +437,13 @@
      "spatialcode": "data/spatialcode/captured_0061_f48.jpg",
      "spatialcode_missing": [],
      "colours": {
-      "soccerball": "#5B8DB8",
-      "person": "#E09A6E",
-      "yogaball": "#92B573",
-      "basketball": "#C58BC0",
-      "floor": "#E5B455"
+      "person": "#5B8DB8",
+      "yogaball": "#E09A6E",
+      "basketball": "#92B573",
+      "floor": "#C58BC0",
+      "soccerball": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/captured_0061_q3_f48.jpg",
+     "ours": "data/qualitative/main/captured_0061_q3_f48.jpg",
      "ours_unit": "captured_0061_q3"
     }
    ]
@@ -471,7 +471,7 @@
       "blackcar": "#5B8DB8",
       "whitecar": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/internet_0001_q1_f0.jpg",
+     "ours": "data/qualitative/main/internet_0001_q1_f0.jpg",
      "ours_unit": "internet_0001_q1"
     }
    ]
@@ -506,7 +506,7 @@
       "saw": "#92B573",
       "ruler": "#C58BC0"
      },
-     "ours": "data/qualitative/v6val/internet_0004_q2_f0.jpg",
+     "ours": "data/qualitative/main/internet_0004_q2_f0.jpg",
      "ours_unit": "internet_0004_q2"
     }
    ]
@@ -533,16 +533,15 @@
      "spatialcode_missing": [],
      "colours": {
       "leftsign": "#5B8DB8",
-      "leftsignpost": "#E09A6E",
-      "rightsignpost": "#92B573",
-      "rightsign": "#C58BC0",
-      "person": "#E5B455",
-      "womaninyellow": "#6FB5AE",
-      "twoblackroadsigns": "#C0564F",
-      "lightrightabovethewomanshead": "#9B93C9",
-      "floortiles": "#DE8C9D"
+      "backwall": "#E09A6E",
+      "rightsign": "#92B573",
+      "person": "#C58BC0",
+      "womaninyellow": "#E5B455",
+      "twoblackroadsigns": "#6FB5AE",
+      "lightrightabovethewomanshead": "#C0564F",
+      "floortiles": "#9B93C9"
      },
-     "ours": "data/qualitative/v6val/internet_0005_q1_f0.jpg",
+     "ours": "data/qualitative/main/internet_0005_q1_f0.jpg",
      "ours_unit": "internet_0005_q1"
     }
    ]
@@ -573,19 +572,20 @@
      "colours": {
       "straightthroughlane": "#5B8DB8",
       "walkingperson": "#E09A6E",
-      "whitecar": "#92B573",
-      "darkcarabove": "#C58BC0",
+      "darkcarupperleft": "#92B573",
+      "whitecarbelow": "#C58BC0",
       "silvercar": "#E5B455",
-      "darkcarbelow": "#6FB5AE",
-      "roundaboutlane": "#C0564F",
-      "blackcar": "#9B93C9",
-      "centerislandplanter": "#DE8C9D",
-      "whitecarintheroundabout": "#92B573",
+      "roundaboutlane": "#6FB5AE",
+      "blackcar": "#C0564F",
+      "whitecar": "#C58BC0",
+      "centerislandplanter": "#9B93C9",
+      "whitecarintheroundabout": "#DE8C9D",
       "bicycleontheupperleftcorner": "#C2BB66",
       "twoblackcarsintheroundabout": "#7FA6CF",
-      "pedestrian": "#B9BEC4"
+      "pedestrian": "#B9BEC4",
+      "whitecarright": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/internet_0013_q1_f0.jpg",
+     "ours": "data/qualitative/main/internet_0013_q1_f0.jpg",
      "ours_unit": "internet_0013_q1"
     },
     {
@@ -601,18 +601,18 @@
      "colours": {
       "blackcarone": "#5B8DB8",
       "blackcartwo": "#E09A6E",
-      "pedestrian": "#92B573",
-      "whitecarright": "#C58BC0",
-      "whitecarbottom": "#E5B455",
-      "straightthroughlane": "#6FB5AE",
-      "roundaboutlane": "#C0564F",
-      "centerislandplanter": "#9B93C9",
-      "whitecarintheroundabout": "#DE8C9D",
-      "bicycleontheupperleftcorner": "#C2BB66",
-      "twoblackcarsintheroundabout": "#7FA6CF",
-      "silvercarentrance": "#B9BEC4"
+      "lowerwhitecar": "#92B573",
+      "straightthroughlane": "#C58BC0",
+      "roundaboutlane": "#E5B455",
+      "centerislandplanter": "#6FB5AE",
+      "whitecarintheroundabout": "#C0564F",
+      "bicycleontheupperleftcorner": "#9B93C9",
+      "twoblackcarsintheroundabout": "#DE8C9D",
+      "pedestrian": "#C2BB66",
+      "rightwhitecar": "#7FA6CF",
+      "lowerleftsilvercar": "#B9BEC4"
      },
-     "ours": "data/qualitative/v6val/internet_0013_q6_f27.jpg",
+     "ours": "data/qualitative/main/internet_0013_q6_f27.jpg",
      "ours_unit": "internet_0013_q6"
     },
     {
@@ -628,15 +628,15 @@
      "colours": {
       "blackcarone": "#5B8DB8",
       "blackcartwo": "#E09A6E",
-      "pedestrian": "#92B573",
-      "whitecarright": "#C58BC0",
-      "whitecarbottom": "#E5B455",
-      "blackcar": "#6FB5AE",
-      "roundaboutlane": "#C0564F",
-      "whitecar": "#9B93C9",
-      "silvercarentrance": "#DE8C9D"
+      "blackcar": "#92B573",
+      "roundaboutlane": "#C58BC0",
+      "whitecar": "#E5B455",
+      "rightwhitecar": "#E5B455",
+      "lowerleftsilvercar": "#6FB5AE",
+      "lowerwhitecar": "#E5B455",
+      "pedestrian": "#C0564F"
      },
-     "ours": "data/qualitative/v6val/internet_0013_q6_f30.jpg",
+     "ours": "data/qualitative/main/internet_0013_q6_f30.jpg",
      "ours_unit": "internet_0013_q6"
     },
     {
@@ -651,20 +651,21 @@
      "spatialcode_missing": [],
      "colours": {
       "bicycle": "#5B8DB8",
-      "darkcar": "#E09A6E",
-      "whitecar": "#92B573",
-      "silvercar": "#C58BC0",
-      "blackcar": "#E5B455",
-      "roundaboutlane": "#6FB5AE",
-      "straightthroughlane": "#C0564F",
-      "centerislandplanter": "#9B93C9",
-      "whitecarintheroundabout": "#92B573",
+      "pedestrian": "#E09A6E",
+      "rightwhitecar": "#92B573",
+      "darkcar": "#C58BC0",
+      "entrancewhitecar": "#E5B455",
+      "blackcar": "#6FB5AE",
+      "roundaboutlane": "#C0564F",
+      "whitecar": "#9B93C9",
+      "straightthroughlane": "#DE8C9D",
+      "centerislandplanter": "#C2BB66",
+      "whitecarintheroundabout": "#9B93C9",
       "bicycleontheupperleftcorner": "#5B8DB8",
-      "twoblackcarsintheroundabout": "#DE8C9D",
-      "pedestrian": "#C2BB66",
-      "walkingperson": "#7FA6CF"
+      "twoblackcarsintheroundabout": "#7FA6CF",
+      "lowerwhitecar": "#9B93C9"
      },
-     "ours": "data/qualitative/v6val/internet_0013_q5_f90.jpg",
+     "ours": "data/qualitative/main/internet_0013_q5_f90.jpg",
      "ours_unit": "internet_0013_q5"
     }
    ]
@@ -704,7 +705,7 @@
       "personontheleftthepasser": "#C58BC0",
       "personontherightthereceiver": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/internet_0019_q1_f0.jpg",
+     "ours": "data/qualitative/main/internet_0019_q1_f0.jpg",
      "ours_unit": "internet_0019_q1"
     },
     {
@@ -726,7 +727,7 @@
       "personontheleftthepasser": "#C58BC0",
       "personontherightthereceiver": "#92B573"
      },
-     "ours": "data/qualitative/v6val/internet_0019_q6_f30.jpg",
+     "ours": "data/qualitative/main/internet_0019_q6_f30.jpg",
      "ours_unit": "internet_0019_q6"
     }
    ]
@@ -767,7 +768,7 @@
       "whitecueball": "#E5B455",
       "yellowball": "#6FB5AE"
      },
-     "ours": "data/qualitative/v6val/internet_0027_q1_f0.jpg",
+     "ours": "data/qualitative/main/internet_0027_q1_f0.jpg",
      "ours_unit": "internet_0027_q1"
     },
     {
@@ -787,12 +788,11 @@
       "whiteball": "#5B8DB8",
       "purpleball": "#E09A6E",
       "blackball": "#92B573",
-      "blueball": "#C58BC0",
+      "orangeball": "#C58BC0",
       "yellowball": "#E5B455",
-      "orangeball": "#6FB5AE",
       "yellowballontheleft": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/internet_0027_q2_f25.jpg",
+     "ours": "data/qualitative/main/internet_0027_q2_f25.jpg",
      "ours_unit": "internet_0027_q2"
     },
     {
@@ -809,12 +809,11 @@
       "whiteball": "#5B8DB8",
       "purpleball": "#E09A6E",
       "blackball": "#92B573",
-      "blueball": "#C58BC0",
+      "orangeball": "#C58BC0",
       "yellowball": "#E5B455",
-      "orangeball": "#6FB5AE",
       "yellowballontheleft": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/internet_0027_q2_f50.jpg",
+     "ours": "data/qualitative/main/internet_0027_q2_f50.jpg",
      "ours_unit": "internet_0027_q2"
     }
    ]
@@ -853,7 +852,7 @@
       "woodensteps": "#C58BC0",
       "cabinfloor": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/simulation_0009_q1_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0009_q1_f0.jpg",
      "ours_unit": "simulation_0009_q1"
     }
    ]
@@ -886,18 +885,17 @@
      "spatialcode": "data/spatialcode/simulation_0015_f0.jpg",
      "spatialcode_missing": [],
      "colours": {
-      "sculpture": "#5B8DB8",
-      "pedestal": "#E09A6E",
-      "person": "#92B573",
-      "displaypanel": "#C58BC0",
       "centralsculpture": "#5B8DB8",
-      "freestandingartdisplaypanel": "#C58BC0",
-      "pedestalsquarebase": "#E09A6E",
-      "pedestalsquarebaseofthecentralsculpture": "#E5B455",
-      "benchseatintheatrium": "#6FB5AE",
-      "openroofframelattice": "#C0564F"
+      "centralpedestal": "#E09A6E",
+      "displaypanel": "#92B573",
+      "person": "#C58BC0",
+      "freestandingartdisplaypanel": "#92B573",
+      "pedestalsquarebase": "#E5B455",
+      "pedestalsquarebaseofthecentralsculpture": "#6FB5AE",
+      "benchseatintheatrium": "#C0564F",
+      "openroofframelattice": "#9B93C9"
      },
-     "ours": "data/qualitative/v6val/simulation_0015_q1_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0015_q1_f0.jpg",
      "ours_unit": "simulation_0015_q1"
     }
    ]
@@ -932,7 +930,7 @@
       "person": "#E09A6E",
       "eagle": "#92B573"
      },
-     "ours": "data/qualitative/v6val/simulation_0034_segmented_q1_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0034_segmented_q1_f0.jpg",
      "ours_unit": "simulation_0034_segmented_q1"
     }
    ]
@@ -971,19 +969,19 @@
      "spatialcode_missing": [],
      "colours": {
       "whitecar": "#5B8DB8",
-      "yellowcar": "#E09A6E",
-      "bike": "#92B573",
-      "human": "#C58BC0",
+      "human": "#E09A6E",
+      "yellowcar": "#92B573",
+      "bike": "#C58BC0",
       "bicycle": "#E5B455",
       "bicyclewheel": "#E5B455",
       "trashcan": "#6FB5AE",
       "walkingpedestrian": "#C0564F",
       "lane": "#9B93C9",
-      "turningyellowcar": "#E09A6E",
+      "turningyellowcar": "#92B573",
       "greencar": "#DE8C9D",
       "threestackedtrashbags": "#C2BB66"
      },
-     "ours": "data/qualitative/v6val/simulation_0060_q2_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0060_q2_f0.jpg",
      "ours_unit": "simulation_0060_q2"
     }
    ]
@@ -1014,7 +1012,7 @@
       "bigbird": "#5B8DB8",
       "smallbird": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/simulation_0089_q1_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0089_q1_f0.jpg",
      "ours_unit": "simulation_0089_q1"
     }
    ]
@@ -1043,7 +1041,7 @@
       "boat": "#5B8DB8",
       "shark": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/simulation_0098_segmented_q1_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0098_segmented_q1_f0.jpg",
      "ours_unit": "simulation_0098_segmented_q1"
     }
    ]
@@ -1076,7 +1074,7 @@
       "ball": "#E09A6E",
       "ballreturnopening": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/simulation_0163_q5_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0163_q5_f0.jpg",
      "ours_unit": "simulation_0163_q5"
     },
     {
@@ -1095,7 +1093,7 @@
       "bowlingpin": "#E09A6E",
       "ballreturnopening": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0163_q1_f11.jpg",
+     "ours": "data/qualitative/main/simulation_0163_q1_f11.jpg",
      "ours_unit": "simulation_0163_q1"
     },
     {
@@ -1113,7 +1111,7 @@
       "ball": "#5B8DB8",
       "bowlingpin": "#E09A6E"
      },
-     "ours": "data/qualitative/v6val/simulation_0163_q1_f12.jpg",
+     "ours": "data/qualitative/main/simulation_0163_q1_f12.jpg",
      "ours_unit": "simulation_0163_q1"
     },
     {
@@ -1132,7 +1130,7 @@
       "bowlingpin": "#E09A6E",
       "ballreturnopening": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0163_q3_f24.jpg",
+     "ours": "data/qualitative/main/simulation_0163_q3_f24.jpg",
      "ours_unit": "simulation_0163_q3"
     }
    ]
@@ -1159,7 +1157,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0170_segmented_q1_f12.jpg",
+     "ours": "data/qualitative/main/simulation_0170_segmented_q1_f12.jpg",
      "ours_unit": "simulation_0170_segmented_q1"
     },
     {
@@ -1176,7 +1174,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0170_segmented_q1_f13.jpg",
+     "ours": "data/qualitative/main/simulation_0170_segmented_q1_f13.jpg",
      "ours_unit": "simulation_0170_segmented_q1"
     },
     {
@@ -1193,7 +1191,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0170_segmented_q3_f23.jpg",
+     "ours": "data/qualitative/main/simulation_0170_segmented_q3_f23.jpg",
      "ours_unit": "simulation_0170_segmented_q3"
     },
     {
@@ -1210,7 +1208,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0170_segmented_q3_f24.jpg",
+     "ours": "data/qualitative/main/simulation_0170_segmented_q3_f24.jpg",
      "ours_unit": "simulation_0170_segmented_q3"
     },
     {
@@ -1227,7 +1225,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0170_segmented_q5_f48.jpg",
+     "ours": "data/qualitative/main/simulation_0170_segmented_q5_f48.jpg",
      "ours_unit": "simulation_0170_segmented_q5"
     },
     {
@@ -1244,7 +1242,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0170_segmented_q7_f71.jpg",
+     "ours": "data/qualitative/main/simulation_0170_segmented_q7_f71.jpg",
      "ours_unit": "simulation_0170_segmented_q7"
     },
     {
@@ -1261,7 +1259,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0170_segmented_q7_f72.jpg",
+     "ours": "data/qualitative/main/simulation_0170_segmented_q7_f72.jpg",
      "ours_unit": "simulation_0170_segmented_q7"
     }
    ]
@@ -1288,7 +1286,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0171_q1_f12.jpg",
+     "ours": "data/qualitative/main/simulation_0171_q1_f12.jpg",
      "ours_unit": "simulation_0171_q1"
     },
     {
@@ -1305,7 +1303,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0171_q1_f13.jpg",
+     "ours": "data/qualitative/main/simulation_0171_q1_f13.jpg",
      "ours_unit": "simulation_0171_q1"
     },
     {
@@ -1321,7 +1319,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0171_q3_f23.jpg",
+     "ours": "data/qualitative/main/simulation_0171_q3_f23.jpg",
      "ours_unit": "simulation_0171_q3"
     },
     {
@@ -1337,7 +1335,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0171_q3_f24.jpg",
+     "ours": "data/qualitative/main/simulation_0171_q3_f24.jpg",
      "ours_unit": "simulation_0171_q3"
     },
     {
@@ -1354,7 +1352,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0171_q5_f48.jpg",
+     "ours": "data/qualitative/main/simulation_0171_q5_f48.jpg",
      "ours_unit": "simulation_0171_q5"
     },
     {
@@ -1371,7 +1369,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0171_q7_f71.jpg",
+     "ours": "data/qualitative/main/simulation_0171_q7_f71.jpg",
      "ours_unit": "simulation_0171_q7"
     },
     {
@@ -1388,7 +1386,7 @@
      "colours": {
       "astronaut": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0171_q7_f72.jpg",
+     "ours": "data/qualitative/main/simulation_0171_q7_f72.jpg",
      "ours_unit": "simulation_0171_q7"
     }
    ]
@@ -1429,7 +1427,7 @@
       "modelofeuropa": "#C58BC0",
       "modelofganymede": "#E5B455"
      },
-     "ours": "data/qualitative/v6val/simulation_0193_q1_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0193_q1_f0.jpg",
      "ours_unit": "simulation_0193_q1"
     }
    ]
@@ -1459,13 +1457,13 @@
      "colours": {
       "plungetube": "#5B8DB8",
       "liquiddrop": "#E09A6E",
-      "droplet": "#92B573",
-      "skynovatextonthebottle": "#C58BC0",
-      "skynovaletteringonthebottle": "#E5B455",
-      "bubbleinthedrop": "#6FB5AE",
-      "bubble": "#6FB5AE"
+      "bubble": "#92B573",
+      "droplet": "#C58BC0",
+      "skynovatextonthebottle": "#E5B455",
+      "skynovaletteringonthebottle": "#6FB5AE",
+      "bubbleinthedrop": "#92B573"
      },
-     "ours": "data/qualitative/v6val/simulation_0196_q1_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0196_q1_f0.jpg",
      "ours_unit": "simulation_0196_q1"
     }
    ]
@@ -1495,7 +1493,7 @@
      "colours": {
       "car": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0300_q3_f0.jpg",
+     "ours": "data/qualitative/main/simulation_0300_q3_f0.jpg",
      "ours_unit": "simulation_0300_q3"
     },
     {
@@ -1511,7 +1509,7 @@
      "colours": {
       "car": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0300_q1_f23.jpg",
+     "ours": "data/qualitative/main/simulation_0300_q1_f23.jpg",
      "ours_unit": "simulation_0300_q1"
     },
     {
@@ -1527,7 +1525,7 @@
      "colours": {
       "car": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0300_q1_f24.jpg",
+     "ours": "data/qualitative/main/simulation_0300_q1_f24.jpg",
      "ours_unit": "simulation_0300_q1"
     },
     {
@@ -1543,7 +1541,7 @@
      "colours": {
       "car": "#5B8DB8"
      },
-     "ours": "data/qualitative/v6val/simulation_0300_q2_f48.jpg",
+     "ours": "data/qualitative/main/simulation_0300_q2_f48.jpg",
      "ours_unit": "simulation_0300_q2"
     }
    ]

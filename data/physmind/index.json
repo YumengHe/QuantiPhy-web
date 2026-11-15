@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-14",
+ "generated": "2026-11-15",
  "run": "/nas/yumenghe/QuantiPhy-data/physmind_result/quantiphy/run/runs/qp_physmind_v2",
  "videos": [
   {
@@ -138,7 +138,7 @@
       },
       {
        "label": "soccer ball",
-       "color": "#E09A6E"
+       "color": "#C58BC0"
       }
      ],
      "missing": []
@@ -356,7 +356,7 @@
      "drawn": [
       {
        "label": "yoga ball",
-       "color": "#92B573"
+       "color": "#E09A6E"
       }
      ],
      "missing": [
@@ -429,7 +429,7 @@
      "drawn": [
       {
        "label": "woman in yellow",
-       "color": "#6FB5AE"
+       "color": "#E5B455"
       }
      ],
      "missing": []
@@ -454,7 +454,7 @@
      "drawn": [
       {
        "label": "roundabout lane",
-       "color": "#C0564F"
+       "color": "#6FB5AE"
       }
      ],
      "missing": [
@@ -472,15 +472,15 @@
      "drawn": [
       {
        "label": "black car",
-       "color": "#6FB5AE"
+       "color": "#92B573"
       },
       {
        "label": "roundabout lane",
-       "color": "#C0564F"
+       "color": "#C58BC0"
       },
       {
        "label": "white car",
-       "color": "#9B93C9"
+       "color": "#E5B455"
       }
      ],
      "missing": []
@@ -495,15 +495,15 @@
      "drawn": [
       {
        "label": "black car",
-       "color": "#E5B455"
-      },
-      {
-       "label": "roundabout lane",
        "color": "#6FB5AE"
       },
       {
+       "label": "roundabout lane",
+       "color": "#C0564F"
+      },
+      {
        "label": "white car",
-       "color": "#92B573"
+       "color": "#9B93C9"
       }
      ],
      "missing": []
@@ -607,7 +607,7 @@
       },
       {
        "label": "orange ball",
-       "color": "#6FB5AE"
+       "color": "#C58BC0"
       },
       {
        "label": "purple ball",
@@ -632,7 +632,7 @@
       },
       {
        "label": "orange ball",
-       "color": "#6FB5AE"
+       "color": "#C58BC0"
       },
       {
        "label": "purple ball",
@@ -711,11 +711,11 @@
       },
       {
        "label": "freestanding art display panel",
-       "color": "#C58BC0"
+       "color": "#92B573"
       },
       {
        "label": "pedestal square base",
-       "color": "#E09A6E"
+       "color": "#E5B455"
       }
      ],
      "missing": []
@@ -795,7 +795,7 @@
       },
       {
        "label": "yellow car",
-       "color": "#E09A6E"
+       "color": "#92B573"
       }
      ],
      "missing": [
@@ -1107,7 +1107,7 @@
      "drawn": [
       {
        "label": "droplet",
-       "color": "#92B573"
+       "color": "#C58BC0"
       }
      ],
      "missing": []

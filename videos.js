@@ -81,12 +81,18 @@
     const onToggle = () => {
       if (d.open && !built) {
         built = true;
-        const a = artifacts(q, v);
-        view = { ...v, scene: a.scene };
         const body = document.createElement('div');
         body.className = 'qbody';
-        body.innerHTML = priorBlock(q) + spBlock(q) + Ht`<h3 class="harness">Harness</h3>` + depthBindings(q.depth_bindings) + mediaBlock(view, q) + overlayBlock(q, view) + trackBlock(a.tracks, view, q, a.sgraph) +
-          sceneGraphTree(a.sgraph) + refmeasureBlock(q.refmeasure) + fitBlock(q, view) + roundsBlock(q.rounds) + timeBlock(q);
+        if (q.version == null) {
+          // a run of the current chain: the harness stops after tracking, so the question has no harness scene
+          view = { ...v, scene: null };
+          body.innerHTML = priorBlock(q) + spBlock(q) + mediaBlock(view, q) + timeBlock(q);
+        } else {
+          const a = artifacts(q, v);
+          view = { ...v, scene: a.scene };
+          body.innerHTML = priorBlock(q) + spBlock(q) + Ht`<h3 class="harness">Harness</h3>` + depthBindings(q.depth_bindings) + mediaBlock(view, q) + overlayBlock(q, view) + trackBlock(a.tracks, view, q, a.sgraph) +
+            sceneGraphTree(a.sgraph) + refmeasureBlock(q.refmeasure) + fitBlock(q, view) + roundsBlock(q.rounds) + timeBlock(q);
+        }
         d.appendChild(body);
         video = body.querySelector('video');
         tqMarks(body, view, q);
@@ -1663,7 +1669,7 @@
   }
   // wall time of the question's own run, per pipeline step (answer record "timing"); reused = served from a sibling
   // question's vision memo (SAM 2 propagation, floor masks), cached = this question's file from an earlier run kept
-  const STEP_LABEL = { objects: 'Objects', scenegraph_grid: 'Scene graph (grid)', track: 'Tracking', measure: 'Measure',
+  const STEP_LABEL = { objects: 'Objects', scenegraph_grid: 'Scene graph (grid)', track: 'Tracking', focal: 'Focal', measure: 'Measure',
     scenegraph_pf: 'Scene graph (per frame)', observe: 'Observe', ground: 'Ground', scene: 'Physics-guided Fitting', agent: 'Agent loop', answer: 'Answer' };
   function reuseText(x) {
     if (x.cached) return tr('cached');
@@ -1682,7 +1688,7 @@
     const rows = q.time ? q.time.steps.map((x, i) => Ht`<tr${marks[i] ? ' class="reused"' : ''}><td>${esc(STEP_LABEL[x.step] ? tr(STEP_LABEL[x.step]) : x.step)}</td><td class="n">${fmt(x.s, 1)}</td>` +
       (any ? Ht`<td>${esc(marks[i])}</td>` : '') + Ht`</tr>`).join('') +
       Ht`<tr class="ttotal"><td>Harness</td><td class="n">${fmt(q.time.total, 1)}</td>${any ? Ht`<td></td>` : ''}</tr>` : '';
-    const sprows = t ? Object.keys(SP_STEP_LABEL).map((k) => Ht`<tr><td>${tr(SP_STEP_LABEL[k])}</td><td class="n">${fmt(t[k], 1)}</td>${any ? Ht`<td></td>` : ''}</tr>`).join('') : '';
+    const sprows = t ? Object.keys(SP_STEP_LABEL).filter((k) => k in t).map((k) => Ht`<tr><td>${tr(SP_STEP_LABEL[k])}</td><td class="n">${fmt(t[k], 1)}</td>${any ? Ht`<td></td>` : ''}</tr>`).join('') : '';
     return Ht`<h4>Time</h4><div class="scroll-x"><table class="tsteps"><tr><th>Step</th><th class="n">s</th>` + (any ? Ht`<th></th>` : '') + Ht`</tr>${rows}${sprows}</table></div>`;
   }
   // ---------- three.js scene viewer ----------
@@ -1970,7 +1976,7 @@
   Promise.all([get('data/videos.json'), get('data/comparison_ours.json')]).then(([d, ours]) => {
     DATA = d; OURS = ours;
     d.val.vmap = Object.fromEntries(d.val.videos.map((v) => [v.id, v]));
-    d.val.runmap = Object.fromEntries(d.val.runs.map((r) => [r.version, r]));
+    d.val.runmap = Object.fromEntries((d.val.runs || []).map((r) => [r.version, r]));
     fillSourceSelect($('v-vsrc'), d.val.videos);
     $('v-set').addEventListener('change', renderAll);
     ['v-vsrc', 'v-mra', 'v-sort'].forEach((id) => $(id).addEventListener('change', renderVal));

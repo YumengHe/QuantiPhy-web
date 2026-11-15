@@ -10,11 +10,11 @@ leaves the other's image out.
 
 For every frame, the first of its questions that has a fitted scene program (outputs/sceneprog/<tag>/<unit>/scene.json;
 a frame without questions: the video's first question with one) is drawn at that frame exactly as
-pipeline.sceneprog.evaluate draws its overlays, in the site's style (tools/overlay_style.py): the program rendered from
-its camera (visible outline 2 px, occluded silhouette 1 px, in the object's outline shade), the observed masks of the
-tracks it is bound to (white on dark), each object's IoU on that frame on a tag tinted with its colour, the unit and
-frame on a white tag. Reads saved programs only (no fitting, no model calls). A frame none of whose questions has a
-program raises.
+pipeline.sceneprog.evaluate draws its overlays, in the site's style (tools/sceneprog_overlay.py): the program rendered
+from its camera (visible outline 2 px, occluded silhouette 1 px, in the object's outline shade), the observed masks of
+the tracks it is bound to (white on dark), each object's IoU on that frame on a tag tinted with its colour, the unit and
+frame on a white tag, and a legend of the three line styles. Reads saved programs only (no fitting, no model calls). A
+frame none of whose questions has a program raises.
 
 Colours, one per object and per frame (overlay_style.object_colours, the rule of the paper's figures): the program's
 bodies posed at the frame in program order with the asked object (query.object) first, then the names PhysMind and
@@ -40,93 +40,20 @@ WEB = Path(__file__).resolve().parents[1]
 ROOT = WEB.parent
 sys.path.insert(0, str(ROOT))
 
-import cv2  # noqa: E402
-import numpy as np  # noqa: E402
 
 sys.path.insert(0, str(WEB / "tools"))
-import overlay_style as S  # noqa: E402
-
-from pipeline import palette  # noqa: E402
-from pipeline.data import Video  # noqa: E402
-from pipeline.sceneprog.masks import ObservedMasks  # noqa: E402
-from pipeline.sceneprog.metric import frame_record  # noqa: E402
-from pipeline.sceneprog.poses import camera, poses_at  # noqa: E402
-from pipeline.sceneprog.program import load  # noqa: E402
-from pipeline.sceneprog.render import render  # noqa: E402
-from pipeline.sceneprog.shapes import compile_scene  # noqa: E402
+from sceneprog_overlay import draw, program_colours  # noqa: E402
 
 PHYSMIND = WEB / "data" / "physmind" / "index.json"
 SPATIALCODE = WEB / "data" / "spatialcode" / "index.json"
 INDEX = WEB / "data" / "qualitative" / "index.json"
 
 
-def draw(directory: Path, frame: int, out: Path, colours: dict[str, str]) -> None:
-    """One overlay of the program in `directory` at `frame` (pipeline.sceneprog.evaluate._write_overlays)."""
-    program, scad = load(directory)
-    observed = ObservedMasks(program["observations"]["tracks_tag"], program["unit"], program["split"])
-    meshes = compile_scene(program, scad)
-    fps = float(program["video"]["fps"])
-    cam = camera(program)
-    if (cam["height"], cam["width"]) != observed.shape:
-        raise ValueError(f"{directory}: camera image {cam['height']}x{cam['width']} differs from the masks' {observed.shape}")
-    modelled = {o["id"]: o["track"] for o in program["objects"] if o["kind"] == "body" and o.get("track") is not None}
-    r = render(program, meshes, frame / fps, cam)
-    labels, obs = {}, {}
-    for oid, name in modelled.items():
-        o = observed.get(name, frame)
-        obs[oid] = o
-        if o is None:
-            labels[oid] = f"{oid} untracked"
-            continue
-        others = [observed.get(n, frame) for n in observed.names() if n != name]
-        rec = frame_record(r.get(oid), o, [x for x in others if x is not None])
-        labels[oid] = f"{oid} IoU {rec['iou']:.2f}"
-    video = Video(Path(program["video"]["path"]), fps=fps)
-    try:
-        image = overlay(cv2.cvtColor(video.frame(frame), cv2.COLOR_RGB2BGR), r, obs, labels, colours,
-                        f"{program['unit']}  frame {frame}  t={frame / fps:.2f}s")
-    finally:
-        video.close()
-    out.parent.mkdir(parents=True, exist_ok=True)
-    if not cv2.imwrite(str(out), image, [cv2.IMWRITE_JPEG_QUALITY, 86]):
-        raise ValueError(f"{out}: not written")
-
-
-def overlay(bgr: np.ndarray, rendered: dict, observed: dict, labels: dict, colours: dict[str, str],
-            header: str) -> np.ndarray:
-    """pipeline.sceneprog.render.overlay in the site's style: per object (in the order of `colours`) the observed mask
-    outline (white on dark, 1 px), the rendered occluded silhouette (1 px) and visible outline (2 px) in the object's
-    outline shade; the labels as tags down the left edge under the header."""
-    image = np.ascontiguousarray(bgr).copy()
-    tags = [(header, 4, None, None)]
-    order = list(colours)
-    for oid in sorted(set(labels), key=lambda o: order.index(S.name_key(o))):
-        colour = colours[S.name_key(oid)]
-        obs = observed.get(oid)
-        if obs is not None and obs.any():
-            cs, _ = cv2.findContours(obs.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            cv2.drawContours(image, cs, -1, S.bgr(S.TEXT), 3, cv2.LINE_AA)
-            cv2.drawContours(image, cs, -1, (255, 255, 255), 1, cv2.LINE_AA)
-        r = rendered.get(oid)
-        if r is not None:
-            cs, _ = cv2.findContours(r["silhouette"].astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            cv2.drawContours(image, cs, -1, palette.darker(S.bgr(colour)), 1, cv2.LINE_AA)
-            cs, _ = cv2.findContours(r["visible"].astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            cv2.drawContours(image, cs, -1, palette.darker(S.bgr(colour)), 2, cv2.LINE_AA)
-        tags.append((labels[oid], 4, None, colour))
-    return S.tags(image, tags)
-
-
 def comparison_colours(program: dict, frame: int, theirs: list[str]) -> dict[str, str]:
     """name key -> colour for one frame, as the paper's figures colour a row (paper/figures/src/overlays.py): the
     program's bodies posed at the frame in program order with the asked object first, then the baselines' names;
     bodies not posed at the frame come last (they have a tag but no outline)."""
-    posed = poses_at(program, frame / float(program["video"]["fps"]))
-    bodies = [o["id"] for o in program["objects"] if o["kind"] == "body"]
-    present = [b for b in bodies if posed.get(b) is not None]
-    asked = (program.get("query") or {}).get("object")
-    present.sort(key=lambda b: b != asked)
-    return S.object_colours(present, theirs, [b for b in bodies if b not in present])
+    return program_colours(program, frame, theirs)
 
 
 def frames(pm: dict, sc: dict) -> list[dict]:

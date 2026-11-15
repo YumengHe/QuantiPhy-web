@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-14",
+ "generated": "2026-11-15",
  "run": "Thinking with Spatial Code (spatialcode @cf7fffc, 32 frames, Gemini 3 Flash boxes)",
  "videos": [
   {
@@ -179,7 +179,7 @@
       },
       {
        "label": "right tennis ball",
-       "color": "#C58BC0"
+       "color": "#E09A6E"
       },
       {
        "label": "pencil bag",
@@ -187,7 +187,7 @@
       },
       {
        "label": "soccer ball",
-       "color": "#E09A6E"
+       "color": "#C58BC0"
       }
      ],
      "missing": []
@@ -456,19 +456,19 @@
      "drawn": [
       {
        "label": "yoga ball",
-       "color": "#92B573"
+       "color": "#E09A6E"
       },
       {
        "label": "soccer ball",
-       "color": "#5B8DB8"
+       "color": "#E5B455"
       },
       {
        "label": "basketball",
-       "color": "#C58BC0"
+       "color": "#92B573"
       },
       {
        "label": "floor",
-       "color": "#E5B455"
+       "color": "#C58BC0"
       }
      ],
      "missing": []
@@ -552,19 +552,19 @@
      "drawn": [
       {
        "label": "the two black road signs",
-       "color": "#C0564F"
-      },
-      {
-       "label": "the woman in yellow",
        "color": "#6FB5AE"
       },
       {
+       "label": "the woman in yellow",
+       "color": "#E5B455"
+      },
+      {
        "label": "the light right above the woman's head",
-       "color": "#9B93C9"
+       "color": "#C0564F"
       },
       {
        "label": "the floor tiles",
-       "color": "#DE8C9D"
+       "color": "#9B93C9"
       }
      ],
      "missing": []
@@ -595,15 +595,15 @@
       },
       {
        "label": "roundabout lane",
-       "color": "#C0564F"
+       "color": "#6FB5AE"
       },
       {
        "label": "center island planter",
-       "color": "#DE8C9D"
+       "color": "#9B93C9"
       },
       {
        "label": "white car in the roundabout",
-       "color": "#92B573"
+       "color": "#DE8C9D"
       },
       {
        "label": "bicycle on the upper left corner",
@@ -632,31 +632,31 @@
      "drawn": [
       {
        "label": "straight-through lane",
-       "color": "#6FB5AE"
+       "color": "#C58BC0"
       },
       {
        "label": "roundabout lane",
-       "color": "#C0564F"
+       "color": "#E5B455"
       },
       {
        "label": "center island planter",
-       "color": "#9B93C9"
+       "color": "#6FB5AE"
       },
       {
        "label": "white car in the roundabout",
-       "color": "#DE8C9D"
+       "color": "#C0564F"
       },
       {
        "label": "bicycle on the upper left corner",
-       "color": "#C2BB66"
+       "color": "#9B93C9"
       },
       {
        "label": "two black cars in the round about",
-       "color": "#7FA6CF"
+       "color": "#DE8C9D"
       },
       {
        "label": "pedestrian",
-       "color": "#92B573"
+       "color": "#C2BB66"
       }
      ],
      "missing": []
@@ -673,19 +673,19 @@
      "drawn": [
       {
        "label": "straight-through lane",
-       "color": "#C0564F"
+       "color": "#DE8C9D"
       },
       {
        "label": "roundabout lane",
-       "color": "#6FB5AE"
+       "color": "#C0564F"
       },
       {
        "label": "center island planter",
-       "color": "#9B93C9"
+       "color": "#C2BB66"
       },
       {
        "label": "white car in the roundabout",
-       "color": "#92B573"
+       "color": "#9B93C9"
       },
       {
        "label": "bicycle on the upper left corner",
@@ -693,11 +693,11 @@
       },
       {
        "label": "two black cars in the round about",
-       "color": "#DE8C9D"
+       "color": "#7FA6CF"
       },
       {
        "label": "pedestrian",
-       "color": "#C2BB66"
+       "color": "#E09A6E"
       }
      ],
      "missing": []
@@ -832,7 +832,7 @@
       },
       {
        "label": "orange ball",
-       "color": "#6FB5AE"
+       "color": "#C58BC0"
       },
       {
        "label": "yellow ball on the left",
@@ -865,7 +865,7 @@
       },
       {
        "label": "orange ball",
-       "color": "#6FB5AE"
+       "color": "#C58BC0"
       },
       {
        "label": "yellow ball on the left",
@@ -950,23 +950,23 @@
       },
       {
        "label": "pedestal (square base) of the central sculpture",
-       "color": "#E5B455"
-      },
-      {
-       "label": "freestanding art display panel",
-       "color": "#C58BC0"
-      },
-      {
-       "label": "bench seat in the atrium",
        "color": "#6FB5AE"
       },
       {
-       "label": "open roof frame (lattice)",
+       "label": "freestanding art display panel",
+       "color": "#92B573"
+      },
+      {
+       "label": "bench seat in the atrium",
        "color": "#C0564F"
       },
       {
+       "label": "open roof frame (lattice)",
+       "color": "#9B93C9"
+      },
+      {
        "label": "person",
-       "color": "#92B573"
+       "color": "#C58BC0"
       }
      ],
      "missing": []
@@ -1040,7 +1040,7 @@
      "drawn": [
       {
        "label": "yellow car",
-       "color": "#E09A6E"
+       "color": "#92B573"
       },
       {
        "label": "lane",
@@ -1052,7 +1052,7 @@
       },
       {
        "label": "turning yellow car",
-       "color": "#E09A6E"
+       "color": "#92B573"
       },
       {
        "label": "bicycle",
@@ -1461,15 +1461,15 @@
       },
       {
        "label": "droplet",
-       "color": "#92B573"
-      },
-      {
-       "label": "“skynova” text on the bottle",
        "color": "#C58BC0"
       },
       {
-       "label": "“skynova” lettering on the bottle",
+       "label": "“skynova” text on the bottle",
        "color": "#E5B455"
+      },
+      {
+       "label": "“skynova” lettering on the bottle",
+       "color": "#6FB5AE"
       }
      ],
      "missing": [

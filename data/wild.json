@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-14T01:03:47",
+ "generated": "2026-11-15T13:34:16",
  "groups": [
   {
    "key": "ball",
@@ -31,9 +31,135 @@
   "answered": 45,
   "failed": 6,
   "stopped": 3,
-  "determined": 12
+  "determined": 10
  },
  "videos": [
+  {
+   "video": "robot_0007",
+   "group": "ball",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "robot_0007_q1",
+     "q": "What is the speed of the basketball at 1.43s in m/s?",
+     "prior": "diameter of the basketball = 0.24 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.6,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "rests on fit variables the observations leave open: basketball.s0.pose[0].x, basketball.s0.pose[0].y, basketball.s0.pose[0].z, basketball.s0.pose[1].x, basketball.s0.pose[1].y, basketball.s0.pose[1].z; its own uncertainty from the observations (covariance, profile and spread scaled by the misfit, and the read segments' pose residual above the gate threshold) is 3.27e+12, 2.03e+12 of its natural scale 1.61 > 0.25"
+     },
+     "iou": 0.870953562117619,
+     "overlays": [
+      "data/wild/robot_0007_q1/overlay_f0000.jpg",
+      "data/wild/robot_0007_q1/overlay_f0024.jpg",
+      "data/wild/robot_0007_q1/overlay_f0048.jpg",
+      "data/wild/robot_0007_q1/overlay_f0071.jpg",
+      "data/wild/robot_0007_q1/overlay_f0095.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0007_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0007_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0007_q2",
+     "q": "What is the height of the basketball rim above the floor in meters?",
+     "prior": "diameter of the basketball = 0.24 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.8,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "no time in the question: rim, floor static over [0.000, 3.167] s, read at 1.583 s; rests on fit variables the observations leave open: basketball.s0.pose[0].x, basketball.s0.pose[0].z, basketball.s0.pose[1].x, basketball.s0.pose[1].z, basketball.s0.pose[2].x, basketball.s0.pose[2].z"
+     },
+     "iou": 0.4626302732840424,
+     "overlays": [
+      "data/wild/robot_0007_q2/overlay_f0000.jpg",
+      "data/wild/robot_0007_q2/overlay_f0024.jpg",
+      "data/wild/robot_0007_q2/overlay_f0048.jpg",
+      "data/wild/robot_0007_q2/overlay_f0071.jpg",
+      "data/wild/robot_0007_q2/overlay_f0095.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0007_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0007_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
+   "video": "robot_0001",
+   "group": "ball",
+   "fps": 50.0,
+   "questions": [
+    {
+     "unit": "robot_0001_q1",
+     "q": "What is the speed of the soccer ball at 3.00s in m/s?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 2.11,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "its own uncertainty from the observations (covariance, profile and spread scaled by the misfit, and the read segments' pose residual above the gate threshold) is 2.8, 1.32 of its natural scale 2.11 > 0.25"
+     },
+     "iou": 0.7756923076923077,
+     "overlays": [
+      "data/wild/robot_0001_q1/overlay_f0000.jpg",
+      "data/wild/robot_0001_q1/overlay_f0054.jpg",
+      "data/wild/robot_0001_q1/overlay_f0108.jpg",
+      "data/wild/robot_0001_q1/overlay_f0162.jpg",
+      "data/wild/robot_0001_q1/overlay_f0216.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0001_q1/plan_grid.jpg",
+     "shapes": "data/wild/robot_0001_q1/shapes.jpg"
+    },
+    {
+     "unit": "robot_0001_q2",
+     "q": "What is the height of the humanoid robot in meters?",
+     "prior": "diameter of the soccer ball = 0.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 1.15,
+      "unit": "m"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m",
+      "determined": false,
+      "reason": "the observations do not determine this extent: the model's ratio H : scale 1 (vlm) times the object's fitted scale"
+     },
+     "iou": 0.5607760999455506,
+     "overlays": [
+      "data/wild/robot_0001_q2/overlay_f0000.jpg",
+      "data/wild/robot_0001_q2/overlay_f0054.jpg",
+      "data/wild/robot_0001_q2/overlay_f0108.jpg",
+      "data/wild/robot_0001_q2/overlay_f0162.jpg",
+      "data/wild/robot_0001_q2/overlay_f0216.jpg"
+     ],
+     "plan_grid": "data/wild/robot_0001_q2/plan_grid.jpg",
+     "shapes": "data/wild/robot_0001_q2/shapes.jpg"
+    }
+   ]
+  },
   {
    "video": "nonrobot_0011",
    "group": "lab",
@@ -74,17 +200,17 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.0,
+      "value": 1.03,
       "unit": "m"
      },
      "scene": {
-      "value": null,
-      "sigma": null,
+      "value": 1.02632215376813,
+      "sigma": 0.1380651197563442,
       "unit": "m",
-      "determined": false,
-      "reason": "rests on fit variables the observations leave open: cam.position[2], desk.s0.p[0], desk.s0.yaw, desk.s1.pose[0].x, desk.s1.pose[100].x, desk.s1.pose[101].x"
+      "determined": true,
+      "reason": null
      },
-     "iou": 0.7691758046528204,
+     "iou": 0.6848772134002455,
      "overlays": [
       "data/wild/nonrobot_0011_q2/overlay_f0000.jpg",
       "data/wild/nonrobot_0011_q2/overlay_f0067.jpg",
@@ -94,69 +220,6 @@
      ],
      "plan_grid": "data/wild/nonrobot_0011_q2/plan_grid.jpg",
      "shapes": "data/wild/nonrobot_0011_q2/shapes.jpg"
-    }
-   ]
-  },
-  {
-   "video": "robot_0007",
-   "group": "ball",
-   "fps": 30.0,
-   "questions": [
-    {
-     "unit": "robot_0007_q1",
-     "q": "What is the speed of the basketball at 1.43s in m/s?",
-     "prior": "diameter of the basketball = 0.24 m",
-     "status": "answered",
-     "step": null,
-     "final": {
-      "value": 1.6,
-      "unit": "m/s"
-     },
-     "scene": {
-      "value": null,
-      "sigma": null,
-      "unit": "m/s",
-      "determined": false,
-      "reason": "rests on fit variables the observations leave open: basketball.s0.pose[0].x, basketball.s0.pose[0].z, basketball.s0.pose[1].x, basketball.s0.pose[1].z, basketball.s0.pose[2].x, basketball.s0.pose[2].z"
-     },
-     "iou": 0.7559711090160586,
-     "overlays": [
-      "data/wild/robot_0007_q1/overlay_f0000.jpg",
-      "data/wild/robot_0007_q1/overlay_f0024.jpg",
-      "data/wild/robot_0007_q1/overlay_f0048.jpg",
-      "data/wild/robot_0007_q1/overlay_f0071.jpg",
-      "data/wild/robot_0007_q1/overlay_f0095.jpg"
-     ],
-     "plan_grid": "data/wild/robot_0007_q1/plan_grid.jpg",
-     "shapes": "data/wild/robot_0007_q1/shapes.jpg"
-    },
-    {
-     "unit": "robot_0007_q2",
-     "q": "What is the height of the basketball rim above the floor in meters?",
-     "prior": "diameter of the basketball = 0.24 m",
-     "status": "answered",
-     "step": null,
-     "final": {
-      "value": 1.8,
-      "unit": "m"
-     },
-     "scene": {
-      "value": null,
-      "sigma": null,
-      "unit": "m",
-      "determined": false,
-      "reason": "no time in the question: rim, floor static over [0.000, 3.167] s, read at 1.583 s; rests on fit variables the observations leave open: basketball.s0.pose[0].x, basketball.s0.pose[0].z, basketball.s0.pose[1].x, basketball.s0.pose[1].z, basketball.s0.pose[2].x, basketball.s0.pose[2].z"
-     },
-     "iou": 0.4626302732840424,
-     "overlays": [
-      "data/wild/robot_0007_q2/overlay_f0000.jpg",
-      "data/wild/robot_0007_q2/overlay_f0024.jpg",
-      "data/wild/robot_0007_q2/overlay_f0048.jpg",
-      "data/wild/robot_0007_q2/overlay_f0071.jpg",
-      "data/wild/robot_0007_q2/overlay_f0095.jpg"
-     ],
-     "plan_grid": "data/wild/robot_0007_q2/plan_grid.jpg",
-     "shapes": "data/wild/robot_0007_q2/shapes.jpg"
     }
    ]
   },
@@ -214,17 +277,17 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 0.53,
+      "value": 0.585,
       "unit": "m"
      },
      "scene": {
-      "value": 0.5295892105946907,
-      "sigma": 0.10171483467995968,
+      "value": null,
+      "sigma": null,
       "unit": "m",
-      "determined": true,
-      "reason": null
+      "determined": false,
+      "reason": "its own uncertainty from the observations (covariance, profile and spread scaled by the misfit, and the read segments' pose residual above the gate threshold) is 0.167, 0.286 of its natural scale 0.585 > 0.25"
      },
-     "iou": 0.6449326520866107,
+     "iou": 0.6476700376879287,
      "overlays": [
       "data/wild/robot_0014_q1/overlay_f0000.jpg",
       "data/wild/robot_0014_q1/overlay_f0020.jpg",
@@ -262,69 +325,6 @@
      ],
      "plan_grid": "data/wild/robot_0014_q2/plan_grid.jpg",
      "shapes": "data/wild/robot_0014_q2/shapes.jpg"
-    }
-   ]
-  },
-  {
-   "video": "nonrobot_0015",
-   "group": "lab",
-   "fps": 30.0,
-   "questions": [
-    {
-     "unit": "nonrobot_0015_q1",
-     "q": "What is the length of the skateboard in meters?",
-     "prior": "length of the ceiling light panel = 1.22 m",
-     "status": "answered",
-     "step": null,
-     "final": {
-      "value": 0.8,
-      "unit": "m"
-     },
-     "scene": {
-      "value": 1.543039825146037,
-      "sigma": 0.4621649111002279,
-      "unit": "m",
-      "determined": true,
-      "reason": null
-     },
-     "iou": 0.6401889740580412,
-     "overlays": [
-      "data/wild/nonrobot_0015_q1/overlay_f0000.jpg",
-      "data/wild/nonrobot_0015_q1/overlay_f0067.jpg",
-      "data/wild/nonrobot_0015_q1/overlay_f0134.jpg",
-      "data/wild/nonrobot_0015_q1/overlay_f0202.jpg",
-      "data/wild/nonrobot_0015_q1/overlay_f0269.jpg"
-     ],
-     "plan_grid": "data/wild/nonrobot_0015_q1/plan_grid.jpg",
-     "shapes": "data/wild/nonrobot_0015_q1/shapes.jpg"
-    },
-    {
-     "unit": "nonrobot_0015_q2",
-     "q": "What is the speed of the skateboard at 5.70s in m/s?",
-     "prior": "length of the ceiling light panel = 1.22 m",
-     "status": "answered",
-     "step": null,
-     "final": {
-      "value": 0.45,
-      "unit": "m/s"
-     },
-     "scene": {
-      "value": null,
-      "sigma": null,
-      "unit": "m/s",
-      "determined": false,
-      "reason": "the scale rests on a class vote in tension: person.H (fitted 1.116 against 1.7 +- 0.17, +3.44 sigma), skateboard.L (fitted 0.4916 against 0.8 +- 0.1, +3.08 sigma); rests on fit variables the observations leave open: skateboard.s1.v0[0], skateboard.s1.v0[1]"
-     },
-     "iou": 0.48945078675343107,
-     "overlays": [
-      "data/wild/nonrobot_0015_q2/overlay_f0000.jpg",
-      "data/wild/nonrobot_0015_q2/overlay_f0067.jpg",
-      "data/wild/nonrobot_0015_q2/overlay_f0134.jpg",
-      "data/wild/nonrobot_0015_q2/overlay_f0202.jpg",
-      "data/wild/nonrobot_0015_q2/overlay_f0269.jpg"
-     ],
-     "plan_grid": "data/wild/nonrobot_0015_q2/plan_grid.jpg",
-     "shapes": "data/wild/nonrobot_0015_q2/shapes.jpg"
     }
    ]
   },
@@ -392,6 +392,69 @@
    ]
   },
   {
+   "video": "nonrobot_0015",
+   "group": "lab",
+   "fps": 30.0,
+   "questions": [
+    {
+     "unit": "nonrobot_0015_q1",
+     "q": "What is the length of the skateboard in meters?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.8,
+      "unit": "m"
+     },
+     "scene": {
+      "value": 0.7858106863152805,
+      "sigma": 0.12914770438670545,
+      "unit": "m",
+      "determined": true,
+      "reason": null
+     },
+     "iou": 0.6256207397661089,
+     "overlays": [
+      "data/wild/nonrobot_0015_q1/overlay_f0000.jpg",
+      "data/wild/nonrobot_0015_q1/overlay_f0067.jpg",
+      "data/wild/nonrobot_0015_q1/overlay_f0134.jpg",
+      "data/wild/nonrobot_0015_q1/overlay_f0202.jpg",
+      "data/wild/nonrobot_0015_q1/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0015_q1/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0015_q1/shapes.jpg"
+    },
+    {
+     "unit": "nonrobot_0015_q2",
+     "q": "What is the speed of the skateboard at 5.70s in m/s?",
+     "prior": "length of the ceiling light panel = 1.22 m",
+     "status": "answered",
+     "step": null,
+     "final": {
+      "value": 0.45,
+      "unit": "m/s"
+     },
+     "scene": {
+      "value": null,
+      "sigma": null,
+      "unit": "m/s",
+      "determined": false,
+      "reason": "the scale rests on a class vote in tension: person.H (fitted 1.116 against 1.7 +- 0.17, +3.44 sigma), skateboard.L (fitted 0.4916 against 0.8 +- 0.1, +3.08 sigma); rests on fit variables the observations leave open: skateboard.s1.v0[0], skateboard.s1.v0[1]"
+     },
+     "iou": 0.48945078675343107,
+     "overlays": [
+      "data/wild/nonrobot_0015_q2/overlay_f0000.jpg",
+      "data/wild/nonrobot_0015_q2/overlay_f0067.jpg",
+      "data/wild/nonrobot_0015_q2/overlay_f0134.jpg",
+      "data/wild/nonrobot_0015_q2/overlay_f0202.jpg",
+      "data/wild/nonrobot_0015_q2/overlay_f0269.jpg"
+     ],
+     "plan_grid": "data/wild/nonrobot_0015_q2/plan_grid.jpg",
+     "shapes": "data/wild/nonrobot_0015_q2/shapes.jpg"
+    }
+   ]
+  },
+  {
    "video": "nonrobot_0017",
    "group": "lab",
    "fps": 30.0,
@@ -403,17 +466,17 @@
      "status": "answered",
      "step": null,
      "final": {
-      "value": 1.8,
+      "value": 1.75,
       "unit": "m"
      },
      "scene": {
-      "value": 1.697693330507379,
-      "sigma": 0.4014184681935956,
+      "value": null,
+      "sigma": null,
       "unit": "m",
-      "determined": true,
-      "reason": null
+      "determined": false,
+      "reason": "its own uncertainty from the observations (covariance, profile and spread scaled by the misfit, and the read segments' pose residual above the gate threshold) is 0.477, 0.272 of its natural scale 1.76 > 0.25"
      },
-     "iou": 0.6346016904484314,
+     "iou": 0.6230163956381153,
      "overlays": [
       "data/wild/nonrobot_0017_q1/overlay_f0000.jpg",
       "data/wild/nonrobot_0017_q1/overlay_f0067.jpg",
@@ -451,69 +514,6 @@
      ],
      "plan_grid": "data/wild/nonrobot_0017_q2/plan_grid.jpg",
      "shapes": "data/wild/nonrobot_0017_q2/shapes.jpg"
-    }
-   ]
-  },
-  {
-   "video": "robot_0001",
-   "group": "ball",
-   "fps": 50.0,
-   "questions": [
-    {
-     "unit": "robot_0001_q1",
-     "q": "What is the speed of the soccer ball at 3.00s in m/s?",
-     "prior": "diameter of the soccer ball = 0.22 m",
-     "status": "answered",
-     "step": null,
-     "final": {
-      "value": 1.99,
-      "unit": "m/s"
-     },
-     "scene": {
-      "value": 1.994012919276936,
-      "sigma": 4.545937875241218,
-      "unit": "m/s",
-      "determined": true,
-      "reason": null
-     },
-     "iou": 0.6279798602548294,
-     "overlays": [
-      "data/wild/robot_0001_q1/overlay_f0000.jpg",
-      "data/wild/robot_0001_q1/overlay_f0054.jpg",
-      "data/wild/robot_0001_q1/overlay_f0108.jpg",
-      "data/wild/robot_0001_q1/overlay_f0162.jpg",
-      "data/wild/robot_0001_q1/overlay_f0216.jpg"
-     ],
-     "plan_grid": "data/wild/robot_0001_q1/plan_grid.jpg",
-     "shapes": "data/wild/robot_0001_q1/shapes.jpg"
-    },
-    {
-     "unit": "robot_0001_q2",
-     "q": "What is the height of the humanoid robot in meters?",
-     "prior": "diameter of the soccer ball = 0.22 m",
-     "status": "answered",
-     "step": null,
-     "final": {
-      "value": 1.15,
-      "unit": "m"
-     },
-     "scene": {
-      "value": null,
-      "sigma": null,
-      "unit": "m",
-      "determined": false,
-      "reason": "the observations do not determine this extent: the model's ratio H : scale 1 (vlm) times the object's fitted scale"
-     },
-     "iou": 0.5607760999455506,
-     "overlays": [
-      "data/wild/robot_0001_q2/overlay_f0000.jpg",
-      "data/wild/robot_0001_q2/overlay_f0054.jpg",
-      "data/wild/robot_0001_q2/overlay_f0108.jpg",
-      "data/wild/robot_0001_q2/overlay_f0162.jpg",
-      "data/wild/robot_0001_q2/overlay_f0216.jpg"
-     ],
-     "plan_grid": "data/wild/robot_0001_q2/plan_grid.jpg",
-     "shapes": "data/wild/robot_0001_q2/shapes.jpg"
     }
    ]
   },

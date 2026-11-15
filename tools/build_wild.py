@@ -17,7 +17,8 @@ Inputs (relative to the repo root):
                                                         answered unit; the directory of the same stem holds each
                                                         unit's answer record (<unit>.json, the read-out's reason)
   outputs/sceneprog_wild/<BUILD>/<unit>/metric.json     alignment of the fitted program (unit_summary.iou_median_mean)
-  outputs/sceneprog_wild/<BUILD>/<unit>/overlay_f*.jpg  the fitted program rendered over frames
+  outputs/sceneprog_wild/<BUILD>/<unit>/overlay_f*.jpg  the frames the chain drew; the program is redrawn on them
+                                                        in the site's style (tools/sceneprog_overlay.py)
   outputs/sceneprog_wild/<BUILD>/<unit>/plan_grid.jpg, shapes.png
 
 An answered question missing any of these is an error. Videos are sorted by the best mean IoU among their answered
@@ -41,10 +42,13 @@ import re
 import shutil
 from pathlib import Path
 
+import sys
+
 import cv2
 import pandas as pd
 
 WEB = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(WEB / "tools"))
 ROOT = WEB.parent
 DATASET = ROOT / "data" / "QuantiPhy-wild"
 OUT_JSON = WEB / "data" / "wild.json"
@@ -100,13 +104,32 @@ def raw_frames(video: str, n: int = 5) -> tuple[list[str], int]:
     return out, total
 
 
+def products(q: dict, d: Path, u: str) -> None:
+    """The fitted program's alignment, its overlays redrawn in the site's style (tools/sceneprog_overlay.py, at the
+    frames the chain drew), the plan grid and the shapes of the unit's program directory `d`."""
+    from sceneprog_overlay import draw_unit
+    met = json.loads((d / "metric.json").read_text())
+    if met["unit"] != u:
+        raise ValueError(f"{d}/metric.json: unit {met['unit']}")
+    q["iou"] = met["unit_summary"]["iou_median_mean"]
+    overlays = draw_unit(d, OUT_IMG / u)
+    q["overlays"] = [shrink(p, p, WIDTH["overlay"]) for p in overlays]
+    q["plan_grid"] = shrink(d / "plan_grid.jpg", OUT_IMG / u / "plan_grid.jpg", WIDTH["plan_grid"])
+    q["shapes"] = shrink(d / "shapes.png", OUT_IMG / u / "shapes.jpg", WIDTH["shapes"])
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--build", required=True, help="scene-program tag (outputs/sceneprog_wild/<BUILD>: fits, overlays)")
     ap.add_argument("--status", required=True, type=Path, help="the run's per-question status table (CSV)")
     ap.add_argument("--answers", required=True, type=Path, help="the answer step's table (JSON) on the fitted programs")
+    ap.add_argument("--newer", metavar="BUILD",
+                    help="a later run of some units: a unit with outputs/sceneprog_wild/<BUILD>/<unit>/answer.json is "
+                         "shown from that run (its answer record, metric, plan grid, shapes) instead")
     args = ap.parse_args()
     build_dir = ROOT / "outputs" / "sceneprog_wild" / args.build
+    newer = {p.parent.name: p.parent for p in (ROOT / "outputs" / "sceneprog_wild" / args.newer).glob("*/answer.json")} \
+        if args.newer else {}
     status = args.status if args.status.is_absolute() else ROOT / args.status
     answers = args.answers if args.answers.is_absolute() else ROOT / args.answers
     table_ans = json.loads(answers.read_text())
@@ -125,6 +148,8 @@ def main() -> None:
         raise ValueError(f"{status}: units differ from the dataset's")
     if set(table_ans) != {r["unit"] for r in rows if r["status"] == "answered"}:
         raise ValueError(f"{answers.name}: units differ from the answered units of {status.name}")
+    if set(newer) - set(units):
+        raise ValueError(f"{args.newer}: units not in the dataset: {sorted(set(newer) - set(units))}")
 
     if OUT_IMG.exists():
         shutil.rmtree(OUT_IMG)
@@ -138,7 +163,19 @@ def main() -> None:
             raise ValueError(f"{u}: status {r['status']!r}")
         q = {"unit": u, "q": meta["q"], "prior": meta["prior"], "status": m.group(1),
              "step": f"{m.group(2)}: {m.group(3)}" if m.group(2) else None}
-        if q["status"] == "answered":
+        if u in newer:
+            d = newer[u]
+            a = json.loads((d / "answer.json").read_text())
+            if a["unit"] != u or a["question"] != meta["q"]:
+                raise ValueError(f"{d}/answer.json: unit / question differ")
+            sc, fi = a["answer_scene"], a["answer_final"]
+            det = bool(sc["determined"])
+            q.update(status="answered", step=None)
+            q["final"] = {"value": num(fi.get("value")), "unit": fi.get("unit") or sc["unit"]}
+            q["scene"] = {"value": num(sc["value"]) if det else None, "sigma": num(sc.get("sigma")) if det else None,
+                          "unit": sc["unit"], "determined": det, "reason": sc.get("reason") or None}
+            products(q, d, u)
+        elif q["status"] == "answered":
             d = build_dir / u
             e = table_ans[u]
             a = json.loads((rec_dir / f"{u}.json").read_text())
@@ -150,16 +187,7 @@ def main() -> None:
             q["scene"] = {"value": num(e["scene_value"]) if det else None, "sigma": num(e["sigma"]) if det else None,
                           "unit": a["answer_scene"]["unit"], "determined": det,
                           "reason": a["answer_scene"].get("reason") or None}
-            met = json.loads((d / "metric.json").read_text())
-            if met["unit"] != u:
-                raise ValueError(f"{d}/metric.json: unit {met['unit']}")
-            q["iou"] = met["unit_summary"]["iou_median_mean"]
-            overlays = sorted(d.glob("overlay_f*.jpg"))
-            if not overlays:
-                raise FileNotFoundError(f"{d}: no overlays")
-            q["overlays"] = [shrink(p, OUT_IMG / u / p.name, WIDTH["overlay"]) for p in overlays]
-            q["plan_grid"] = shrink(build_dir / u / "plan_grid.jpg", OUT_IMG / u / "plan_grid.jpg", WIDTH["plan_grid"])
-            q["shapes"] = shrink(build_dir / u / "shapes.png", OUT_IMG / u / "shapes.jpg", WIDTH["shapes"])
+            products(q, d, u)
         by_video[meta["video"]].append(q)
 
     videos = []
