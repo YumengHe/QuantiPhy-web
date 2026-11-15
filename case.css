@@ -1,0 +1,73 @@
+/* case.html: one question walked through, step by step. Colours come from site.css's tokens. */
+.case .lede { color: var(--text); max-width: 820px; }
+.case .toc { columns: 3 220px; margin: 8px 0 8px; padding-left: 22px; font-size: 14px; }
+.case .toc a { text-decoration-thickness: 1px; }
+.cstep { margin-top: 8px; }
+.cstep h2 { display: flex; align-items: baseline; gap: 10px; }
+.cstep h2 .n { display: inline-flex; justify-content: center; align-items: center; min-width: 28px; height: 28px; border-radius: 14px;
+  background: var(--accent-soft); border: 1px solid var(--scene); font-size: 15px; }
+.cstep .cost { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -6px 0 12px; font-size: 14px; color: var(--muted); }
+.cstep .cost b { color: var(--text); }
+.cstep .cost .sub { color: var(--muted); }
+.cstep p, .cstep ul, .cstep ol { max-width: 860px; }
+.case .quote { font-style: italic; }
+p.quote { border-left: 3px solid var(--border-strong); padding: 2px 0 2px 12px; margin-left: 0; }
+.case .small { font-size: 13px; color: var(--muted); font-weight: 400; }
+.case ul.plain { padding-left: 20px; }
+.case ol.stmts { padding-left: 22px; font-family: var(--mono); font-size: 14px; }
+.case .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.case .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 760px) { .case .two { grid-template-columns: 1fr; } }
+.case figure { margin: 8px 0 12px; }
+.case figure img, .case figure video { display: block; max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; }
+.case figure.vid video { width: 100%; background: #000; }
+.case figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.case .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.case .chip { padding: 1px 8px; border-radius: 10px; font-size: 13px; border: 1px solid var(--border-strong); }
+.case .chip.full { background: var(--ok-bg); }
+.case .chip.absent { background: var(--soft); }
+.case .strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 6px; }
+.case .strip figure { margin: 0; }
+.case .strip img { width: 100%; }
+.case .pairs { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.case .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+.case .pair figure { margin: 0; }
+.case .pair .pf { grid-column: 1 / -1; font-size: 13px; font-weight: 600; }
+.case .shapes { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.case .shapes pre { font-size: 12px; background: var(--code-bg); padding: 8px; border-radius: 4px; overflow-x: auto; margin: 6px 0 0; }
+.case table { width: auto; max-width: 100%; margin: 8px 0 12px; }
+.case table td, .case table th { padding: 4px 10px; }
+.case .tpar, .case .tcam, .case .tchk, .case .ttime { display: block; overflow-x: auto; }
+.case table td.ok { color: var(--muted); }
+.case tr.kept td { background: var(--accent-soft); font-weight: 600; }
+.case tr.kept td:first-child { box-shadow: inset 3px 0 0 var(--scene); }
+.case tr.fx td { background: var(--prior-soft); }
+.case tr.det td:nth-child(2) { background: var(--ok-bg); }
+.case tr.und td:nth-child(2) { background: var(--soft); color: var(--muted); }
+.case .big { font-size: 30px; font-weight: 600; margin: 4px 0 8px; }
+.case .big span { font-size: 18px; font-weight: 400; }
+.case svg.chart { width: 100%; max-width: 560px; height: auto; display: block; }
+.case svg .ax { font: 11px var(--sans); fill: var(--muted); }
+/* legends: one sample per meaning */
+.case .lg { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--text); margin: 6px 0 10px; }
+.case .lg span { display: inline-flex; align-items: center; gap: 6px; }
+.case .lg i { display: inline-block; flex: none; }
+.case .lg i.bx { width: 16px; height: 12px; border: 2px solid; }
+.case .lg i.ob { width: 22px; height: 0; border-top: 3px solid var(--text); box-shadow: inset 0 -1px 0 #fff; position: relative; }
+.case .lg i.ob::after { content: ""; position: absolute; left: 0; right: 0; top: -2px; border-top: 1px solid #fff; }
+.case .lg i.pv { width: 22px; height: 0; border-top: 3px solid; filter: brightness(.7); }
+.case .lg i.po { width: 22px; height: 0; border-top: 1px solid; filter: brightness(.7); }
+.case .lg i.dot { width: 9px; height: 9px; border-radius: 5px; }
+.case .lg i.dash { width: 22px; height: 0; border-top: 1px dashed var(--text); }
+.case .lg i.kp { width: 16px; height: 12px; background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--scene); }
+.case .lg i.fxs { width: 16px; height: 12px; background: var(--prior-soft); border: 1px solid var(--border); }
+.case .lg i.dets { width: 16px; height: 12px; background: var(--ok-bg); border: 1px solid var(--border); }
+.case .lg i.unds { width: 16px; height: 12px; background: var(--soft); border: 1px solid var(--border); }
+.case .lg i:not([class]), .case .lg i[class=""] { display: none; }
+/* time line */
+.case .ttime td.bar { width: 45%; min-width: 120px; }
+.case .ttime td.bar span { display: block; height: 12px; background: var(--scene); border-radius: 2px; min-width: 1px; }
+.case .ttime tr.tot td { font-weight: 600; border-top: 1px solid var(--border-strong); }
+.case .ttime td:nth-child(4), .case .ttime td:nth-child(5) { white-space: nowrap; text-align: right; }
+.case .two figure img { max-height: 460px; width: auto; }
+.case .strip figcaption { font-size: 12px; }

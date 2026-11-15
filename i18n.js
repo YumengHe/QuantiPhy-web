@@ -10,6 +10,7 @@
   const ZH = {
     "Home": "首页",
     "Pipeline": "流程",
+    "One case": "单题演示",
     "Evaluation": "评测",
     "Baseline": "基线",
     "Site": "站点",

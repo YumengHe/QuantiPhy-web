@@ -1,0 +1,3887 @@
+{
+ "unit": "captured_0021x_q1",
+ "split": "val",
+ "video": {
+  "files": [
+   "video.webm",
+   "video.mp4"
+  ],
+  "fps": 24.0,
+  "n_frames": 49,
+  "width": 854,
+  "height": 480
+ },
+ "question": "What is the velocity of the ping pong ball at 1.2s in cm/s?",
+ "prior": "diameter of the ping pong ball = 40 mm",
+ "depth_info": "t=1.0s, distance_pingpong_camera=1.511 m\nt=1.4s, distance_pingpong_camera=1.03 m",
+ "statements": [
+  {
+   "index": 0,
+   "raw": "diameter of the ping pong ball = 40 mm",
+   "quantity": "diameter",
+   "object_phrase": "the ping pong ball",
+   "value_si": 0.04,
+   "unit_si": "m",
+   "time": null,
+   "before": null
+  },
+  {
+   "index": 1,
+   "raw": "t=1.0s, distance_pingpong_camera = 1.511 m",
+   "quantity": "distance_to_camera",
+   "object_phrase": "pingpong",
+   "value_si": 1.511,
+   "unit_si": "m",
+   "time": 1.0,
+   "before": null
+  },
+  {
+   "index": 2,
+   "raw": "t=1.4s, distance_pingpong_camera = 1.03 m",
+   "quantity": "distance_to_camera",
+   "object_phrase": "pingpong",
+   "value_si": 1.03,
+   "unit_si": "m",
+   "time": 1.4,
+   "before": null
+  }
+ ],
+ "ground_truth": "117.73",
+ "colours": {
+  "ping_pong_ball": "#5B8DB8",
+  "table": "#E09A6E"
+ },
+ "names": {
+  "table": "pedestal table",
+  "ping_pong_ball": "ping pong ball"
+ },
+ "harness_timing": {
+  "total_seconds": 205.9,
+  "steps": {
+   "objects": {
+    "seconds": 24.5,
+    "reused": false,
+    "cached": false
+   },
+   "scenegraph_grid": {
+    "seconds": 14.9,
+    "reused": false,
+    "cached": false
+   },
+   "track": {
+    "seconds": 107.1,
+    "reused": "partial",
+    "cached": false,
+    "shared": {
+     "sam2_hits": 1,
+     "sam2_misses": 0
+    }
+   },
+   "focal": {
+    "seconds": 38.2,
+    "reused": false,
+    "cached": false,
+    "shared": {
+     "depth_focal": "computed",
+     "depth_frames_computed": 11
+    }
+   }
+  }
+ },
+ "task_plan": {
+  "status": "ok",
+  "calls": 1,
+  "s": 20.1
+ },
+ "objects": {
+  "list": [
+   {
+    "name": "the ping pong ball",
+    "aliases": [
+     "the ping pong ball",
+     "the pingpong"
+    ],
+    "track": true,
+    "shape_hint": {
+     "shape": "sphere",
+     "footprint": "round",
+     "thin": false
+    },
+    "location_hint": null,
+    "grounding_phrase": "small spherical ping pong ball, 40 mm in diameter",
+    "expected_size_class": "small",
+    "role": "object",
+    "count": 1,
+    "reference_only": false,
+    "part_of": null,
+    "agency": "passive",
+    "body": "hollow",
+    "agency_source": "llm",
+    "locomotion": "none",
+    "size_class": "table_tennis_ball",
+    "size_reference": null,
+    "self_reference": false
+   }
+  ],
+  "rendered": {
+   "verdict": true,
+   "answer": true,
+   "cues": [
+    {
+     "kind": "synthetic_surface",
+     "where": "t=0.00s",
+     "why": "The tabletop and central support have simplified textures, sharp geometric edges, and uniform computer-generated shading."
+    }
+   ],
+   "cues_rejected": [],
+   "why": "The table and ball have the simplified geometry and synthetic surface appearance of a rendered scene.",
+   "reason": null
+  },
+  "reference_rejected": [
+   {
+    "name": "the ping pong ball",
+    "class": "table_tennis_ball",
+    "reason": "scene.rendered",
+    "why": "the video is a rendering; its objects need not have their real size (cues: synthetic_surface at t=0.00s)"
+   },
+   {
+    "name": "the wooden table",
+    "class": "dining_table",
+    "reason": "scene.rendered",
+    "why": "the video is a rendering; its objects need not have their real size (cues: synthetic_surface at t=0.00s)"
+   }
+  ]
+ },
+ "scenegraph": {
+  "edges": [
+   {
+    "from": "the ping pong ball",
+    "to": "table",
+    "rel": "on",
+    "t_start": 0.0,
+    "t_end": 1.7,
+    "source": "grid"
+   },
+   {
+    "from": "the ping pong ball",
+    "to": null,
+    "rel": "airborne",
+    "t_start": 1.7,
+    "t_end": 2.0,
+    "source": "grid"
+   }
+  ],
+  "frames_t": [
+   0.0,
+   0.42,
+   0.79,
+   1.21,
+   1.58,
+   2.0
+  ]
+ },
+ "detect": {
+  "the ping pong ball": {
+   "frame": 29,
+   "image": "detect_ping_pong_ball.jpg",
+   "n_candidates": 1,
+   "boxes": [
+    [
+     487.1,
+     281.3,
+     508.0,
+     301.4
+    ]
+   ],
+   "choice": 0,
+   "reason": "Box 1 encloses the small white spherical ball on the tabletop, consistent with a 40 mm ping pong ball.",
+   "rejected": [],
+   "scan": {
+    "labels": {
+     "0": "full",
+     "10": "full",
+     "19": "full",
+     "29": "full",
+     "38": "full",
+     "48": "absent"
+    },
+    "best": 38
+   },
+   "choice_frame": {
+    "frame": 29,
+    "why": "full on frames [0, 10, 19, 29, 38], the shared frame among them: the shared frame; the scan's best 38 not taken",
+    "shared": 29,
+    "shared_status": "full",
+    "rule": "shared.full"
+   },
+   "motion": {
+    "window": [
+     0.8999999999999999,
+     1.5
+    ],
+    "displacement_px": 41.2,
+    "moves": true,
+    "size_term": 2.598
+   },
+   "binding": {
+    "name": "choose.track_binding",
+    "pass": true,
+    "choice_frame": 29,
+    "accepted_frame": 29,
+    "box_iou_at_start": 0.884,
+    "bound": 0.5,
+    "tolerance_px": 2.0,
+    "box_iou_dilated": 0.903,
+    "edge_px": 1.7,
+    "rule": "iou",
+    "start_kept": true,
+    "why": "record box [487, 281, 508, 301] vs the track's box [487, 283, 508, 302] on frame 29: IoU 0.88 >= 0.5"
+   },
+   "crop": [
+    435,
+    231,
+    560,
+    480
+   ]
+  }
+ },
+ "tracks": {
+  "the ping pong ball": {
+   "span": [
+    0,
+    42
+   ],
+   "n_frames": 43,
+   "ends": {
+    "start": {
+     "frame": 0,
+     "reason": "clip_end",
+     "why": "tracked to the clip's first frame"
+    },
+    "end": {
+     "frame": 42,
+     "reason": "out_of_frame",
+     "why": "box on the image border at frame 42, no mask past it"
+    }
+   },
+   "overlap_same_class": [
+    39,
+    41,
+    42
+   ],
+   "identity": {
+    "source": "choice: candidate",
+    "frame": 29,
+    "box": [
+     484.0,
+     283.0,
+     511.0,
+     304.0
+    ],
+    "n_frames": 43,
+    "moves": {
+     "moves": true,
+     "px": 41.2,
+     "centre": 10.988,
+     "size": 2.598,
+     "evidence": 10.988,
+     "window": [
+      0.8999999999999999,
+      1.5
+     ]
+    },
+    "votes": [
+     "yes",
+     "yes",
+     "yes"
+    ],
+    "class_size": [],
+    "presence": {
+     "pass": true,
+     "reason": "in its box over frames 0-42",
+     "samples": [
+      {
+       "frame": 0,
+       "answer": "yes",
+       "inside": "white ping pong ball"
+      },
+      {
+       "frame": 8,
+       "answer": "yes",
+       "inside": "white ping pong ball"
+      },
+      {
+       "frame": 17,
+       "answer": "yes",
+       "inside": "white ping pong ball"
+      },
+      {
+       "frame": 25,
+       "answer": "yes",
+       "inside": "white ping pong ball"
+      },
+      {
+       "frame": 34,
+       "answer": "yes",
+       "inside": "white ping pong ball"
+      },
+      {
+       "frame": 42,
+       "answer": "yes",
+       "inside": "motion-blurred white ball"
+      }
+     ],
+     "probes": [],
+     "first": 0,
+     "last": 42,
+     "yes": 6,
+     "n_votes": 6,
+     "n_kept": 43
+    },
+    "ends": {
+     "start": {
+      "frame": 0,
+      "reason": "clip_end",
+      "why": "tracked to the clip's first frame"
+     },
+     "end": {
+      "frame": 42,
+      "reason": "out_of_frame",
+      "why": "box on the image border at frame 42, no mask past it"
+     }
+    },
+    "border_frac": 0.023,
+    "outcome": "accepted"
+   },
+   "check": {
+    "verified": true,
+    "reasons": [
+     "candidate #0 of 1 accepted by the track identity judge: choice: candidate (verify ['yes', 'yes', 'yes']; presence in its box over frames 0-42; border 0.023)"
+    ],
+    "votes": [
+     "yes",
+     "yes",
+     "yes"
+    ],
+    "identity": {
+     "chosen": 0,
+     "n_candidates": 1,
+     "rejected": [],
+     "source": "choice: candidate",
+     "outcome": "accepted"
+    },
+    "untracked": null,
+    "source": "identity",
+    "presence": "visible"
+   },
+   "coverage": {
+    "plan_body": "the ping pong ball",
+    "required_window": [
+     0,
+     39
+    ],
+    "needs": "instant",
+    "tracked_span": [
+     0,
+     42
+    ],
+    "n_frames": 43,
+    "end_reasons": {
+     "start": "clip_end",
+     "end": "out_of_frame"
+    },
+    "covered": true
+   },
+   "body": "ping_pong_ball"
+  }
+ },
+ "masks": {
+  "strip": [
+   {
+    "object": "ping_pong_ball",
+    "frame": 0,
+    "t": 0.0,
+    "image": "mask_ping_pong_ball_f0000.jpg",
+    "area_px": 168
+   },
+   {
+    "object": "ping_pong_ball",
+    "frame": 5,
+    "t": 0.208,
+    "image": "mask_ping_pong_ball_f0005.jpg",
+    "area_px": 160
+   },
+   {
+    "object": "ping_pong_ball",
+    "frame": 10,
+    "t": 0.417,
+    "image": "mask_ping_pong_ball_f0010.jpg",
+    "area_px": 161
+   },
+   {
+    "object": "ping_pong_ball",
+    "frame": 15,
+    "t": 0.625,
+    "image": "mask_ping_pong_ball_f0015.jpg",
+    "area_px": 151
+   },
+   {
+    "object": "ping_pong_ball",
+    "frame": 20,
+    "t": 0.833,
+    "image": "mask_ping_pong_ball_f0020.jpg",
+    "area_px": 153
+   },
+   {
+    "object": "ping_pong_ball",
+    "frame": 25,
+    "t": 1.042,
+    "image": "mask_ping_pong_ball_f0025.jpg",
+    "area_px": 204
+   },
+   {
+    "object": "ping_pong_ball",
+    "frame": 30,
+    "t": 1.25,
+    "image": "mask_ping_pong_ball_f0030.jpg",
+    "area_px": 312
+   },
+   {
+    "object": "ping_pong_ball",
+    "frame": 35,
+    "t": 1.458,
+    "image": "mask_ping_pong_ball_f0035.jpg",
+    "area_px": 398
+   },
+   {
+    "object": "ping_pong_ball",
+    "frame": 40,
+    "t": 1.667,
+    "image": "mask_ping_pong_ball_f0040.jpg",
+    "area_px": 1047
+   },
+   {
+    "object": "ping_pong_ball",
+    "frame": 42,
+    "t": 1.75,
+    "image": "mask_ping_pong_ball_f0042.jpg",
+    "area_px": 1758
+   }
+  ],
+  "log": {
+   "n": 43,
+   "s": 6
+  },
+  "crop": [
+   435,
+   231,
+   560,
+   480
+  ]
+ },
+ "mask_noise": {
+  "ping_pong_ball": {
+   "noise_px": 0.09615384787321091,
+   "iou_consecutive": 0.9698795180722891,
+   "pairs": 41,
+   "clean": true
+  }
+ },
+ "focal": {
+  "f": 584.25,
+  "sigma": 64.86375,
+  "mad_rel": 0.11102053915275995,
+  "per_frame": {
+   "0": 648.5,
+   "4": 668.0,
+   "9": 634.0,
+   "13": 612.0,
+   "17": 603.0,
+   "22": 606.5,
+   "26": 548.0,
+   "31": 528.5,
+   "35": 483.8,
+   "39": 523.0,
+   "44": 546.5,
+   "48": 565.5
+  },
+  "frames": [
+   0,
+   4,
+   9,
+   13,
+   17,
+   22,
+   26,
+   31,
+   35,
+   39,
+   44,
+   48
+  ],
+  "rule": "the median of the depth model's per-frame focal estimates on 12 evenly spaced frames (scene_depth.model_focal); sigma = 1.4826 x their median absolute deviation"
+ },
+ "focal_seconds": 27.8,
+ "plan": {
+  "plan": {
+   "objects": [
+    {
+     "id": "table",
+     "name": "pedestal table",
+     "track": null,
+     "kind": "body",
+     "shape": "composite",
+     "proportions": [
+      1.0,
+      1.0,
+      0.65
+     ],
+     "view": "oblique",
+     "faces_motion": false,
+     "description": "A broad, flat rectangular tabletop on a central vertical pedestal. The table is stationary and supports the ball until it passes over the near edge.",
+     "states": [
+      {
+       "frames": [
+        0,
+        48
+       ],
+       "relation": "free",
+       "target": null,
+       "law": "static",
+       "direction": [
+        "none"
+       ]
+      }
+     ],
+     "part_of": null,
+     "part_box": null,
+     "pose": null
+    },
+    {
+     "id": "ping_pong_ball",
+     "name": "ping pong ball",
+     "track": "the ping pong ball",
+     "kind": "body",
+     "shape": "sphere",
+     "proportions": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "view": "oblique",
+     "faces_motion": false,
+     "description": "A small spherical ball initially resting near the far side of the tabletop. It rolls toward the camera, passes over the near edge, and falls below the tabletop.",
+     "states": [
+      {
+       "frames": [
+        0,
+        18
+       ],
+       "relation": "on",
+       "target": "table",
+       "law": "static",
+       "direction": [
+        "none"
+       ]
+      },
+      {
+       "frames": [
+        19,
+        36
+       ],
+       "relation": "on",
+       "target": "table",
+       "law": "rolling",
+       "direction": [
+        "towards_camera",
+        "spinning"
+       ]
+      },
+      {
+       "frames": [
+        37,
+        48
+       ],
+       "relation": "free",
+       "target": null,
+       "law": "ballistic",
+       "direction": [
+        "towards_camera",
+        "down"
+       ]
+      }
+     ],
+     "part_of": null,
+     "part_box": null,
+     "pose": null
+    }
+   ],
+   "prior_bindings": [
+    {
+     "statement": 0,
+     "object": "ping_pong_ball",
+     "binds": "D",
+     "reference": null,
+     "objects": [
+      "ping_pong_ball"
+     ]
+    },
+    {
+     "statement": 1,
+     "object": "ping_pong_ball",
+     "binds": "distance_to_camera",
+     "reference": null
+    },
+    {
+     "statement": 2,
+     "object": "ping_pong_ball",
+     "binds": "distance_to_camera",
+     "reference": null
+    }
+   ],
+   "question_binding": {
+    "object": "ping_pong_ball",
+    "binds": "speed",
+    "reference": "camera",
+    "unbound": null,
+    "measurement": null
+   },
+   "unbound_statements": [],
+   "environment": {
+    "kind": "earth",
+    "reason": "The ordinary table-supported motion followed by a downward fall indicates terrestrial gravity."
+   },
+   "camera_moves": null,
+   "depth_groups": [],
+   "depth_note": "The ball moves toward the camera across a tabletop seen in perspective, so it does not remain at the same depth as the stationary table.",
+   "class_sizes": [],
+   "measurements": []
+  },
+  "initial": {
+   "objects": [
+    {
+     "id": "table",
+     "name": "pedestal table",
+     "track": null,
+     "kind": "body",
+     "shape": "composite",
+     "proportions": [
+      1.0,
+      1.0,
+      0.65
+     ],
+     "view": "oblique",
+     "faces_motion": false,
+     "description": "A broad, flat rectangular tabletop on a central vertical pedestal. The table is stationary and supports the ball until it passes over the near edge.",
+     "states": [
+      {
+       "frames": [
+        0,
+        48
+       ],
+       "relation": "free",
+       "target": null,
+       "law": "static",
+       "direction": [
+        "none"
+       ]
+      }
+     ],
+     "part_of": null,
+     "part_box": null,
+     "pose": null
+    },
+    {
+     "id": "ping_pong_ball",
+     "name": "ping pong ball",
+     "track": "the ping pong ball",
+     "kind": "body",
+     "shape": "sphere",
+     "proportions": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "view": "oblique",
+     "faces_motion": false,
+     "description": "A small spherical ball initially resting near the far side of the tabletop. It rolls toward the camera, passes over the near edge, and falls below the tabletop.",
+     "states": [
+      {
+       "frames": [
+        0,
+        18
+       ],
+       "relation": "on",
+       "target": "table",
+       "law": "static",
+       "direction": [
+        "none"
+       ]
+      },
+      {
+       "frames": [
+        19,
+        36
+       ],
+       "relation": "on",
+       "target": "table",
+       "law": "rolling",
+       "direction": [
+        "towards_camera",
+        "spinning"
+       ]
+      },
+      {
+       "frames": [
+        37,
+        48
+       ],
+       "relation": "free",
+       "target": null,
+       "law": "ballistic",
+       "direction": [
+        "towards_camera",
+        "down"
+       ]
+      }
+     ],
+     "part_of": null,
+     "part_box": null,
+     "pose": null
+    }
+   ],
+   "prior_bindings": [
+    {
+     "statement": 0,
+     "object": "ping_pong_ball",
+     "binds": "D",
+     "reference": null,
+     "objects": [
+      "ping_pong_ball"
+     ]
+    },
+    {
+     "statement": 1,
+     "object": "ping_pong_ball",
+     "binds": "distance_to_camera",
+     "reference": null
+    },
+    {
+     "statement": 2,
+     "object": "ping_pong_ball",
+     "binds": "distance_to_camera",
+     "reference": null
+    }
+   ],
+   "question_binding": {
+    "object": "ping_pong_ball",
+    "binds": "speed",
+    "reference": "camera",
+    "unbound": null,
+    "measurement": null
+   },
+   "unbound_statements": [],
+   "environment": {
+    "kind": "earth",
+    "reason": "The ordinary table-supported motion followed by a downward fall indicates terrestrial gravity."
+   },
+   "camera_moves": null,
+   "depth_groups": [],
+   "depth_note": "The ball moves toward the camera across a tabletop seen in perspective, so it does not remain at the same depth as the stationary table.",
+   "class_sizes": [],
+   "measurements": []
+  },
+  "review": {
+   "issues_given": [],
+   "status": "ok",
+   "ok": true,
+   "notes": "The plan is consistent with the observed stationary table, the ball's approach across its surface, and its subsequent fall. The prior statements and question are already bound to the tracked ball, and no additions or sharpening are needed.",
+   "accepted": true,
+   "added": [],
+   "sharpened": {},
+   "bindings_added": [],
+   "groups_added": [],
+   "instances_added": {},
+   "scene_sharpened": [],
+   "class_sizes_added": [],
+   "measurements_added": [],
+   "violations": []
+  },
+  "repairs": {},
+  "final_issues": [],
+  "final_errors": [],
+  "timing": {
+   "plan_s": 37.97826433181763,
+   "author_s": 6.915140390396118,
+   "shape_check_s": 0.5060145854949951,
+   "total_s": 46.59599828720093
+  },
+  "n_calls": 4,
+  "authoring": {
+   "table": {
+    "status": "authored",
+    "attempts": 1,
+    "module": "module table() {\n    union() {\n        translate([-0.5, -0.5, 0.60])\n            cube([1, 1, 0.05]);\n        translate([-0.04, -0.04, 0])\n            cube([0.08, 0.08, 0.62]);\n    }\n}",
+    "mesh_ratios": {
+     "L": 1.0,
+     "W": 1.0,
+     "H": 0.65
+    },
+    "extents": [
+     1.0,
+     1.0,
+     0.65
+    ],
+    "failures": []
+   },
+   "ping_pong_ball": {
+    "status": "authored",
+    "attempts": 1,
+    "module": "module ping_pong_ball() {\n    sphere(d=1, $fn=48);\n}",
+    "mesh_ratios": {
+     "L": 1.0,
+     "W": 1.0,
+     "H": 1.0
+    },
+    "extents": [
+     0.9978589232386035,
+     0.9978589232386035,
+     0.9978589232386035
+    ],
+    "failures": []
+   }
+  },
+  "shape_check": {
+   "stop": "done",
+   "iterations": 0,
+   "calls": 0,
+   "kept": 0,
+   "bodies": {
+    "table": {
+     "stop": "no_track",
+     "verdicts": [],
+     "proposed": 0,
+     "kept": 0,
+     "reverted": 0
+    },
+    "ping_pong_ball": {
+     "stop": "sphere",
+     "verdicts": [],
+     "proposed": 0,
+     "kept": 0,
+     "reverted": 0
+    }
+   }
+  },
+  "structure_check": {
+   "complete": true,
+   "failed_objects": [],
+   "free_params": [
+    "cam.f",
+    "cam.pitch",
+    "cam.roll",
+    "ping_pong_ball.s0.p",
+    "ping_pong_ball.s0.yaw",
+    "ping_pong_ball.s1.decel",
+    "ping_pong_ball.s1.p0",
+    "ping_pong_ball.s1.v0",
+    "ping_pong_ball.s1.yaw",
+    "ping_pong_ball.s2.p0",
+    "ping_pong_ball.s2.v0",
+    "ping_pong_ball.s2.yaw",
+    "table.H",
+    "table.L",
+    "table.W",
+    "table.s0.p",
+    "table.s0.yaw"
+   ],
+   "fixed_params": [
+    "cam.cx",
+    "cam.cy",
+    "cam.position",
+    "cam.yaw",
+    "g",
+    "ping_pong_ball.D"
+   ],
+   "tables": []
+  },
+  "query": {
+   "object": "ping_pong_ball",
+   "binds": "speed",
+   "reference": "camera",
+   "time": 1.2,
+   "window": null,
+   "aggregate": null,
+   "component": null,
+   "unit": "cm/s",
+   "unit_factor": 0.01,
+   "event": null
+  },
+  "depth": {
+   "groups": [],
+   "note": "The ball moves toward the camera across a tabletop seen in perspective, so it does not remain at the same depth as the stationary table.",
+   "ties": [],
+   "rejected": []
+  },
+  "grid_frames": [
+   0,
+   6,
+   12,
+   18,
+   24,
+   30,
+   36,
+   42,
+   48
+  ]
+ },
+ "plan_calls": [
+  {
+   "stage": "plan",
+   "attempt": 1,
+   "prompt_chars": 14614
+  },
+  {
+   "stage": "review",
+   "attempt": 1,
+   "prompt_chars": 5404
+  },
+  {
+   "stage": "author",
+   "attempt": 1,
+   "prompt_chars": 1590
+  },
+  {
+   "stage": "author",
+   "attempt": 1,
+   "prompt_chars": 1441
+  }
+ ],
+ "shape": {
+  "bodies": {
+   "table": {
+    "id": "table",
+    "shape": "composite",
+    "view": "oblique",
+    "track": null,
+    "iterations": 0,
+    "verdicts": [],
+    "history": [],
+    "stop": "no_track",
+    "calls": 0,
+    "seconds": 0.0,
+    "fixes": {
+     "proposed": 0,
+     "kept": 0,
+     "reverted": 0
+    }
+   },
+   "ping_pong_ball": {
+    "id": "ping_pong_ball",
+    "shape": "sphere",
+    "view": "oblique",
+    "track": "the ping pong ball",
+    "iterations": 0,
+    "verdicts": [],
+    "history": [],
+    "stop": "sphere",
+    "calls": 0,
+    "seconds": 0.5,
+    "fixes": {
+     "proposed": 0,
+     "kept": 0,
+     "reverted": 0
+    },
+    "frames": [
+     0,
+     10,
+     20,
+     31,
+     41
+    ],
+    "which": "clean frames",
+    "noise": {
+     "noise_px": 0.09615384787321091,
+     "iou_consecutive": 0.9698795180722891,
+     "pairs": 41,
+     "clean": true
+    },
+    "noise_unit_px": 1.4142135623730951,
+    "before": {
+     "status": "measured",
+     "frames": [
+      0,
+      10,
+      20,
+      31,
+      41
+     ],
+     "per_frame": [
+      {
+       "frame": 0,
+       "yaw_deg": 0.0,
+       "elevation_deg": 15.0,
+       "boundary_px": 0.1695156693458557,
+       "radius_px": 7.312732791431452,
+       "shape_rel": 0.02318089203867565,
+       "extents": [
+        {
+         "axis": "long",
+         "label": "D",
+         "observed_px": 15.992809132234484,
+         "rendered_px": 15.174616345253895
+        },
+        {
+         "axis": "short",
+         "label": "D",
+         "observed_px": 15.17461634525389,
+         "rendered_px": 15.086170023059273
+        }
+       ]
+      },
+      {
+       "frame": 10,
+       "yaw_deg": 0.0,
+       "elevation_deg": 15.0,
+       "boundary_px": 0.07692307978868484,
+       "radius_px": 7.158763278359629,
+       "shape_rel": 0.010745302896272207,
+       "extents": [
+        {
+         "axis": "long",
+         "label": "D",
+         "observed_px": 15.308468498700822,
+         "rendered_px": 14.922496408129238
+        },
+        {
+         "axis": "short",
+         "label": "D",
+         "observed_px": 14.771930131174612,
+         "rendered_px": 14.922496408129238
+        }
+       ]
+      },
+      {
+       "frame": 20,
+       "yaw_deg": 0.0,
+       "elevation_deg": 15.0,
+       "boundary_px": 0.1286274492740631,
+       "radius_px": 6.978639737521917,
+       "shape_rel": 0.018431593277766497,
+       "extents": [
+        {
+         "axis": "long",
+         "label": "D",
+         "observed_px": 14.775945227593809,
+         "rendered_px": 14.533547088983568
+        },
+        {
+         "axis": "short",
+         "label": "D",
+         "observed_px": 14.387928416177145,
+         "rendered_px": 14.387928416177145
+        }
+       ]
+      },
+      {
+       "frame": 31,
+       "yaw_deg": 0.0,
+       "elevation_deg": 15.0,
+       "boundary_px": 0.1315789520740509,
+       "radius_px": 10.217907939900583,
+       "shape_rel": 0.012877288858733946,
+       "extents": [
+        {
+         "axis": "long",
+         "label": "D",
+         "observed_px": 20.564312914919235,
+         "rendered_px": 20.7291676193827
+        },
+        {
+         "axis": "short",
+         "label": "D",
+         "observed_px": 20.564312914919235,
+         "rendered_px": 20.729167619382704
+        }
+       ]
+      },
+      {
+       "frame": 41,
+       "yaw_deg": 0.0,
+       "elevation_deg": 15.0,
+       "boundary_px": 3.9531166553497314,
+       "radius_px": 19.47884453275087,
+       "shape_rel": 0.2029441042410465,
+       "extents": [
+        {
+         "axis": "long",
+         "label": "D",
+         "observed_px": 53.21992907019997,
+         "rendered_px": 39.171911773048265
+        },
+        {
+         "axis": "short",
+         "label": "D",
+         "observed_px": 26.46751699570636,
+         "rendered_px": 39.19837120627151
+        }
+       ]
+      }
+     ],
+     "boundary_px": 0.1315789520740509,
+     "radius_px": 7.312732791431452,
+     "shape_rel": 0.018431593277766497,
+     "extents": [
+      {
+       "axis": "long",
+       "label": "D",
+       "observed_px": 15.992809132234484,
+       "rendered_px": 15.174616345253895,
+       "ratio": 0.9488399579951547
+      },
+      {
+       "axis": "short",
+       "label": "D",
+       "observed_px": 15.17461634525389,
+       "rendered_px": 15.086170023059273,
+       "ratio": 0.9941714294330558
+      }
+     ]
+    }
+   }
+  },
+  "iterations": 0,
+  "calls": 0,
+  "stop": "done",
+  "kept": 0,
+  "seconds": 0.5
+ },
+ "structure": {
+  "params": {
+   "cam.f": {
+    "value": null,
+    "unit": "px",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "cam.cx": {
+    "value": 427.0,
+    "unit": "px",
+    "source": "convention",
+    "sigma": null,
+    "fixed": true,
+    "shape": "scalar"
+   },
+   "cam.cy": {
+    "value": 240.0,
+    "unit": "px",
+    "source": "convention",
+    "sigma": null,
+    "fixed": true,
+    "shape": "scalar"
+   },
+   "cam.position": {
+    "value": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "unit": "m",
+    "source": "convention",
+    "sigma": null,
+    "fixed": true,
+    "shape": "vector"
+   },
+   "cam.yaw": {
+    "value": 0.0,
+    "unit": "rad",
+    "source": "convention",
+    "sigma": null,
+    "fixed": true,
+    "shape": "scalar"
+   },
+   "cam.pitch": {
+    "value": null,
+    "unit": "rad",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "cam.roll": {
+    "value": null,
+    "unit": "rad",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "g": {
+    "value": 9.81,
+    "unit": "m/s^2",
+    "source": "convention",
+    "sigma": null,
+    "fixed": true,
+    "shape": "scalar",
+    "environment": "earth"
+   },
+   "table.L": {
+    "value": null,
+    "unit": "m",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "table.W": {
+    "value": null,
+    "unit": "m",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "table.H": {
+    "value": null,
+    "unit": "m",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "table.s0.p": {
+    "value": null,
+    "unit": "m",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "vector"
+   },
+   "table.s0.yaw": {
+    "value": null,
+    "unit": "rad",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "ping_pong_ball.D": {
+    "value": 0.04,
+    "unit": "m",
+    "source": "prior",
+    "sigma": null,
+    "fixed": true,
+    "shape": "scalar",
+    "statement": "diameter of the ping pong ball = 40 mm"
+   },
+   "ping_pong_ball.s0.p": {
+    "value": null,
+    "unit": "m",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "vector"
+   },
+   "ping_pong_ball.s0.yaw": {
+    "value": null,
+    "unit": "rad",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "ping_pong_ball.s1.p0": {
+    "value": null,
+    "unit": "m",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "vector"
+   },
+   "ping_pong_ball.s1.v0": {
+    "value": null,
+    "unit": "m/s",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "vector"
+   },
+   "ping_pong_ball.s1.decel": {
+    "value": null,
+    "unit": "m/s^2",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "ping_pong_ball.s1.yaw": {
+    "value": null,
+    "unit": "rad",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   },
+   "ping_pong_ball.s2.p0": {
+    "value": null,
+    "unit": "m",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "vector"
+   },
+   "ping_pong_ball.s2.v0": {
+    "value": null,
+    "unit": "m/s",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "vector"
+   },
+   "ping_pong_ball.s2.yaw": {
+    "value": null,
+    "unit": "rad",
+    "source": "fit",
+    "sigma": null,
+    "fixed": false,
+    "shape": "scalar"
+   }
+  },
+  "segments": {
+   "table": [
+    {
+     "t0": 0.0,
+     "t1": 2.0,
+     "relation": "free",
+     "to": null,
+     "law": "static",
+     "state": {
+      "frames": [
+       0,
+       48
+      ],
+      "direction": [
+       "none"
+      ]
+     },
+     "parameters": {
+      "p": "table.s0.p"
+     },
+     "heading": {
+      "mode": "fixed",
+      "yaw": "table.s0.yaw"
+     }
+    }
+   ],
+   "ping_pong_ball": [
+    {
+     "t0": 0.0,
+     "t1": 0.7916666666666666,
+     "relation": "on",
+     "to": "table",
+     "law": "static",
+     "state": {
+      "frames": [
+       0,
+       18
+      ],
+      "direction": [
+       "none"
+      ]
+     },
+     "parameters": {
+      "p": "ping_pong_ball.s0.p"
+     },
+     "heading": {
+      "mode": "fixed",
+      "yaw": "ping_pong_ball.s0.yaw"
+     }
+    },
+    {
+     "t0": 0.7916666666666666,
+     "t1": 1.5416666666666667,
+     "relation": "on",
+     "to": "table",
+     "law": "rolling",
+     "state": {
+      "frames": [
+       19,
+       36
+      ],
+      "direction": [
+       "towards_camera",
+       "spinning"
+      ]
+     },
+     "parameters": {
+      "p0": "ping_pong_ball.s1.p0",
+      "v0": "ping_pong_ball.s1.v0",
+      "decel": "ping_pong_ball.s1.decel"
+     },
+     "heading": {
+      "mode": "fixed",
+      "yaw": "ping_pong_ball.s1.yaw"
+     }
+    },
+    {
+     "t0": 1.5416666666666667,
+     "t1": 2.0,
+     "relation": "free",
+     "to": null,
+     "law": "ballistic",
+     "state": {
+      "frames": [
+       37,
+       48
+      ],
+      "direction": [
+       "towards_camera",
+       "down"
+      ]
+     },
+     "parameters": {
+      "p0": "ping_pong_ball.s2.p0",
+      "v0": "ping_pong_ball.s2.v0"
+     },
+     "heading": {
+      "mode": "fixed",
+      "yaw": "ping_pong_ball.s2.yaw"
+     }
+    }
+   ]
+  }
+ },
+ "fit": {
+  "camera_starts": [
+   {
+    "yaw_deg": 68.23860818405039,
+    "objective_before": 532677138.7433951,
+    "objective_after": 230381.7006486361,
+    "nfev": 12,
+    "time_s": 2.5529682636260986,
+    "pitch_deg": -80.0,
+    "valid": true,
+    "z_ref": 1.6814627454640683,
+    "z_ref_how": "ping_pong_ball: stated distance (c0)",
+    "statements_hold": true,
+    "refined_objective": 1048.6456542024741,
+    "quick_objective": 1048.6456542024741,
+    "within_noise": true,
+    "candidate": "completed",
+    "final_objective": 14348.100203721337
+   },
+   {
+    "yaw_deg": 80.30712004947691,
+    "objective_before": 43155464.20265269,
+    "objective_after": 9663.090158064866,
+    "nfev": 12,
+    "time_s": 2.550755500793457,
+    "pitch_deg": -59.99999999999999,
+    "valid": true,
+    "z_ref": 1.6814627454640683,
+    "z_ref_how": "ping_pong_ball: stated distance (c0)",
+    "statements_hold": true,
+    "refined_objective": 1049.7443109076482,
+    "quick_objective": 1049.7443109076482,
+    "within_noise": true,
+    "candidate": "completed",
+    "final_objective": 14283.34464208232
+   },
+   {
+    "yaw_deg": 83.28861154986556,
+    "objective_before": 7642835.399918676,
+    "objective_after": 9434.53055184637,
+    "nfev": 12,
+    "time_s": 2.623657464981079,
+    "pitch_deg": -40.0,
+    "valid": true,
+    "z_ref": 1.6814627454640683,
+    "z_ref_how": "ping_pong_ball: stated distance (c0)",
+    "statements_hold": true,
+    "refined_objective": 1049.5344106569971,
+    "quick_objective": 1049.5344106569971,
+    "within_noise": true,
+    "candidate": "completed",
+    "final_objective": 14297.898687810968
+   },
+   {
+    "yaw_deg": 84.35470073980579,
+    "objective_before": 814581.6856208576,
+    "objective_after": 9785.932365862669,
+    "nfev": 12,
+    "time_s": 2.618992328643799,
+    "pitch_deg": -20.0,
+    "valid": true,
+    "z_ref": 1.6814627454640683,
+    "z_ref_how": "ping_pong_ball: stated distance (c0)",
+    "statements_hold": true,
+    "refined_objective": 1049.1615574018138,
+    "quick_objective": 1049.1615574018138,
+    "within_noise": true,
+    "candidate": "completed",
+    "final_objective": 14345.158254364811
+   },
+   {
+    "yaw_deg": 84.56719973026425,
+    "objective_before": 39292.14090759398,
+    "objective_after": 10559.070980222394,
+    "nfev": 12,
+    "time_s": 2.3212850093841553,
+    "pitch_deg": 0.0,
+    "valid": true,
+    "z_ref": 1.6814627454640683,
+    "z_ref_how": "ping_pong_ball: stated distance (c0)",
+    "statements_hold": true,
+    "refined_objective": 1049.3292877110748,
+    "quick_objective": 1049.3292877110748,
+    "within_noise": true,
+    "candidate": "completed",
+    "final_objective": 14364.686429265575
+   },
+   {
+    "yaw_deg": 84.08046713132946,
+    "objective_before": 1262629.7487268357,
+    "objective_after": 5458.360757873936,
+    "nfev": 12,
+    "time_s": 2.5552642345428467,
+    "pitch_deg": 20.0,
+    "valid": true,
+    "z_ref": 1.6814627454640683,
+    "z_ref_how": "ping_pong_ball: stated distance (c0)",
+    "statements_hold": true,
+    "refined_objective": 1048.8794628033595,
+    "quick_objective": 1048.8794628033595,
+    "within_noise": true,
+    "candidate": "completed",
+    "final_objective": 14307.63375531631
+   },
+   {
+    "yaw_deg": 82.51519641042914,
+    "objective_before": 5693277.26112218,
+    "objective_after": 10755.580961954376,
+    "nfev": 12,
+    "time_s": 2.488433599472046,
+    "pitch_deg": 40.0,
+    "valid": true,
+    "z_ref": 1.6814627454640683,
+    "z_ref_how": "ping_pong_ball: stated distance (c0)",
+    "statements_hold": true,
+    "refined_objective": 1049.1705343215158,
+    "quick_objective": 1049.1705343215158,
+    "within_noise": true,
+    "candidate": "completed",
+    "final_objective": 14316.883244889394
+   },
+   {
+    "yaw_deg": 77.88850835861616,
+    "objective_before": 22984062.10492511,
+    "objective_after": 10571.33698629128,
+    "nfev": 12,
+    "time_s": 2.529181718826294,
+    "pitch_deg": 59.99999999999999,
+    "valid": true,
+    "z_ref": 1.6814627454640683,
+    "z_ref_how": "ping_pong_ball: stated distance (c0)",
+    "statements_hold": true,
+    "refined_objective": 1049.2932561128664,
+    "quick_objective": 1049.2932561128664,
+    "within_noise": true,
+    "candidate": "completed",
+    "final_objective": 14367.087650578645
+   },
+   {
+    "yaw_deg": 48.90751679510979,
+    "objective_before": 247151294.8731876,
+    "objective_after": 642756.4123898327,
+    "nfev": 12,
+    "time_s": 2.4992876052856445,
+    "pitch_deg": 80.0,
+    "valid": true,
+    "z_ref": 1.6814627454640683,
+    "z_ref_how": "ping_pong_ball: stated distance (c0)",
+    "statements_hold": true,
+    "refined_objective": 1049.1966482315136,
+    "quick_objective": 1049.1966482315136,
+    "within_noise": true,
+    "candidate": "completed",
+    "final_objective": 14322.28654486369
+   }
+  ],
+  "camera_start_chosen_pitch_deg": -59.99999999999999,
+  "camera_candidates": {
+   "refined_valid": 9,
+   "within_noise": 9,
+   "candidates": 9,
+   "threshold_total": 430.6709977162044,
+   "best_objective": 1048.6456542024741,
+   "frames": 26,
+   "free_variables": 18,
+   "over": "the first body's refined objective (the only tracked body)",
+   "tried": [
+    0,
+    5,
+    3,
+    6,
+    8,
+    7,
+    4,
+    2,
+    1
+   ],
+   "completed": [
+    0,
+    5,
+    3,
+    6,
+    8,
+    7,
+    4,
+    2,
+    1
+   ],
+   "failed": [],
+   "not_tried": [],
+   "chosen": 1
+  },
+  "focal": {
+   "freed": true,
+   "kept": true,
+   "sigma_rel": 0.019400329629468933,
+   "value": 620.502651748044
+  },
+  "f_start": {
+   "value": 584.25,
+   "f_source": "depth_focal",
+   "from": "/data/yumenghe/QuantiPhy/outputs/depth_focal/captured_0021x.json",
+   "how": "depthpro focal length, median over 12 frames (spread 11.1 %)",
+   "sigma": 64.86375,
+   "frames": 12
+  },
+  "joint": {
+   "rounds": [
+    {
+     "nfev": 41,
+     "njev": 17,
+     "status": 4,
+     "objective_before": 866.6133297908722,
+     "objective_after": 554.0863301869726,
+     "time_s": 7.527190923690796,
+     "vars": 19,
+     "blocks": 26,
+     "phase": "alternation",
+     "context_moved": -2.2737367544323206e-13,
+     "noise_unit": 8.75759549231689,
+     "objective_context": 554.0863301869724,
+     "quiet": false,
+     "why": "drop >= 0.1 (status 4, drop 35.7 noise units per frame, context moved 2.6e-14)",
+     "best": true
+    },
+    {
+     "nfev": 39,
+     "njev": 16,
+     "status": 2,
+     "objective_before": 554.0863301869726,
+     "objective_after": 553.0259820698355,
+     "time_s": 7.3611836433410645,
+     "vars": 19,
+     "blocks": 26,
+     "phase": "alternation",
+     "context_moved": 0.0,
+     "noise_unit": 8.740836190769437,
+     "objective_context": 553.0259820698355,
+     "quiet": false,
+     "why": "drop >= 0.1 (status 2, drop 0.121 noise units per frame, context moved 0)",
+     "best": true
+    },
+    {
+     "nfev": 38,
+     "njev": 14,
+     "status": 2,
+     "objective_before": 553.0259820698355,
+     "objective_after": 550.4673061071701,
+     "time_s": 7.278400659561157,
+     "vars": 19,
+     "blocks": 26,
+     "phase": "alternation",
+     "context_moved": 0.0,
+     "noise_unit": 8.70039511172427,
+     "objective_context": 550.4673061071701,
+     "quiet": false,
+     "why": "drop >= 0.1 (status 2, drop 0.294 noise units per frame, context moved 0)",
+     "best": true
+    },
+    {
+     "nfev": 39,
+     "njev": 16,
+     "status": 2,
+     "objective_before": 550.4673061071701,
+     "objective_after": 549.3594093108585,
+     "time_s": 7.62530255317688,
+     "vars": 19,
+     "blocks": 26,
+     "phase": "alternation",
+     "context_moved": 0.0,
+     "noise_unit": 8.682884280901106,
+     "objective_context": 549.3594093108585,
+     "quiet": false,
+     "why": "drop >= 0.1 (status 2, drop 0.128 noise units per frame, context moved 0)",
+     "best": true
+    },
+    {
+     "nfev": 20,
+     "njev": 3,
+     "status": 2,
+     "objective_before": 549.3594093108585,
+     "objective_after": 549.3594091493719,
+     "time_s": 2.4469807147979736,
+     "vars": 19,
+     "blocks": 26,
+     "phase": "alternation",
+     "context_moved": 0.0,
+     "noise_unit": 8.682884278348736,
+     "objective_context": 549.3594091493719,
+     "quiet": true,
+     "why": "status 2, drop 1.86e-08 noise units per frame, context moved 0",
+     "best": false
+    },
+    {
+     "nfev": 20,
+     "njev": 2,
+     "status": 2,
+     "objective_before": 549.3594091493719,
+     "objective_after": 549.3594091426432,
+     "time_s": 2.2649877071380615,
+     "vars": 19,
+     "blocks": 26,
+     "phase": "alternation",
+     "context_moved": 1.1368683772161603e-13,
+     "noise_unit": 8.682884278242387,
+     "objective_context": 549.3594091426434,
+     "quiet": true,
+     "why": "status 2, drop 7.75e-10 noise units per frame, context moved 1.31e-14",
+     "best": false
+    },
+    {
+     "nfev": 20,
+     "njev": 3,
+     "status": 2,
+     "objective_before": 549.3594093108585,
+     "objective_after": 549.3594091493719,
+     "time_s": 2.4379994869232178,
+     "vars": 19,
+     "blocks": 26,
+     "phase": "descent",
+     "noise_unit": 8.682884280901106,
+     "tried": [
+      {
+       "alpha": 1.0,
+       "objective_context": 549.3594091493719
+      },
+      {
+       "alpha": 0.5,
+       "objective_context": 549.3594092301141
+      },
+      {
+       "alpha": 0.25,
+       "objective_context": 549.3594092704855
+      },
+      {
+       "alpha": 0.125,
+       "objective_context": 549.359409290672
+      }
+     ],
+     "alpha": null,
+     "objective_context": 549.3594093108585,
+     "why": "no damped step (alpha 1: 549.4, 0.5: 549.4, 0.25: 549.4, 0.125: 549.4) lowers the self-consistent objective 549.4 by 0.1 noise units per frame (0.868)"
+    }
+   ],
+   "objective_before": 866.6133297908722,
+   "objective_after": 549.3594093108585,
+   "nfev": 217,
+   "time_s": 36.94204568862915,
+   "converged": true,
+   "stop": {
+    "rule": "the joint pass alternates rendering the occlusion context from the program and solving under it to scipy's tolerances within the round's evaluation budget; its objective is the self-consistent one (under the context rendered from the state). The alternation ends when JOINT_QUIET_ROUNDS consecutive rounds are quiet (the solve ended by its tolerances, not out of evaluations, lowered the objective by less than JOINT_QUIET_NU noise units per frame, and the re-rendered context moved it by less) or when JOINT_STALL_ROUNDS rounds brought no self-consistent objective lower by JOINT_QUIET_NU noise units (stalled: the alternation oscillates); a stalled pass returns to its best visited state and takes damped alternation steps (alpha in JOINT_DESCENT_ALPHAS, the first that lowers the self-consistent objective by JOINT_QUIET_NU noise units) until none does (stationary). Quiet and stationary are converged; a pass at JOINT_MAX_ROUNDS of either phase is recorded unconverged (joint.converged false)",
+    "kind": "stationary",
+    "rounds": 6,
+    "descent_steps": 1,
+    "best_round": 4,
+    "reason": "the alternation went quiet (2 consecutive quiet rounds) away from its best state (round 4) after 6 rounds; from the best state 0 damped steps lowered the self-consistent objective, then none did"
+   },
+   "settings": {
+    "quiet_nu": 0.1,
+    "quiet_rounds": 2,
+    "max_rounds": 12,
+    "stall_rounds": 3,
+    "descent_alphas": [
+     1.0,
+     0.5,
+     0.25,
+     0.125
+    ],
+    "round_nfev": 60,
+    "rule": "the joint pass alternates rendering the occlusion context from the program and solving under it to scipy's tolerances within the round's evaluation budget; its objective is the self-consistent one (under the context rendered from the state). The alternation ends when JOINT_QUIET_ROUNDS consecutive rounds are quiet (the solve ended by its tolerances, not out of evaluations, lowered the objective by less than JOINT_QUIET_NU noise units per frame, and the re-rendered context moved it by less) or when JOINT_STALL_ROUNDS rounds brought no self-consistent objective lower by JOINT_QUIET_NU noise units (stalled: the alternation oscillates); a stalled pass returns to its best visited state and takes damped alternation steps (alpha in JOINT_DESCENT_ALPHAS, the first that lowers the self-consistent objective by JOINT_QUIET_NU noise units) until none does (stationary). Quiet and stationary are converged; a pass at JOINT_MAX_ROUNDS of either phase is recorded unconverged (joint.converged false)"
+   },
+   "vars": 19,
+   "focal": {
+    "freed": true,
+    "kept": true,
+    "sigma_rel": 0.019400329629468933,
+    "value": 620.502651748044
+   },
+   "objective_before_joint": 22531.946574562673
+  },
+  "constraints": [
+   {
+    "id": "c0",
+    "statement": "t=1.0s, distance_pingpong_camera = 1.511 m",
+    "source": "prior",
+    "quantity": "distance_to_camera",
+    "target": 1.511,
+    "program": 1.5109999999999997,
+    "residual": -2.220446049250313e-16,
+    "relative": -1.4695208797156275e-16,
+    "tolerance": 0.0003309066843150232
+   },
+   {
+    "id": "c1",
+    "statement": "t=1.4s, distance_pingpong_camera = 1.03 m",
+    "source": "prior",
+    "quantity": "distance_to_camera",
+    "target": 1.03,
+    "program": 1.0299999999999976,
+    "residual": -2.4424906541753444e-15,
+    "relative": -2.3713501496848005e-15,
+    "tolerance": 0.0048543689320388345
+   },
+   {
+    "id": "ping_pong_ball.s0|s1.p[0]",
+    "quantity": "continuity_p",
+    "target": 0.0,
+    "program": 0.0,
+    "residual": 0.0,
+    "relative": 0.0,
+    "tolerance": 0.0341965648615796
+   },
+   {
+    "id": "ping_pong_ball.s0|s1.p[1]",
+    "quantity": "continuity_p",
+    "target": 0.0,
+    "program": 0.0,
+    "residual": 0.0,
+    "relative": 0.0,
+    "tolerance": 0.0341965648615796
+   },
+   {
+    "id": "ping_pong_ball.s0|s1.p[2]",
+    "quantity": "continuity_p",
+    "target": 0.0,
+    "program": 0.0,
+    "residual": 0.0,
+    "relative": 0.0,
+    "tolerance": 0.0341965648615796
+   },
+   {
+    "id": "ping_pong_ball.s1|s2.p[0]",
+    "quantity": "continuity_p",
+    "target": 0.0,
+    "program": -4.773959005888173e-15,
+    "residual": -4.773959005888173e-15,
+    "relative": -1.1934897514720433e-13,
+    "tolerance": 0.017496988006398647
+   },
+   {
+    "id": "ping_pong_ball.s1|s2.p[1]",
+    "quantity": "continuity_p",
+    "target": 0.0,
+    "program": 1.3600232051658168e-15,
+    "residual": 1.3600232051658168e-15,
+    "relative": 3.400058012914542e-14,
+    "tolerance": 0.017496988006398647
+   },
+   {
+    "id": "ping_pong_ball.s1|s2.p[2]",
+    "quantity": "continuity_p",
+    "target": 0.0,
+    "program": 1.3877787807814457e-17,
+    "residual": 1.3877787807814457e-17,
+    "relative": 3.469446951953614e-16,
+    "tolerance": 0.017496988006398647
+   },
+   {
+    "id": "ping_pong_ball.s1|s2.v[0]",
+    "quantity": "continuity_v",
+    "target": 0.0,
+    "program": 2.6645352591003757e-14,
+    "residual": 2.6645352591003757e-14,
+    "relative": 6.661338147750939e-13,
+    "tolerance": 0.041992771215356745
+   },
+   {
+    "id": "ping_pong_ball.s1|s2.v[1]",
+    "quantity": "continuity_v",
+    "target": 0.0,
+    "program": 0.0,
+    "residual": 0.0,
+    "relative": 0.0,
+    "tolerance": 0.041992771215356745
+   },
+   {
+    "id": "ping_pong_ball.s1|s2.v[2]",
+    "quantity": "continuity_v",
+    "target": 0.0,
+    "program": 3.3306690738754696e-15,
+    "residual": 3.3306690738754696e-15,
+    "relative": 8.326672684688674e-14,
+    "tolerance": 0.041992771215356745
+   },
+   {
+    "id": "ping_pong_ball.D",
+    "statement": "diameter of the ping pong ball = 40 mm",
+    "source": "prior",
+    "quantity": "size",
+    "param": "ping_pong_ball.D",
+    "object": "ping_pong_ball",
+    "read_by": [
+     "ping_pong_ball"
+    ],
+    "target": 0.04,
+    "program": 0.04,
+    "residual": 0.0,
+    "relative": 0.0,
+    "tolerance": 0.0125
+   }
+  ],
+  "identifiability": {
+   "scale": {
+    "undetermined": false,
+    "reason": "fixed by the prior statement c0 (distance_to_camera of ping_pong_ball: t=1.0s, distance_pingpong_camera = 1.511 m); the prior statement c1 (distance_to_camera of ping_pong_ball: t=1.4s, distance_pingpong_camera = 1.03 m); g = 9.81 m/s^2 (convention: taken as given, not measured) through the law of ping_pong_ball.s2 (ballistic); the prior value ping_pong_ball.D = 0.04 m",
+    "objective_change": 202.9121490736179,
+    "constraints_changed": [
+     "c0",
+     "c1"
+    ],
+    "fixed_by": [
+     {
+      "kind": "statement",
+      "name": "c0",
+      "source": "prior",
+      "quantity": "distance_to_camera",
+      "object": "ping_pong_ball",
+      "statement": "t=1.0s, distance_pingpong_camera = 1.511 m",
+      "how": "its residual changes",
+      "text": "the prior statement c0 (distance_to_camera of ping_pong_ball: t=1.0s, distance_pingpong_camera = 1.511 m)"
+     },
+     {
+      "kind": "statement",
+      "name": "c1",
+      "source": "prior",
+      "quantity": "distance_to_camera",
+      "object": "ping_pong_ball",
+      "statement": "t=1.4s, distance_pingpong_camera = 1.03 m",
+      "how": "its residual changes",
+      "text": "the prior statement c1 (distance_to_camera of ping_pong_ball: t=1.4s, distance_pingpong_camera = 1.03 m)"
+     },
+     {
+      "kind": "parameter",
+      "name": "g",
+      "source": "convention",
+      "value": 9.81,
+      "unit": "m/s^2",
+      "how": "the silhouettes change by 52.7",
+      "text": "g = 9.81 m/s^2 (convention: taken as given, not measured) through the law of ping_pong_ball.s2 (ballistic)"
+     },
+     {
+      "kind": "parameter",
+      "name": "ping_pong_ball.D",
+      "source": "prior",
+      "value": 0.04,
+      "unit": "m",
+      "how": "the silhouettes change by 279",
+      "text": "the prior value ping_pong_ball.D = 0.04 m"
+     }
+    ],
+    "held_by": "prior and convention"
+   },
+   "residual_variance": 17.250416234398937,
+   "n_eff": 1664,
+   "dof": 1656,
+   "tau_rel": 0.25,
+   "weak_directions": [],
+   "profiles": [
+    {
+     "linear_sigma": 0.023675263339229764,
+     "profile_sigma": 0.7576084268553525,
+     "loadings": [
+      [
+       "ping_pong_ball.s1.decel",
+       0.847
+      ],
+      [
+       "ping_pong_ball.s2.v0[0]",
+       0.46
+      ]
+     ]
+    },
+    {
+     "linear_sigma": 0.0049632483564349275,
+     "profile_sigma": 0.03970598685147942,
+     "loadings": [
+      [
+       "cam.roll",
+       -0.979
+      ]
+     ]
+    },
+    {
+     "linear_sigma": 0.004109707130422252,
+     "profile_sigma": 0.06575531408675603,
+     "loadings": [
+      [
+       "cam.f",
+       -0.928
+      ]
+     ]
+    }
+   ]
+  },
+  "params": {
+   "cam.f": {
+    "value": 620.502651748044,
+    "sigma": 92.37147153882087,
+    "undetermined": false,
+    "source": "fit",
+    "init": null
+   },
+   "cam.pitch": {
+    "value": 0.011563560331447705,
+    "sigma": 0.005782999403449497,
+    "undetermined": false,
+    "source": "fit",
+    "init": -1.0471975511965976
+   },
+   "cam.roll": {
+    "value": -0.11011348547135642,
+    "sigma": 0.071816136214315,
+    "undetermined": false,
+    "source": "fit",
+    "init": 0.0
+   },
+   "table.L": {
+    "value": 1.0,
+    "sigma": null,
+    "undetermined": true,
+    "source": "vlm",
+    "why": "no observation",
+    "init": null
+   },
+   "table.W": {
+    "value": 1.0,
+    "sigma": null,
+    "undetermined": true,
+    "source": "vlm",
+    "why": "no observation",
+    "init": null
+   },
+   "table.H": {
+    "value": 1.0,
+    "sigma": null,
+    "undetermined": true,
+    "source": "vlm",
+    "why": "no observation",
+    "init": null
+   },
+   "table.s0.p": {
+    "value": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "sigma": [
+     null,
+     null,
+     null
+    ],
+    "undetermined_components": [
+     0,
+     1,
+     2
+    ],
+    "undetermined": true,
+    "source": "vlm",
+    "why": "no observation",
+    "init": [
+     null,
+     null,
+     null
+    ]
+   },
+   "table.s0.yaw": {
+    "value": 1.0,
+    "sigma": null,
+    "undetermined": true,
+    "source": "vlm",
+    "why": "no observation",
+    "init": null
+   },
+   "ping_pong_ball.s0.p": {
+    "value": [
+     1.6964297064273572,
+     -0.16514832415617764,
+     -0.1245070224561927
+    ],
+    "sigma": [
+     0.023203958357742905,
+     0.028791630993295333,
+     0.013470549489127903
+    ],
+    "undetermined": false,
+    "source": "fit",
+    "init": [
+     0.919842023647701,
+     -0.15755252701798553,
+     1.3565005761735285
+    ]
+   },
+   "ping_pong_ball.s0.yaw": {
+    "value": 1.4016236576577235,
+    "sigma": null,
+    "undetermined": true,
+    "source": "vlm",
+    "why": "the heading of a sphere does not change its silhouette",
+    "init": null
+   },
+   "ping_pong_ball.s1.p0": {
+    "value": [
+     1.6964297064273572,
+     -0.16514832415617764,
+     -0.1245070224561927
+    ],
+    "sigma": [
+     0.023203958357742915,
+     0.028791630993295337,
+     0.013470549489127891
+    ],
+    "undetermined": false,
+    "source": "fit",
+    "init": [
+     0.9516953691039589,
+     -0.16162785199419477,
+     1.4166392222783868
+    ]
+   },
+   "ping_pong_ball.s1.v0": {
+    "value": [
+     -1.561277940320248,
+     0.07806393731441348,
+     -0.9746095333563342
+    ],
+    "sigma": [
+     0.23044354272632445,
+     0.007130710444497187,
+     null
+    ],
+    "undetermined_components": [
+     2
+    ],
+    "undetermined": true,
+    "source": "vlm",
+    "why": "no effect on any fitted frame or constraint",
+    "init": [
+     -0.5506003333439367,
+     0.04465008714107145,
+     -0.9746095333563347
+    ]
+   },
+   "ping_pong_ball.s1.decel": {
+    "value": 1.1050634819779217,
+    "sigma": null,
+    "undetermined": true,
+    "source": "vlm",
+    "why": "sigma 0.642 natural units > 0.25",
+    "init": 0.0
+   },
+   "ping_pong_ball.s1.yaw": {
+    "value": 1.4016236576577235,
+    "sigma": null,
+    "undetermined": true,
+    "source": "vlm",
+    "why": "the heading of a sphere does not change its silhouette",
+    "init": null
+   },
+   "ping_pong_ball.s2.p0": {
+    "value": [
+     0.867403742320306,
+     -0.12369700455270102,
+     -0.12450702245619272
+    ],
+    "sigma": [
+     0.03783985750363457,
+     0.020926853555475123,
+     0.0134705494891279
+    ],
+    "undetermined": false,
+    "source": "fit",
+    "init": [
+     0.5621371599879397,
+     -0.12347586412640156,
+     0.7104849177857635
+    ]
+   },
+   "ping_pong_ball.s2.v0": {
+    "value": [
+     -0.7795012524525881,
+     0.03897508274246229,
+     2.1550800433821886e-16
+    ],
+    "sigma": [
+     null,
+     0.02069760691062469,
+     1.318332452317869e-14
+    ],
+    "undetermined_components": [
+     0
+    ],
+    "undetermined": true,
+    "source": "vlm",
+    "why": "sigma 0.348 natural units > 0.25",
+    "init": [
+     -1.045818276952909,
+     0.3131795086428899,
+     -1.1282271238001775
+    ]
+   },
+   "ping_pong_ball.s2.yaw": {
+    "value": 1.4016236576577235,
+    "sigma": null,
+    "undetermined": true,
+    "source": "vlm",
+    "why": "the heading of a sphere does not change its silhouette",
+    "init": null
+   }
+  },
+  "query": {
+   "query": {
+    "object": "ping_pong_ball",
+    "binds": "speed",
+    "reference": "camera",
+    "time": 1.2,
+    "window": null,
+    "aggregate": null,
+    "component": null,
+    "unit": "cm/s",
+    "unit_factor": 0.01,
+    "event": null
+   },
+   "values": [
+    {
+     "aggregate": null,
+     "time": 1.2,
+     "window": null,
+     "segment": 1,
+     "value": 1.2040826898891481,
+     "sigma": 0.06517619258373804,
+     "depends_on": [
+      "cam.pitch",
+      "ping_pong_ball.s0.p",
+      "ping_pong_ball.s1.decel",
+      "ping_pong_ball.s1.p0",
+      "ping_pong_ball.s1.v0",
+      "ping_pong_ball.s2.p0",
+      "ping_pong_ball.s2.v0"
+     ],
+     "depends_on_tables": {},
+     "depends_on_structure": [],
+     "depends_on_convention": [],
+     "undetermined_dependencies": [],
+     "determined": true,
+     "determinacy": {
+      "scale": 1.2040826898891481,
+      "tau_rel": 0.25,
+      "sigma_formal_observed": 0.0005962549002530013,
+      "sigma_observed": 0.06393035263639461,
+      "sigma_natural": 0.05309465302775863,
+      "by_sigma": true,
+      "origin": "covariance, profile and spread scaled by the misfit, and the read segments' pose residual above the gate threshold"
+     },
+     "sigma_statements": 0.012682511245756546,
+     "statement_sigmas": [
+      {
+       "id": "c1",
+       "statement": "t=1.4s, distance_pingpong_camera = 1.03 m",
+       "precision": 0.005,
+       "sigma": 0.012620185524037732,
+       "per_unit": -2.5240371048075465
+      },
+      {
+       "id": "c0",
+       "statement": "t=1.0s, distance_pingpong_camera = 1.511 m",
+       "precision": 0.0005,
+       "sigma": 0.0012556144581940371,
+       "per_unit": 2.5112289163880743
+      },
+      {
+       "id": "ping_pong_ball.D",
+       "statement": "diameter of the ping pong ball = 40 mm",
+       "precision": 0.0005,
+       "sigma": 2.1004046843237433e-05,
+       "per_unit": -0.042008093686474866
+      }
+     ],
+     "unit_asked": "cm/s",
+     "value_in_unit": 120.40826898891481,
+     "sigma_in_unit": 6.517619258373804,
+     "read_from": [
+      {
+       "object": "ping_pong_ball",
+       "segments": [
+        1
+       ]
+      }
+     ],
+     "sigma_formal": 0.012696519657166564,
+     "misfit_scale": 1.0,
+     "misfit": [
+      {
+       "object": "ping_pong_ball",
+       "segments": [
+        1
+       ],
+       "frames": 14,
+       "residual_variance": 7.452557119612163,
+       "global_residual_variance": 17.250416234398937,
+       "scale": 1.0
+      }
+     ],
+     "sigma_residual": 0.06392757205078019,
+     "gates": {
+      "ping_pong_ball": {
+       "segments": [
+        1
+       ],
+       "pose": {
+        "pass": false,
+        "threshold_px": 1.4142135623730951,
+        "segments": {
+         "1": {
+          "pass": false,
+          "largest_px": 3.2997363938702975
+         }
+        }
+       },
+       "constraints": true,
+       "relation": true
+      }
+     },
+     "residual_terms": [
+      {
+       "object": "ping_pong_ball",
+       "segment": 1,
+       "duration_s": 0.7083333333333333,
+       "depth_m": 1.213824282253423,
+       "error": 0.06392757205078019
+      }
+     ],
+     "sigma_residual_in_unit": 6.392757205078019
+    }
+   ],
+   "determinacy_rule": "a read-out is determined when (i) nothing it reads is open for a structural reason -- a direction of zero curvature, an unbounded profile, the global scale, a held or bounded variable, a table cell or a parameter without observation -- along which its value changes, (ii) its value is the same (within its own sigma) over the equally good states of the fit, (iii) its own uncertainty from the observations (the covariance and its one-noise-unit profile, scaled by the misfit of the frames it is read from, in quadrature with the pose residual its read segments leave above the gate threshold; not the prior's written precision) is at most TAU_REL of its natural scale, and (iv) it covers its span and no table stands in for a law; a variable's own sigma flag is not inherited: the read-out's sigma is judged on the read-out",
+   "determined": true
+  },
+  "gauges": [
+   "ping_pong_ball.s0.yaw[None]: the heading of a sphere does not change its silhouette",
+   "ping_pong_ball.s1.yaw[None]: the heading of a sphere does not change its silhouette",
+   "ping_pong_ball.s2.yaw[None]: the heading of a sphere does not change its silhouette"
+  ],
+  "reference_depth": {
+   "value": 1.6814627454640683,
+   "how": "ping_pong_ball: stated distance (c0)"
+  },
+  "untracked_bodies": [
+   "table"
+  ],
+  "relation_unobserved": [
+   {
+    "object": "ping_pong_ball",
+    "segment": 0,
+    "relation": "on",
+    "target": "table",
+    "frame": "world",
+    "reason": "table has no track (unobserved): the on relation constrains nothing; the segment's static law is expressed in the world frame (relation free)"
+   },
+   {
+    "object": "ping_pong_ball",
+    "segment": 1,
+    "relation": "on",
+    "target": "table",
+    "frame": "world",
+    "reason": "table has no track (unobserved): the on relation constrains nothing; the segment's rolling law is expressed in the world frame (relation free)"
+   }
+  ],
+  "time_s": 892.7310390472412,
+  "camera_bounds": {
+   "cam.pitch": {
+    "lower": -1.5707963267948966,
+    "upper": 1.5707963267948966,
+    "why": "pitch within +-90 deg (beyond: the same camera turned)"
+   },
+   "cam.f": {
+    "lower": 282.80087222873516,
+    "upper": 56128.44045187189,
+    "why": "the physical field of view: 120 to 1 deg across the image diagonal (focal 283 to 56128 px)"
+   }
+  }
+ },
+ "fit_objects": {
+  "ping_pong_ball": {
+   "chosen_yaw_deg": 80.30712004947691,
+   "chosen_pitch_deg": -59.99999999999999,
+   "objective_before": 39292.14090759398,
+   "objective_after": 866.6133297908721,
+   "refine": {
+    "rounds": [
+     {
+      "nfev": 54,
+      "njev": 31,
+      "status": 3,
+      "objective_before": 9663.090158064866,
+      "objective_after": 1052.2323135170775,
+      "time_s": 12.601774215698242,
+      "vars": 18,
+      "blocks": 26,
+      "context_moved": 0.0,
+      "noise_unit": 16.620923542797094,
+      "objective_context": 1052.2323135170775,
+      "quiet": false,
+      "why": "drop >= 0.1 (status 3, drop 518 noise units per frame, context moved 0)",
+      "best": true
+     },
+     {
+      "nfev": 44,
+      "njev": 22,
+      "status": 2,
+      "objective_before": 1052.2323135170775,
+      "objective_after": 1049.574845111771,
+      "time_s": 8.697689294815063,
+      "vars": 18,
+      "blocks": 26,
+      "context_moved": 0.0,
+      "noise_unit": 16.578946520599057,
+      "objective_context": 1049.574845111771,
+      "quiet": false,
+      "why": "drop >= 0.1 (status 2, drop 0.16 noise units per frame, context moved 0)",
+      "best": true
+     },
+     {
+      "nfev": 18,
+      "njev": 2,
+      "status": 2,
+      "objective_before": 1049.574845111771,
+      "objective_after": 1049.5748450781316,
+      "time_s": 2.180194854736328,
+      "vars": 18,
+      "blocks": 26,
+      "context_moved": 2.2737367544323206e-13,
+      "noise_unit": 16.578946520067696,
+      "objective_context": 1049.5748450781318,
+      "quiet": true,
+      "why": "status 2, drop 2.03e-09 noise units per frame, context moved 1.37e-14",
+      "best": false
+     }
+    ],
+    "objective_before": 9663.090158064866,
+    "objective_after": 1049.574845111771,
+    "nfev": 116,
+    "time_s": 23.479658365249634,
+    "converged": true,
+    "stop": {
+     "rule": "a refine's occlusion-context rounds (render the context, solve within it, re-render) run until a round is quiet (joint_round_quiet: the solve ended by scipy's tolerances, lowered the per-frame objective by less than JOINT_QUIET_NU noise units and the re-rendered context moved it by less; a solve out of evaluations is never quiet), stop when JOINT_STALL_ROUNDS rounds bring no self-consistent objective lower by JOINT_QUIET_NU noise units, or at REFINE_MAX_ROUNDS; the state kept is the best self-consistent one visited",
+     "kind": "quiet",
+     "rounds": 3,
+     "best_round": 2,
+     "reason": "round 3 quiet (status 2, drop 2.03e-09 noise units per frame, context moved 1.37e-14); the best self-consistent state is round 2's, kept"
+    },
+    "polish": {
+     "objective_before": 1049.574845111771,
+     "objective_after": 1049.7443109076482,
+     "moves": 4,
+     "time_s": 23.80207371711731
+    }
+   },
+   "equally_good_starts": {
+    "over": "the whole scene's final objective (after the joint pass)",
+    "threshold_total": 225.75499130342877,
+    "best_objective": 14283.34464208232,
+    "others": [
+     {
+      "start": 0,
+      "objective": 14348.100203721337,
+      "within_noise": true
+     },
+     {
+      "start": 5,
+      "objective": 14307.63375531631,
+      "within_noise": true
+     },
+     {
+      "start": 3,
+      "objective": 14345.158254364811,
+      "within_noise": true
+     },
+     {
+      "start": 6,
+      "objective": 14316.883244889394,
+      "within_noise": true
+     },
+     {
+      "start": 8,
+      "objective": 14322.28654486369,
+      "within_noise": true
+     },
+     {
+      "start": 7,
+      "objective": 14367.087650578645,
+      "within_noise": true
+     },
+     {
+      "start": 4,
+      "objective": 14364.686429265575,
+      "within_noise": true
+     },
+     {
+      "start": 2,
+      "objective": 14297.898687810968,
+      "within_noise": true
+     }
+    ],
+    "scene": null
+   },
+   "scale_alignment": null,
+   "nfev": 224,
+   "time_s": 892.7274520397186,
+   "frames_fitted": 26,
+   "camera_free": true,
+   "boundary_shifts": [
+    {
+     "boundary": "s0|s1",
+     "frame_from": 19,
+     "frame_to": 21,
+     "objective": 958.2088599952541
+    },
+    {
+     "boundary": "s1|s2",
+     "frame_from": 37,
+     "frame_to": 38,
+     "objective": 866.6133297908721
+    }
+   ],
+   "fit_group": [
+    "ping_pong_ball"
+   ],
+   "size_test": {
+    "tested": false,
+    "reason": "a single free extent is the object's scale",
+    "freed": []
+   },
+   "undetermined": [
+    "ping_pong_ball.s0.yaw",
+    "ping_pong_ball.s1.decel",
+    "ping_pong_ball.s1.v0",
+    "ping_pong_ball.s1.yaw",
+    "ping_pong_ball.s2.v0",
+    "ping_pong_ball.s2.yaw"
+   ],
+   "determined": {
+    "ping_pong_ball.s0.p": {
+     "value": [
+      1.6964297064273572,
+      -0.16514832415617764,
+      -0.1245070224561927
+     ],
+     "sigma": [
+      0.023203958357742905,
+      0.028791630993295333,
+      0.013470549489127903
+     ]
+    },
+    "ping_pong_ball.s1.p0": {
+     "value": [
+      1.6964297064273572,
+      -0.16514832415617764,
+      -0.1245070224561927
+     ],
+     "sigma": [
+      0.023203958357742915,
+      0.028791630993295337,
+      0.013470549489127891
+     ]
+    },
+    "ping_pong_ball.s2.p0": {
+     "value": [
+      0.867403742320306,
+      -0.12369700455270102,
+      -0.12450702245619272
+     ],
+     "sigma": [
+      0.03783985750363457,
+      0.020926853555475123,
+      0.0134705494891279
+     ]
+    }
+   },
+   "unused_constraints": [],
+   "mask_noise": {
+    "noise_px": 0.09615384787321091,
+    "iou_consecutive": 0.9698795180722891,
+    "pairs": 41,
+    "clean": true
+   },
+   "fit_frames": [
+    0,
+    4,
+    7,
+    11,
+    14,
+    18,
+    19,
+    20,
+    21,
+    23,
+    24,
+    25,
+    26,
+    27,
+    29,
+    30,
+    31,
+    32,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    41,
+    42
+   ],
+   "residuals": {
+    "threshold_px": 1.4142135623730951,
+    "which": "clean frames",
+    "segments": [
+     {
+      "segment": 0,
+      "frames": [
+       0,
+       20
+      ],
+      "n": 21,
+      "radius_px": 7.1141599576634995,
+      "dx": {
+       "median": 0.7704761904761881,
+       "change": 0.4206797667788001,
+       "scatter": 0.10427811921388933
+      },
+      "dy": {
+       "median": -0.8235294117646959,
+       "change": 0.0028812573771572828,
+       "scatter": 0.028214088672785118
+      },
+      "log_scale": {
+       "median": 0.04794088585164123,
+       "change": 0.04615421571783944,
+       "scatter": 0.00913173621304148
+      },
+      "rotation": null,
+      "constant_px": {
+       "translation": 1.1277562911073498,
+       "scale": 0.34105913046066266,
+       "rotation": 0
+      },
+      "drift_px": {
+       "translation": 0.42068963360313394,
+       "scale": 0.3283484733372167,
+       "rotation": 0
+      },
+      "scatter_px": {
+       "translation": 0.10802759344918267,
+       "scale": 0.06496463211076542,
+       "rotation": 0
+      },
+      "shape_px": 0.17615383863449097,
+      "shape_rel": 0.024761017419173283
+     },
+     {
+      "segment": 1,
+      "frames": [
+       21,
+       37
+      ],
+      "n": 17,
+      "radius_px": 9.804569629897316,
+      "dx": {
+       "median": -1.3666966523527435,
+       "change": -2.1109668430723185,
+       "scatter": 3.193036719441036
+      },
+      "dy": {
+       "median": 0.6502289377289117,
+       "change": -0.28052023970173967,
+       "scatter": 0.8323321316237781
+      },
+      "log_scale": {
+       "median": 0.06717402626553927,
+       "change": 0.04854440681022189,
+       "scatter": 0.023105823351635222
+      },
+      "rotation": null,
+      "constant_px": {
+       "translation": 1.513491794167469,
+       "scale": 0.6586124178410309,
+       "rotation": 0
+      },
+      "drift_px": {
+       "translation": 2.129524035420364,
+       "scale": 0.47595701671288193,
+       "rotation": 0
+      },
+      "scatter_px": {
+       "translation": 3.2997363938702975,
+       "scale": 0.2265426539072149,
+       "rotation": 0
+      },
+      "shape_px": 0.2470959722995758,
+      "shape_rel": 0.025202123257516574
+     },
+     {
+      "segment": 2,
+      "frames": [
+       38,
+       41
+      ],
+      "n": 4,
+      "radius_px": 16.848180196912402,
+      "dx": {
+       "median": 3.2109065604455225,
+       "change": -1.0862945983046195,
+       "scatter": 0.62092060066694
+      },
+      "dy": {
+       "median": -2.928307181102099,
+       "change": -1.1613258027377393,
+       "scatter": 2.0776301999643296
+      },
+      "log_scale": {
+       "median": -0.09225455593671056,
+       "change": -0.2645163394529879,
+       "scatter": 0.0233568844681112
+      },
+      "rotation": null,
+      "constant_px": {
+       "translation": 4.345676459057464,
+       "scale": 1.5543213824078344,
+       "rotation": 0
+      },
+      "drift_px": {
+       "translation": 1.5901929362219698,
+       "scale": 4.456618952131589,
+       "rotation": 0
+      },
+      "scatter_px": {
+       "translation": 2.1684302248715346,
+       "scale": 0.393520998357202,
+       "rotation": 0
+      },
+      "shape_px": 1.924895703792572,
+      "shape_rel": 0.1142494727202246
+     }
+    ]
+   },
+   "gates": {
+    "program": {
+     "pass": true,
+     "reason": "structure.fill and program.validate accepted the filled program"
+    },
+    "constraints": {
+     "pass": true,
+     "worst_relative": 6.661338147750939e-13,
+     "tolerance": 0.041992771215356745,
+     "terms": 11,
+     "reason": "11 hard terms, worst (against its tolerance) ping_pong_ball.s1|s2.v[0] relative residual 6.66e-13 <= 4.20e-02"
+    },
+    "relation": {
+     "pass": true,
+     "reason": "0 times checked, 0 with no pose (unobserved driven state); worst contact 0.0e+00 m, worst outside 0.000 m",
+     "checked": 0,
+     "unknown": 0,
+     "contact_m": 0.0,
+     "outside_m": 0.0
+    },
+    "pose": {
+     "pass": false,
+     "threshold_px": 1.4142135623730951,
+     "reason": "8 pose components above 1.41 px: segment 1 constant translation 1.51 px; segment 1 drift translation 2.13 px; segment 1 scatter translation 3.30 px; segment 2 constant translation 4.35 px"
+    },
+    "shape": {
+     "pass": true,
+     "shape_rel_median": 0.025202123257516574,
+     "threshold_rel": 0.1,
+     "gating": false,
+     "reason": "shape residual after aligning pose 0.025 x the equivalent radius <= 0.1 (reported, not a gate)",
+     "boundary_px_median": 0.7249741554260254,
+     "iou_median": 0.7847321216440959
+    },
+    "pass": false
+   }
+  }
+ },
+ "fit_log": {
+  "screen": [
+   {
+    "pitch_deg": -80,
+    "yaw_deg": 68,
+    "before": 533000000.0,
+    "after": 230000.0,
+    "s": 2.6
+   },
+   {
+    "pitch_deg": -60,
+    "yaw_deg": 80,
+    "before": 43200000.0,
+    "after": 9660.0,
+    "s": 2.6
+   },
+   {
+    "pitch_deg": -40,
+    "yaw_deg": 83,
+    "before": 7640000.0,
+    "after": 9430.0,
+    "s": 2.6
+   },
+   {
+    "pitch_deg": -20,
+    "yaw_deg": 84,
+    "before": 815000.0,
+    "after": 9790.0,
+    "s": 2.6
+   },
+   {
+    "pitch_deg": 0,
+    "yaw_deg": 85,
+    "before": 39300.0,
+    "after": 10600.0,
+    "s": 2.3
+   },
+   {
+    "pitch_deg": 20,
+    "yaw_deg": 84,
+    "before": 1260000.0,
+    "after": 5460.0,
+    "s": 2.6
+   },
+   {
+    "pitch_deg": 40,
+    "yaw_deg": 83,
+    "before": 5690000.0,
+    "after": 10800.0,
+    "s": 2.5
+   },
+   {
+    "pitch_deg": 60,
+    "yaw_deg": 78,
+    "before": 23000000.0,
+    "after": 10600.0,
+    "s": 2.5
+   },
+   {
+    "pitch_deg": 80,
+    "yaw_deg": 49,
+    "before": 247000000.0,
+    "after": 643000.0,
+    "s": 2.5
+   }
+  ],
+  "refine": [
+   {
+    "start": 5,
+    "round": 1,
+    "vars": 18,
+    "frames": 26,
+    "before": 5460.0,
+    "after": 1050.0,
+    "nfev": 47,
+    "s": 9.7
+   },
+   {
+    "start": 5,
+    "round": 2,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 23,
+    "s": 3.3
+   },
+   {
+    "start": 2,
+    "round": 1,
+    "vars": 18,
+    "frames": 26,
+    "before": 9430.0,
+    "after": 1050.0,
+    "nfev": 45,
+    "s": 9.2
+   },
+   {
+    "start": 2,
+    "round": 2,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 31,
+    "s": 5.1
+   },
+   {
+    "start": 1,
+    "round": 1,
+    "vars": 18,
+    "frames": 26,
+    "before": 9660.0,
+    "after": 1050.0,
+    "nfev": 54,
+    "s": 12.6
+   },
+   {
+    "start": 1,
+    "round": 2,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 44,
+    "s": 8.7
+   },
+   {
+    "start": 1,
+    "round": 3,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 18,
+    "s": 2.2
+   },
+   {
+    "start": 3,
+    "round": 1,
+    "vars": 18,
+    "frames": 26,
+    "before": 9790.0,
+    "after": 1050.0,
+    "nfev": 60,
+    "s": 13.2
+   },
+   {
+    "start": 3,
+    "round": 2,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 20,
+    "s": 2.5
+   },
+   {
+    "start": 4,
+    "round": 1,
+    "vars": 18,
+    "frames": 26,
+    "before": 10600.0,
+    "after": 9420.0,
+    "nfev": 59,
+    "s": 10.8
+   },
+   {
+    "start": 4,
+    "round": 2,
+    "vars": 18,
+    "frames": 26,
+    "before": 9420.0,
+    "after": 5200.0,
+    "nfev": 28,
+    "s": 5.4
+   },
+   {
+    "start": 4,
+    "round": 3,
+    "vars": 18,
+    "frames": 26,
+    "before": 5200.0,
+    "after": 1050.0,
+    "nfev": 47,
+    "s": 9.5
+   },
+   {
+    "start": 4,
+    "round": 4,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 19,
+    "s": 2.2
+   },
+   {
+    "start": 7,
+    "round": 1,
+    "vars": 18,
+    "frames": 26,
+    "before": 10600.0,
+    "after": 1050.0,
+    "nfev": 47,
+    "s": 9.6
+   },
+   {
+    "start": 7,
+    "round": 2,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 29,
+    "s": 4.8
+   },
+   {
+    "start": 6,
+    "round": 1,
+    "vars": 18,
+    "frames": 26,
+    "before": 10800.0,
+    "after": 8310.0,
+    "nfev": 43,
+    "s": 8.4
+   },
+   {
+    "start": 6,
+    "round": 2,
+    "vars": 18,
+    "frames": 26,
+    "before": 8310.0,
+    "after": 4030.0,
+    "nfev": 36,
+    "s": 7.2
+   },
+   {
+    "start": 6,
+    "round": 3,
+    "vars": 18,
+    "frames": 26,
+    "before": 4030.0,
+    "after": 1050.0,
+    "nfev": 43,
+    "s": 9.5
+   },
+   {
+    "start": 6,
+    "round": 4,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 35,
+    "s": 6.1
+   },
+   {
+    "start": 0,
+    "round": 1,
+    "vars": 18,
+    "frames": 26,
+    "before": 230000.0,
+    "after": 54100.0,
+    "nfev": 60,
+    "s": 12.3
+   },
+   {
+    "start": 0,
+    "round": 2,
+    "vars": 18,
+    "frames": 26,
+    "before": 54100.0,
+    "after": 10700.0,
+    "nfev": 38,
+    "s": 6.3
+   },
+   {
+    "start": 0,
+    "round": 3,
+    "vars": 18,
+    "frames": 26,
+    "before": 10700.0,
+    "after": 5890.0,
+    "nfev": 44,
+    "s": 8.6
+   },
+   {
+    "start": 0,
+    "round": 4,
+    "vars": 18,
+    "frames": 26,
+    "before": 5890.0,
+    "after": 1050.0,
+    "nfev": 53,
+    "s": 10.9
+   },
+   {
+    "start": 0,
+    "round": 5,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 36,
+    "s": 6.7
+   },
+   {
+    "start": 8,
+    "round": 1,
+    "vars": 18,
+    "frames": 26,
+    "before": 643000.0,
+    "after": 4660.0,
+    "nfev": 39,
+    "s": 7.9
+   },
+   {
+    "start": 8,
+    "round": 2,
+    "vars": 18,
+    "frames": 26,
+    "before": 4660.0,
+    "after": 1050.0,
+    "nfev": 53,
+    "s": 12.7
+   },
+   {
+    "start": 8,
+    "round": 3,
+    "vars": 18,
+    "frames": 26,
+    "before": 1050.0,
+    "after": 1050.0,
+    "nfev": 31,
+    "s": 5.1
+   }
+  ],
+  "joint": [
+   {
+    "candidate": 0,
+    "kind": "round",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 866.0,
+    "after": 552.0,
+    "nfev": 37,
+    "s": 7.0
+   },
+   {
+    "candidate": 0,
+    "kind": "round",
+    "n": 2,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 552.0,
+    "nfev": 28,
+    "s": 2.9
+   },
+   {
+    "candidate": 0,
+    "kind": "round",
+    "n": 3,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 552.0,
+    "nfev": 36,
+    "s": 3.3
+   },
+   {
+    "candidate": 0,
+    "kind": "descent step",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 552.0,
+    "nfev": 28,
+    "s": 2.8
+   },
+   {
+    "candidate": 5,
+    "kind": "round",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 869.0,
+    "after": 550.0,
+    "nfev": 47,
+    "s": 9.2
+   },
+   {
+    "candidate": 5,
+    "kind": "round",
+    "n": 2,
+    "vars": 19,
+    "frames": 26,
+    "before": 550.0,
+    "after": 550.0,
+    "nfev": 37,
+    "s": 6.3
+   },
+   {
+    "candidate": 5,
+    "kind": "round",
+    "n": 3,
+    "vars": 19,
+    "frames": 26,
+    "before": 550.0,
+    "after": 550.0,
+    "nfev": 24,
+    "s": 2.7
+   },
+   {
+    "candidate": 5,
+    "kind": "descent step",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 550.0,
+    "after": 550.0,
+    "nfev": 37,
+    "s": 6.8
+   },
+   {
+    "candidate": 3,
+    "kind": "round",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 870.0,
+    "after": 554.0,
+    "nfev": 43,
+    "s": 8.1
+   },
+   {
+    "candidate": 3,
+    "kind": "round",
+    "n": 2,
+    "vars": 19,
+    "frames": 26,
+    "before": 554.0,
+    "after": 552.0,
+    "nfev": 39,
+    "s": 7.3
+   },
+   {
+    "candidate": 3,
+    "kind": "round",
+    "n": 3,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 552.0,
+    "nfev": 20,
+    "s": 2.3
+   },
+   {
+    "candidate": 3,
+    "kind": "round",
+    "n": 4,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 552.0,
+    "nfev": 20,
+    "s": 2.7
+   },
+   {
+    "candidate": 3,
+    "kind": "descent step",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 552.0,
+    "nfev": 20,
+    "s": 2.5
+   },
+   {
+    "candidate": 6,
+    "kind": "round",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 872.0,
+    "after": 552.0,
+    "nfev": 44,
+    "s": 8.3
+   },
+   {
+    "candidate": 6,
+    "kind": "round",
+    "n": 2,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 551.0,
+    "nfev": 43,
+    "s": 8.1
+   },
+   {
+    "candidate": 6,
+    "kind": "round",
+    "n": 3,
+    "vars": 19,
+    "frames": 26,
+    "before": 551.0,
+    "after": 551.0,
+    "nfev": 21,
+    "s": 2.4
+   },
+   {
+    "candidate": 6,
+    "kind": "round",
+    "n": 4,
+    "vars": 19,
+    "frames": 26,
+    "before": 551.0,
+    "after": 551.0,
+    "nfev": 21,
+    "s": 2.4
+   },
+   {
+    "candidate": 6,
+    "kind": "descent step",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 551.0,
+    "after": 551.0,
+    "nfev": 21,
+    "s": 2.4
+   },
+   {
+    "candidate": 8,
+    "kind": "round",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 874.0,
+    "after": 551.0,
+    "nfev": 45,
+    "s": 8.8
+   },
+   {
+    "candidate": 8,
+    "kind": "round",
+    "n": 2,
+    "vars": 19,
+    "frames": 26,
+    "before": 551.0,
+    "after": 551.0,
+    "nfev": 31,
+    "s": 5.0
+   },
+   {
+    "candidate": 8,
+    "kind": "round",
+    "n": 3,
+    "vars": 19,
+    "frames": 26,
+    "before": 551.0,
+    "after": 551.0,
+    "nfev": 34,
+    "s": 5.1
+   },
+   {
+    "candidate": 8,
+    "kind": "descent step",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 551.0,
+    "after": 551.0,
+    "nfev": 31,
+    "s": 4.6
+   },
+   {
+    "candidate": 7,
+    "kind": "round",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 869.0,
+    "after": 553.0,
+    "nfev": 45,
+    "s": 9.0
+   },
+   {
+    "candidate": 7,
+    "kind": "round",
+    "n": 2,
+    "vars": 19,
+    "frames": 26,
+    "before": 553.0,
+    "after": 553.0,
+    "nfev": 33,
+    "s": 5.4
+   },
+   {
+    "candidate": 7,
+    "kind": "round",
+    "n": 3,
+    "vars": 19,
+    "frames": 26,
+    "before": 553.0,
+    "after": 553.0,
+    "nfev": 22,
+    "s": 2.5
+   },
+   {
+    "candidate": 7,
+    "kind": "descent step",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 553.0,
+    "after": 553.0,
+    "nfev": 33,
+    "s": 5.1
+   },
+   {
+    "candidate": 4,
+    "kind": "round",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 873.0,
+    "after": 552.0,
+    "nfev": 46,
+    "s": 9.6
+   },
+   {
+    "candidate": 4,
+    "kind": "round",
+    "n": 2,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 552.0,
+    "nfev": 37,
+    "s": 6.5
+   },
+   {
+    "candidate": 4,
+    "kind": "round",
+    "n": 3,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 552.0,
+    "nfev": 21,
+    "s": 2.4
+   },
+   {
+    "candidate": 4,
+    "kind": "descent step",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 552.0,
+    "after": 552.0,
+    "nfev": 37,
+    "s": 6.5
+   },
+   {
+    "candidate": 2,
+    "kind": "round",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 868.0,
+    "after": 553.0,
+    "nfev": 36,
+    "s": 7.0
+   },
+   {
+    "candidate": 2,
+    "kind": "round",
+    "n": 2,
+    "vars": 19,
+    "frames": 26,
+    "before": 553.0,
+    "after": 550.0,
+    "nfev": 43,
+    "s": 8.3
+   },
+   {
+    "candidate": 2,
+    "kind": "round",
+    "n": 3,
+    "vars": 19,
+    "frames": 26,
+    "before": 550.0,
+    "after": 550.0,
+    "nfev": 21,
+    "s": 2.4
+   },
+   {
+    "candidate": 2,
+    "kind": "round",
+    "n": 4,
+    "vars": 19,
+    "frames": 26,
+    "before": 550.0,
+    "after": 550.0,
+    "nfev": 21,
+    "s": 2.3
+   },
+   {
+    "candidate": 2,
+    "kind": "descent step",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 550.0,
+    "after": 550.0,
+    "nfev": 21,
+    "s": 2.4
+   },
+   {
+    "candidate": 1,
+    "kind": "round",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 867.0,
+    "after": 554.0,
+    "nfev": 41,
+    "s": 7.5
+   },
+   {
+    "candidate": 1,
+    "kind": "round",
+    "n": 2,
+    "vars": 19,
+    "frames": 26,
+    "before": 554.0,
+    "after": 553.0,
+    "nfev": 39,
+    "s": 7.4
+   },
+   {
+    "candidate": 1,
+    "kind": "round",
+    "n": 3,
+    "vars": 19,
+    "frames": 26,
+    "before": 553.0,
+    "after": 550.0,
+    "nfev": 38,
+    "s": 7.3
+   },
+   {
+    "candidate": 1,
+    "kind": "round",
+    "n": 4,
+    "vars": 19,
+    "frames": 26,
+    "before": 550.0,
+    "after": 549.0,
+    "nfev": 39,
+    "s": 7.6
+   },
+   {
+    "candidate": 1,
+    "kind": "round",
+    "n": 5,
+    "vars": 19,
+    "frames": 26,
+    "before": 549.0,
+    "after": 549.0,
+    "nfev": 20,
+    "s": 2.4
+   },
+   {
+    "candidate": 1,
+    "kind": "round",
+    "n": 6,
+    "vars": 19,
+    "frames": 26,
+    "before": 549.0,
+    "after": 549.0,
+    "nfev": 20,
+    "s": 2.3
+   },
+   {
+    "candidate": 1,
+    "kind": "descent step",
+    "n": 1,
+    "vars": 19,
+    "frames": 26,
+    "before": 549.0,
+    "after": 549.0,
+    "nfev": 20,
+    "s": 2.4
+   }
+  ],
+  "shifts": [
+   {
+    "object": "ping_pong_ball",
+    "frames": 2,
+    "from": 19,
+    "to": 21
+   },
+   {
+    "object": "ping_pong_ball",
+    "frames": 1,
+    "from": 37,
+    "to": 38
+   }
+  ],
+  "done_s": 936,
+  "iou_median": 0.7814207650273224
+ },
+ "start_kept": [
+  "table.L",
+  "table.W",
+  "table.H",
+  "table.s0.p",
+  "table.s0.yaw",
+  "ping_pong_ball.s0.yaw",
+  "ping_pong_ball.s1.yaw",
+  "ping_pong_ball.s2.yaw"
+ ],
+ "pairs": [
+  {
+   "frame": 0,
+   "t": 0.0,
+   "start": {
+    "image": "program_start_f0000.jpg",
+    "iou": {
+     "ping_pong_ball": 0.0
+    }
+   },
+   "fitted": {
+    "image": "program_fitted_f0000.jpg",
+    "iou": {
+     "ping_pong_ball": 0.824
+    }
+   }
+  },
+  {
+   "frame": 10,
+   "t": 0.417,
+   "start": {
+    "image": "program_start_f0010.jpg",
+    "iou": {
+     "ping_pong_ball": 0.0
+    }
+   },
+   "fitted": {
+    "image": "program_fitted_f0010.jpg",
+    "iou": {
+     "ping_pong_ball": 0.836
+    }
+   }
+  },
+  {
+   "frame": 21,
+   "t": 0.875,
+   "start": {
+    "image": "program_start_f0021.jpg",
+    "iou": {
+     "ping_pong_ball": 0.0
+    }
+   },
+   "fitted": {
+    "image": "program_fitted_f0021.jpg",
+    "iou": {
+     "ping_pong_ball": 0.792
+    }
+   }
+  },
+  {
+   "frame": 32,
+   "t": 1.333,
+   "start": {
+    "image": "program_start_f0032.jpg",
+    "iou": {
+     "ping_pong_ball": 0.0
+    }
+   },
+   "fitted": {
+    "image": "program_fitted_f0032.jpg",
+    "iou": {
+     "ping_pong_ball": 0.648
+    }
+   }
+  },
+  {
+   "frame": 42,
+   "t": 1.75,
+   "start": {
+    "image": "program_start_f0042.jpg",
+    "iou": {
+     "ping_pong_ball": 0.459
+    }
+   },
+   "fitted": {
+    "image": "program_fitted_f0042.jpg",
+    "iou": {
+     "ping_pong_ball": 0.429
+    }
+   }
+  }
+ ],
+ "answer": {
+  "schema": "sceneprog-answer/1",
+  "unit": "captured_0021x_q1",
+  "question": "What is the velocity of the ping pong ball at 1.2s in cm/s?",
+  "unit_asked": "cm/s",
+  "answer_scene": {
+   "value": 120.40826898891481,
+   "sigma": 6.517619258373804,
+   "unit": "cm/s",
+   "determined": true,
+   "reason": null,
+   "source": "scene"
+  },
+  "answer_final": {
+   "value": 120.4,
+   "unit": "cm/s",
+   "source": "agent",
+   "rationale": "The reconstruction is credible for the ball's speed at 1.2 s, although its later falling motion has a weaker silhouette fit. The frames show the ball moving predominantly toward the camera across the tabletop. The exact distance priors bracket 1.2 s symmetrically, giving a central-difference speed of (1.511\u22121.030)/(1.4\u22121.0) = 1.2025 m/s, or 120.25 cm/s. The small difference between this radial speed and the reconstructed speed of 120.41 cm/s is consistent with a small transverse component, so my best estimate is 120.4 cm/s.",
+   "model_calls": 1,
+   "inputs_used": [
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/fit.json",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/plan.json",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/scene.json",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00000.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00003.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00006.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00010.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00013.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00016.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00019.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00022.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00026.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00029.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00032.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00035.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00038.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00042.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00045.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00048.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0000.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0010.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0021.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0032.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0042.jpg"
+   ],
+   "reason": null,
+   "inputs_cited": [
+    "question",
+    "prior",
+    "frames",
+    "overlays",
+    "reconstruction",
+    "reconstruction_value"
+   ],
+   "calls": [
+    {
+     "attempt": 1,
+     "prompt_chars": 4083,
+     "response": "{\"value\":120.4,\"unit\":\"cm/s\",\"rationale\":\"The reconstruction is credible for the ball's speed at 1.2 s, although its later falling motion has a weaker silhouette fit. The frames show the ball moving predominantly toward the camera across the tabletop. The exact distance priors bracket 1.2 s symmetrically, giving a central-difference speed of (1.511\u22121.030)/(1.4\u22121.0) = 1.2025 m/s, or 120.25 cm/s. The small difference between this radial speed and the reconstructed speed of 120.41 cm/s is consistent with a small transverse component, so my best estimate is 120.4 cm/s.\",\"inputs_relied_on\":[\"question\",\"prior\",\"frames\",\"overlays\",\"reconstruction\",\"reconstruction_value\"]}",
+     "memo_hit": false,
+     "status": "ok"
+    }
+   ],
+   "scene_determined": true,
+   "scene_value": 120.40826898891481,
+   "prompt_sha256": "a8eb04ace1b3c19370f9f643c79ebcf6bb4dd7eb06f5f0e8d8544d4a62624488",
+   "images": [
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00000.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00003.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00006.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00010.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00013.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00016.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00019.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00022.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00026.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00029.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00032.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00035.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00038.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00042.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00045.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/answer_frames16/captured_0021x/f00048.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0000.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0010.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0021.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0032.jpg",
+    "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1/overlay_f0042.jpg"
+   ]
+  },
+  "provenance": {
+   "tag": "main",
+   "dir": "/data/yumenghe/QuantiPhy/outputs/sceneprog/main/captured_0021x_q1",
+   "fit_status": "fitted",
+   "structure_sha256": "9d3cc1ddb0e9b716cb64dfa5945b49ca003205bb84a6e9e14d2359da09f407bb",
+   "fit_sha256": "ada732438bd747a0c8b7b5d920b1b0a9e2d92ee3077e109e340aa35408e25c87",
+   "model": {
+    "model": "gpt-6.1-sol",
+    "endpoints": [
+     "http://127.0.0.1:8318/v1/chat/completions"
+    ],
+    "protocol": "chat/completions",
+    "backend": "gpt"
+   }
+  }
+ },
+ "driver": {
+  "masks": {
+   "seconds": 63,
+   "start": "2026-11-14T14:21:55",
+   "end": "2026-11-14T14:22:58"
+  },
+  "build": {
+   "seconds": 48,
+   "start": "2026-11-14T14:22:59",
+   "end": "2026-11-14T14:23:48"
+  },
+  "fit": {
+   "seconds": 937,
+   "start": "2026-11-14T14:23:48",
+   "end": "2026-11-14T14:39:24"
+  },
+  "answer": {
+   "seconds": 16,
+   "start": "2026-11-14T14:39:25",
+   "end": "2026-11-14T14:39:41"
+  }
+ },
+ "answer_log": {
+  "requests": 1,
+  "s": 9
+ },
+ "copied": [
+  "plan_grid.jpg",
+  "shape_ping_pong_ball.png",
+  "shape_table.png"
+ ]
+}
