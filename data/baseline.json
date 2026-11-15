@@ -35,7 +35,7 @@
    "key": "qwen35_27b",
    "label": "Qwen3.5-27B",
    "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
-   "setup": "pure model inference, no tools, same video input and prompt as Gemini-4-Carbon; thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no fallback), physmind_quantiphy/run_gpt.py --input video on Google Colab; 2026-11-13"
+   "setup": "pure model inference, no tools, same video input and prompt as Gemini-4-Carbon; thinking on; qwen/qwen3.5-27b via OpenRouter, physmind_quantiphy/run_gpt.py --input video on Google Colab; 2026-11-14"
   }
  ],
  "videos": [
@@ -1847,9 +1847,9 @@
      "raw": "5.26"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600398-pqRLss928euLdSViw2jj\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 4.5,
+     "mra": 0.7,
+     "raw": "4.5"
     }
    }
   },
@@ -1889,9 +1889,9 @@
      "raw": "1.98"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600399-AzpkLBzXec2xfSGrE7Im\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 1.8,
+     "mra": 0.8,
+     "raw": "1.8"
     }
    }
   },
@@ -1931,9 +1931,9 @@
      "raw": "28.5"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600399-NUr3CbYfOoOxYylpgrG1\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 30.0,
+     "mra": 1.0,
+     "raw": "30"
     }
    }
   },
@@ -2561,9 +2561,9 @@
      "raw": "22"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600393-5x6z28ZYRygpXfRSx5HU\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 22.0,
+     "mra": 1.0,
+     "raw": "22"
     }
    }
   },
@@ -2603,9 +2603,9 @@
      "raw": "175"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600394-eOKFGbjQnuKcAPcfbJ58\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 175.0,
+     "mra": 1.0,
+     "raw": "175"
     }
    }
   },
@@ -2645,9 +2645,9 @@
      "raw": "160"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600395-KXFLlOn5Y2lnKxOKI2C0\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 175.0,
+     "mra": 0.9,
+     "raw": "175"
     }
    }
   },
@@ -2689,7 +2689,7 @@
     "qwen35_27b": {
      "pred": null,
      "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600395-8GXnxd3ONOC2KARz8jel\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "raw": "ERROR: empty answer (status None)"
     }
    }
   },
@@ -2729,9 +2729,9 @@
      "raw": "3.75"
     },
     "qwen35_27b": {
-     "pred": null,
+     "pred": 10.0,
      "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600396-zmmfng5Xwxr7xcOVnOav\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "raw": "10"
     }
    }
   },
@@ -2771,9 +2771,9 @@
      "raw": "6.37"
     },
     "qwen35_27b": {
-     "pred": null,
+     "pred": 0.0,
      "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600396-YTokqFE91LYitJ2sN2tP\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "raw": "0"
     }
    }
   },
@@ -2813,9 +2813,9 @@
      "raw": "2.8"
     },
     "qwen35_27b": {
-     "pred": null,
+     "pred": 5.2,
      "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600397-o8HdBl52mgVPPUm4jAKx\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "raw": "5.2"
     }
    }
   },
@@ -4703,9 +4703,9 @@
      "raw": "1.41"
     },
     "qwen35_27b": {
-     "pred": null,
+     "pred": 1.5,
      "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600400-n26vSScgfUrUnpsVacgT\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "raw": "1.5"
     }
    }
   },
@@ -4745,9 +4745,9 @@
      "raw": "1.88"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600400-IopZB4E4XrNnPpsz8ssY\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 1.9,
+     "mra": 0.9,
+     "raw": "1.9"
     }
    }
   },
@@ -4787,9 +4787,9 @@
      "raw": "1.32"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600401-Zli1D5OiknHMObJfii26\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 0.94,
+     "mra": 0.7,
+     "raw": "0.94"
     }
    }
   },
@@ -4829,9 +4829,9 @@
      "raw": "12.5"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600402-9KYZsbXS2n8BgLdHrMdC\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 10.0,
+     "mra": 0.9,
+     "raw": "10"
     }
    }
   },
@@ -4871,9 +4871,9 @@
      "raw": "13.5"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600402-wRN3RCBNPsw30Farzll1\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 9.4,
+     "mra": 0.5,
+     "raw": "9.4"
     }
    }
   },
@@ -4913,9 +4913,9 @@
      "raw": "2.84"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794600403-EtEYbAX7HN8QzqpwTk9l\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 3.76,
+     "mra": 0.2,
+     "raw": "3.76"
     }
    }
   },
@@ -6551,9 +6551,9 @@
      "raw": "0.006"
     },
     "qwen35_27b": {
-     "pred": null,
+     "pred": 0.012,
      "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794601143-8EQkqdD1btDHeWrhEZHL\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "raw": "0.012"
     }
    }
   },
@@ -6593,9 +6593,9 @@
      "raw": "0.0045"
     },
     "qwen35_27b": {
-     "pred": null,
-     "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794601143-h7rvunnPDlGo8qejYelb\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "pred": 0.002304,
+     "mra": 0.6,
+     "raw": "0.002304"
     }
    }
   },
@@ -6635,9 +6635,9 @@
      "raw": "0.0033"
     },
     "qwen35_27b": {
-     "pred": null,
+     "pred": 0.015,
      "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794601143-fVgvWSJ01zsT23x18DHC\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "raw": "0.015"
     }
    }
   },
@@ -6677,9 +6677,9 @@
      "raw": "0.0264"
     },
     "qwen35_27b": {
-     "pred": null,
+     "pred": 0.04,
      "mra": 0.0,
-     "raw": "ERROR: no choices: {\"id\": \"gen-1794601143-nSWBGF538Af0mYd7sZP9\", \"error\": {\"message\": \"Upstream error from Alibaba: <400> InternalError.Algo.InvalidParameter: The video modality input does not meet the requirements because: The video file is too short.\", \"code\": 502, \"metadata\": {\"error_type\": \"provider_unavailable\"}}}"
+     "raw": "0.04"
     }
    }
   },

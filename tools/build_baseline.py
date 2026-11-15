@@ -69,7 +69,7 @@ METHODS = {
     "qwen35_27b": {  # video input since 2026-11-14 (the 16-frame run of 2026-11-07 scored 0.548)
         "label": "Qwen3.5-27B",
         "source": "https://huggingface.co/Qwen/Qwen3.5-27B",
-        "setup": "pure model inference, no tools, same video input and prompt as Gemini-4-Carbon; thinking on; qwen/qwen3.5-27b via OpenRouter pinned to Alibaba (the model's own host, no fallback), physmind_quantiphy/run_gpt.py --input video on Google Colab; 2026-11-13",
+        "setup": "pure model inference, no tools, same video input and prompt as Gemini-4-Carbon; thinking on; qwen/qwen3.5-27b via OpenRouter, physmind_quantiphy/run_gpt.py --input video on Google Colab; 2026-11-14",
     },
 }
 
