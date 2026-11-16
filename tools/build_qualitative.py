@@ -1,7 +1,7 @@
 """Home > Qualitative Comparison: on each frame where a baseline drew its reconstruction, the final scene program of
 one of the frame's questions, PhysMind's posed meshes and Thinking with Spatial Code's 3D boxes.
 
-  python -B web/tools/build_qualitative.py --tag v6val
+  python -B web/tools/build_qualitative.py --tag main
 
 Frames: those of data/physmind/index.json and the frames Thinking with Spatial Code drew its encoder's boxes on
 (drawn_frame of data/spatialcode/index.json, the encoder frame nearest to the PhysMind frame). Both runs' images are

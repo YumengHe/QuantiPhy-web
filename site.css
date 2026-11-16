@@ -225,28 +225,13 @@ td.align-warn { background: color-mix(in srgb, var(--c-orange) 18%, white); }
 .qc-cols span { display: flex; align-items: center; }
 .qc-cap { margin: 3px 0 10px; }
 
-/* versions */
-.versions th { white-space: normal; }
-.versions td:first-child { font-weight: 600; white-space: nowrap; }
-.versions td.n, .versions th.n { width: 7.5em; }
-.versions ol.batches { margin: 6px 0 0; padding-left: 22px; font-size: 14px; }
-.versions ol.batches li { margin: 2px 0; }
-@media (max-width: 560px) {
-  .versions, .versions tbody, .versions tr, .versions td { display: block; width: auto; }
-  .versions tr:first-child { display: none; }
-  .versions tr { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
-  .versions td { border: 0; padding: 2px 0; }
-  .versions td.n { width: auto; text-align: left; }
-  .versions td.n::before { content: attr(data-k) "  "; color: var(--muted); font-weight: 400; white-space: pre; }
-}
-
 /* evaluation: named pass/fail checks of an answer */
 .qsrc.qfailed { color: var(--text); border-left: 3px solid var(--reverted); padding-left: 7px; }
 table.checks { width: auto; min-width: 60%; margin-bottom: 10px; }
 table.checks > tbody > tr.bad > td:nth-child(2) { color: var(--text); background: var(--bad-bg); font-weight: 600; }
 table.checks > tbody > tr.ok > td:nth-child(2) { color: var(--muted); }
 .notans { color: var(--muted); text-decoration: line-through; }
-/* evaluation (v5): one row per measurement of the asked quantity; the chosen one carries the accent bar */
+/* evaluation: one row per measurement of the asked quantity; the chosen one carries the accent bar */
 table.meas { width: auto; min-width: 70%; margin-bottom: 10px; }
 table.meas td.mval { white-space: nowrap; }
 table.meas .msub { display: block; font-size: 11.5px; color: var(--muted); }
@@ -263,7 +248,7 @@ table.gev { width: auto; min-width: 60%; margin-bottom: 10px; }
 table.gev tr.inadm td:not(.bad) { color: var(--muted); }
 table.gev td.bad { color: var(--text); background: var(--bad-bg); }
 table.gev td.ok { color: var(--muted); }
-/* evaluation (v5): object dimensions in columns by source; a bound dimension is an interval */
+/* evaluation: object dimensions in columns by source; a bound dimension is an interval */
 table.objs td.dims .dim { display: block; white-space: nowrap; font-variant-numeric: tabular-nums; }
 table.objs .dims-prior { color: var(--muted); }
 table.objs .dims-bound { color: var(--muted); font-style: italic; }
